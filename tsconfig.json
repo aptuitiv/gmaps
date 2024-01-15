@@ -1,0 +1,11 @@
+{
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "theresolveJsonModule": true,
+    "target": "es6",
+    "outDir": "ts-out"
+  }
+}
