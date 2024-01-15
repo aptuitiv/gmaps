@@ -4,7 +4,7 @@
     "allowSyntheticDefaultImports": true,
     "module": "esnext",
     "moduleResolution": "node",
-    "theresolveJsonModule": true,
+    "resolveJsonModule": true,
     "target": "es6",
     "outDir": "ts-out"
   }
