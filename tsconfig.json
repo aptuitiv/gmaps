@@ -6,6 +6,6 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "target": "es6",
-    "outDir": "ts-out"
+    "outDir": "dist"
   }
 }
