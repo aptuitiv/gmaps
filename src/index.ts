@@ -2,12 +2,33 @@
     Main file for the Google Map Display library
 =========================================================================== */
 
-import { InitConfig, Map } from './lib/Map';
+import { latLng } from './lib/LatLng';
+import { map } from './lib/Map';
+import { marker } from './lib/Marker';
+import GlobalObj from './types';
 
-const map = (id: string, config: InitConfig) => new Map(id, config);
-
-const GMD = {
+// Set up the global namespace object
+const G: GlobalObj = {
+  latLng,
   map,
+  marker,
 };
 
-window.GMD = GMD;
+function getGlobalObject() {
+  if (typeof globalThis !== 'undefined') {
+    return globalThis;
+  }
+  if (typeof self !== 'undefined') {
+    return self;
+  }
+  if (typeof window !== 'undefined') {
+    return window;
+  }
+  if (typeof global !== 'undefined') {
+    return global;
+  }
+
+  throw new Error('Unable to locate global object.');
+}
+
+getGlobalObject().G = G;
