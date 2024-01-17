@@ -4,7 +4,7 @@
 
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
 
-export type InitConfig = {
+export type MapConfig = {
   apiKey: string;
   latitude: number;
   libraries?: Libraries;
@@ -51,9 +51,9 @@ export class Map {
    * Class constructor
    *
    * @param {string} id The id of the element that the map will be rendered in
-   * @param {InitConfig} configuration The configuration object for the map
+   * @param {MapConfig} configuration The configuration object for the map
    */
-  constructor(id: string, configuration: InitConfig) {
+  constructor(id: string, configuration: MapConfig) {
     this.id = id;
     this.apiKey = configuration.apiKey;
     this.libraries = configuration.libraries ?? ['places'];
@@ -106,4 +106,22 @@ export class Map {
         console.error(err);
       });
   }
+
+  /**
+   * Returns the Google map object
+   *
+   * @returns {google.maps.Map}
+   */
+  get(): google.maps.Map {
+    return this.map;
+  }
 }
+
+/**
+ * Helper function to set up the map object
+ *
+ * @param {string} id The id of the element that the map will be rendered in
+ * @param {MapConfig} config The map configuration
+ * @returns {Map}
+ */
+export const map = (id: string, config: MapConfig): Map => new Map(id, config);
