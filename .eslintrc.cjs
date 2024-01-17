@@ -1,9 +1,10 @@
 module.exports = {
   parser: "@typescript-eslint/parser",
   extends: [
-    "airbnb-base",
+    "airbnb-base", // https://github.com/airbnb/javascript
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended",
+    'prettier', // https://github.com/prettier/eslint-config-prettier
   ],
   plugins: [
     "@typescript-eslint"
@@ -12,7 +13,7 @@ module.exports = {
     "import/extensions": [
       "error",
       "never",
-      {"js": "always"}
+      { "js": "always" }
     ],
     // specify the maximum length of a line in your program
     // Overriding airbnb styles
