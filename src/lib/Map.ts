@@ -4,7 +4,7 @@
 
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
 
-export type MapConfig = {
+export type MapOptions = {
     apiKey: string;
     latitude: number;
     libraries?: Libraries;
@@ -38,9 +38,9 @@ export class Map {
     private map: google.maps.Map;
 
     /**
-     * Holds the configuration object for the Google maps object
+     * Holds the options object for the Google maps object
      */
-    private mapConfig: google.maps.MapOptions;
+    private mapOptions: google.maps.MapOptions;
 
     /**
      * Holds the version of the Google Maps API to load
@@ -51,24 +51,24 @@ export class Map {
      * Class constructor
      *
      * @param {string} id The id of the element that the map will be rendered in
-     * @param {MapConfig} configuration The configuration object for the map
+     * @param {MapOptions} options The options object for the map
      */
-    constructor(id: string, configuration: MapConfig) {
+    constructor(id: string, options: MapOptions) {
         this.id = id;
-        this.apiKey = configuration.apiKey;
-        this.libraries = configuration.libraries ?? ['places'];
-        this.version = configuration.version ?? 'weekly';
+        this.apiKey = options.apiKey;
+        this.libraries = options.libraries ?? ['places'];
+        this.version = options.version ?? 'weekly';
 
-        // Default map configuration
+        // Default map options
         const defaultConfig = {
             zoom: 8,
         };
-        const config = { ...defaultConfig, ...configuration };
+        const config = { ...defaultConfig, ...options };
         delete config.apiKey;
         delete config.libraries;
         delete config.version;
 
-        this.mapConfig = {
+        this.mapOptions = {
             center: {
                 lat: config.latitude,
                 lng: config.longitude,
@@ -93,7 +93,7 @@ export class Map {
         loader
             .importLibrary('maps')
             .then((google) => {
-                this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapConfig);
+                this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapOptions);
                 if (typeof callback === 'function') {
                     callback();
                 }
@@ -118,7 +118,7 @@ export class Map {
  * Helper function to set up the map object
  *
  * @param {string} id The id of the element that the map will be rendered in
- * @param {MapConfig} config The map configuration
+ * @param {MapOptions} config The map options
  * @returns {Map}
  */
-export const map = (id: string, config: MapConfig): Map => new Map(id, config);
+export const map = (id: string, config: MapOptions): Map => new Map(id, config);

@@ -5,8 +5,16 @@
 import { LatLng, LatLngValue } from './LatLng';
 import { Map } from './Map';
 
-// Marker configuration
-export type MarkerConfig = {
+// Marker options
+export type MarkerOptions = {
+    icon?: {
+        url: string;
+        anchor?: google.maps.Point;
+        labelOrigin?: google.maps.Point;
+        origin?: google.maps.Point;
+        scaledSize?: google.maps.Size;
+        size?: google.maps.Size;
+    };
     title?: string;
 };
 
@@ -28,9 +36,9 @@ export class Marker {
      * Constructor
      *
      * @param {LatLngValue} latLng The latitude longitude pair
-     * @param {MarkerConfig} config The marker configuration
+     * @param {MarkerOptions} options The marker options
      */
-    constructor(latLng: LatLngValue, config?: MarkerConfig) {
+    constructor(latLng: LatLngValue, options?: MarkerOptions) {
         if (latLng instanceof LatLng) {
             this.latLng = latLng;
         } else {
@@ -39,7 +47,7 @@ export class Marker {
 
         this.marker = new google.maps.Marker({
             position: this.latLng.toJson(),
-            title: config?.title,
+            title: options?.title,
         });
     }
 
@@ -57,7 +65,7 @@ export class Marker {
  * Helper function to set up the marker object
  *
  * @param {LatLngValue} latLng The latitude/longitude pair
- * @param {MarkerConfig} config The marker configuration
+ * @param {MarkerOptions} options The marker options
  * @returns {Marker}
  */
-export const marker = (latLng: LatLngValue, config: MarkerConfig): Marker => new Marker(latLng, config);
+export const marker = (latLng: LatLngValue, options: MarkerOptions): Marker => new Marker(latLng, options);
