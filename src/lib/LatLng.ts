@@ -7,8 +7,8 @@ import { isNumber, isNumberString, isObject } from './test-types';
 // The object literal for a latitude/longitude pair.
 // Example: `{lat: 32.33, lng: -64.45}`
 type LatLngLiteral = {
-    lat: number;
-    lng: number;
+    lat: number | string;
+    lng: number | string;
 };
 
 // The possible types of latitude values
@@ -110,9 +110,9 @@ export class LatLng {
     /**
      * Converts the latitude/longitude pair to a JSON object
      *
-     * @returns {LatLngLiteral}
+     * @returns {google.maps.LatLngLiteral}
      */
-    toJson(): LatLngLiteral {
+    toJson(): google.maps.LatLngLiteral {
         return {
             lat: this.latitude,
             lng: this.longitude,

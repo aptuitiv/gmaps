@@ -2,19 +2,13 @@
     Enables building and managing markers
 =========================================================================== */
 
+import { icon, IconValue } from './Icon';
 import { LatLng, LatLngValue } from './LatLng';
 import { Map } from './Map';
 
 // Marker options
 export type MarkerOptions = {
-    icon?: {
-        url: string;
-        anchor?: google.maps.Point;
-        labelOrigin?: google.maps.Point;
-        origin?: google.maps.Point;
-        scaledSize?: google.maps.Size;
-        size?: google.maps.Size;
-    };
+    icon?: IconValue;
     title?: string;
 };
 
@@ -49,6 +43,10 @@ export class Marker {
             position: this.latLng.toJson(),
             title: options?.title,
         });
+        console.log('Marker options', options);
+        if (options?.icon) {
+            this.marker.setIcon(icon(options.icon).get());
+        }
     }
 
     /**
