@@ -12,7 +12,7 @@ type LatLngLiteral = {
 };
 
 // The possible types of latitude values
-export type Latitude = number | number[] | LatLngLiteral;
+export type Latitude = number | number[] | string | string[] | LatLngLiteral;
 
 /**
  * The LatLng class to set up and manage latitude/longitude pairs
@@ -32,9 +32,9 @@ export class LatLng {
      * Constructor
      *
      * @param {Latitude} latitude The latitude value or the latitude/longitude pair
-     * @param {number} [longitude] The longitude value
+     * @param {number|string} [longitude] The longitude value
      */
-    constructor(latitude: Latitude, longitude?: number) {
+    constructor(latitude: Latitude, longitude?: number | string) {
         if (Array.isArray(latitude)) {
             if (
                 (isNumber(latitude[0]) || isNumberString(latitude[0])) &&
@@ -48,7 +48,7 @@ export class LatLng {
                 if (isNumberString(latitude[1])) {
                     this.longitude = Number(latitude[1]);
                 } else {
-                    this.longitude = latitude.pop();
+                    this.longitude = latitude.pop() as number;
                 }
             } else {
                 throw new Error('Invalid latitude/longitude pair');
@@ -127,7 +127,7 @@ export type LatLngValue = number[] | LatLngLiteral | LatLng;
  * Helper function to set up a new LatLng object value
  *
  * @param {Latitude} latitude The latitude value or the latitude/longitude pair
- * @param {number} [longitude] The longitude value
+ * @param {number|string} [longitude] The longitude value
  * @returns {LatLng}
  */
-export const latLng = (latitude: Latitude, longitude?: number): LatLng => new LatLng(latitude, longitude);
+export const latLng = (latitude: Latitude, longitude?: number | string): LatLng => new LatLng(latitude, longitude);
