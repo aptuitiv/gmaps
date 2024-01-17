@@ -5,31 +5,52 @@
 import { LatLng, LatLngValue } from './LatLng';
 import { Map } from './Map';
 
+// Marker configuration
 export type MarkerConfig = {
-  title?: string;
+    title?: string;
 };
 
+/**
+ * Marker class to set up a single marker and add it to the map
+ */
 export class Marker {
-  private latLng: LatLng;
+    /**
+     * Holds the latitude/longitude pair
+     */
+    private latLng: LatLng;
 
-  private marker: google.maps.Marker;
+    /**
+     * Holds the Google maps marker object
+     */
+    private marker: google.maps.Marker;
 
-  constructor(latLng: LatLngValue, config?: MarkerConfig) {
-    if (latLng instanceof LatLng) {
-      this.latLng = latLng;
-    } else {
-      this.latLng = new LatLng(latLng);
+    /**
+     * Constructor
+     *
+     * @param {LatLngValue} latLng The latitude longitude pair
+     * @param {MarkerConfig} config The marker configuration
+     */
+    constructor(latLng: LatLngValue, config?: MarkerConfig) {
+        if (latLng instanceof LatLng) {
+            this.latLng = latLng;
+        } else {
+            this.latLng = new LatLng(latLng);
+        }
+
+        this.marker = new google.maps.Marker({
+            position: this.latLng.toJson(),
+            title: config?.title,
+        });
     }
 
-    this.marker = new google.maps.Marker({
-      position: this.latLng.toJson(),
-      title: config?.title,
-    });
-  }
-
-  addTo(map: Map): void {
-    this.marker.setMap(map.get());
-  }
+    /**
+     * Adds the marker to the Google map object
+     *
+     * @param {Map} map The map object
+     */
+    addTo(map: Map): void {
+        this.marker.setMap(map.get());
+    }
 }
 
 /**

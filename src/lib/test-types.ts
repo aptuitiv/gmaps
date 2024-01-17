@@ -7,7 +7,8 @@
  * @param {mixed} thing The value to test
  * @returns {boolean}
  */
-export const isNumber = (thing: any): thing is number => !Number.isNaN(thing) && typeof thing === 'number' && thing !== Infinity;
+export const isNumber = (thing: any): thing is number =>
+    !Number.isNaN(thing) && typeof thing === 'number' && thing !== Infinity;
 
 /**
  * Returns if the given value is a string that represents a numerical value
@@ -16,9 +17,8 @@ export const isNumber = (thing: any): thing is number => !Number.isNaN(thing) &&
  * @param {mixed} thing The value to test
  * @returns {boolean}
  */
-export const isNumberString = (thing: any): thing is string => typeof thing === 'string'
-  && !Number.isNaN(Number(thing))
-  && thing !== 'Infinity';
+export const isNumberString = (thing: any): thing is string =>
+    typeof thing === 'string' && !Number.isNaN(Number(thing)) && thing !== 'Infinity';
 
 /**
  * Returns if the value is an object
@@ -28,7 +28,8 @@ export const isNumberString = (thing: any): thing is string => typeof thing === 
  * @param {mixed} thing The value to test
  * @returns {boolean}
  */
-export const isObject = <T = object>(thing: any): thing is T => Object.prototype.toString.call(thing) === '[object Object]';
+export const isObject = <T = object>(thing: any): thing is T =>
+    Object.prototype.toString.call(thing) === '[object Object]';
 
 /**
  * Returns if the value is an object
@@ -38,5 +39,5 @@ export const isObject = <T = object>(thing: any): thing is T => Object.prototype
  * @param {mixed} thing The value to test
  * @returns {boolean}
  */
-export const isObjectWithValues = <T = object>(thing: any): thing is T => Object.prototype.toString.call(thing) === '[object Object]'
-  && Object.keys(thing).length > 0;
+export const isObjectWithValues = <T = object>(thing: any): thing is T =>
+    Object.prototype.toString.call(thing) === '[object Object]' && Object.keys(thing).length > 0;
