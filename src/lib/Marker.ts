@@ -3,7 +3,7 @@
 =========================================================================== */
 
 import { icon, IconValue } from './Icon';
-import { LatLng, LatLngValue } from './LatLng';
+import { latLng, LatLng, LatLngValue } from './LatLng';
 import { Map } from './Map';
 
 // Marker options
@@ -59,15 +59,11 @@ export class Marker {
     /**
      * Constructor
      *
-     * @param {LatLngValue} latLng The latitude longitude pair
-     * @param {MarkerOptions} options The marker options
+     * @param {LatLngValue} latLngValue The latitude longitude pair
+     * @param {MarkerOptions} [options] The marker options
      */
-    constructor(latLng: LatLngValue, options?: MarkerOptions) {
-        if (latLng instanceof LatLng) {
-            this.latLng = latLng;
-        } else {
-            this.latLng = new LatLng(latLng);
-        }
+    constructor(latLngValue: LatLngValue, options?: MarkerOptions) {
+        this.latLng = latLng(latLngValue);
 
         // Set up the marker options
         const markerOptions: google.maps.MarkerOptions = {
