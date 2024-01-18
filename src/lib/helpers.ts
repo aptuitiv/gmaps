@@ -21,6 +21,25 @@ export const isNumberString = (thing: any): thing is string =>
     typeof thing === 'string' && !Number.isNaN(Number(thing)) && thing !== 'Infinity';
 
 /**
+ * Get the number value for the given thing
+ * If the thing is a number, return it
+ * If the thing is a string that represents a number, return the number
+ * Otherwise, return NaN
+ *
+ * @param {any} thing The value to convert to a number
+ * @returns {number|typeof NaN}
+ */
+export const getNumber = (thing: any): number | typeof NaN => {
+    if (isNumber(thing)) {
+        return thing;
+    }
+    if (isNumberString(thing)) {
+        return Number(thing);
+    }
+    return NaN;
+};
+
+/**
  * Returns if the value is an object
  *
  * @link https://attacomsian.com/blog/javascript-check-variable-is-object

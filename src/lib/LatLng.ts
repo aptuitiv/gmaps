@@ -19,7 +19,7 @@
     latLng(latLngClassInstance);
 =========================================================================== */
 
-import { isNumber, isNumberString, isObject } from './test-types';
+import { isNumber, isNumberString, isObject } from './helpers';
 
 // The object literal for a latitude/longitude pair.
 // Example: `{lat: 32.33, lng: -64.45}`

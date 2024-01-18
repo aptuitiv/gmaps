@@ -8,7 +8,7 @@ const config = {
     bundle: true,
     entryPoints: ['src/index.ts'],
     logLevel: 'info',
-    minify: true,
+    minify: false,
     outdir: 'dist',
     plugins: [
         eslint({

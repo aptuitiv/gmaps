@@ -25,7 +25,7 @@
 import { icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
-import { isObject } from './test-types';
+import { isObject } from './helpers';
 
 // Marker options
 export type MarkerOptions = {

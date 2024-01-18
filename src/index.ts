@@ -8,6 +8,7 @@ import { latLng } from './lib/LatLng';
 import { latLngBounds } from './lib/LatLngBounds';
 import { map } from './lib/Map';
 import { marker } from './lib/Marker';
+import { markerCluster } from './lib/MarkerCluster';
 import { point } from './lib/Point';
 import { size } from './lib/Size';
 
@@ -21,6 +22,7 @@ const G: GlobalObj = {
     latLngBounds,
     map,
     marker,
+    markerCluster,
     point,
     size,
 };

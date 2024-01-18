@@ -15,7 +15,7 @@
     });
 =========================================================================== */
 
-import { isObject } from './test-types';
+import { isObject } from './helpers';
 import { point, PointValue } from './Point';
 import { size, SizeValue } from './Size';
 

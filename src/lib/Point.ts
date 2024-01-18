@@ -16,7 +16,7 @@
     point(pointClassInstance);
 =========================================================================== */
 
-import { isNumber, isNumberString, isObject } from './test-types';
+import { isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the x and y coordinates
 // Example: `{x: 34, y: 6}`

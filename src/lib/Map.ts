@@ -18,7 +18,7 @@
 
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
-import { isObject } from './test-types';
+import { isObject } from './helpers';
 
 export type MapOptions = {
     // The Google Maps API key

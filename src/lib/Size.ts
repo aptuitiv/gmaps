@@ -17,7 +17,7 @@
     size(sizeClassInstance);
 =========================================================================== */
 
-import { isNumber, isNumberString, isObject } from './test-types';
+import { isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the width and height
 // Example: `{width: 34, height: 6}`
