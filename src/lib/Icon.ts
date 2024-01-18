@@ -68,6 +68,44 @@ export class Icon {
     }
 
     /**
+     * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
+     *
+     * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.size([40, 64]).scaledSize([20, 32]));
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    scaledSize(sizeValue: SizeValue): Icon {
+        this.options.scaledSize = size(sizeValue).get();
+        return this;
+    }
+
+    /**
+     * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
+     *
+     * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.size([20, 32]);
+     *
+     * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    size(sizeValue: SizeValue): Icon {
+        this.options.size = size(sizeValue).get();
+        return this;
+    }
+
+    /**
      * Get the icon options
      *
      * @returns {google.maps.Icon}
