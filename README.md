@@ -1,6 +1,8 @@
 # google-map-display
 
-Library to help with displaying a Google map with markers, overlays, and custom buttons
+Library to help with displaying a Google map with markers, overlays, and custom buttons.
+
+Inspired by [Leaflet](https://leafletjs.com/).
 
 ## Testing while developing local
 
