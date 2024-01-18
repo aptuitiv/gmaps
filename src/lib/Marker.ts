@@ -112,7 +112,6 @@ export class Marker {
 
     private getPixelsFromLocation() {
         const map = this.marker.getMap() as google.maps.Map;
-        console.log('MAP: ', map);
         const latLng = this.marker.getPosition();
         const projection = map.getProjection();
         const bounds = map.getBounds();
