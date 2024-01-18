@@ -112,13 +112,13 @@ export class Marker {
 
     private getPixelsFromLocation() {
         const map = this.marker.getMap() as google.maps.Map;
-        const latLng = this.marker.getPosition();
+        const latLngPosition = this.marker.getPosition();
         const projection = map.getProjection();
         const bounds = map.getBounds();
         const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
         const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
         const scale = 2 ** map.getZoom();
-        const worldPoint = projection.fromLatLngToPoint(latLng);
+        const worldPoint = projection.fromLatLngToPoint(latLngPosition);
         return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
     }
 
