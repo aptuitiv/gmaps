@@ -55,6 +55,9 @@ export class Map {
      * @param {MapOptions} options The options object for the map
      */
     constructor(id: string, options: MapOptions) {
+        if (!isObject(options) || typeof options.apiKey !== 'string') {
+            throw new Error('Invalid map options');
+        }
         this.id = id;
         this.apiKey = options.apiKey;
         this.libraries = options.libraries ?? ['places'];
