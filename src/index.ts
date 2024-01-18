@@ -53,4 +53,6 @@ function getGlobalObject() {
     throw new Error('Unable to locate global object.');
 }
 
+// Set up the global namespace object for the library.
+// All functions are available via the G object.
 getGlobalObject().G = G;
