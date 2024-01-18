@@ -1,5 +1,19 @@
 /* ===========================================================================
-    Represents a set of x and y coordinates
+    Represents a set of x and y coordinates.
+
+    All methods and options of other classes that take a Point object as a parameter
+    also support the point value as an array of [x, y] pairs, or a {x, y} object.
+    The following are equivalent:
+
+    icon.origin([10, 32]);
+    icon.origin({x: 10, y: 32});
+
+    The following are valid ways to set up a point object:
+
+    point(34, 6);
+    point([34, 6]);
+    point({x: 34, y: 6});
+    point(pointClassInstance);
 =========================================================================== */
 
 import { isNumber, isNumberString, isObject } from './test-types';
@@ -93,8 +107,9 @@ export class Point {
     }
 
     /**
-     * Returns the point object
+     * Returns the Google maps point object
      *
+     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
      * @returns {google.maps.Point}
      */
     get(): google.maps.Point {

@@ -1,14 +1,38 @@
 /* ===========================================================================
-    Enables building and managing markers
+    Enables building and managing markers on the map.
+
+    https://developers.google.com/maps/documentation/javascript/reference/marker
+
+    Example usage:
+    const marker = G.marker({
+        latitude: 40.730610,
+        longitude: -73.935242,
+        title: 'My Marker'
+    });
+    marker.addTo(map);
+
+    // Or, with a custom tooltip
+    const marker = G.marker({
+        latitude: 40.730610,
+        longitude: -73.935242,
+        title: 'My Marker',
+        tooltipContainer: '#map',
+        tooltipClass: 'my-tooltip'
+    });
+    marker.addTo(map);
 =========================================================================== */
 
 import { icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import { Map } from './Map';
+import { isObject } from './test-types';
 
 // Marker options
 export type MarkerOptions = {
+    // The icon value for the marker
     icon?: IconValue;
+    // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
+    // that shows when you hover over a link with a title.
     title?: string;
     // The selector for the parent element that tooltips are added to.
     // Ideally this is the map container, but it can be any element.
@@ -90,8 +114,11 @@ export class Marker {
             markerOptions.icon = icon(options.icon).get();
         }
 
+        // Create the Google marker object
         this.marker = new google.maps.Marker(markerOptions);
 
+        // If a custom tooltip is being used then create the tooltip element
+        // and add the hover listeners on the marker
         if (this.tooltipContainer) {
             this.tooltip = document.createElement('div');
             this.tooltip.classList.add(this.tooltipClass);
@@ -110,7 +137,12 @@ export class Marker {
         }
     }
 
-    private getPixelsFromLocation() {
+    /**
+     * Get the pixel location of the marker
+     *
+     * @returns {google.maps.Point}
+     */
+    private getPixelsFromLocation(): google.maps.Point {
         const map = this.marker.getMap() as google.maps.Map;
         const latLngPosition = this.marker.getPosition();
         const projection = map.getProjection();
@@ -134,6 +166,7 @@ export class Marker {
     /**
      * Get the LatLng object
      *
+     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
      * @returns {LatLng}
      */
     getLatLng(): LatLng {
@@ -143,6 +176,7 @@ export class Marker {
     /**
      * Get the Google maps marker object
      *
+     * @link https://developers.google.com/maps/documentation/javascript/reference/marker#Marker
      * @returns {google.maps.Marker}
      */
     get(): google.maps.Marker {

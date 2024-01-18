@@ -1,5 +1,18 @@
 /* ===========================================================================
     Icon class - used to privide the icon information for a marker
+
+    See: https://developers.google.com/maps/documentation/javascript/reference/marker#Icon
+
+    Example usage:
+    const icon = G.icon({
+        url: 'https://mywebsite.com/images/marker.png',
+        size: [20, 32]
+    });
+    const marker = G.marker({
+        latitude: 40.730610,
+        longitude: -73.935242,
+        icon
+    });
 =========================================================================== */
 
 import { isObject } from './test-types';
@@ -7,16 +20,26 @@ import { point, PointValue } from './Point';
 import { size, SizeValue } from './Size';
 
 type IconOptions = {
+    // The position at which to anchor an image in correspondence to the location of the marker on the map.
+    // By default, the anchor is located along the center point of the bottom of the image.
     anchor?: PointValue;
+    // The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+    // By default, the origin is located in the center point of the image.
     labelOrigin?: PointValue;
+    // The position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
     origin?: PointValue;
+    // The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
     scaledSize?: SizeValue;
+    // The display size of the sprite or image. When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
     size?: SizeValue;
+    // The URL to the icon image (or sprite sheet) itself. All browsers support GIF, JPEG, SVG, and PNG formats.
+    // If an SVG is used, the height and width attributtes in the SVG HTML are required. If they are not set then the
+    // SVG will not display correctly.
     url?: string;
 };
 
 /**
- * Icon class to set up an icon for a marker
+ * Icon class to set up an icon options for a marker
  */
 export class Icon {
     /**
@@ -27,8 +50,8 @@ export class Icon {
     /**
      * Constructor
      *
-     * @param {string} url The icon URl
-     * @param {IconOptions} options The icon options
+     * @param {string | IconOptions} url The URL for the icon or the icon options
+     * @param {IconOptions} [options] The icon options
      */
     constructor(url: string | IconOptions, options?: IconOptions) {
         if (typeof url === 'string') {
@@ -145,7 +168,12 @@ export class Icon {
      * const icon = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.size([40, 64]).scaledSize([20, 32]));
+     * icon.scaledSize([40, 64]).scaledSize([20, 32]));
+     *
+     * Valid values are:
+     * icon.scaledSize([10, 32]);
+     * icon.scaledSize({x: 10, y: 32});
+     * icon.scaledSize(sizeClassInstance);
      *
      * @param {SizeValue} sizeValue The size value
      * @returns {Icon}
@@ -164,6 +192,11 @@ export class Icon {
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
      * icon.size([20, 32]);
+     *
+     * Valid values are:
+     * icon.size([10, 32]);
+     * icon.size({x: 10, y: 32});
+     * icon.size(sizeClassInstance);
      *
      * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
      *
@@ -191,8 +224,8 @@ export type IconValue = Icon | string | IconOptions;
 /**
  * Helper function to set up the icon object
  *
- * @param {IconValue} url The URL for the icon
- * @param {IconOptions} options The options for the icon
+ * @param {IconValue} url The URL for the icon, the icon object, or the icon options
+ * @param {IconOptions} [options] The options for the icon
  * @returns {Icon}
  */
 export const icon = (url: IconValue, options?: IconOptions): Icon => {

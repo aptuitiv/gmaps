@@ -1,16 +1,39 @@
 /* ===========================================================================
-    Main class to hold the map object and set it up
+    Main class to hold the map object and set it up.
+
+    https://developers.google.com/maps/documentation/javascript/reference/map
+    https://developers.google.com/maps/documentation/javascript/load-maps-js-api
+
+    Example usage:
+    const map = G.map('map', {
+        apiKey: 'myMapApiKey',
+        latitude: 40.730610
+        longitude: -73.935242,
+        zoom: 8
+    });
+    map.load(() => {
+        // Do something after the map loads
+    });
 =========================================================================== */
 
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
+import { isObject } from './test-types';
 
 export type MapOptions = {
+    // The Google Maps API key
     apiKey: string;
+    // The latitude for the center point of the map
     latitude: number;
+    // An array of additional Maps JavaScript API libraries to load. By default "places" is loaded.
+    // https://developers.google.com/maps/documentation/javascript/libraries
     libraries?: Libraries;
+    // The longitude for the center point of the map
     longitude: number;
+    // The version of the Google Maps API to load.
+    // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
+    // The default zoom for the map. Defaults to 8.
     zoom?: number;
 };
 
@@ -128,6 +151,12 @@ export class Map {
      * - a LatLng object
      * - a [lat, lng] pair
      * - a {lat, lng} object (LatLngLiteral)
+     *
+     * @see https://developers.google.com/maps/documentation/javascript/reference/map#Map.fitBounds
+     *
+     * Usage:
+     * Add marks to the map.
+     * Then call map.fitBounds() to set the viewport to contain the markers.
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
      */

@@ -1,6 +1,20 @@
 /* ===========================================================================
     Represents a height and width size in pixels.
     Two-dimensional size, where width is the distance on the x-axis, and height is the distance on the y-axis.
+
+    All methods and options of other classes that take a Size object as a parameter
+    also support the size value as an array of [x, y] pairs, or a {x, y} object.
+    The following are equivalent:
+
+    icon.origin([10, 32]);
+    icon.origin({x: 10, y: 32});
+
+    The following are valid ways to set up a size object:
+
+    size(34, 6);
+    size([34, 6]);
+    size({x: 34, y: 6});
+    size(sizeClassInstance);
 =========================================================================== */
 
 import { isNumber, isNumberString, isObject } from './test-types';
@@ -96,6 +110,7 @@ export class Size {
     /**
      * Returns the size object
      *
+     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
      * @returns {google.maps.Size}
      */
     get(): google.maps.Size {
