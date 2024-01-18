@@ -1,3 +1,12 @@
+# Put files and directories to ignore by Prettier here. https://prettier.io/docs/en/ignore.html
+
+# Ignore markdown files. They conflict with other markdown formatting rules.
+*.md
+
+# Ignore package-lock
+package-lock.json
+
+# Ignore the following directories
 /_build/
 /_export/
 /dist/
