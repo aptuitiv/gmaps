@@ -68,6 +68,76 @@ export class Icon {
     }
 
     /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     * Use this if for some reason you didn't pass the anchor in the icon options.
+     *
+     * By default, the anchor is located along the center point of the bottom of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.anchor([10, 32]);
+     *
+     * Valid values are:
+     * icon.anchor([10, 32]);
+     * icon.anchor({x: 10, y: 32});
+     * icon.anchor(pointClassInstance);
+     *
+     * @param {PointValue} anchor The anchor point value
+     * @returns {Icon}
+     */
+    anchor(anchor: PointValue): Icon {
+        this.options.anchor = point(anchor).get();
+        return this;
+    }
+
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * Use this if for some reason you didn't pass the label origin in the icon options.
+     *
+     * By default, the origin is located in the center point of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.labelOrigin([10, 32]);
+     *
+     * Valid values are:
+     * icon.labelOrigin([10, 32]);
+     * icon.labelOrigin({x: 10, y: 32});
+     * icon.labelOrigin(pointClassInstance);
+     *
+     * @param {PointValue} origin The label origin point value
+     * @returns {Icon}
+     */
+    labelOrigin(origin: PointValue): Icon {
+        this.options.labelOrigin = point(origin).get();
+        return this;
+    }
+
+    /**
+     * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
+     * Use this if for some reason you didn't pass the origin in the icon options.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.origin([10, 32]);
+     *
+     * Valid values are:
+     * icon.origin([10, 32]);
+     * icon.origin({x: 10, y: 32});
+     * icon.origin(pointClassInstance);
+     *
+     * @param {PointValue} origin The origin point value
+     * @returns {Icon}
+     */
+    origin(origin: PointValue): Icon {
+        this.options.origin = point(origin).get();
+        return this;
+    }
+
+    /**
      * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
      *
      * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
