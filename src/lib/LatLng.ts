@@ -1,5 +1,22 @@
 /* ===========================================================================
     LatLng - A class for representing a latitude/longitude pair
+
+    All methods and options of other classes that take a Size object as a parameter
+    also support the size value as an array of [x, y] pairs, or a {x, y} object.
+    The following are equivalent:
+
+    marker(new LatLng(40.730610, -73.935242));
+    marker([40.730610, -73.935242]);
+    marker({lat: 40.730610, lng: -73.935242});
+    marker({latitude: 40.730610, longitude: -73.935242});
+
+    The following are valid ways to set up a size object:
+
+    latLng(40.730610, -73.935242);
+    latLng([40.730610, -73.935242]);
+    latLng({lat: 40.730610, lng: -73.935242});
+    latLng({latitude: 40.730610, longitude: -73.935242});
+    latLng(latLngClassInstance);
 =========================================================================== */
 
 import { isNumber, isNumberString, isObject } from './test-types';
@@ -154,6 +171,7 @@ export class LatLng {
     /**
      * Get the Google maps LatLng object
      *
+     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
      * @returns {google.maps.LatLng}
      */
     get(): google.maps.LatLng {
