@@ -43,7 +43,6 @@ export class Marker {
             position: this.latLng.toJson(),
             title: options?.title,
         });
-        console.log('Marker options', options);
         if (options?.icon) {
             this.marker.setIcon(icon(options.icon).get());
         }
@@ -56,6 +55,24 @@ export class Marker {
      */
     addTo(map: Map): void {
         this.marker.setMap(map.get());
+    }
+
+    /**
+     * Get the LatLng object
+     *
+     * @returns {LatLng}
+     */
+    getLatLng(): LatLng {
+        return this.latLng;
+    }
+
+    /**
+     * Get the Google maps marker object
+     *
+     * @returns {google.maps.Marker}
+     */
+    get(): google.maps.Marker {
+        return this.marker;
     }
 }
 

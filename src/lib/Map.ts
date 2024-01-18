@@ -3,6 +3,7 @@
 =========================================================================== */
 
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
+import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 
 export type MapOptions = {
     apiKey: string;
@@ -111,6 +112,27 @@ export class Map {
      */
     get(): google.maps.Map {
         return this.map;
+    }
+
+    /**
+     * Sets the viewport to contain the given bounds.
+     *
+     * The bounds parameter can be:
+     * - a LatLngBounds object
+     * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
+     * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
+     * - an array of LatLng objects: [LatLng, LatLng, ...]
+     * - a LatLng object
+     * - a [lat, lng] pair
+     * - a {lat, lng} object (LatLngLiteral)
+     *
+     * @param {LatLngBoundsValue} bounds The bounds to fit
+     */
+    fitBounds(bounds: LatLngBoundsValue): void {
+        if (bounds instanceof LatLngBounds) {
+            this.map.fitBounds(bounds.get());
+        }
+        this.map.fitBounds(latLngBounds(bounds).get());
     }
 }
 

@@ -19,12 +19,20 @@ export type Latitude = number | number[] | string | string[] | LatLngLiteral;
  */
 export class LatLng {
     /**
+     * Holds the Google maps LatLng object
+     * @type {google.maps.LatLng}
+     */
+    latLngObject: google.maps.LatLng;
+
+    /**
      * Holds the latitude
+     * @type {number}
      */
     latitude: number;
 
     /**
      * Holds the longitude
+     * @type {number}
      */
     longitude: number;
 
@@ -87,6 +95,7 @@ export class LatLng {
                 this.longitude = longitude;
             }
         }
+        this.latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
     }
 
     /**
@@ -105,6 +114,15 @@ export class LatLng {
      */
     lng(): number {
         return this.longitude;
+    }
+
+    /**
+     * Get the Google maps LatLng object
+     *
+     * @returns {google.maps.LatLng}
+     */
+    get(): google.maps.LatLng {
+        return this.latLngObject;
     }
 
     /**

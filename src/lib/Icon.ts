@@ -42,7 +42,6 @@ export class Icon {
             this.options = { url: url.url };
             this.setOptions(url);
         }
-        console.log('Icon options', this.options);
     }
 
     /**

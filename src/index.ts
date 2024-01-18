@@ -2,20 +2,27 @@
     Main file for the Google Map Display library
 =========================================================================== */
 
+// Import the class helpers
 import { icon } from './lib/Icon';
 import { latLng } from './lib/LatLng';
+import { latLngBounds } from './lib/LatLngBounds';
 import { map } from './lib/Map';
 import { marker } from './lib/Marker';
 import { point } from './lib/Point';
+import { size } from './lib/Size';
+
+// Types
 import GlobalObj from './types';
 
 // Set up the global namespace object
 const G: GlobalObj = {
     icon,
     latLng,
+    latLngBounds,
     map,
     marker,
     point,
+    size,
 };
 
 /**
