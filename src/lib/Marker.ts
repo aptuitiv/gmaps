@@ -23,7 +23,7 @@
 =========================================================================== */
 
 import { icon, IconValue } from './Icon';
-import { latLng, LatLng, LatLngValue } from './LatLng';
+import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
 import { isObject } from './test-types';
 
@@ -83,11 +83,35 @@ export class Marker {
     /**
      * Constructor
      *
-     * @param {LatLngValue} latLngValue The latitude longitude pair
+     * @param {LatLngValue|MarkerOptions} latLngValue The latitude longitude pair
      * @param {MarkerOptions} [options] The marker options
      */
-    constructor(latLngValue: LatLngValue, options?: MarkerOptions) {
-        this.latLng = latLng(latLngValue);
+    constructor(latLngValue: LatLngValue | MarkerOptions, options?: MarkerOptions) {
+        // Set the marker latitude and longitude value
+        if (latLngValue instanceof LatLng) {
+            // The value passed is a LatLng class object
+            this.latLng = latLngValue;
+        } else if (Array.isArray(latLngValue)) {
+            // The value passed is likely an array of [lat, lng] pairs
+            this.latLng = latLng(latLngValue);
+        } else if (
+            isObject(latLngValue) &&
+            typeof (latLngValue as LatLngLiteral).lat !== 'undefined' &&
+            typeof (latLngValue as LatLngLiteral).lng !== 'undefined'
+        ) {
+            // The value passed is an object with lat/lng properties
+            this.latLng = latLng(latLngValue as LatLngLiteral);
+        } else if (
+            isObject(latLngValue) &&
+            typeof (latLngValue as LatLngLiteralExpanded).latitude !== 'undefined' &&
+            typeof (latLngValue as LatLngLiteralExpanded).longitude !== 'undefined'
+        ) {
+            // The value passed is an object with latitude/longitude properties or its
+            // the marker options with latitude and longitude set
+            this.latLng = latLng(latLngValue as LatLngLiteralExpanded);
+        } else {
+            throw new Error('Invalid latitude/longitude value for the marker');
+        }
 
         // Set up the marker options
         const markerOptions: google.maps.MarkerOptions = {
@@ -185,7 +209,7 @@ export class Marker {
 }
 
 // The possible values for the latLngValue parameter
-export type MarkerValue = Marker | LatLngValue;
+export type MarkerValue = Marker | MarkerOptions | LatLngValue;
 
 /**
  * Helper function to set up the marker object

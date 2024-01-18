@@ -6,13 +6,20 @@ import { isNumber, isNumberString, isObject } from './test-types';
 
 // The object literal for a latitude/longitude pair.
 // Example: `{lat: 32.33, lng: -64.45}`
-type LatLngLiteral = {
+export type LatLngLiteral = {
     lat: number | string;
     lng: number | string;
 };
 
+// The object literal for a latitude/longitude pair with expanded property names.
+// Example: `{latitude: 32.33, longitude: -64.45}`
+export type LatLngLiteralExpanded = {
+    latitude: number | string;
+    longitude: number | string;
+};
+
 // The possible types of latitude values
-export type Latitude = number | number[] | string | string[] | LatLngLiteral;
+export type Latitude = number | number[] | string | string[] | LatLngLiteral | LatLngLiteralExpanded;
 
 /**
  * The LatLng class to set up and manage latitude/longitude pairs
@@ -62,26 +69,54 @@ export class LatLng {
                 throw new Error('Invalid latitude/longitude pair');
             }
         } else if (isObject(latitude)) {
-            const latObject: LatLngLiteral = latitude as unknown as LatLngLiteral;
             if (
-                typeof latObject.lat === 'undefined' ||
-                !isNumber(latObject.lat) ||
-                !isNumberString(latObject.lat) ||
-                typeof latObject.lng === 'undefined' ||
-                !isNumber(latObject.lng) ||
-                !isNumberString(latObject.lng)
+                typeof (latitude as LatLngLiteral).lat !== 'undefined' &&
+                typeof (latitude as LatLngLiteral).lng !== 'undefined'
             ) {
-                throw new Error('Invalid latitude/longitude pair');
-            }
-            if (isNumberString(latObject.lat)) {
-                this.latitude = Number(latObject.lat);
+                const latObject: LatLngLiteral = latitude as unknown as LatLngLiteral;
+                if (
+                    !isNumber(latObject.lat) ||
+                    !isNumberString(latObject.lat) ||
+                    !isNumber(latObject.lng) ||
+                    !isNumberString(latObject.lng)
+                ) {
+                    throw new Error('Invalid latitude/longitude pair');
+                }
+                if (isNumberString(latObject.lat)) {
+                    this.latitude = Number(latObject.lat);
+                } else {
+                    this.latitude = latObject.lat;
+                }
+                if (isNumberString(latObject.lng)) {
+                    this.longitude = Number(latObject.lng);
+                } else {
+                    this.longitude = latObject.lng;
+                }
+            } else if (
+                typeof (latitude as LatLngLiteralExpanded).latitude !== 'undefined' &&
+                typeof (latitude as LatLngLiteralExpanded).longitude !== 'undefined'
+            ) {
+                const latObject: LatLngLiteralExpanded = latitude as unknown as LatLngLiteralExpanded;
+                if (
+                    !isNumber(latObject.latitude) ||
+                    !isNumberString(latObject.latitude) ||
+                    !isNumber(latObject.longitude) ||
+                    !isNumberString(latObject.longitude)
+                ) {
+                    throw new Error('Invalid latitude/longitude pair');
+                }
+                if (isNumberString(latObject.latitude)) {
+                    this.latitude = Number(latObject.latitude);
+                } else {
+                    this.latitude = latObject.latitude;
+                }
+                if (isNumberString(latObject.longitude)) {
+                    this.longitude = Number(latObject.longitude);
+                } else {
+                    this.longitude = latObject.longitude;
+                }
             } else {
-                this.latitude = latObject.lat;
-            }
-            if (isNumberString(latObject.lng)) {
-                this.longitude = Number(latObject.lng);
-            } else {
-                this.longitude = latObject.lng;
+                throw new Error('Invalid latitude/longitude object pair');
             }
         } else {
             if (isNumberString(latitude)) {
@@ -139,7 +174,7 @@ export class LatLng {
 }
 
 // The possible types of latitude/longitude pair values
-export type LatLngValue = Latitude | LatLng;
+export type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng;
 
 /**
  * Helper function to set up a new LatLng object value
