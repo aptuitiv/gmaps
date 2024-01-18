@@ -139,13 +139,18 @@ export class LatLng {
 }
 
 // The possible types of latitude/longitude pair values
-export type LatLngValue = number[] | LatLngLiteral | LatLng;
+export type LatLngValue = Latitude | LatLng;
 
 /**
  * Helper function to set up a new LatLng object value
  *
- * @param {Latitude} latitude The latitude value or the latitude/longitude pair
+ * @param {LatLngValue} latitude The latitude value or the latitude/longitude pair
  * @param {number|string} [longitude] The longitude value
  * @returns {LatLng}
  */
-export const latLng = (latitude: Latitude, longitude?: number | string): LatLng => new LatLng(latitude, longitude);
+export const latLng = (latitude: LatLngValue, longitude?: number | string): LatLng => {
+    if (latitude instanceof LatLng) {
+        return latitude;
+    }
+    return new LatLng(latitude, longitude);
+};

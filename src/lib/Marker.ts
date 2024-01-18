@@ -155,11 +155,19 @@ export class Marker {
     }
 }
 
+// The possible values for the latLngValue parameter
+export type MarkerValue = Marker | LatLngValue;
+
 /**
  * Helper function to set up the marker object
  *
- * @param {LatLngValue} latLng The latitude/longitude pair
- * @param {MarkerOptions} options The marker options
+ * @param {MarkerValue} latLngValue The latitude/longitude pair
+ * @param {MarkerOptions} [options] The marker options
  * @returns {Marker}
  */
-export const marker = (latLng: LatLngValue, options: MarkerOptions): Marker => new Marker(latLng, options);
+export const marker = (latLngValue: MarkerValue, options?: MarkerOptions): Marker => {
+    if (latLngValue instanceof Marker) {
+        return latLngValue;
+    }
+    return new Marker(latLngValue, options);
+};
