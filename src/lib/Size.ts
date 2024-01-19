@@ -56,16 +56,17 @@ export class Size {
      */
     constructor(width: WidthSize, height?: number | string) {
         if (Array.isArray(width)) {
-            if ((isNumber(width[0]) || isNumberString(width[0])) && (isNumber(width[1]) || isNumberString(width[1]))) {
-                if (isNumberString(width[0])) {
-                    this.width = Number(width[0]);
+            const [w, h] = width;
+            if ((isNumber(w) || isNumberString(w)) && (isNumber(h) || isNumberString(h))) {
+                if (isNumberString(w)) {
+                    this.width = Number(w);
                 } else {
-                    [this.width] = width;
+                    this.width = w;
                 }
-                if (isNumberString(width[1])) {
-                    this.height = Number(width[1]);
+                if (isNumberString(h)) {
+                    this.height = Number(h);
                 } else {
-                    this.height = width.pop() as number;
+                    this.height = h;
                 }
             } else {
                 throw new Error('Invalid width/height pair');
@@ -74,11 +75,9 @@ export class Size {
             const widthObject: SizeObject = width as unknown as SizeObject;
             if (
                 typeof widthObject.width === 'undefined' ||
-                !isNumber(widthObject.width) ||
-                !isNumberString(widthObject.width) ||
+                (!isNumber(widthObject.width) && !isNumberString(widthObject.width)) ||
                 typeof widthObject.height === 'undefined' ||
-                !isNumber(widthObject.height) ||
-                !isNumberString(widthObject.height)
+                (!isNumber(widthObject.height) && !isNumberString(widthObject.height))
             ) {
                 throw new Error('Invalid width/height pair');
             }
