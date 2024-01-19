@@ -21,6 +21,31 @@ export const isNumberString = (thing: any): thing is string =>
     typeof thing === 'string' && !Number.isNaN(Number(thing)) && thing !== 'Infinity';
 
 /**
+ * Returns if the value is a string
+ *
+ * @param {mixed} thing The value to test
+ * @returns {boolean}
+ */
+export const isString = (thing: any): thing is string => typeof thing === 'string';
+
+/**
+ * Returns if the value is string and has a length greater than 0
+ *
+ * @param {mixed} thing The value to test
+ * @returns {boolean}
+ */
+export const isStringWithValue = (thing: any): thing is string => isString(thing) && thing.trim().length > 0;
+
+/**
+ * Returns if the value is a valid string or number
+ *
+ * @param {unknown} thing The value to test against
+ * @returns {boolean}
+ */
+export const isStringOrNumber = (thing: unknown): thing is string | number =>
+    isStringWithValue(thing) || isNumber(thing);
+
+/**
  * Get the number value for the given thing
  * If the thing is a number, return it
  * If the thing is a string that represents a number, return the number
