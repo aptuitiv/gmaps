@@ -31,6 +31,8 @@ import { getPixelsFromLatLng, isObject } from './helpers';
 export type MarkerOptions = {
     // The icon value for the marker
     icon?: IconValue;
+    // The map to add the marker to.
+    map?: Map | google.maps.Map;
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
     // that shows when you hover over a link with a title.
     title?: string;
@@ -141,8 +143,15 @@ export class Marker {
         } else if (opts.title) {
             markerOptions.title = opts.title;
         }
-        if (opts?.icon) {
+        if (opts.icon) {
             markerOptions.icon = icon(opts.icon).get();
+        }
+        if (opts.map) {
+            if (opts.map instanceof Map) {
+                markerOptions.map = opts.map.get();
+            } else if (opts.map instanceof google.maps.Map) {
+                markerOptions.map = opts.map as google.maps.Map;
+            }
         }
 
         // Create the Google marker object
@@ -172,10 +181,14 @@ export class Marker {
     /**
      * Adds the marker to the Google map object
      *
-     * @param {Map} map The map object
+     * @param {Map|google.maps.Map} map The map object
      */
-    addTo(map: Map): void {
-        this.marker.setMap(map.get());
+    addTo(map: Map | google.maps.Map): void {
+        if (map instanceof Map) {
+            this.marker.setMap(map.get());
+        } else if (map instanceof google.maps.Map) {
+            this.marker.setMap(map);
+        }
     }
 
     /**
