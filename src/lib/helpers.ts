@@ -40,6 +40,34 @@ export const getNumber = (thing: any): number | typeof NaN => {
 };
 
 /**
+ * Converts a value to a boolean
+ *
+ * The following values are considered true:
+ * - true (boolean)
+ * - 'true' (string)
+ * - 'yes'
+ * - 1 (number)
+ * - '1' (string)
+ *
+ * @param thing The value to convert to a boolean
+ * @returns {boolean}
+ */
+export const getBoolean = (thing: any): boolean => {
+    if (typeof thing === 'boolean') {
+        return thing;
+    }
+    if (typeof thing === 'string') {
+        const val = thing.toLowerCase();
+        if (val === 'true' || val === 'yes' || val === '1') {
+            return true;
+        }
+    }
+    if (isNumber(thing)) {
+        return thing === 1;
+    }
+    return false;
+};
+/**
  * Returns if the value is an object
  *
  * @link https://attacomsian.com/blog/javascript-check-variable-is-object

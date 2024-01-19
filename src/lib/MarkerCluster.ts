@@ -52,6 +52,8 @@ type DefaultRenderOptions = {
     middleOpacity?: number;
     // The opacity to use for the outer ring of the marker
     outerOpacity?: number;
+    // Whether to show the number of markers in the cluster
+    showNumber?: boolean;
 };
 
 // Options for the marker cluster
@@ -179,6 +181,9 @@ export class MarkerCluster {
                     }
                     if (typeof optionsToUse.defaultRenderOptions.outerOpacity !== 'undefined') {
                         renderer.setOuterOpacity(optionsToUse.defaultRenderOptions.outerOpacity);
+                    }
+                    if (typeof optionsToUse.defaultRenderOptions.showNumber !== 'undefined') {
+                        renderer.setShowNumber(optionsToUse.defaultRenderOptions.showNumber);
                     }
                 }
 

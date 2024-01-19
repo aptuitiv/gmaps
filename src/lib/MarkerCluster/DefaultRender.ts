@@ -6,7 +6,7 @@
 =========================================================================== */
 
 import { Cluster, ClusterStats, MarkerUtils, Renderer } from '@googlemaps/markerclusterer';
-import { getNumber, isObject } from '../helpers';
+import { getBoolean, getNumber, isObject } from '../helpers';
 
 export type ClusterColor = {
     bgColor: string;
@@ -64,6 +64,13 @@ export class DefaultRenderer implements Renderer {
      * @type {number}
      */
     private fontSize: number = 50;
+
+    /**
+     * Holds if the number of markers in the cluster should be displayed
+     *
+     * @type {boolean}
+     */
+    private showNumber: boolean = true;
 
     /**
      * Set the color to use for the cluster if it has more than the average number of markers in a cluster,
@@ -163,6 +170,15 @@ export class DefaultRenderer implements Renderer {
     }
 
     /**
+     * Sets if the number of markers in the cluster should be displayed
+     *
+     * @param {boolean} showNumber Whether to show the number of markers in the cluster
+     */
+    setShowNumber(showNumber: boolean): void {
+        this.showNumber = getBoolean(showNumber);
+    }
+
+    /**
      * Get the color for the cluster.
      *
      * @param {number} count The number of markers in the cluster.
@@ -219,11 +235,15 @@ export class DefaultRenderer implements Renderer {
         const color = this.getColor(count, stats.clusters.markers.mean);
 
         // create svg literal with fill color
-        const svg = `<svg fill="${color.bgColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="50" height="50">
+        const svg = `<svg fill="${
+            color.bgColor
+        }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="50" height="50">
                 <circle cx="120" cy="120" opacity="${this.centerOpacity}" r="70" />
                 <circle cx="120" cy="120" opacity="${this.middleOpacity}" r="90" />
                 <circle cx="120" cy="120" opacity="${this.outerOpacity}" r="110" />
-                <text x="50%" y="50%" style="fill:${color.textColor}" text-anchor="middle" font-size="${this.fontSize}" dominant-baseline="middle" font-family="${this.fontFamily}">${count}</text>
+                <text x="50%" y="50%" style="fill:${color.textColor}" text-anchor="middle" font-size="${
+            this.fontSize
+        }" dominant-baseline="middle" font-family="${this.fontFamily}">${this.showNumber ? count : ''}</text>
             </svg>`;
 
         const title = `Cluster of ${count} markers`;
