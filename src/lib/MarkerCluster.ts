@@ -2,6 +2,9 @@
     Handles clustering of markers on a map.
     This is helpful for maps that have a lot of markers.
 
+    https://developers.google.com/maps/documentation/javascript/marker-clustering
+    https://www.npmjs.com/package/@googlemaps/markerclusterer
+
     Usage:
     const cluster = G.markerCluster(trailListMap.map);
     const marker = G.marker({
