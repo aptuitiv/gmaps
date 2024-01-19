@@ -68,19 +68,17 @@ export class LatLng {
      */
     constructor(latitude: Latitude, longitude?: number | string) {
         if (Array.isArray(latitude)) {
-            if (
-                (isNumber(latitude[0]) || isNumberString(latitude[0])) &&
-                (isNumber(latitude[1]) || isNumberString(latitude[1]))
-            ) {
-                if (isNumberString(latitude[0])) {
-                    this.latitude = Number(latitude[0]);
+            const [lat, lng] = latitude;
+            if ((isNumber(lat) || isNumberString(lat)) && (isNumber(lng) || isNumberString(lng))) {
+                if (isNumberString(lat)) {
+                    this.latitude = Number(lat);
                 } else {
-                    [this.latitude] = latitude;
+                    this.latitude = lat;
                 }
-                if (isNumberString(latitude[1])) {
-                    this.longitude = Number(latitude[1]);
+                if (isNumberString(lng)) {
+                    this.longitude = Number(lng);
                 } else {
-                    this.longitude = latitude.pop() as number;
+                    this.longitude = lng;
                 }
             } else {
                 throw new Error('Invalid latitude/longitude pair');
@@ -92,9 +90,9 @@ export class LatLng {
             ) {
                 const latObject: LatLngLiteral = latitude as unknown as LatLngLiteral;
                 if (
-                    !isNumber(latObject.lat) ||
-                    !isNumberString(latObject.lat) ||
-                    !isNumber(latObject.lng) ||
+                    !isNumber(latObject.lat) &&
+                    !isNumberString(latObject.lat) &&
+                    !isNumber(latObject.lng) &&
                     !isNumberString(latObject.lng)
                 ) {
                     throw new Error('Invalid latitude/longitude pair');
