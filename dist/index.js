@@ -73,6 +73,9 @@
   // src/lib/helpers.ts
   var isNumber = (thing) => !Number.isNaN(thing) && typeof thing === "number" && thing !== Infinity;
   var isNumberString = (thing) => typeof thing === "string" && !Number.isNaN(Number(thing)) && thing !== "Infinity";
+  var isString = (thing) => typeof thing === "string";
+  var isStringWithValue = (thing) => isString(thing) && thing.trim().length > 0;
+  var isStringOrNumber = (thing) => isStringWithValue(thing) || isNumber(thing);
   var getNumber = (thing) => {
     if (isNumber(thing)) {
       return thing;
@@ -82,7 +85,31 @@
     }
     return NaN;
   };
+  var getBoolean = (thing) => {
+    if (typeof thing === "boolean") {
+      return thing;
+    }
+    if (typeof thing === "string") {
+      const val = thing.toLowerCase();
+      if (val === "true" || val === "yes" || val === "1") {
+        return true;
+      }
+    }
+    if (isNumber(thing)) {
+      return thing === 1;
+    }
+    return false;
+  };
   var isObject = (thing) => Object.prototype.toString.call(thing) === "[object Object]";
+  var getPixelsFromLatLng = (map2, position) => {
+    const projection = map2.getProjection();
+    const bounds = map2.getBounds();
+    const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
+    const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
+    const scale = 2 ** map2.getZoom();
+    const worldPoint = projection.fromLatLngToPoint(position);
+    return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
+  };
 
   // src/lib/Point.ts
   var Point = class {
@@ -180,23 +207,24 @@
      */
     constructor(width, height) {
       if (Array.isArray(width)) {
-        if ((isNumber(width[0]) || isNumberString(width[0])) && (isNumber(width[1]) || isNumberString(width[1]))) {
-          if (isNumberString(width[0])) {
-            this.width = Number(width[0]);
+        const [w, h] = width;
+        if ((isNumber(w) || isNumberString(w)) && (isNumber(h) || isNumberString(h))) {
+          if (isNumberString(w)) {
+            this.width = Number(w);
           } else {
-            [this.width] = width;
+            this.width = w;
           }
-          if (isNumberString(width[1])) {
-            this.height = Number(width[1]);
+          if (isNumberString(h)) {
+            this.height = Number(h);
           } else {
-            this.height = width.pop();
+            this.height = h;
           }
         } else {
           throw new Error("Invalid width/height pair");
         }
       } else if (isObject(width)) {
         const widthObject = width;
-        if (typeof widthObject.width === "undefined" || !isNumber(widthObject.width) || !isNumberString(widthObject.width) || typeof widthObject.height === "undefined" || !isNumber(widthObject.height) || !isNumberString(widthObject.height)) {
+        if (typeof widthObject.width === "undefined" || !isNumber(widthObject.width) && !isNumberString(widthObject.width) || typeof widthObject.height === "undefined" || !isNumber(widthObject.height) && !isNumberString(widthObject.height)) {
           throw new Error("Invalid width/height pair");
         }
         if (isNumberString(widthObject.width)) {
@@ -438,16 +466,17 @@
      */
     constructor(latitude, longitude) {
       if (Array.isArray(latitude)) {
-        if ((isNumber(latitude[0]) || isNumberString(latitude[0])) && (isNumber(latitude[1]) || isNumberString(latitude[1]))) {
-          if (isNumberString(latitude[0])) {
-            this.latitude = Number(latitude[0]);
+        const [lat, lng] = latitude;
+        if ((isNumber(lat) || isNumberString(lat)) && (isNumber(lng) || isNumberString(lng))) {
+          if (isNumberString(lat)) {
+            this.latitude = Number(lat);
           } else {
-            [this.latitude] = latitude;
+            this.latitude = lat;
           }
-          if (isNumberString(latitude[1])) {
-            this.longitude = Number(latitude[1]);
+          if (isNumberString(lng)) {
+            this.longitude = Number(lng);
           } else {
-            this.longitude = latitude.pop();
+            this.longitude = lng;
           }
         } else {
           throw new Error("Invalid latitude/longitude pair");
@@ -455,7 +484,7 @@
       } else if (isObject(latitude)) {
         if (typeof latitude.lat !== "undefined" && typeof latitude.lng !== "undefined") {
           const latObject = latitude;
-          if (!isNumber(latObject.lat) || !isNumberString(latObject.lat) || !isNumber(latObject.lng) || !isNumberString(latObject.lng)) {
+          if (!isNumber(latObject.lat) && !isNumberString(latObject.lat) && !isNumber(latObject.lng) && !isNumberString(latObject.lng)) {
             throw new Error("Invalid latitude/longitude pair");
           }
           if (isNumberString(latObject.lat)) {
@@ -956,7 +985,7 @@
       }
       this.id = id;
       this.apiKey = options.apiKey;
-      this.libraries = options.libraries ?? ["places"];
+      this.libraries = options.libraries ?? [];
       this.version = options.version ?? "weekly";
       const defaultConfig = {
         zoom: 8
@@ -1057,22 +1086,53 @@
       const markerOptions = {
         position: this.latLng.toJson()
       };
-      if (options.title && options.tooltipContainer) {
-        this.title = options.title;
-        const container = document.querySelector(options.tooltipContainer);
+      let opts = {};
+      if (isObject(latLngValue)) {
+        opts = latLngValue;
+      } else if (isObject(options)) {
+        opts = options;
+      }
+      if (opts.title && opts.tooltipContainer) {
+        this.title = opts.title;
+        const container = document.querySelector(opts.tooltipContainer);
         if (container) {
           this.tooltipContainer = container;
         } else {
           throw new Error("Invalid tool tip container selector");
         }
-        if (options.tooltipClass) {
-          this.tooltipClass = options.tooltipClass;
+        if (opts.tooltipClass) {
+          this.tooltipClass = opts.tooltipClass;
         }
-      } else if (options.title) {
-        markerOptions.title = options.title;
+      } else if (opts.title) {
+        markerOptions.title = opts.title;
       }
-      if (options?.icon) {
-        markerOptions.icon = icon(options.icon).get();
+      if (opts.icon) {
+        markerOptions.icon = icon(opts.icon).get();
+      }
+      if (isStringWithValue(opts.label)) {
+        markerOptions.label = opts.label;
+      } else if (isObject(opts.label) && isStringOrNumber(opts.label.text)) {
+        markerOptions.label = {
+          text: opts.label.text.toString(),
+          className: isStringWithValue(opts.label.className) ? opts.label.className : void 0,
+          color: isStringWithValue(opts.label.color) ? opts.label.color : void 0,
+          fontFamily: isStringWithValue(opts.label.fontFamily) ? opts.label.fontFamily : void 0,
+          fontWeight: isStringWithValue(opts.label.fontWeight) ? opts.label.fontWeight : void 0
+        };
+        if (isStringWithValue(opts.label.fontSize) || isNumber(opts.label.fontSize)) {
+          if (isNumber(opts.label.fontSize)) {
+            markerOptions.label.fontSize = `${opts.label.fontSize}px`;
+          } else {
+            markerOptions.label.fontSize = opts.label.fontSize.toString();
+          }
+        }
+      }
+      if (opts.map) {
+        if (opts.map instanceof Map) {
+          markerOptions.map = opts.map.get();
+        } else if (opts.map instanceof google.maps.Map) {
+          markerOptions.map = opts.map;
+        }
       }
       this.marker = new google.maps.Marker(markerOptions);
       if (this.tooltipContainer) {
@@ -1081,7 +1141,7 @@
         this.tooltip.innerHTML = this.title;
         this.tooltip.style.position = "absolute";
         this.marker.addListener("mouseover", () => {
-          const pixels = this.getPixelsFromLocation();
+          const pixels = getPixelsFromLatLng(this.marker.getMap(), this.marker.getPosition());
           this.tooltip.style.left = `${pixels.x}px`;
           this.tooltip.style.top = `${pixels.y}px`;
           this.tooltipContainer.appendChild(this.tooltip);
@@ -1092,28 +1152,16 @@
       }
     }
     /**
-     * Get the pixel location of the marker
-     *
-     * @returns {google.maps.Point}
-     */
-    getPixelsFromLocation() {
-      const map2 = this.marker.getMap();
-      const latLngPosition = this.marker.getPosition();
-      const projection = map2.getProjection();
-      const bounds = map2.getBounds();
-      const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-      const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-      const scale = 2 ** map2.getZoom();
-      const worldPoint = projection.fromLatLngToPoint(latLngPosition);
-      return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
-    }
-    /**
      * Adds the marker to the Google map object
      *
-     * @param {Map} map The map object
+     * @param {Map|google.maps.Map} map The map object
      */
     addTo(map2) {
-      this.marker.setMap(map2.get());
+      if (map2 instanceof Map) {
+        this.marker.setMap(map2.get());
+      } else if (map2 instanceof google.maps.Map) {
+        this.marker.setMap(map2);
+      }
     }
     /**
      * Get the LatLng object
@@ -2366,17 +2414,23 @@
        */
       this.outerOpacity = 0.2;
       /**
-       * Holds the font family for the cluster marker
+       * Holds the font family for the cluster marker label
        *
        * @type {string}
        */
-      this.fontFamily = "roboto,arial,sans-serif";
+      this.labelFontFamily = "roboto,arial,sans-serif";
       /**
        * Holds the font size for the cluster marker
        *
-       * @type {number}
+       * @type {string}
        */
-      this.fontSize = 50;
+      this.labelFontSize = "12px";
+      /**
+       * Holds if the number of markers in the cluster should be displayed
+       *
+       * @type {boolean}
+       */
+      this.showNumber = true;
     }
     /**
      * Set the color to use for the cluster if it has more than the average number of markers in a cluster,
@@ -2446,7 +2500,7 @@
      * @param {string} fontFamily The font family to use for the cluster marker
      */
     setFontFamily(fontFamily) {
-      this.fontFamily = fontFamily;
+      this.labelFontFamily = fontFamily;
     }
     /**
      * Set the font size to use for the cluster marker
@@ -2454,10 +2508,19 @@
      * @param {number} fontSize The font size to use for the cluster marker
      */
     setFontSize(fontSize) {
-      const size2 = getNumber(fontSize);
-      if (!Number.isNaN(size2) && size2 > 0) {
-        this.fontSize = size2;
+      if (isString(fontSize)) {
+        this.labelFontSize = fontSize;
+      } else if (isNumber(fontSize)) {
+        this.labelFontSize = `${fontSize}px`;
       }
+    }
+    /**
+     * Sets if the number of markers in the cluster should be displayed
+     *
+     * @param {boolean} showNumber Whether to show the number of markers in the cluster
+     */
+    setShowNumber(showNumber) {
+      this.showNumber = getBoolean(showNumber);
     }
     /**
      * Get the color for the cluster.
@@ -2506,11 +2569,11 @@
     render(cluster, stats, map2) {
       const { count, position } = cluster;
       const color = this.getColor(count, stats.clusters.markers.mean);
-      const svg = `<svg fill="${color.bgColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="50" height="50">
-                <circle cx="120" cy="120" opacity="${this.centerOpacity}" r="70" />
-                <circle cx="120" cy="120" opacity="${this.middleOpacity}" r="90" />
-                <circle cx="120" cy="120" opacity="${this.outerOpacity}" r="110" />
-                <text x="50%" y="50%" style="fill:${color.textColor}" text-anchor="middle" font-size="${this.fontSize}" dominant-baseline="middle" font-family="${this.fontFamily}">${count}</text>
+      const svg = `<svg fill="${color.bgColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
+                <circle cx="25" cy="25" opacity="${this.centerOpacity}" r="16" />
+                <circle cx="25" cy="25" opacity="${this.middleOpacity}" r="22" />
+                <circle cx="25" cy="25" opacity="${this.outerOpacity}" r="25" />
+                <text x="50%" y="50%" style="fill:${color.textColor}" text-anchor="middle" font-size="${this.labelFontSize}" dominant-baseline="middle" font-family="${this.labelFontFamily}">${this.showNumber ? count : ""}</text>
             </svg>`;
       const title = `Cluster of ${count} markers`;
       const zIndex = Number(google.maps.Marker.MAX_ZINDEX) + count;
@@ -2540,6 +2603,181 @@
     }
   };
 
+  // src/lib/MarkerCluster/ImageRenderer.ts
+  var ImageRenderer = class {
+    constructor() {
+      /**
+       * Holds the images that can be used for the marker cluster icons
+       *
+       * @type {ClusterImages}
+       */
+      this.images = {};
+      /**
+       * Holds if the number of markers in the cluster should be displayed
+       *
+       * @type {boolean}
+       */
+      this.showNumber = true;
+    }
+    /**
+     * Set custom images to use for the cluster markers.
+     *
+     * @param {ClusterImages} images The custom images to use for the cluster markers.
+     */
+    setImages(images) {
+      if (isObject(images)) {
+        const sortedImages = Object.keys(images).map((k) => parseInt(k, 10)).filter(
+          (k) => !Number.isNaN(k) && k >= 0 && (typeof images[k] === "string" || isObject(images[k]) && typeof images[k].url === "string")
+        ).sort((a, b) => a - b).reduce((acc, k) => {
+          acc[k] = images[k];
+          return acc;
+        }, {});
+        if (Object.keys(sortedImages).length > 0) {
+          this.images = sortedImages;
+        }
+      }
+    }
+    /**
+     * Set a single image to use for the cluster markers.
+     * This will replace any existing images.
+     * The image will be used for all clusters.
+     * To set different images for different cluster sizes, use the setImages method.
+     *
+     * @param {ClusterImageValue} image The image URL or image object to use for the cluster markers.
+     */
+    setImage(image) {
+      if (typeof image === "string" || isObject(image) && typeof image.url === "string") {
+        this.images = { 0: image };
+      }
+    }
+    /**
+     * Set the class name to use for the label
+     *
+     * @param {string} labelClassName The class name to use for the label
+     */
+    setLabelClassName(labelClassName) {
+      this.labelClassName = labelClassName;
+    }
+    /**
+     * Set the color of the label text
+     *
+     * @param {string} labelColor The color of the label text. Default color is black.
+     */
+    setLabelColor(labelColor) {
+      this.labelColor = labelColor;
+    }
+    /**
+     * Set the font family to use for the cluster marker
+     *
+     * @param {string} fontFamily The font family to use for the cluster marker
+     */
+    setLabelFontFamily(fontFamily) {
+      this.labelFontFamily = fontFamily;
+    }
+    /**
+     * Set the font size to use for the cluster marker
+     *
+     * @param {string|number} fontSize The font size to use for the cluster marker
+     */
+    setLabelFontSize(fontSize) {
+      if (isStringOrNumber(fontSize)) {
+        this.labelFontSize = fontSize;
+      }
+    }
+    /**
+     * Set the font weight to use for the cluster marker
+     *
+     * @param {string} labelFontWeight The font weight to use for the cluster marker
+     */
+    setLabelFontWeight(labelFontWeight) {
+      this.labelFontWeight = labelFontWeight;
+    }
+    /**
+     * Sets if the number of markers in the cluster should be displayed
+     *
+     * @param {boolean} showNumber Whether to show the number of markers in the cluster
+     */
+    setShowNumber(showNumber) {
+      this.showNumber = getBoolean(showNumber);
+    }
+    /**
+     * Get the image for the cluster.
+     *
+     * @param {number} count The number of markers in the cluster.
+     * @returns {ClusterImage}
+     */
+    getImage(count) {
+      const keys = Object.keys(this.images);
+      let image = this.images[keys[0]];
+      for (let i = 0; i < keys.length; i += 1) {
+        const k = keys[i];
+        if (count >= parseInt(k, 10)) {
+          image = this.images[k];
+        } else {
+          break;
+        }
+      }
+      return image;
+    }
+    /**
+     * Renders the cluster marker
+     *
+     * @param {Cluster} cluster The cluster information
+     * @param {ClusterStatus} stats The status for all of the clusters
+     * @param {google.maps.Map} map The map object
+     * @returns {google.maps.Marker}
+     */
+    render(cluster, stats, map2) {
+      const { count, position } = cluster;
+      const image = this.getImage(count);
+      const markerImage = icon(typeof image === "string" ? image : image.url);
+      if (image.width && image.height) {
+        markerImage.size([image.width, image.height]);
+      } else if (image.size) {
+        markerImage.size(image.size);
+      }
+      if (image.scaledWidth && image.scaledHeight) {
+        markerImage.scaledSize([image.scaledWidth, image.scaledHeight]);
+      } else if (image.scaledSize) {
+        markerImage.scaledSize(image.scaledSize);
+      }
+      const label = { text: count.toString() };
+      if (this.labelClassName) {
+        label.className = this.labelClassName;
+      } else if (image.labelClassName) {
+        label.className = image.labelClassName;
+      }
+      if (this.labelColor) {
+        label.color = this.labelColor;
+      } else if (image.labelColor) {
+        label.color = image.labelColor;
+      }
+      if (this.labelFontFamily) {
+        label.fontFamily = this.labelFontFamily;
+      } else if (image.labelFontFamily) {
+        label.fontFamily = image.labelFontFamily;
+      }
+      if (this.labelFontSize) {
+        label.fontSize = this.labelFontSize.toString();
+      } else if (image.labelFontSize) {
+        label.fontSize = image.labelFontSize;
+      }
+      if (this.labelFontWeight) {
+        label.fontWeight = this.labelFontWeight;
+      } else if (image.labelFontWeight) {
+        label.fontWeight = image.labelFontWeight;
+      }
+      const clusterMarker = marker({
+        lat: position.lat(),
+        lng: position.lng(),
+        icon: markerImage,
+        map: map2,
+        label: this.showNumber ? label : void 0
+      });
+      return clusterMarker.get();
+    }
+  };
+
   // src/lib/MarkerCluster.ts
   var MarkerCluster = class {
     /**
@@ -2553,70 +2791,112 @@
       const clusterOptions = {
         map: map2.get()
       };
-      const renderer = new DefaultRenderer2();
       let optionsToUse = options;
       if (isObject(markers) && typeof options === "undefined") {
         optionsToUse = markers;
       }
       if (isObject(optionsToUse)) {
+        const algorithmOptions = isObject(optionsToUse.algorithmOptions) ? optionsToUse.algorithmOptions : {};
+        if (isNumber(optionsToUse.maxZoom) || isNumberString(optionsToUse.maxZoom)) {
+          algorithmOptions.maxZoom = getNumber(optionsToUse.maxZoom);
+        }
+        if (typeof algorithmOptions.maxZoom === "undefined") {
+          algorithmOptions.maxZoom = 13;
+        }
+        if (isNumber(optionsToUse.radius) || isNumberString(optionsToUse.radius)) {
+          algorithmOptions.radius = getNumber(optionsToUse.radius);
+        }
+        if (isNumber(optionsToUse.minPoints) || isNumberString(optionsToUse.minPoints)) {
+          algorithmOptions.minPoints = getNumber(optionsToUse.minPoints);
+        }
+        if (typeof algorithmOptions.minPoints === "undefined") {
+          algorithmOptions.minPoints = 3;
+        }
         if (typeof optionsToUse.algorithm === "string") {
           switch (optionsToUse.algorithm) {
             case "grid":
-              clusterOptions.algorithm = new GridAlgorithm(optionsToUse.algorithmOptions);
+              clusterOptions.algorithm = new GridAlgorithm(algorithmOptions);
               break;
             case "supercluster":
-              clusterOptions.algorithm = new SuperClusterAlgorithm(optionsToUse.algorithmOptions);
+              clusterOptions.algorithm = new SuperClusterAlgorithm(algorithmOptions);
               break;
             case "noop":
-              clusterOptions.algorithm = new NoopAlgorithm(optionsToUse.algorithmOptions);
+              clusterOptions.algorithm = new NoopAlgorithm(algorithmOptions);
               break;
             default:
-              if (typeof optionsToUse.algorithmOptions !== "undefined") {
-                clusterOptions.algorithm = new SuperClusterAlgorithm(optionsToUse.algorithmOptions);
+              if (Object.keys(algorithmOptions).length > 0) {
+                clusterOptions.algorithm = new SuperClusterAlgorithm(algorithmOptions);
               }
               break;
           }
         } else if (typeof optionsToUse.algorithmClass !== "undefined") {
           clusterOptions.algorithm = optionsToUse.algorithmClass;
         }
-        if (typeof optionsToUse.algorithmOptions !== "undefined") {
-          clusterOptions.algorithmOptions = optionsToUse.algorithmOptions;
+        if (Object.keys(algorithmOptions).length > 0) {
+          clusterOptions.algorithmOptions = algorithmOptions;
         }
-        if (typeof optionsToUse.onClusterClick !== "undefined") {
+        if (Object.keys(algorithmOptions).length > 0) {
           clusterOptions.onClusterClick = optionsToUse.onClusterClick;
         }
         if (typeof optionsToUse.renderer !== "undefined") {
           clusterOptions.renderer = optionsToUse.renderer;
-        } else {
-          if (isObject(optionsToUse.defaultRenderOptions)) {
-            if (isObject(optionsToUse.defaultRenderOptions.colors)) {
-              renderer.setColors(optionsToUse.defaultRenderOptions.colors);
-            } else if (typeof optionsToUse.defaultRenderOptions.averageColor === "string" && typeof optionsToUse.defaultRenderOptions.averageFallbackColor === "string") {
-              renderer.setAverageColor(
-                optionsToUse.defaultRenderOptions.averageColor,
-                optionsToUse.defaultRenderOptions.averageFallbackColor
-              );
-            }
-            if (typeof optionsToUse.defaultRenderOptions.fontFamily === "string") {
-              renderer.setFontFamily(optionsToUse.defaultRenderOptions.fontFamily);
-            }
-            if (typeof optionsToUse.defaultRenderOptions.fontSize !== "undefined") {
-              renderer.setFontSize(optionsToUse.defaultRenderOptions.fontSize);
-            }
-            if (typeof optionsToUse.defaultRenderOptions.centerOpacity !== "undefined") {
-              renderer.setCenterOpacity(optionsToUse.defaultRenderOptions.centerOpacity);
-            }
-            if (typeof optionsToUse.defaultRenderOptions.middleOpacity !== "undefined") {
-              renderer.setMiddleOpacity(optionsToUse.defaultRenderOptions.middleOpacity);
-            }
-            if (typeof optionsToUse.defaultRenderOptions.outerOpacity !== "undefined") {
-              renderer.setOuterOpacity(optionsToUse.defaultRenderOptions.outerOpacity);
-            }
+        } else if (isObject(optionsToUse.defaultRenderOptions)) {
+          const renderer = new DefaultRenderer2();
+          const renderOptions = optionsToUse.defaultRenderOptions;
+          if (isObject(renderOptions.colors)) {
+            renderer.setColors(renderOptions.colors);
+          } else if (typeof renderOptions.averageColor === "string" && typeof renderOptions.averageFallbackColor === "string") {
+            renderer.setAverageColor(renderOptions.averageColor, renderOptions.averageFallbackColor);
+          }
+          if (typeof renderOptions.labelFontFamily === "string") {
+            renderer.setFontFamily(renderOptions.labelFontFamily);
+          }
+          if (typeof renderOptions.labelFontSize !== "undefined") {
+            renderer.setFontSize(renderOptions.labelFontSize);
+          }
+          if (typeof renderOptions.centerOpacity !== "undefined") {
+            renderer.setCenterOpacity(renderOptions.centerOpacity);
+          }
+          if (typeof renderOptions.middleOpacity !== "undefined") {
+            renderer.setMiddleOpacity(renderOptions.middleOpacity);
+          }
+          if (typeof renderOptions.outerOpacity !== "undefined") {
+            renderer.setOuterOpacity(renderOptions.outerOpacity);
+          }
+          if (typeof renderOptions.showNumber !== "undefined") {
+            renderer.setShowNumber(renderOptions.showNumber);
+          }
+          clusterOptions.renderer = renderer;
+        } else if (isObject(optionsToUse.imageRendererOptions)) {
+          const renderer = new ImageRenderer();
+          const renderOptions = optionsToUse.imageRendererOptions;
+          if (typeof renderOptions.images !== "undefined") {
+            renderer.setImages(renderOptions.images);
+          } else if (typeof renderOptions.image !== "undefined") {
+            renderer.setImage(renderOptions.image);
+          }
+          if (typeof renderOptions.labelClassName === "string") {
+            renderer.setLabelClassName(renderOptions.labelClassName);
+          }
+          if (typeof renderOptions.labelColor === "string") {
+            renderer.setLabelColor(renderOptions.labelColor);
+          }
+          if (typeof renderOptions.labelFontFamily === "string") {
+            renderer.setLabelFontFamily(renderOptions.labelFontFamily);
+          }
+          if (typeof renderOptions.labelFontSize !== "undefined") {
+            renderer.setLabelFontSize(renderOptions.labelFontSize);
+          }
+          if (typeof renderOptions.labelFontWeight === "string") {
+            renderer.setLabelFontWeight(renderOptions.labelFontWeight);
+          }
+          if (typeof renderOptions.showNumber !== "undefined") {
+            renderer.setShowNumber(renderOptions.showNumber);
           }
           clusterOptions.renderer = renderer;
         }
       } else {
-        clusterOptions.renderer = renderer;
+        clusterOptions.renderer = new DefaultRenderer2();
       }
       this.clusterer = new MarkerClusterer(clusterOptions);
       if (Array.isArray(markers)) {
