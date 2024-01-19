@@ -17,6 +17,7 @@
 import {
     Algorithm,
     GridAlgorithm,
+    Marker as MarkerClustererMarker,
     MarkerClusterer,
     MarkerClustererOptions,
     NoopAlgorithm,
@@ -275,7 +276,7 @@ export class MarkerCluster {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     addMarkers(markers: Marker[], draw: boolean = true) {
-        const markersToAdd: google.maps.Marker[] = [];
+        const markersToAdd: MarkerClustererMarker[] = [];
         markers.forEach((marker) => {
             if (marker instanceof Marker) {
                 markersToAdd.push(marker.get());
