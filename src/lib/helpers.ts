@@ -88,3 +88,20 @@ export const isObject = <T = object>(thing: any): thing is T =>
  */
 export const isObjectWithValues = <T = object>(thing: any): thing is T =>
     Object.prototype.toString.call(thing) === '[object Object]' && Object.keys(thing).length > 0;
+
+/**
+ * Get the pixel location of the element from the LagLng value
+ *
+ * @param {google.maps.Map} map The Google map object
+ * @param {google.maps.LatLng} position The Google maps LatLng object
+ * @returns {google.maps.Point}
+ */
+export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.LatLng): google.maps.Point => {
+    const projection = map.getProjection();
+    const bounds = map.getBounds();
+    const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
+    const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
+    const scale = 2 ** map.getZoom();
+    const worldPoint = projection.fromLatLngToPoint(position);
+    return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
+};

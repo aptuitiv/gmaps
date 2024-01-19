@@ -25,7 +25,7 @@
 import { icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
-import { isObject } from './helpers';
+import { getPixelsFromLatLng, isObject } from './helpers';
 
 // Marker options
 export type MarkerOptions = {
@@ -157,7 +157,7 @@ export class Marker {
             this.tooltip.innerHTML = this.title;
             this.tooltip.style.position = 'absolute';
             this.marker.addListener('mouseover', () => {
-                const pixels = this.getPixelsFromLocation();
+                const pixels = getPixelsFromLatLng(this.marker.getMap() as google.maps.Map, this.marker.getPosition());
                 this.tooltip.style.left = `${pixels.x}px`;
                 this.tooltip.style.top = `${pixels.y}px`;
                 this.tooltipContainer.appendChild(this.tooltip);
@@ -167,23 +167,6 @@ export class Marker {
                 this.tooltipContainer.removeChild(this.tooltip);
             });
         }
-    }
-
-    /**
-     * Get the pixel location of the marker
-     *
-     * @returns {google.maps.Point}
-     */
-    private getPixelsFromLocation(): google.maps.Point {
-        const map = this.marker.getMap() as google.maps.Map;
-        const latLngPosition = this.marker.getPosition();
-        const projection = map.getProjection();
-        const bounds = map.getBounds();
-        const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-        const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-        const scale = 2 ** map.getZoom();
-        const worldPoint = projection.fromLatLngToPoint(latLngPosition);
-        return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
     }
 
     /**
