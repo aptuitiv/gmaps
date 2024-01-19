@@ -25,7 +25,8 @@ export type MapOptions = {
     apiKey: string;
     // The latitude for the center point of the map
     latitude: number;
-    // An array of additional Maps JavaScript API libraries to load. By default "places" is loaded.
+    // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
+    // The "places" library is a common one to load. https://developers.google.com/maps/documentation/javascript/places
     // https://developers.google.com/maps/documentation/javascript/libraries
     libraries?: Libraries;
     // The longitude for the center point of the map
@@ -83,7 +84,12 @@ export class Map {
         }
         this.id = id;
         this.apiKey = options.apiKey;
-        this.libraries = options.libraries ?? ['places'];
+        // If we want to use google.maps.marker.AdvancedMarkerElementOptions, we need to load the "marker" library.
+        // When we add support for Advanced Markers, make sure that "marker" in included in the libraries array.
+        // If there are code examples that use await google.maps.importLibrary(), the library that is loaded
+        // should be included in the libraries array to properly load.
+        // https://developers.google.com/maps/documentation/javascript/places
+        this.libraries = options.libraries ?? [];
         this.version = options.version ?? 'weekly';
 
         // Default map options
@@ -119,10 +125,8 @@ export class Map {
 
         loader
             .importLibrary('maps')
-            .then(async (google) => {
+            .then((google) => {
                 this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapOptions);
-                // The marker library is loaded here so that the AdvancedMarkerElement object can be used in later code.
-                await loader.importLibrary('marker');
                 // Call the callback function if necessary
                 if (typeof callback === 'function') {
                     callback();
