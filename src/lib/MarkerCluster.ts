@@ -173,7 +173,6 @@ export class MarkerCluster {
             if (typeof algorithmOptions.minPoints === 'undefined') {
                 algorithmOptions.minPoints = 3;
             }
-            console.log('algorithmOptions: ', algorithmOptions);
             if (typeof optionsToUse.algorithm === 'string') {
                 switch (optionsToUse.algorithm) {
                     case 'grid':
