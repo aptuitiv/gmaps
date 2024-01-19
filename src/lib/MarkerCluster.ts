@@ -16,7 +16,6 @@
 
 import {
     Algorithm,
-    AlgorithmOptions,
     GridAlgorithm,
     MarkerClusterer,
     MarkerClustererOptions,
@@ -24,10 +23,11 @@ import {
     onClusterClickHandler,
     Renderer,
     SuperClusterAlgorithm,
+    SuperClusterOptions,
 } from '@googlemaps/markerclusterer';
 import { Map } from './Map';
 import { Marker } from './Marker';
-import { isObject } from './helpers';
+import { getNumber, isNumber, isNumberString, isObject } from './helpers';
 import { ClusterColors, DefaultRenderer } from './MarkerCluster/DefaultRender';
 
 // Options for the default renderer
@@ -68,23 +68,46 @@ type MarkerClusterOptions = {
      */
     algorithm?: 'grid' | 'supercluster' | 'noop';
     /**
-     * An algorithm to cluster markers. Default is SuperClusterAlgorithm. Must
-     * provide a `calculate` method accepting AlgorithmInput and returning
+     * An algorithm to cluster markers. This determines how many markers are clustered together.
+     * Default is SuperClusterAlgorithm. Must provide a `calculate` method accepting AlgorithmInput and returning
      * an array of Cluster.
      * @link https://googlemaps.github.io/js-markerclusterer/classes/GridAlgorithm.html
      */
     algorithmClass?: Algorithm;
     /**
      * The options for the different algorithms.
+     * You can set them in this object, or you can set the individual options with the radius and maxZoom options.
+     * - radius
+     * - maxZoom
+     * - minPoints
+     *
+     * @link https://googlemaps.github.io/js-markerclusterer/interfaces/AlgorithmOptions.html
      * @link https://googlemaps.github.io/js-markerclusterer/interfaces/GridOptions.html
+     * @link https://www.npmjs.com/package/supercluster - This is what the SueprClusterAlgorithm uses
      */
-    algorithmOptions?: AlgorithmOptions;
+    algorithmOptions?: SuperClusterOptions;
+    /**
+     * The options for the default renderer.
+     */
     defaultRenderOptions?: DefaultRenderOptions;
     /**
      * The callback function for when a cluster is clicked.
      * The function will be passed the event, the cluster, and the map.
      */
     onClusterClick?: onClusterClickHandler;
+    // The maxium zoom level to cluster markers. Higher numbers means more zoomed in.
+    // Defaults to 13.
+    // This is used by the SuperClusterAlgorithm and the GridAlgorithm.
+    // If set, this will override the maxZoom option in the algorithmOptions.
+    maxZoom?: number;
+    // Minimum number of points to form a cluster. Default is 3.
+    minPoints?: number;
+    // The radius to use to determine which markers to cluster. Default is 40.
+    // The larger the number the more markers to include in a cluster and fewer clusters.
+    // The lower the number the more clusters there may be.
+    // This is used by the SuperClusterAlgorithm.
+    // If set, this will override the radius option in the algorithmOptions.
+    radius?: number;
     /**
      * An object that converts a cluster into a `google.maps.Marker`.
      * Default is DefaultRenderer.
@@ -127,31 +150,54 @@ export class MarkerCluster {
         }
 
         if (isObject(optionsToUse)) {
-            // Set the algorithm if it was passed in
+            // Set the algorithm that determines the clustering
+            const algorithmOptions: SuperClusterOptions = isObject(optionsToUse.algorithmOptions)
+                ? optionsToUse.algorithmOptions
+                : {};
+            if (isNumber(optionsToUse.maxZoom) || isNumberString(optionsToUse.maxZoom)) {
+                algorithmOptions.maxZoom = getNumber(optionsToUse.maxZoom);
+            }
+            // Set the minimum zoom level to cluster markers if it's not already set
+            if (typeof algorithmOptions.maxZoom === 'undefined') {
+                algorithmOptions.maxZoom = 13;
+            }
+            // Set the cluster radius if necessary
+            if (isNumber(optionsToUse.radius) || isNumberString(optionsToUse.radius)) {
+                algorithmOptions.radius = getNumber(optionsToUse.radius);
+            }
+            // Set the minimum number of points to form a cluster
+            if (isNumber(optionsToUse.minPoints) || isNumberString(optionsToUse.minPoints)) {
+                algorithmOptions.minPoints = getNumber(optionsToUse.minPoints);
+            }
+            if (typeof algorithmOptions.minPoints === 'undefined') {
+                algorithmOptions.minPoints = 3;
+            }
+            console.log('algorithmOptions: ', algorithmOptions);
             if (typeof optionsToUse.algorithm === 'string') {
                 switch (optionsToUse.algorithm) {
                     case 'grid':
-                        clusterOptions.algorithm = new GridAlgorithm(optionsToUse.algorithmOptions);
+                        clusterOptions.algorithm = new GridAlgorithm(algorithmOptions);
                         break;
                     case 'supercluster':
-                        clusterOptions.algorithm = new SuperClusterAlgorithm(optionsToUse.algorithmOptions);
+                        clusterOptions.algorithm = new SuperClusterAlgorithm(algorithmOptions);
                         break;
                     case 'noop':
-                        clusterOptions.algorithm = new NoopAlgorithm(optionsToUse.algorithmOptions);
+                        clusterOptions.algorithm = new NoopAlgorithm(algorithmOptions);
                         break;
                     default:
-                        if (typeof optionsToUse.algorithmOptions !== 'undefined') {
-                            clusterOptions.algorithm = new SuperClusterAlgorithm(optionsToUse.algorithmOptions);
+                        // Default to SuperClusterAlgorithm
+                        if (Object.keys(algorithmOptions).length > 0) {
+                            clusterOptions.algorithm = new SuperClusterAlgorithm(algorithmOptions);
                         }
                         break;
                 }
             } else if (typeof optionsToUse.algorithmClass !== 'undefined') {
                 clusterOptions.algorithm = optionsToUse.algorithmClass;
             }
-            if (typeof optionsToUse.algorithmOptions !== 'undefined') {
-                clusterOptions.algorithmOptions = optionsToUse.algorithmOptions;
+            if (Object.keys(algorithmOptions).length > 0) {
+                clusterOptions.algorithmOptions = algorithmOptions;
             }
-            if (typeof optionsToUse.onClusterClick !== 'undefined') {
+            if (Object.keys(algorithmOptions).length > 0) {
                 clusterOptions.onClusterClick = optionsToUse.onClusterClick;
             }
             if (typeof optionsToUse.renderer !== 'undefined') {
