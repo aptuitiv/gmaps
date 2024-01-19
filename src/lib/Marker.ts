@@ -117,28 +117,36 @@ export class Marker {
         const markerOptions: google.maps.MarkerOptions = {
             position: this.latLng.toJson(),
         };
-        if (options.title && options.tooltipContainer) {
+        let opts: MarkerOptions = {};
+        if (isObject(latLngValue)) {
+            opts = latLngValue as MarkerOptions;
+        } else if (isObject(options)) {
+            opts = options;
+        }
+
+        if (opts.title && opts.tooltipContainer) {
             // The title will be a custom tooltip that is added to the map container
-            this.title = options.title;
+            this.title = opts.title;
             // Get the tooltip container and make sure it exists
-            const container = document.querySelector(options.tooltipContainer);
+            const container = document.querySelector(opts.tooltipContainer);
             if (container) {
                 this.tooltipContainer = container;
             } else {
                 throw new Error('Invalid tool tip container selector');
             }
             // Set the tooltip element class name if necessary
-            if (options.tooltipClass) {
-                this.tooltipClass = options.tooltipClass;
+            if (opts.tooltipClass) {
+                this.tooltipClass = opts.tooltipClass;
             }
-        } else if (options.title) {
-            markerOptions.title = options.title;
+        } else if (opts.title) {
+            markerOptions.title = opts.title;
         }
-        if (options?.icon) {
-            markerOptions.icon = icon(options.icon).get();
+        if (opts?.icon) {
+            markerOptions.icon = icon(opts.icon).get();
         }
 
         // Create the Google marker object
+
         this.marker = new google.maps.Marker(markerOptions);
 
         // If a custom tooltip is being used then create the tooltip element
