@@ -119,8 +119,11 @@ export class Map {
 
         loader
             .importLibrary('maps')
-            .then((google) => {
+            .then(async (google) => {
                 this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapOptions);
+                // The marker library is loaded here so that the AdvancedMarkerElement object can be used in later code.
+                await loader.importLibrary('marker');
+                // Call the callback function if necessary
                 if (typeof callback === 'function') {
                     callback();
                 }
