@@ -25,12 +25,30 @@
 import { icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
-import { getPixelsFromLatLng, isObject } from './helpers';
+import { getPixelsFromLatLng, isNumber, isObject, isStringOrNumber, isStringWithValue } from './helpers';
+
+export type MarkerLabel = {
+    // A CSS class name to be added to the label element
+    className?: string;
+    // The color of the label text. Default color is black.
+    color?: string;
+    // The font family of the label text (equivalent to the CSS font-family property).
+    fontFamily?: string;
+    // The font size of the label text (equivalent to the CSS font-size property). Default size is 14px.
+    // If it's set to a number then "px" will be added to the end of the number.
+    fontSize?: string | number;
+    // The font weight of the label text (equivalent to the CSS font-weight property).
+    fontWeight?: string;
+    // The text to be displayed in the label.
+    text: string | number;
+};
 
 // Marker options
 export type MarkerOptions = {
     // The icon value for the marker
     icon?: IconValue;
+    // The label value for the marker
+    label?: string | number | MarkerLabel;
     // The map to add the marker to.
     map?: Map | google.maps.Map;
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
@@ -143,8 +161,29 @@ export class Marker {
         } else if (opts.title) {
             markerOptions.title = opts.title;
         }
+        // Set the marker icon
         if (opts.icon) {
             markerOptions.icon = icon(opts.icon).get();
+        }
+        // Set the marker label
+        if (isStringWithValue(opts.label)) {
+            markerOptions.label = opts.label;
+        } else if (isObject(opts.label) && isStringOrNumber(opts.label.text)) {
+            markerOptions.label = {
+                text: opts.label.text.toString(),
+                className: isStringWithValue(opts.label.className) ? opts.label.className : undefined,
+                color: isStringWithValue(opts.label.color) ? opts.label.color : undefined,
+                fontFamily: isStringWithValue(opts.label.fontFamily) ? opts.label.fontFamily : undefined,
+                fontWeight: isStringWithValue(opts.label.fontWeight) ? opts.label.fontWeight : undefined,
+            };
+            // The font size must be a string with a unit. If it's a number then add "px" to the end of it
+            if (isStringWithValue(opts.label.fontSize) || isNumber(opts.label.fontSize)) {
+                if (isNumber(opts.label.fontSize)) {
+                    markerOptions.label.fontSize = `${opts.label.fontSize}px`;
+                } else {
+                    markerOptions.label.fontSize = opts.label.fontSize.toString();
+                }
+            }
         }
         if (opts.map) {
             if (opts.map instanceof Map) {
