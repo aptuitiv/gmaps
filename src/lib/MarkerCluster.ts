@@ -30,6 +30,7 @@ import { Map } from './Map';
 import { Marker } from './Marker';
 import { getNumber, isNumber, isNumberString, isObject } from './helpers';
 import { ClusterColors, DefaultRenderer } from './MarkerCluster/DefaultRender';
+import { ClusterImages, ClusterImageValue, ImageRenderer } from './MarkerCluster/ImageRenderer';
 
 // Options for the default renderer
 type DefaultRenderOptions = {
@@ -43,19 +44,45 @@ type DefaultRenderOptions = {
      * The key should either be a number and the value should be a string color.
      * If the number of markers in the clsuter is greater or equal to the than the key, the color will be used.
      * The first color should have a key of 0 or 1 to handle clusters with 1 or more markers.
-     * Use
      */
     colors?: ClusterColors;
-    // The font family for the cluster marker
-    fontFamily?: string;
-    // The font size for the cluster marker
-    fontSize?: number;
+    // The font family of the label text (equivalent to the CSS font-family property).
+    labelFontFamily?: string;
+    // The font size of the label text (equivalent to the CSS font-size property). Default size is 14px.
+    // If it's set to a number then "px" will be added to the end of the number.
+    labelFontSize?: string | number;
     // The opacity to use for the center of the marker
     centerOpacity?: number;
     // The opacity to use for the middle ring of the marker
     middleOpacity?: number;
     // The opacity to use for the outer ring of the marker
     outerOpacity?: number;
+    // Whether to show the number of markers in the cluster
+    showNumber?: boolean;
+};
+
+type ImageRendererOptions = {
+    /**
+     * An object that holds the images for the clusters. This is used to configure the image renderer for the clusters.
+     * The key should either be a number and the value should be an object containing the image URL, the width, and height of the image.
+     * If the number of markers in the clsuter is greater or equal to the than the key, the image will be used.
+     * The first image should have a key of 0 or 1 to handle clusters with 1 or more markers.
+     */
+    images?: ClusterImages;
+    // A single image for the cluster.
+    // Use this instead of "images" if you only need one image for the cluster.
+    image?: ClusterImageValue;
+    // A CSS class name to be added to the label element
+    labelClassName?: string;
+    // The color of the label text. Default color is black.
+    labelColor?: string;
+    // The font family of the label text (equivalent to the CSS font-family property).
+    labelFontFamily?: string;
+    // The font size of the label text (equivalent to the CSS font-size property). Default size is 14px.
+    // If it's set to a number then "px" will be added to the end of the number.
+    labelFontSize?: string | number;
+    // The font weight of the label text (equivalent to the CSS font-weight property).
+    labelFontWeight?: string;
     // Whether to show the number of markers in the cluster
     showNumber?: boolean;
 };
@@ -91,6 +118,10 @@ type MarkerClusterOptions = {
      * The options for the default renderer.
      */
     defaultRenderOptions?: DefaultRenderOptions;
+    /**
+     * The options for the image renderer.
+     */
+    imageRendererOptions?: ImageRendererOptions;
     /**
      * The callback function for when a cluster is clicked.
      * The function will be passed the event, the cluster, and the map.
@@ -139,9 +170,6 @@ export class MarkerCluster {
         const clusterOptions: MarkerClustererOptions = {
             map: map.get(),
         };
-
-        // Set up the default renderer
-        const renderer = new DefaultRenderer();
 
         // Set the options
         let optionsToUse: MarkerClusterOptions = options;
@@ -200,47 +228,73 @@ export class MarkerCluster {
             if (Object.keys(algorithmOptions).length > 0) {
                 clusterOptions.onClusterClick = optionsToUse.onClusterClick;
             }
+            // Set the renderer
             if (typeof optionsToUse.renderer !== 'undefined') {
+                // Set the renderer to the passed custom renderer
                 clusterOptions.renderer = optionsToUse.renderer;
-            } else {
+            } else if (isObject(optionsToUse.defaultRenderOptions)) {
                 // Set up the default renderer
-                if (isObject(optionsToUse.defaultRenderOptions)) {
-                    if (isObject(optionsToUse.defaultRenderOptions.colors)) {
-                        renderer.setColors(optionsToUse.defaultRenderOptions.colors);
-                    } else if (
-                        typeof optionsToUse.defaultRenderOptions.averageColor === 'string' &&
-                        typeof optionsToUse.defaultRenderOptions.averageFallbackColor === 'string'
-                    ) {
-                        renderer.setAverageColor(
-                            optionsToUse.defaultRenderOptions.averageColor,
-                            optionsToUse.defaultRenderOptions.averageFallbackColor
-                        );
-                    }
-                    if (typeof optionsToUse.defaultRenderOptions.fontFamily === 'string') {
-                        renderer.setFontFamily(optionsToUse.defaultRenderOptions.fontFamily);
-                    }
-                    if (typeof optionsToUse.defaultRenderOptions.fontSize !== 'undefined') {
-                        renderer.setFontSize(optionsToUse.defaultRenderOptions.fontSize);
-                    }
-                    if (typeof optionsToUse.defaultRenderOptions.centerOpacity !== 'undefined') {
-                        renderer.setCenterOpacity(optionsToUse.defaultRenderOptions.centerOpacity);
-                    }
-                    if (typeof optionsToUse.defaultRenderOptions.middleOpacity !== 'undefined') {
-                        renderer.setMiddleOpacity(optionsToUse.defaultRenderOptions.middleOpacity);
-                    }
-                    if (typeof optionsToUse.defaultRenderOptions.outerOpacity !== 'undefined') {
-                        renderer.setOuterOpacity(optionsToUse.defaultRenderOptions.outerOpacity);
-                    }
-                    if (typeof optionsToUse.defaultRenderOptions.showNumber !== 'undefined') {
-                        renderer.setShowNumber(optionsToUse.defaultRenderOptions.showNumber);
-                    }
+                const renderer = new DefaultRenderer();
+                const renderOptions: DefaultRenderOptions = optionsToUse.defaultRenderOptions;
+                // The default renderer is being used. Set it up.
+                if (isObject(renderOptions.colors)) {
+                    renderer.setColors(renderOptions.colors);
+                } else if (
+                    typeof renderOptions.averageColor === 'string' &&
+                    typeof renderOptions.averageFallbackColor === 'string'
+                ) {
+                    renderer.setAverageColor(renderOptions.averageColor, renderOptions.averageFallbackColor);
                 }
-
+                if (typeof renderOptions.labelFontFamily === 'string') {
+                    renderer.setFontFamily(renderOptions.labelFontFamily);
+                }
+                if (typeof renderOptions.labelFontSize !== 'undefined') {
+                    renderer.setFontSize(renderOptions.labelFontSize);
+                }
+                if (typeof renderOptions.centerOpacity !== 'undefined') {
+                    renderer.setCenterOpacity(renderOptions.centerOpacity);
+                }
+                if (typeof renderOptions.middleOpacity !== 'undefined') {
+                    renderer.setMiddleOpacity(renderOptions.middleOpacity);
+                }
+                if (typeof renderOptions.outerOpacity !== 'undefined') {
+                    renderer.setOuterOpacity(renderOptions.outerOpacity);
+                }
+                if (typeof renderOptions.showNumber !== 'undefined') {
+                    renderer.setShowNumber(renderOptions.showNumber);
+                }
+                clusterOptions.renderer = renderer;
+            } else if (isObject(optionsToUse.imageRendererOptions)) {
+                const renderer = new ImageRenderer();
+                const renderOptions: ImageRendererOptions = optionsToUse.imageRendererOptions;
+                if (typeof renderOptions.images !== 'undefined') {
+                    renderer.setImages(renderOptions.images);
+                } else if (typeof renderOptions.image !== 'undefined') {
+                    renderer.setImage(renderOptions.image);
+                }
+                if (typeof renderOptions.labelClassName === 'string') {
+                    renderer.setLabelClassName(renderOptions.labelClassName);
+                }
+                if (typeof renderOptions.labelColor === 'string') {
+                    renderer.setLabelColor(renderOptions.labelColor);
+                }
+                if (typeof renderOptions.labelFontFamily === 'string') {
+                    renderer.setLabelFontFamily(renderOptions.labelFontFamily);
+                }
+                if (typeof renderOptions.labelFontSize !== 'undefined') {
+                    renderer.setLabelFontSize(renderOptions.labelFontSize);
+                }
+                if (typeof renderOptions.labelFontWeight === 'string') {
+                    renderer.setLabelFontWeight(renderOptions.labelFontWeight);
+                }
+                if (typeof renderOptions.showNumber !== 'undefined') {
+                    renderer.setShowNumber(renderOptions.showNumber);
+                }
                 clusterOptions.renderer = renderer;
             }
         } else {
             // No options were set. Set the default renderer
-            clusterOptions.renderer = renderer;
+            clusterOptions.renderer = new DefaultRenderer();
         }
 
         // Set the marker cluster object

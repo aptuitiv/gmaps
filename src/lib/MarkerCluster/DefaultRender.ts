@@ -3,10 +3,36 @@
 
     This is a customization of the DefaultRender from the @googlemaps/markerclusterer library
     to allow customization of the colors of the clusters based on the number of markers in the cluster.
+
+    Usage:
+    const cluster = G.markerCluster(trailListMap.map, {
+        defaultRendererOptions: {
+            averageColor: '#ff0000',
+            colors: {
+                0: '#0000ff',
+                10: '#00ff00',
+                20: {
+                    bgColor: '#ff00ff',
+                    textColor: '#000000',
+                },
+            },
+            centerOpacity: 0.7,
+            middleOpacity: 0.4,
+            outerOpacity: 0.2,
+            labelFontFamily: 'roboto,arial,sans-serif',
+            labelFontSize: '12px',
+            showNumber: true,
+        }
+    });
+    const marker = G.marker({
+        position: G.latLng(0, 0),
+    });
+    marker.addTo(map);
+    cluster.addMarker(marker);
 =========================================================================== */
 
 import { Cluster, ClusterStats, MarkerUtils, Renderer } from '@googlemaps/markerclusterer';
-import { getBoolean, getNumber, isObject } from '../helpers';
+import { getBoolean, getNumber, isNumber, isObject, isString } from '../helpers';
 
 export type ClusterColor = {
     bgColor: string;
@@ -52,18 +78,18 @@ export class DefaultRenderer implements Renderer {
     private outerOpacity: number = 0.2;
 
     /**
-     * Holds the font family for the cluster marker
+     * Holds the font family for the cluster marker label
      *
      * @type {string}
      */
-    private fontFamily: string = 'roboto,arial,sans-serif';
+    private labelFontFamily: string = 'roboto,arial,sans-serif';
 
     /**
      * Holds the font size for the cluster marker
      *
-     * @type {number}
+     * @type {string}
      */
-    private fontSize: number = 12;
+    private labelFontSize: string = '12px';
 
     /**
      * Holds if the number of markers in the cluster should be displayed
@@ -154,7 +180,7 @@ export class DefaultRenderer implements Renderer {
      * @param {string} fontFamily The font family to use for the cluster marker
      */
     setFontFamily(fontFamily: string): void {
-        this.fontFamily = fontFamily;
+        this.labelFontFamily = fontFamily;
     }
 
     /**
@@ -162,10 +188,11 @@ export class DefaultRenderer implements Renderer {
      *
      * @param {number} fontSize The font size to use for the cluster marker
      */
-    setFontSize(fontSize: number): void {
-        const size = getNumber(fontSize);
-        if (!Number.isNaN(size) && size > 0) {
-            this.fontSize = size;
+    setFontSize(fontSize: string | number): void {
+        if (isString(fontSize)) {
+            this.labelFontSize = fontSize;
+        } else if (isNumber(fontSize)) {
+            this.labelFontSize = `${fontSize}px`;
         }
     }
 
@@ -242,8 +269,8 @@ export class DefaultRenderer implements Renderer {
                 <circle cx="25" cy="25" opacity="${this.middleOpacity}" r="22" />
                 <circle cx="25" cy="25" opacity="${this.outerOpacity}" r="25" />
                 <text x="50%" y="50%" style="fill:${color.textColor}" text-anchor="middle" font-size="${
-            this.fontSize
-        }" dominant-baseline="middle" font-family="${this.fontFamily}">${this.showNumber ? count : ''}</text>
+            this.labelFontSize
+        }" dominant-baseline="middle" font-family="${this.labelFontFamily}">${this.showNumber ? count : ''}</text>
             </svg>`;
 
         const title = `Cluster of ${count} markers`;
