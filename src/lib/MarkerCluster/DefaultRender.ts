@@ -63,7 +63,7 @@ export class DefaultRenderer implements Renderer {
      *
      * @type {number}
      */
-    private fontSize: number = 50;
+    private fontSize: number = 12;
 
     /**
      * Holds if the number of markers in the cluster should be displayed
@@ -237,10 +237,10 @@ export class DefaultRenderer implements Renderer {
         // create svg literal with fill color
         const svg = `<svg fill="${
             color.bgColor
-        }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="50" height="50">
-                <circle cx="120" cy="120" opacity="${this.centerOpacity}" r="70" />
-                <circle cx="120" cy="120" opacity="${this.middleOpacity}" r="90" />
-                <circle cx="120" cy="120" opacity="${this.outerOpacity}" r="110" />
+        }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
+                <circle cx="25" cy="25" opacity="${this.centerOpacity}" r="16" />
+                <circle cx="25" cy="25" opacity="${this.middleOpacity}" r="22" />
+                <circle cx="25" cy="25" opacity="${this.outerOpacity}" r="25" />
                 <text x="50%" y="50%" style="fill:${color.textColor}" text-anchor="middle" font-size="${
             this.fontSize
         }" dominant-baseline="middle" font-family="${this.fontFamily}">${this.showNumber ? count : ''}</text>
