@@ -1,4 +1,5 @@
 import { icon } from './lib/Icon';
+import { svgSymbol } from './lib/SvgSymbol';
 import { latLng } from './lib/LatLng';
 import { latLngBounds } from './lib/LatLngBounds';
 import { map } from './lib/Map';
@@ -9,6 +10,7 @@ import { size } from './lib/Size';
 
 type GlobalObj = {
     icon: typeof icon;
+    svgSymbol: typeof svgSymbol;
     latLng: typeof latLng;
     latLngBounds: typeof latLngBounds;
     map: typeof map;

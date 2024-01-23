@@ -15,7 +15,7 @@
     });
 =========================================================================== */
 
-import { isObject } from './helpers';
+import { isObject, isStringWithValue } from './helpers';
 import { point, PointValue } from './Point';
 import { size, SizeValue } from './Size';
 
@@ -50,21 +50,28 @@ export class Icon {
     /**
      * Constructor
      *
-     * @param {string | IconOptions} url The URL for the icon or the icon options
+     * @param {string | IconOptions} [url] The URL for the icon or the icon options
      * @param {IconOptions} [options] The icon options
      */
-    constructor(url: string | IconOptions, options?: IconOptions) {
+    constructor(url?: string | IconOptions, options?: IconOptions) {
+        this.options = { url: '' };
         if (typeof url === 'string') {
             this.options = {
                 url,
             };
-            if (isObject(options)) {
-                this.setOptions(options);
-            }
-        } else if (isObject(url) && typeof url.url === 'string') {
-            this.options = { url: url.url };
+            this.setOptions(options);
+        } else if (isObject(url)) {
             this.setOptions(url);
         }
+    }
+
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Icon}
+     */
+    get(): google.maps.Icon {
+        return this.options;
     }
 
     /**
@@ -72,21 +79,26 @@ export class Icon {
      *
      * @param {IconOptions} options The icon options
      */
-    private setOptions(options: IconOptions): void {
-        if (options?.anchor) {
-            this.options.anchor = point(options.anchor).get();
-        }
-        if (options?.labelOrigin) {
-            this.options.labelOrigin = point(options.labelOrigin).get();
-        }
-        if (options?.origin) {
-            this.options.origin = point(options.origin).get();
-        }
-        if (options?.scaledSize) {
-            this.options.scaledSize = size(options.scaledSize).get();
-        }
-        if (options?.size) {
-            this.options.size = size(options.size).get();
+    setOptions(options: IconOptions): void {
+        if (isObject(options)) {
+            const pointValues = ['anchor', 'labelOrigin', 'origin'];
+            const sizeValues = ['scaledSize', 'size'];
+            const stringValues = ['url'];
+            pointValues.forEach((key) => {
+                if (options[key]) {
+                    this.options[key] = point(options[key]).get();
+                }
+            });
+            sizeValues.forEach((key) => {
+                if (options[key]) {
+                    this.options[key] = size(options[key]).get();
+                }
+            });
+            stringValues.forEach((key) => {
+                if (options[key] && isStringWithValue(options[key])) {
+                    this.options[key] = options[key];
+                }
+            });
         }
     }
 
@@ -99,17 +111,17 @@ export class Icon {
      * const icon = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.anchor([10, 32]);
+     * icon.setAnchor([10, 32]);
      *
      * Valid values are:
-     * icon.anchor([10, 32]);
-     * icon.anchor({x: 10, y: 32});
-     * icon.anchor(pointClassInstance);
+     * icon.setAnchor([10, 32]);
+     * icon.setAnchor({x: 10, y: 32});
+     * icon.setAnchor(pointClassInstance);
      *
      * @param {PointValue} anchor The anchor point value
      * @returns {Icon}
      */
-    anchor(anchor: PointValue): Icon {
+    setAnchor(anchor: PointValue): Icon {
         this.options.anchor = point(anchor).get();
         return this;
     }
@@ -123,17 +135,17 @@ export class Icon {
      * const icon = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.labelOrigin([10, 32]);
+     * icon.setLabelOrigin([10, 32]);
      *
      * Valid values are:
-     * icon.labelOrigin([10, 32]);
-     * icon.labelOrigin({x: 10, y: 32});
-     * icon.labelOrigin(pointClassInstance);
+     * icon.setLabelOrigin([10, 32]);
+     * icon.setLabelOrigin({x: 10, y: 32});
+     * icon.setLabelOrigin(pointClassInstance);
      *
      * @param {PointValue} origin The label origin point value
      * @returns {Icon}
      */
-    labelOrigin(origin: PointValue): Icon {
+    setLabelOrigin(origin: PointValue): Icon {
         this.options.labelOrigin = point(origin).get();
         return this;
     }
@@ -145,17 +157,17 @@ export class Icon {
      * const icon = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.origin([10, 32]);
+     * icon.setOrigin([10, 32]);
      *
      * Valid values are:
-     * icon.origin([10, 32]);
-     * icon.origin({x: 10, y: 32});
-     * icon.origin(pointClassInstance);
+     * icon.setOrigin([10, 32]);
+     * icon.setOrigin({x: 10, y: 32});
+     * icon.setOrigin(pointClassInstance);
      *
      * @param {PointValue} origin The origin point value
      * @returns {Icon}
      */
-    origin(origin: PointValue): Icon {
+    setOrigin(origin: PointValue): Icon {
         this.options.origin = point(origin).get();
         return this;
     }
@@ -168,17 +180,17 @@ export class Icon {
      * const icon = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.scaledSize([40, 64]).scaledSize([20, 32]));
+     * icon.setSize([40, 64]).setScaledSize([20, 32]));
      *
      * Valid values are:
-     * icon.scaledSize([10, 32]);
-     * icon.scaledSize({x: 10, y: 32});
-     * icon.scaledSize(sizeClassInstance);
+     * icon.setScaledSize([10, 32]);
+     * icon.setScaledSize({x: 10, y: 32});
+     * icon.setScaledSize(sizeClassInstance);
      *
      * @param {SizeValue} sizeValue The size value
      * @returns {Icon}
      */
-    scaledSize(sizeValue: SizeValue): Icon {
+    setScaledSize(sizeValue: SizeValue): Icon {
         this.options.scaledSize = size(sizeValue).get();
         return this;
     }
@@ -191,30 +203,32 @@ export class Icon {
      * const icon = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.size([20, 32]);
+     * icon.setSize([20, 32]);
      *
      * Valid values are:
-     * icon.size([10, 32]);
-     * icon.size({x: 10, y: 32});
-     * icon.size(sizeClassInstance);
+     * icon.setSize([10, 32]);
+     * icon.setSize({x: 10, y: 32});
+     * icon.setSize(sizeClassInstance);
      *
      * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
      *
      * @param {SizeValue} sizeValue The size value
      * @returns {Icon}
      */
-    size(sizeValue: SizeValue): Icon {
+    setSize(sizeValue: SizeValue): Icon {
         this.options.size = size(sizeValue).get();
         return this;
     }
 
     /**
-     * Get the icon options
+     * Set the icon URL
      *
-     * @returns {google.maps.Icon}
+     * @param {string} url The icon URL
+     * @returns {Icon}
      */
-    get(): google.maps.Icon {
-        return this.options;
+    setUrl(url: string): Icon {
+        this.options.url = url;
+        return this;
     }
 }
 
@@ -224,11 +238,11 @@ export type IconValue = Icon | string | IconOptions;
 /**
  * Helper function to set up the icon object
  *
- * @param {IconValue} url The URL for the icon, the icon object, or the icon options
+ * @param {IconValue} [url] The URL for the icon, the icon object, or the icon options
  * @param {IconOptions} [options] The options for the icon
  * @returns {Icon}
  */
-export const icon = (url: IconValue, options?: IconOptions): Icon => {
+export const icon = (url?: IconValue, options?: IconOptions): Icon => {
     if (url instanceof Icon) {
         return url;
     }

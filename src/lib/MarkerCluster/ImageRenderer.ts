@@ -274,14 +274,14 @@ export class ImageRenderer implements Renderer {
         // Set the marker image
         const markerImage = icon(typeof image === 'string' ? image : image.url);
         if (image.width && image.height) {
-            markerImage.size([image.width, image.height]);
+            markerImage.setSize([image.width, image.height]);
         } else if (image.size) {
-            markerImage.size(image.size);
+            markerImage.setSize(image.size);
         }
         if (image.scaledWidth && image.scaledHeight) {
-            markerImage.scaledSize([image.scaledWidth, image.scaledHeight]);
+            markerImage.setScaledSize([image.scaledWidth, image.scaledHeight]);
         } else if (image.scaledSize) {
-            markerImage.scaledSize(image.scaledSize);
+            markerImage.setScaledSize(image.scaledSize);
         }
 
         // Set the label

@@ -4,6 +4,7 @@
 
 // Import the class helpers
 import { icon } from './lib/Icon';
+import { svgSymbol } from './lib/SvgSymbol';
 import { latLng } from './lib/LatLng';
 import { latLngBounds } from './lib/LatLngBounds';
 import { map } from './lib/Map';
@@ -18,6 +19,7 @@ import GlobalObj from './types';
 // Set up the global namespace object
 const G: GlobalObj = {
     icon,
+    svgSymbol,
     latLng,
     latLngBounds,
     map,

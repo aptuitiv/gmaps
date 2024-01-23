@@ -41,7 +41,7 @@ export type MapOptions = {
 };
 
 // The options for the Map.locate() function
-interface LocateOptions {
+type LocateOptions = {
     // Indicates if the application would like to receive the best possible results.
     // If true and if the device is able to provide a more accurate position, it will do so.
     // This can result in slower response times or increased power consumption on a mobile device.
@@ -61,7 +61,7 @@ interface LocateOptions {
     // retrieved once.
     // Default true
     watch?: boolean;
-}
+};
 
 // The data returned from the Geolocation API and sent to the 'locationfound' event
 type LocationPosition = {
@@ -75,6 +75,9 @@ type LocationPosition = {
     speed?: number;
     timestamp: number;
 };
+
+// The callback function for the Map.locate() function
+type LocationOnSuccess = (position: LocationPosition) => void;
 
 /**
  * The map class
@@ -248,16 +251,18 @@ export class Map extends Evented {
      *    // Do something with the position
      *  });
      * 2. Listen for the 'locationfound' event
-     *  map.on('locationfound', (position) => {
+     *  map.on('locationfound', (event) => {
      *   // Do something with the position
+     *   // event is an instance of CustomEvent.
+     *   // event.detail contains the position data
      *  });
      *
-     * @param {LocateOptions} [options] The options for the locate() function
+     * @param {LocateOptions|LocationOnSuccess} [options] The options for the locate() function. Or the callback function.
      * @param {function} [onSuccess] The callback function for when the user's location is found.
      *
      * @returns {Map}
      */
-    locate(options?: LocateOptions, onSuccess?: (position: LocationPosition) => void): Map {
+    locate(options?: LocateOptions | LocationOnSuccess, onSuccess?: LocationOnSuccess): Map {
         if (navigator.geolocation) {
             const defaultOptions = {
                 watch: true,
@@ -288,6 +293,8 @@ export class Map extends Evented {
                 this.dispatch('locationfound', data);
                 if (isFunction(onSuccess)) {
                     onSuccess(data);
+                } else if (isFunction(options)) {
+                    options(data);
                 }
             };
             const error = (err: GeolocationPositionError) => {

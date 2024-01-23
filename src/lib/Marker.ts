@@ -1,6 +1,7 @@
 /* ===========================================================================
     Enables building and managing markers on the map.
 
+    https://developers.google.com/maps/documentation/javascript/markers
     https://developers.google.com/maps/documentation/javascript/reference/marker
 
     Example usage:
@@ -20,9 +21,54 @@
         tooltipClass: 'my-tooltip'
     });
     marker.addTo(map);
+
+    There are a few ways to set an icon for the marker.
+    1. Pass the URL for the icon to the "icon" option.
+    2. Pass an Icon class object to the "icon" option.
+    3. Pass an SvgSymbol class object to the "svgIcon" option.
+
+    There are a few ways to set an SVG icon for the marker.
+    1. Use the path for an icon and set up an SvgSymbol class object. Then pass that value to the svgIcon option.
+        const svg = G.svgSymbol({
+            path: 'M-6,0a6,6 0 1,0 12,0a6,6 0 1,0 -12,0',
+            fillColor: '#5284ed',
+            fillOpacity: 1,
+            scale: 1,
+            strokeColor: '#5284ed',
+            strokeOpacity: 0.5,
+            strokeWeight: 4,
+        });
+        G.marker(this.map, {
+            svgIcon: svg,
+            title: 'My location',
+        });
+    2. Pass the URL for the SVG icon to the "icon" option.
+        G.marker(this.map, {
+            icon: 'https://site.com/url/to/svg-file.svg',
+            title: 'My location',
+        });
+    3. Set up an Icon class object and pass that to the "icon" option.
+        const svg = G.icon({
+            url: 'https://site.com/url/to/svg-file.svg',
+            size: [20, 32]
+        });
+        G.marker(this.map, {
+            icon: svg,
+            title: 'My location',
+        });
+    4. base64 encode the SVG HTML and pass that to the "icon" option.
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+                <circle opacity=".4" fill="#5284ed" cx="11" cy="11" r="11"/>
+                <circle fill="#5284ed" stroke="#fff" stroke-width="1" cx="11" cy="11" r="7"/>
+            </svg>`;
+        G.marker(this.map, {
+            icon: `data:image/svg+xml;base64,${btoa(svg)}`,
+            title: 'My location',
+        });
 =========================================================================== */
 
 import { icon, IconValue } from './Icon';
+import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
 import { getPixelsFromLatLng, isNumber, isObject, isStringOrNumber, isStringWithValue } from './helpers';
@@ -51,6 +97,8 @@ export type MarkerOptions = {
     label?: string | number | MarkerLabel;
     // The map to add the marker to.
     map?: Map | google.maps.Map;
+    // The SVG icon value for the marker
+    svgIcon?: SvgSymbolValue;
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
     // that shows when you hover over a link with a title.
     title?: string;
@@ -129,14 +177,13 @@ export class Marker {
             // The value passed is an object with latitude/longitude properties or its
             // the marker options with latitude and longitude set
             this.latLng = latLng(latLngValue as LatLngLiteralExpanded);
-        } else {
-            throw new Error('Invalid latitude/longitude value for the marker');
         }
 
         // Set up the marker options
-        const markerOptions: google.maps.MarkerOptions = {
-            position: this.latLng.toJson(),
-        };
+        const markerOptions: google.maps.MarkerOptions = {};
+        if (this.latLng) {
+            markerOptions.position = this.latLng.toJson();
+        }
         let opts: MarkerOptions = {};
         if (isObject(latLngValue)) {
             opts = latLngValue as MarkerOptions;
@@ -164,6 +211,8 @@ export class Marker {
         // Set the marker icon
         if (opts.icon) {
             markerOptions.icon = icon(opts.icon).get();
+        } else if (opts.svgIcon) {
+            markerOptions.icon = svgSymbol(opts.svgIcon).get();
         }
         // Set the marker label
         if (isStringWithValue(opts.label)) {
@@ -194,14 +243,16 @@ export class Marker {
         }
 
         // Create the Google marker object
-
         this.marker = new google.maps.Marker(markerOptions);
 
         // If a custom tooltip is being used then create the tooltip element
         // and add the hover listeners on the marker
         if (this.tooltipContainer) {
             this.tooltip = document.createElement('div');
-            this.tooltip.classList.add(this.tooltipClass);
+            const classes = this.tooltipClass.split(' ');
+            classes.forEach((className) => {
+                this.tooltip.classList.add(className.trim());
+            });
             this.tooltip.innerHTML = this.title;
             this.tooltip.style.position = 'absolute';
             this.marker.addListener('mouseover', () => {
@@ -238,6 +289,18 @@ export class Marker {
      */
     getLatLng(): LatLng {
         return this.latLng;
+    }
+
+    /**
+     * Set the latitude and longitude value for the marker
+     *
+     * @param {LatLngValue} latLngValue The latitude/longitude position for the marker
+     * @returns {Marker}
+     */
+    setLatLng(latLngValue: LatLngValue): Marker {
+        this.latLng = latLng(latLngValue);
+        this.marker.setPosition(this.latLng.get());
+        return this;
     }
 
     /**

@@ -290,20 +290,203 @@
     /**
      * Constructor
      *
-     * @param {string | IconOptions} url The URL for the icon or the icon options
+     * @param {string | IconOptions} [url] The URL for the icon or the icon options
      * @param {IconOptions} [options] The icon options
      */
     constructor(url, options) {
+      this.options = { url: "" };
       if (typeof url === "string") {
         this.options = {
           url
         };
-        if (isObject(options)) {
-          this.setOptions(options);
-        }
-      } else if (isObject(url) && typeof url.url === "string") {
-        this.options = { url: url.url };
+        this.setOptions(options);
+      } else if (isObject(url)) {
         this.setOptions(url);
+      }
+    }
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Icon}
+     */
+    get() {
+      return this.options;
+    }
+    /**
+     * Set the icon options
+     *
+     * @param {IconOptions} options The icon options
+     */
+    setOptions(options) {
+      if (isObject(options)) {
+        const pointValues = ["anchor", "labelOrigin", "origin"];
+        const sizeValues = ["scaledSize", "size"];
+        const stringValues = ["url"];
+        pointValues.forEach((key) => {
+          if (options[key]) {
+            this.options[key] = point(options[key]).get();
+          }
+        });
+        sizeValues.forEach((key) => {
+          if (options[key]) {
+            this.options[key] = size(options[key]).get();
+          }
+        });
+        stringValues.forEach((key) => {
+          if (options[key] && isStringWithValue(options[key])) {
+            this.options[key] = options[key];
+          }
+        });
+      }
+    }
+    /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     * Use this if for some reason you didn't pass the anchor in the icon options.
+     *
+     * By default, the anchor is located along the center point of the bottom of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setAnchor([10, 32]);
+     *
+     * Valid values are:
+     * icon.setAnchor([10, 32]);
+     * icon.setAnchor({x: 10, y: 32});
+     * icon.setAnchor(pointClassInstance);
+     *
+     * @param {PointValue} anchor The anchor point value
+     * @returns {Icon}
+     */
+    setAnchor(anchor) {
+      this.options.anchor = point(anchor).get();
+      return this;
+    }
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * Use this if for some reason you didn't pass the label origin in the icon options.
+     *
+     * By default, the origin is located in the center point of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setLabelOrigin([10, 32]);
+     *
+     * Valid values are:
+     * icon.setLabelOrigin([10, 32]);
+     * icon.setLabelOrigin({x: 10, y: 32});
+     * icon.setLabelOrigin(pointClassInstance);
+     *
+     * @param {PointValue} origin The label origin point value
+     * @returns {Icon}
+     */
+    setLabelOrigin(origin) {
+      this.options.labelOrigin = point(origin).get();
+      return this;
+    }
+    /**
+     * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
+     * Use this if for some reason you didn't pass the origin in the icon options.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setOrigin([10, 32]);
+     *
+     * Valid values are:
+     * icon.setOrigin([10, 32]);
+     * icon.setOrigin({x: 10, y: 32});
+     * icon.setOrigin(pointClassInstance);
+     *
+     * @param {PointValue} origin The origin point value
+     * @returns {Icon}
+     */
+    setOrigin(origin) {
+      this.options.origin = point(origin).get();
+      return this;
+    }
+    /**
+     * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
+     *
+     * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setSize([40, 64]).setScaledSize([20, 32]));
+     *
+     * Valid values are:
+     * icon.setScaledSize([10, 32]);
+     * icon.setScaledSize({x: 10, y: 32});
+     * icon.setScaledSize(sizeClassInstance);
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    setScaledSize(sizeValue) {
+      this.options.scaledSize = size(sizeValue).get();
+      return this;
+    }
+    /**
+     * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
+     *
+     * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setSize([20, 32]);
+     *
+     * Valid values are:
+     * icon.setSize([10, 32]);
+     * icon.setSize({x: 10, y: 32});
+     * icon.setSize(sizeClassInstance);
+     *
+     * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    setSize(sizeValue) {
+      this.options.size = size(sizeValue).get();
+      return this;
+    }
+    /**
+     * Set the icon URL
+     *
+     * @param {string} url The icon URL
+     * @returns {Icon}
+     */
+    setUrl(url) {
+      this.options.url = url;
+      return this;
+    }
+  };
+  var icon = (url, options) => {
+    if (url instanceof Icon) {
+      return url;
+    }
+    return new Icon(url, options);
+  };
+
+  // src/lib/SvgSymbol.ts
+  var SvgSymbol = class {
+    /**
+     * Constructor
+     *
+     * @param {string | SvgSymbolOptions} [path] The SVG path for the icon or the icon options
+     * @param {SvgSymbolOptions} [options] The options for the icon
+     */
+    constructor(path, options) {
+      this.options = { path: "" };
+      if (typeof path === "string") {
+        this.options = {
+          path
+        };
+        this.setOptions(options);
+      } else if (isObject(path)) {
+        this.setOptions(path);
       }
     }
     /**
@@ -312,20 +495,29 @@
      * @param {IconOptions} options The icon options
      */
     setOptions(options) {
-      if (options?.anchor) {
-        this.options.anchor = point(options.anchor).get();
-      }
-      if (options?.labelOrigin) {
-        this.options.labelOrigin = point(options.labelOrigin).get();
-      }
-      if (options?.origin) {
-        this.options.origin = point(options.origin).get();
-      }
-      if (options?.scaledSize) {
-        this.options.scaledSize = size(options.scaledSize).get();
-      }
-      if (options?.size) {
-        this.options.size = size(options.size).get();
+      if (isObject(options)) {
+        const numberValues = ["fillOpacity", "rotation", "scale", "strokeOpacity", "strokeWeight"];
+        const pointValues = ["anchor", "labelOrigin"];
+        const stringValues = ["fillColor", "path", "strokeColor"];
+        numberValues.forEach((key) => {
+          if (options[key] && isNumber(options[key]) || isNumberString(options[key])) {
+            if (isNumberString(options[key])) {
+              this.options[key] = Number(options[key]);
+            } else {
+              this.options[key] = options[key];
+            }
+          }
+        });
+        pointValues.forEach((key) => {
+          if (options[key]) {
+            this.options[key] = point(options[key]).get();
+          }
+        });
+        stringValues.forEach((key) => {
+          if (options[key] && isStringWithValue(options[key])) {
+            this.options[key] = options[key];
+          }
+        });
       }
     }
     /**
@@ -345,116 +537,142 @@
      * icon.anchor(pointClassInstance);
      *
      * @param {PointValue} anchor The anchor point value
-     * @returns {Icon}
+     * @returns {SvgSymbol}
      */
     anchor(anchor) {
       this.options.anchor = point(anchor).get();
       return this;
     }
     /**
+     * Set the SVG fill color.
+     *
+     * @param {string} fillColor The SVG fill color.
+     * @returns {SvgSymbol}
+     */
+    fillColor(fillColor) {
+      if (isStringWithValue(fillColor)) {
+        this.options.fillColor = fillColor;
+      }
+      return this;
+    }
+    /**
+     * Set the opacity for the fill
+     *
+     * @param {number|string} fillOpacity The opacity for the fill
+     * @returns {SvgSymbol}
+     */
+    fillOpacity(fillOpacity) {
+      if (isNumber(fillOpacity)) {
+        this.options.fillOpacity = fillOpacity;
+      } else if (isNumberString(fillOpacity)) {
+        this.options.fillOpacity = Number(fillOpacity);
+      }
+      return this;
+    }
+    /**
      * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     * Use this if for some reason you didn't pass the label origin in the icon options.
      *
-     * By default, the origin is located in the center point of the image.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.labelOrigin([10, 32]);
-     *
-     * Valid values are:
-     * icon.labelOrigin([10, 32]);
-     * icon.labelOrigin({x: 10, y: 32});
-     * icon.labelOrigin(pointClassInstance);
-     *
-     * @param {PointValue} origin The label origin point value
-     * @returns {Icon}
+     * @param labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * @returns {SvgSymbol}
      */
-    labelOrigin(origin) {
-      this.options.labelOrigin = point(origin).get();
+    labelOrigin(labelOrigin) {
+      this.options.labelOrigin = point(labelOrigin).get();
       return this;
     }
     /**
-     * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
-     * Use this if for some reason you didn't pass the origin in the icon options.
+     * Set the SVG path for the icon
      *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.origin([10, 32]);
-     *
-     * Valid values are:
-     * icon.origin([10, 32]);
-     * icon.origin({x: 10, y: 32});
-     * icon.origin(pointClassInstance);
-     *
-     * @param {PointValue} origin The origin point value
-     * @returns {Icon}
+     * @param {path} path The SVG path for the icon
+     * @returns {SvgSymbol}
      */
-    origin(origin) {
-      this.options.origin = point(origin).get();
+    path(path) {
+      if (isStringWithValue(path)) {
+        this.options.path = path;
+      }
       return this;
     }
     /**
-     * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
+     * Set the rotation of the icon in degrees clockwise about the anchor point.
      *
-     * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.scaledSize([40, 64]).scaledSize([20, 32]));
-     *
-     * Valid values are:
-     * icon.scaledSize([10, 32]);
-     * icon.scaledSize({x: 10, y: 32});
-     * icon.scaledSize(sizeClassInstance);
-     *
-     * @param {SizeValue} sizeValue The size value
-     * @returns {Icon}
+     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
+     * @returns {SvgSymbol}
      */
-    scaledSize(sizeValue) {
-      this.options.scaledSize = size(sizeValue).get();
+    rotation(rotation) {
+      if (isNumber(rotation)) {
+        this.options.rotation = rotation;
+      } else if (isNumberString(rotation)) {
+        this.options.rotation = Number(rotation);
+      }
       return this;
     }
     /**
-     * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
+     * Set the amount by which the icon is scaled.
      *
-     * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.size([20, 32]);
-     *
-     * Valid values are:
-     * icon.size([10, 32]);
-     * icon.size({x: 10, y: 32});
-     * icon.size(sizeClassInstance);
-     *
-     * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
-     *
-     * @param {SizeValue} sizeValue The size value
-     * @returns {Icon}
+     * @param {number|string} scale The amount by which the icon is scaled.
+     * @returns {SvgSymbol}
      */
-    size(sizeValue) {
-      this.options.size = size(sizeValue).get();
+    scale(scale) {
+      if (isNumber(scale)) {
+        this.options.scale = scale;
+      } else if (isNumberString(scale)) {
+        this.options.scale = Number(scale);
+      }
+      return this;
+    }
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} strokeColor The SVG stroke color.
+     * @returns {SvgSymbol}
+     */
+    strokeColor(strokeColor) {
+      if (isStringWithValue(strokeColor)) {
+        this.options.strokeColor = strokeColor;
+      }
+      return this;
+    }
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} strokeOpacity The opacity of the stroke.
+     * @returns {SvgSymbol}
+     */
+    strokeOpacity(strokeOpacity) {
+      if (isNumber(strokeOpacity)) {
+        this.options.strokeOpacity = strokeOpacity;
+      } else if (isNumberString(strokeOpacity)) {
+        this.options.strokeOpacity = Number(strokeOpacity);
+      }
+      return this;
+    }
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} strokeWeight The weight of the stroke.
+     * @returns {SvgSymbol}
+     */
+    strokeWeight(strokeWeight) {
+      if (isNumber(strokeWeight)) {
+        this.options.strokeWeight = strokeWeight;
+      } else if (isNumberString(strokeWeight)) {
+        this.options.strokeWeight = Number(strokeWeight);
+      }
       return this;
     }
     /**
      * Get the icon options
      *
-     * @returns {google.maps.Icon}
+     * @returns {google.maps.Symbol}
      */
     get() {
       return this.options;
     }
   };
-  var icon = (url, options) => {
-    if (url instanceof Icon) {
-      return url;
+  var svgSymbol = (path, options) => {
+    if (path instanceof SvgSymbol) {
+      return path;
     }
-    return new Icon(url, options);
+    return new SvgSymbol(path, options);
   };
 
   // src/lib/LatLng.ts
@@ -1134,11 +1352,13 @@
      *    // Do something with the position
      *  });
      * 2. Listen for the 'locationfound' event
-     *  map.on('locationfound', (position) => {
+     *  map.on('locationfound', (event) => {
      *   // Do something with the position
+     *   // event is an instance of CustomEvent.
+     *   // event.detail contains the position data
      *  });
      *
-     * @param {LocateOptions} [options] The options for the locate() function
+     * @param {LocateOptions|LocationOnSuccess} [options] The options for the locate() function. Or the callback function.
      * @param {function} [onSuccess] The callback function for when the user's location is found.
      *
      * @returns {Map}
@@ -1174,6 +1394,8 @@
           this.dispatch("locationfound", data);
           if (isFunction(onSuccess)) {
             onSuccess(data);
+          } else if (isFunction(options)) {
+            options(data);
           }
         };
         const error = (err) => {
@@ -1226,12 +1448,11 @@
         this.latLng = latLng(latLngValue);
       } else if (isObject(latLngValue) && typeof latLngValue.latitude !== "undefined" && typeof latLngValue.longitude !== "undefined") {
         this.latLng = latLng(latLngValue);
-      } else {
-        throw new Error("Invalid latitude/longitude value for the marker");
       }
-      const markerOptions = {
-        position: this.latLng.toJson()
-      };
+      const markerOptions = {};
+      if (this.latLng) {
+        markerOptions.position = this.latLng.toJson();
+      }
       let opts = {};
       if (isObject(latLngValue)) {
         opts = latLngValue;
@@ -1254,6 +1475,8 @@
       }
       if (opts.icon) {
         markerOptions.icon = icon(opts.icon).get();
+      } else if (opts.svgIcon) {
+        markerOptions.icon = svgSymbol(opts.svgIcon).get();
       }
       if (isStringWithValue(opts.label)) {
         markerOptions.label = opts.label;
@@ -1283,7 +1506,10 @@
       this.marker = new google.maps.Marker(markerOptions);
       if (this.tooltipContainer) {
         this.tooltip = document.createElement("div");
-        this.tooltip.classList.add(this.tooltipClass);
+        const classes = this.tooltipClass.split(" ");
+        classes.forEach((className) => {
+          this.tooltip.classList.add(className.trim());
+        });
         this.tooltip.innerHTML = this.title;
         this.tooltip.style.position = "absolute";
         this.marker.addListener("mouseover", () => {
@@ -1317,6 +1543,17 @@
      */
     getLatLng() {
       return this.latLng;
+    }
+    /**
+     * Set the latitude and longitude value for the marker
+     *
+     * @param {LatLngValue} latLngValue The latitude/longitude position for the marker
+     * @returns {Marker}
+     */
+    setLatLng(latLngValue) {
+      this.latLng = latLng(latLngValue);
+      this.marker.setPosition(this.latLng.get());
+      return this;
     }
     /**
      * Get the Google maps marker object
@@ -2878,14 +3115,14 @@
       const image = this.getImage(count);
       const markerImage = icon(typeof image === "string" ? image : image.url);
       if (image.width && image.height) {
-        markerImage.size([image.width, image.height]);
+        markerImage.setSize([image.width, image.height]);
       } else if (image.size) {
-        markerImage.size(image.size);
+        markerImage.setSize(image.size);
       }
       if (image.scaledWidth && image.scaledHeight) {
-        markerImage.scaledSize([image.scaledWidth, image.scaledHeight]);
+        markerImage.setScaledSize([image.scaledWidth, image.scaledHeight]);
       } else if (image.scaledSize) {
-        markerImage.scaledSize(image.scaledSize);
+        markerImage.setScaledSize(image.scaledSize);
       }
       const label = { text: count.toString() };
       if (this.labelClassName) {
@@ -3109,6 +3346,7 @@
   // src/index.ts
   var G = {
     icon,
+    svgSymbol,
     latLng,
     latLngBounds,
     map,
