@@ -76,7 +76,7 @@ import { icon, IconValue } from './Icon';
 import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
-import { getPixelsFromLatLng, isNumber, isObject, isStringOrNumber, isStringWithValue } from './helpers';
+import { getPixelsFromLatLng, isNumber, isObject, isString, isStringOrNumber, isStringWithValue } from './helpers';
 
 export type MarkerLabel = {
     // A CSS class name to be added to the label element
@@ -133,31 +133,6 @@ export class Marker {
     private marker: google.maps.Marker;
 
     /**
-     * Holds the title for the marker
-     * @type {string}
-     */
-    private title: string;
-
-    /**
-     * Holds the tooltip element
-     *
-     * @type {HTMLElement}
-     */
-    private tooltip: HTMLElement;
-
-    /**
-     * Holds the element that tooltips are added to
-     * @type {Element}
-     */
-    private tooltipContainer: Element;
-
-    /**
-     * The class name for the tooltip element
-     * @type {string}
-     */
-    private tooltipClass: string = 'tooltip';
-
-    /**
      * Constructor
      *
      * @param {LatLngValue|MarkerOptions} [latLngValue] The latitude longitude pair
@@ -197,28 +172,6 @@ export class Marker {
         } else if (isObject(options)) {
             this.setOptions(options);
         }
-
-        // If a custom tooltip is being used then create the tooltip element
-        // and add the hover listeners on the marker
-        if (this.tooltipContainer) {
-            this.tooltip = document.createElement('div');
-            const classes = this.tooltipClass.split(' ');
-            classes.forEach((className) => {
-                this.tooltip.classList.add(className.trim());
-            });
-            this.tooltip.innerHTML = this.title;
-            this.tooltip.style.position = 'absolute';
-            this.marker.addListener('mouseover', () => {
-                const pixels = getPixelsFromLatLng(this.marker.getMap() as google.maps.Map, this.marker.getPosition());
-                this.tooltip.style.left = `${pixels.x}px`;
-                this.tooltip.style.top = `${pixels.y}px`;
-                this.tooltipContainer.appendChild(this.tooltip);
-            });
-
-            this.marker.addListener('mouseout', () => {
-                this.tooltipContainer.removeChild(this.tooltip);
-            });
-        }
     }
 
     /**
@@ -233,21 +186,10 @@ export class Marker {
         if (this.latLng) {
             markerOptions.position = this.latLng.toJson();
         }
-
         if (options.title && options.tooltipContainer) {
             // The title will be a custom tooltip that is added to the map container
-            this.title = options.title;
-            // Get the tooltip container and make sure it exists
-            const container = document.querySelector(options.tooltipContainer);
-            if (container) {
-                this.tooltipContainer = container;
-            } else {
-                throw new Error('Invalid tool tip container selector');
-            }
-            // Set the tooltip element class name if necessary
-            if (options.tooltipClass) {
-                this.tooltipClass = options.tooltipClass;
-            }
+            const tooltipClass = options.tooltipClass || 'tooltip';
+            this.setTooltip(options.tooltipContainer, options.title, tooltipClass);
         } else if (options.title) {
             markerOptions.title = options.title;
         }
@@ -294,6 +236,42 @@ export class Marker {
             }
         }
         this.marker.setOptions(markerOptions);
+        return this;
+    }
+
+    /**
+     * Set up a custom tooltip for the marker instead of relying on the default browser tooltip
+     *
+     * @param {string} containerSelector The selector for the parent element that tooltips are added to.
+     * @param {string} title The tooltip title
+     * @param {string} [tooltipClass] The class or classes for the tooltip element. If multiple classes are used then separate them with a space.
+     * @returns
+     */
+    setTooltip(containerSelector: string, title: string, tooltipClass?: string): Marker {
+        // Get the tooltip container and make sure it exists
+        const container = document.querySelector(containerSelector);
+        if (container) {
+            const tooltip = document.createElement('div');
+            if (isString(tooltipClass)) {
+                const classes = tooltipClass.split(' ');
+                classes.forEach((className) => {
+                    tooltip.classList.add(className.trim());
+                });
+            }
+            tooltip.innerHTML = title;
+            tooltip.style.position = 'absolute';
+            this.marker.addListener('mouseover', () => {
+                const pixels = getPixelsFromLatLng(this.marker.getMap() as google.maps.Map, this.marker.getPosition());
+                tooltip.style.left = `${pixels.x}px`;
+                tooltip.style.top = `${pixels.y}px`;
+                container.appendChild(tooltip);
+            });
+            this.marker.addListener('mouseout', () => {
+                container.removeChild(tooltip);
+            });
+        } else {
+            throw new Error('Invalid tool tip container selector');
+        }
         return this;
     }
 
