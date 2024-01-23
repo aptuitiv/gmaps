@@ -19,6 +19,7 @@
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import { isObject } from './helpers';
+import Evented from './Evented';
 
 export type MapOptions = {
     // The Google Maps API key
@@ -41,7 +42,7 @@ export type MapOptions = {
 /**
  * The map class
  */
-export class Map {
+export class Map extends Evented {
     /**
      * Holds the Google Maps API key
      */
@@ -79,6 +80,7 @@ export class Map {
      * @param {MapOptions} options The options object for the map
      */
     constructor(id: string, options: MapOptions) {
+        super();
         if (!isObject(options) || typeof options.apiKey !== 'string') {
             throw new Error('Invalid map options');
         }
