@@ -199,7 +199,7 @@ export type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExp
  * @param {number|string} [longitude] The longitude value
  * @returns {LatLng}
  */
-export const latLng = (latitude: LatLngValue, longitude?: number | string): LatLng => {
+export const latLng = (latitude: LatLngValue | string | number, longitude?: number | string): LatLng => {
     if (latitude instanceof LatLng) {
         return latitude;
     }
