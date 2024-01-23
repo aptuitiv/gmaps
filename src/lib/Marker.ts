@@ -65,6 +65,11 @@
             icon: `data:image/svg+xml;base64,${btoa(svg)}`,
             title: 'My location',
         });
+        This, however, can be simplified with the svgIconXml option. It takes care of doing the base64 encoding.
+        G.marker(this.map, {
+            svgIconXml: svg,
+            title: 'My location',
+        });
 =========================================================================== */
 
 import { icon, IconValue } from './Icon';
@@ -99,6 +104,8 @@ export type MarkerOptions = {
     map?: Map | google.maps.Map;
     // The SVG icon value for the marker
     svgIcon?: SvgSymbolValue;
+    // The XML code for an SVG icon
+    svgIconXml?: string;
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
     // that shows when you hover over a link with a title.
     title?: string;
@@ -211,6 +218,8 @@ export class Marker {
         // Set the marker icon
         if (opts.icon) {
             markerOptions.icon = icon(opts.icon).get();
+        } else if (opts.svgIconXml) {
+            markerOptions.icon = `data:image/svg+xml;base64,${btoa(opts.svgIconXml)}`;
         } else if (opts.svgIcon) {
             markerOptions.icon = svgSymbol(opts.svgIcon).get();
         }
