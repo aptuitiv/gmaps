@@ -21,8 +21,9 @@ class Evented extends EventTarget {
     dispatch(event: string, details?: any) {
         if (details) {
             super.dispatchEvent(new CustomEvent(event, { detail: details }));
+        } else {
+            super.dispatchEvent(new Event(event));
         }
-        super.dispatchEvent(new Event(event));
     }
 
     /**
