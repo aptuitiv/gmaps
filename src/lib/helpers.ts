@@ -2,6 +2,14 @@
 /*  eslint-disable @typescript-eslint/ban-types  */
 
 /**
+ * Returns if the thing is a function
+ *
+ * @param {mixed} thing The thing to test
+ * @returns {boolean}
+ */
+export const isFunction = (thing: any): thing is Function => typeof thing === 'function';
+
+/**
  * Returns if the value is a valid number
  *
  * @param {mixed} thing The value to test

@@ -71,6 +71,7 @@
   });
 
   // src/lib/helpers.ts
+  var isFunction = (thing) => typeof thing === "function";
   var isNumber = (thing) => !Number.isNaN(thing) && typeof thing === "number" && thing !== Infinity;
   var isNumberString = (thing) => typeof thing === "string" && !Number.isNaN(Number(thing)) && thing !== "Infinity";
   var isString = (thing) => typeof thing === "string";
@@ -971,8 +972,56 @@
     }
   };
 
+  // src/lib/Evented.ts
+  var Evented = class extends EventTarget {
+    /**
+     * Dispatch an event
+     *
+     * @param {string} event The event to dispatch
+     * @param {any} [details] The details to pass to the event. If set then a CustomEvent is created, otherwise a regular
+     *      Event is created
+     */
+    dispatch(event, details) {
+      if (details) {
+        super.dispatchEvent(new CustomEvent(event, { detail: details }));
+      } else {
+        super.dispatchEvent(new Event(event));
+      }
+    }
+    /**
+     * Removes the event listener
+     *
+     * @param {string} type The event type
+     * @param {function} callback The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     */
+    off(type, callback, options) {
+      this.removeEventListener(type, callback, options);
+    }
+    /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {function} callback The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     */
+    on(type, callback, options) {
+      this.addEventListener(type, callback, options);
+    }
+    /**
+     * Sets up an event listener that will only be called once
+     *
+     * @param {string} type The event type
+     * @param {function} callback The event listener function
+     */
+    once(type, callback) {
+      this.on(type, callback, { once: true });
+    }
+  };
+  var Evented_default = Evented;
+
   // src/lib/Map.ts
-  var Map = class {
+  var Map = class extends Evented_default {
     /**
      * Class constructor
      *
@@ -980,6 +1029,7 @@
      * @param {MapOptions} options The options object for the map
      */
     constructor(id, options) {
+      super();
       if (!isObject(options) || typeof options.apiKey !== "string") {
         throw new Error("Invalid map options");
       }
@@ -1005,6 +1055,23 @@
     }
     /**
      * Load and display the map
+     *
+     * There are two ways to respond when the map loads:
+     * 1. Pass a callback function to the load() function
+     *   map.load(() => {
+     *     // Do something after the map loads
+     *   });
+     * 2. Listen for the 'load' event
+     *   map.on('load', () => {
+     *      // Do something after the map loads
+     *   });
+     * 2a. Use the once() function to listen for the 'load' event only once. The event
+     *     listener will be removed after the event is dispatched.
+     *   map.once('load', () => {
+     *     // Do something after the map loads
+     *   });
+     *
+     * @param {function} callback The callback function to call after the map loads
      */
     load(callback) {
       const loader = new Loader({
@@ -1014,6 +1081,7 @@
       });
       loader.importLibrary("maps").then((google2) => {
         this.map = new google2.Map(document.getElementById(this.id), this.mapOptions);
+        this.dispatch("load");
         if (typeof callback === "function") {
           callback();
         }
@@ -1048,12 +1116,90 @@
      * Then call map.fitBounds() to set the viewport to contain the markers.
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @return {Map}
      */
     fitBounds(bounds) {
       if (bounds instanceof LatLngBounds) {
         this.map.fitBounds(bounds.get());
       }
       this.map.fitBounds(latLngBounds(bounds).get());
+      return this;
+    }
+    /**
+     * Try to locate the user usin gthe GeoLocation API
+     *
+     * There are two ways to handle when the user's location is found:
+     * 1. Pass a callback function to the locate() function
+     *  map.locate({}, (position) => {
+     *    // Do something with the position
+     *  });
+     * 2. Listen for the 'locationfound' event
+     *  map.on('locationfound', (position) => {
+     *   // Do something with the position
+     *  });
+     *
+     * @param {LocateOptions} [options] The options for the locate() function
+     * @param {function} [onSuccess] The callback function for when the user's location is found.
+     *
+     * @returns {Map}
+     */
+    locate(options, onSuccess) {
+      if (navigator.geolocation) {
+        const defaultOptions2 = {
+          watch: true
+        };
+        let config = defaultOptions2;
+        if (isObject(options)) {
+          config = { ...defaultOptions2, ...options };
+        }
+        const positionOptions = {
+          enableHighAccuracy: false,
+          maximumAge: 0,
+          timeout: Infinity,
+          ...config
+        };
+        const success = (position) => {
+          const { latitude, longitude } = position.coords;
+          const data = {
+            latitude,
+            longitude,
+            latLng: latLng(latitude, longitude),
+            timestamp: position.timestamp
+          };
+          Object.keys(position.coords).forEach((key) => {
+            if (typeof position.coords[key] === "number") {
+              data[key] = position.coords[key];
+            }
+          });
+          this.dispatch("locationfound", data);
+          if (isFunction(onSuccess)) {
+            onSuccess(data);
+          }
+        };
+        const error = (err) => {
+          this.dispatch("locationerror", err);
+          console.error(err);
+        };
+        if (config.watch) {
+          this.watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
+        } else {
+          navigator.geolocation.getCurrentPosition(success, error, positionOptions);
+        }
+      } else {
+        console.error("Geolocation is not supported by this browser.");
+      }
+      return this;
+    }
+    /**
+     * Stop watching for the user's location
+     *
+     * @returns {Map}
+     */
+    stopLocate() {
+      if (navigator.geolocation) {
+        navigator.geolocation.clearWatch(this.watchId);
+      }
+      return this;
     }
   };
   var map = (id, config) => new Map(id, config);
