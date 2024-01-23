@@ -81,8 +81,9 @@ export class SvgSymbol {
      * Set the icon options
      *
      * @param {IconOptions} options The icon options
+     * @return {SvgSymbol}
      */
-    private setOptions(options: SvgSymbolOptions): void {
+    setOptions(options: SvgSymbolOptions): SvgSymbol {
         if (isObject(options)) {
             const numberValues = ['fillOpacity', 'rotation', 'scale', 'strokeOpacity', 'strokeWeight'];
             const pointValues = ['anchor', 'labelOrigin'];
@@ -107,6 +108,7 @@ export class SvgSymbol {
                 }
             });
         }
+        return this;
     }
 
     /**

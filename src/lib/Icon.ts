@@ -78,8 +78,9 @@ export class Icon {
      * Set the icon options
      *
      * @param {IconOptions} options The icon options
+     * @returns {Icon}
      */
-    setOptions(options: IconOptions): void {
+    setOptions(options: IconOptions): Icon {
         if (isObject(options)) {
             const pointValues = ['anchor', 'labelOrigin', 'origin'];
             const sizeValues = ['scaledSize', 'size'];
@@ -100,6 +101,7 @@ export class Icon {
                 }
             });
         }
+        return this;
     }
 
     /**
