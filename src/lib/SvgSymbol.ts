@@ -78,6 +78,15 @@ export class SvgSymbol {
     }
 
     /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Symbol}
+     */
+    get(): google.maps.Symbol {
+        return this.options;
+    }
+
+    /**
      * Set the icon options
      *
      * @param {IconOptions} options The icon options
@@ -120,17 +129,17 @@ export class SvgSymbol {
      * const icon = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.anchor([10, 32]);
+     * icon.setAnchor([10, 32]);
      *
      * Valid values are:
-     * icon.anchor([10, 32]);
-     * icon.anchor({x: 10, y: 32});
-     * icon.anchor(pointClassInstance);
+     * icon.setAnchor([10, 32]);
+     * icon.setAnchor({x: 10, y: 32});
+     * icon.setAnchor(pointClassInstance);
      *
      * @param {PointValue} anchor The anchor point value
      * @returns {SvgSymbol}
      */
-    anchor(anchor: PointValue): SvgSymbol {
+    setAnchor(anchor: PointValue): SvgSymbol {
         this.options.anchor = point(anchor).get();
         return this;
     }
@@ -141,7 +150,7 @@ export class SvgSymbol {
      * @param {string} fillColor The SVG fill color.
      * @returns {SvgSymbol}
      */
-    fillColor(fillColor: string): SvgSymbol {
+    setFillColor(fillColor: string): SvgSymbol {
         if (isStringWithValue(fillColor)) {
             this.options.fillColor = fillColor;
         }
@@ -154,7 +163,7 @@ export class SvgSymbol {
      * @param {number|string} fillOpacity The opacity for the fill
      * @returns {SvgSymbol}
      */
-    fillOpacity(fillOpacity: number | string): SvgSymbol {
+    setFillOpacity(fillOpacity: number | string): SvgSymbol {
         if (isNumber(fillOpacity)) {
             this.options.fillOpacity = fillOpacity;
         } else if (isNumberString(fillOpacity)) {
@@ -169,7 +178,7 @@ export class SvgSymbol {
      * @param labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
      * @returns {SvgSymbol}
      */
-    labelOrigin(labelOrigin: PointValue): SvgSymbol {
+    setLabelOrigin(labelOrigin: PointValue): SvgSymbol {
         this.options.labelOrigin = point(labelOrigin).get();
         return this;
     }
@@ -180,7 +189,7 @@ export class SvgSymbol {
      * @param {path} path The SVG path for the icon
      * @returns {SvgSymbol}
      */
-    path(path: string): SvgSymbol {
+    setPath(path: string): SvgSymbol {
         if (isStringWithValue(path)) {
             this.options.path = path;
         }
@@ -193,7 +202,7 @@ export class SvgSymbol {
      * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
      * @returns {SvgSymbol}
      */
-    rotation(rotation: number | string): SvgSymbol {
+    setRotation(rotation: number | string): SvgSymbol {
         if (isNumber(rotation)) {
             this.options.rotation = rotation;
         } else if (isNumberString(rotation)) {
@@ -208,7 +217,7 @@ export class SvgSymbol {
      * @param {number|string} scale The amount by which the icon is scaled.
      * @returns {SvgSymbol}
      */
-    scale(scale: number | string): SvgSymbol {
+    setScale(scale: number | string): SvgSymbol {
         if (isNumber(scale)) {
             this.options.scale = scale;
         } else if (isNumberString(scale)) {
@@ -223,7 +232,7 @@ export class SvgSymbol {
      * @param {string} strokeColor The SVG stroke color.
      * @returns {SvgSymbol}
      */
-    strokeColor(strokeColor: string): SvgSymbol {
+    setStrokeColor(strokeColor: string): SvgSymbol {
         if (isStringWithValue(strokeColor)) {
             this.options.strokeColor = strokeColor;
         }
@@ -236,7 +245,7 @@ export class SvgSymbol {
      * @param {number|string} strokeOpacity The opacity of the stroke.
      * @returns {SvgSymbol}
      */
-    strokeOpacity(strokeOpacity: number | string): SvgSymbol {
+    setStrokeOpacity(strokeOpacity: number | string): SvgSymbol {
         if (isNumber(strokeOpacity)) {
             this.options.strokeOpacity = strokeOpacity;
         } else if (isNumberString(strokeOpacity)) {
@@ -251,22 +260,13 @@ export class SvgSymbol {
      * @param {number|string} strokeWeight The weight of the stroke.
      * @returns {SvgSymbol}
      */
-    strokeWeight(strokeWeight: number | string): SvgSymbol {
+    setStrokeWeight(strokeWeight: number | string): SvgSymbol {
         if (isNumber(strokeWeight)) {
             this.options.strokeWeight = strokeWeight;
         } else if (isNumberString(strokeWeight)) {
             this.options.strokeWeight = Number(strokeWeight);
         }
         return this;
-    }
-
-    /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Symbol}
-     */
-    get(): google.maps.Symbol {
-        return this.options;
     }
 }
 

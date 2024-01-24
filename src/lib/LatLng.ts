@@ -153,7 +153,7 @@ export class LatLng {
      *
      * @returns {number}
      */
-    lat(): number {
+    getLat(): number {
         return this.latitude;
     }
 
@@ -162,7 +162,7 @@ export class LatLng {
      *
      * @returns {number}
      */
-    lng(): number {
+    getLng(): number {
         return this.longitude;
     }
 
