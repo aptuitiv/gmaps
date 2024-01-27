@@ -102,6 +102,12 @@ export type MarkerOptions = {
     icon?: IconValue;
     // The label value for the marker
     label?: string | number | MarkerLabel;
+    // The latitude for the marker. You can use "lat" or "latitude" as the property name.
+    lat: number | string;
+    latitude: number | string;
+    // The longitude for the marker. You can use "lng" or "longitude" as the property name.
+    lng: number | string;
+    longitude: number | string;
     // The map to add the marker to.
     map?: Map | google.maps.Map;
     // The SVG icon value for the marker
