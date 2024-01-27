@@ -299,6 +299,16 @@ export class Marker {
     }
 
     /**
+     * Remove the marker from the map
+     *
+     * @returns {Marker}
+     */
+    remove(): Marker {
+        this.marker.setMap(null);
+        return this;
+    }
+
+    /**
      * Set the latitude and longitude value for the marker
      *
      * @param {LatLngValue} latLngValue The latitude/longitude position for the marker
