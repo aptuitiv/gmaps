@@ -101,11 +101,7 @@ class Evented extends EventTarget {
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
         this.addEventListener(type, callback, options);
-        // Add the event type to the events object so that you can test if there are any listeners for a given event
-        if (!this.eventListeners[type]) {
-            this.eventListeners[type] = [];
-        }
-        this.eventListeners[type].push({ callback, options });
+        this.registerListener(type, callback, options);
     }
 
     /**
@@ -116,6 +112,28 @@ class Evented extends EventTarget {
      */
     once(type: string, callback: EventListenerOrEventListenerObject | null): void {
         this.on(type, callback, { once: true });
+    }
+
+    /**
+     * Registers an event listener.
+     *
+     * This is used internally to keep track of event listeners so that you can test if there are any listeners for a
+     * given event type.
+     * This is also used to remove event listeners.
+     *
+     * @param {string} type The event type
+     * @param {function} callback The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     */
+    registerListener(
+        type: string,
+        callback: EventListenerOrEventListenerObject,
+        options?: AddEventListenerOptions | boolean
+    ): void {
+        if (!this.eventListeners[type]) {
+            this.eventListeners[type] = [];
+        }
+        this.eventListeners[type].push({ callback, options });
     }
 
     /**
