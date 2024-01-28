@@ -77,6 +77,7 @@ import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
 import { getPixelsFromLatLng, isNumber, isObject, isString, isStringOrNumber, isStringWithValue } from './helpers';
+import Evented from './Evented';
 
 export type MarkerLabel = {
     // A CSS class name to be added to the label element
@@ -127,7 +128,7 @@ export type MarkerOptions = {
 /**
  * Marker class to set up a single marker and add it to the map
  */
-export class Marker {
+export class Marker extends Evented {
     /**
      * Holds the latitude/longitude pair
      */
@@ -154,6 +155,7 @@ export class Marker {
      * @param {MarkerOptions} [options] The marker options
      */
     constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
+        super();
         // Set the marker latitude and longitude value
         if (latLngValue instanceof LatLng) {
             // The value passed is a LatLng class object
