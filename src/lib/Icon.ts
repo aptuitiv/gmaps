@@ -43,6 +43,14 @@ type IconOptions = {
  */
 export class Icon {
     /**
+     * The type of object. For this class it will always be "icon"
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'icon') {}
+     */
+    objectType: string = 'icon';
+
+    /**
      * Holds the Google maps icon options
      */
     private options: google.maps.Icon;

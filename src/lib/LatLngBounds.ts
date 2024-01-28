@@ -52,6 +52,14 @@ export class LatLngBounds {
     private bounds: google.maps.LatLngBounds;
 
     /**
+     * The type of object. For this class it will always be "latlngbounds"
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'latlngbounds') {}
+     */
+    objectType: string = 'latlngbounds';
+
+    /**
      * Constructor
      *
      * @param {LatLngValue} [latLngValue] The latitude/longitude value. If not set then add points with the extend method.

@@ -33,6 +33,14 @@ export type XPoint = number | number[] | string | string[] | PointObject;
  */
 export class Point {
     /**
+     * The type of object. For this class it will always be "point"
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'point') {}
+     */
+    objectType: string = 'point';
+
+    /**
      * Holds the Google maps point object
      */
     private pointObject: google.maps.Point;

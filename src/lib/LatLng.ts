@@ -61,6 +61,14 @@ export class LatLng {
     longitude: number;
 
     /**
+     * The type of object. For this class it will always be "latlng"
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'latlng') {}
+     */
+    objectType: string = 'latlng';
+
+    /**
      * Constructor
      *
      * @param {Latitude} latitude The latitude value or the latitude/longitude pair

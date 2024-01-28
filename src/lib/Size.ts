@@ -49,6 +49,14 @@ export class Size {
     private height: number;
 
     /**
+     * The type of object. For this class it will always be "size"
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'size') {}
+     */
+    objectType: string = 'size';
+
+    /**
      * Constructor
      *
      * @param {WidthSize} width The X value

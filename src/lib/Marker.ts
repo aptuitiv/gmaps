@@ -139,6 +139,15 @@ export class Marker {
     private marker: google.maps.Marker;
 
     /**
+     * The type of object. For this class it will always be "marker"
+     *
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'marker') {}
+     */
+    objectType: string = 'marker';
+
+    /**
      * Constructor
      *
      * @param {LatLngValue|MarkerOptions} [latLngValue] The latitude longitude pair

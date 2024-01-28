@@ -160,6 +160,14 @@ export class MarkerCluster {
     private clusterer: MarkerClusterer;
 
     /**
+     * The type of object. For this class it will always be "markercluster"
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'markercluster') {}
+     */
+    objectType: string = 'markercluster';
+
+    /**
      * The constructor for the MarkerCluster class
      *
      * @param {Map} map The map object

@@ -54,6 +54,14 @@ type SvgSymbolOptions = {
  */
 export class SvgSymbol {
     /**
+     * The type of object. For this class it will always be "svgsymbol"
+     *
+     * You can use this in your logic to determine what type of object you're dealing with.
+     * if (thing.objectType === 'svgsymbol') {}
+     */
+    objectType: string = 'svgsymbol';
+
+    /**
      * Holds the icon options
      * @type {google.maps.Symbol}
      */
