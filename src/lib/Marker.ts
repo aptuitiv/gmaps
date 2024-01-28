@@ -70,14 +70,38 @@
             svgIconXml: svg,
             title: 'My location',
         });
+
+    If you want to pass custom data to events on the marker, you can use the eventData option.
+    It should be an object of data.
+    This will be passed to the event callback function in the "detail" property of the event.
+    const marker = G.marker({
+        latitude: 40.730610,
+        longitude: -73.935242,
+        eventData: {
+            name: 'My Marker',
+            image: 'https://site.com/url/to/image.jpg'
+        }
+    });
+    marker.addEventListener('click', (e) => {
+        console.log(e.detail.name); // 'My Marker'
+        console.log(e.detail.image); // 'https://site.com/url/to/image.jpg'
+    });
 =========================================================================== */
 
 import { icon, IconValue } from './Icon';
 import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
 import { Map } from './Map';
-import { getPixelsFromLatLng, isNumber, isObject, isString, isStringOrNumber, isStringWithValue } from './helpers';
-import Evented from './Evented';
+import {
+    getPixelsFromLatLng,
+    isFunction,
+    isNumber,
+    isObject,
+    isString,
+    isStringOrNumber,
+    isStringWithValue,
+} from './helpers';
+import { Evented, EventCallbackData } from './Evented';
 
 export type MarkerLabel = {
     // A CSS class name to be added to the label element
@@ -99,6 +123,8 @@ export type MarkerLabel = {
 export type MarkerOptions = {
     // The cursor type to show on hover. Defaults to "pointer" if not set.
     cursor?: string;
+    // Custom data to pass to any events
+    eventData?: EventCallbackData;
     // The icon value for the marker
     icon?: IconValue;
     // The label value for the marker
@@ -253,6 +279,12 @@ export class Marker extends Evented {
             }
         }
         this.marker.setOptions(markerOptions);
+
+        // Handle event data.
+        // This allows you to pass custom data to events on the marker
+        if (isObject(options.eventData)) {
+            this.setEventCallbackData(options.eventData);
+        }
         return this;
     }
 
@@ -313,6 +345,24 @@ export class Marker extends Evented {
      */
     getLatLng(): LatLng {
         return this.latLng;
+    }
+
+    /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {function} callback The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     */
+    on(type: string, callback: EventListenerOrEventListenerObject): void {
+        if (isFunction(callback)) {
+            super.on(type, callback);
+            this.marker.addListener(type, () => {
+                this.dispatch(type);
+            });
+        } else {
+            throw new Error('the event handler needs a callback function');
+        }
     }
 
     /**

@@ -5,7 +5,7 @@
     succinct interface for emitting events.
 =========================================================================== */
 
-import { isFunction, isString } from './helpers';
+import { isFunction, isObject, isString } from './helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -15,10 +15,20 @@ type EventData = {
 };
 type Events = { [key: string]: EventData[] };
 
+// Data to pass to the event callback function
+export type EventCallbackData = { [key: string]: string | number | boolean | object };
+
 /**
  * Evented class to add syntatic sugar to handling events
  */
-class Evented extends EventTarget {
+export class Evented extends EventTarget {
+    /**
+     * Holds the event callback data
+     *
+     * @type {object}
+     */
+    private eventCallbackData: EventCallbackData = {};
+
     /**
      * Holds the event listeners
      *
@@ -27,15 +37,38 @@ class Evented extends EventTarget {
     private eventListeners: Events = {};
 
     /**
+     * Gets the event callback data
+     * This is the data that will be passed to the event callback function
+     *
+     * @returns {EventCallbackData}
+     */
+    getEventCallbackData(): EventCallbackData {
+        return this.eventCallbackData;
+    }
+
+    /**
+     * Sets the event callback data
+     *
+     * @param {EventCallbackData} data The event callback data
+     */
+    setEventCallbackData(data: EventCallbackData): void {
+        this.eventCallbackData = data;
+    }
+
+    /**
      * Dispatch an event
      *
      * @param {string} event The event to dispatch
-     * @param {any} [details] The details to pass to the event. If set then a CustomEvent is created, otherwise a regular
+     * @param {any} [data] The details to pass to the event. If set then a CustomEvent is created, otherwise a regular
      *      Event is created
      */
-    dispatch(event: string, details?: any) {
-        if (details) {
-            super.dispatchEvent(new CustomEvent(event, { detail: details }));
+    dispatch(event: string, data?: any) {
+        let eventData = { ...this.eventCallbackData };
+        if (isObject(data)) {
+            eventData = { ...data, ...eventData };
+        }
+        if (Object.keys(eventData).length > 0) {
+            super.dispatchEvent(new CustomEvent(event, { detail: eventData }));
         } else {
             super.dispatchEvent(new Event(event));
         }
@@ -167,5 +200,3 @@ class Evented extends EventTarget {
         return this.eventListeners[type] && this.eventListeners[type].length > 0;
     }
 }
-
-export default Evented;

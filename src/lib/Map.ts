@@ -20,7 +20,7 @@ import { Loader, Libraries } from '@googlemaps/js-api-loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import { isFunction, isObject } from './helpers';
 import { LatLng, latLng } from './LatLng';
-import Evented from './Evented';
+import { Evented } from './Evented';
 
 export type MapOptions = {
     // The Google Maps API key
