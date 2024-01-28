@@ -5,6 +5,8 @@
     succinct interface for emitting events.
 =========================================================================== */
 
+import { isFunction, isString } from './helpers';
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 type EventData = {
@@ -42,17 +44,52 @@ class Evented extends EventTarget {
     /**
      * Removes the event listener
      *
-     * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * There are three ways to remove event listeners:
+     * 1. Remove a specific event listener
+     *      this.off('click', onClickFunction);
+     *      this.off('click', onClickFunction, options);
+     * 2. Remove all listeners for a given event type
+     *      this.off('click');
+     * 3. Remove all listeners for all event types
+     *     this.off();
+     *     this.offAll();
+     *
+     * @param {string} [type] The event type
+     * @param {function} [callback] The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
-    off(type: string, callback: EventListenerOrEventListenerObject, options?: EventListenerOptions | boolean): void {
-        this.removeEventListener(type, callback, options);
+    off(type?: string, callback?: EventListenerOrEventListenerObject, options?: EventListenerOptions | boolean): void {
+        if (isString(type) && isFunction(callback)) {
+            // Remove the specific event listener
+            this.removeEventListener(type, callback, options);
+        } else if (isString(type)) {
+            // Remove all listeners for the given event type
+            if (this.eventListeners[type]) {
+                this.eventListeners[type].forEach((event) => {
+                    this.removeEventListener(type, event.callback, event.options);
+                });
+            }
+        } else {
+            this.offAll();
+        }
+
         if (this.eventListeners[type]) {
             this.eventListeners[type] = this.eventListeners[type].filter(
                 (event) => event.callback !== callback && event.options !== options
             );
         }
+    }
+
+    /**
+     * Removes all event listeners
+     */
+    offAll(): void {
+        Object.keys(this.eventListeners).forEach((type) => {
+            this.eventListeners[type].forEach((event) => {
+                this.removeEventListener(type, event.callback, event.options);
+            });
+        });
+        this.eventListeners = {};
     }
 
     /**
