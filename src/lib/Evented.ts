@@ -7,10 +7,23 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+type EventData = {
+    callback: EventListenerOrEventListenerObject;
+    options: AddEventListenerOptions | boolean;
+};
+type Events = { [key: string]: EventData[] };
+
 /**
  * Evented class to add syntatic sugar to handling events
  */
 class Evented extends EventTarget {
+    /**
+     * Holds the event listeners
+     *
+     * @type {object}
+     */
+    private eventListeners: Events = {};
+
     /**
      * Dispatch an event
      *
@@ -35,6 +48,11 @@ class Evented extends EventTarget {
      */
     off(type: string, callback: EventListenerOrEventListenerObject, options?: EventListenerOptions | boolean): void {
         this.removeEventListener(type, callback, options);
+        if (this.eventListeners[type]) {
+            this.eventListeners[type] = this.eventListeners[type].filter(
+                (event) => event.callback !== callback && event.options !== options
+            );
+        }
     }
 
     /**
@@ -46,6 +64,11 @@ class Evented extends EventTarget {
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
         this.addEventListener(type, callback, options);
+        // Add the event type to the events object so that you can test if there are any listeners for a given event
+        if (!this.eventListeners[type]) {
+            this.eventListeners[type] = [];
+        }
+        this.eventListeners[type].push({ callback, options });
     }
 
     /**
@@ -56,6 +79,37 @@ class Evented extends EventTarget {
      */
     once(type: string, callback: EventListenerOrEventListenerObject | null): void {
         this.on(type, callback, { once: true });
+    }
+
+    /**
+     * Test if there are any listeners for the given event type
+     * Optionally you can test if there are any listeners for the given event type and callback
+     * Optionally you can test if there are any listeners for the given event type, callback, and options
+     *
+     * @param {string} type The event type to test form
+     * @param {EventListenerOrEventListenerObject} callback Optional callback function to include in the test
+     * @param {AddEventListenerOptions | boolean} options Option options object to include in the test
+     * @returns {boolean}
+     */
+    hasListener(
+        type: string,
+        callback?: EventListenerOrEventListenerObject,
+        options?: AddEventListenerOptions | boolean
+    ): boolean {
+        if (!this.eventListeners[type]) {
+            return false;
+        }
+        if (typeof callback === 'function') {
+            if (options) {
+                return (
+                    this.eventListeners[type].filter(
+                        (event) => event.callback === callback && event.options === options
+                    ).length > 0
+                );
+            }
+            return this.eventListeners[type].filter((event) => event.callback === callback).length > 0;
+        }
+        return this.eventListeners[type] && this.eventListeners[type].length > 0;
     }
 }
 
