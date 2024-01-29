@@ -138,3 +138,13 @@ export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.
     const worldPoint = projection.fromLatLngToPoint(position);
     return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
 };
+
+/**
+ * Simulator for extending multiple classes, which Javascript doesn't allow.
+ *
+ * @link https://medium.com/@thevirtuoid/extending-multiple-classes-in-javascript-2f4752574e65
+ *
+ * @param parts The classes to extend
+ * @returns {any} The bundled class
+ */
+export const extender = (...parts: any): any => parts.reduce((allParts: any, part: any) => part(allParts), class {});
