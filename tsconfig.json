@@ -1,11 +1,12 @@
 {
-  "include": ["src/**/*"],
-  "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "target": "es6",
-    "outDir": "dist"
-  }
+    "include": ["src/**/*"],
+    "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "module": "esnext",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "target": "es6",
+        "outDir": "dist",
+        "skipLibCheck": true
+    }
 }
