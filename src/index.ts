@@ -12,6 +12,7 @@ import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';
 import { point } from './lib/Point';
 import { size } from './lib/Size';
+import { tooltip } from './lib/Tooltip';
 
 // Types
 import GlobalObj from './types';
@@ -27,6 +28,7 @@ const G: GlobalObj = {
     markerCluster,
     point,
     size,
+    tooltip,
 };
 
 /**

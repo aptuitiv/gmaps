@@ -7,6 +7,7 @@ import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';
 import { point } from './lib/Point';
 import { size } from './lib/Size';
+import { tooltip } from './lib/Tooltip';
 
 type GlobalObj = {
     icon: typeof icon;
@@ -18,6 +19,7 @@ type GlobalObj = {
     markerCluster: typeof markerCluster;
     point: typeof point;
     size: typeof size;
+    tooltip: typeof tooltip;
 };
 
 export default GlobalObj;
