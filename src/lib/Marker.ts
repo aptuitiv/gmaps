@@ -301,15 +301,13 @@ export class Marker extends Evented {
     }
 
     /**
-     * Adds the marker to the Google map object
+     * Adds the marker to the map object
      *
-     * @param {Map|google.maps.Map} map The map object
+     * @param {Map} map The map object
      */
-    addTo(map: Map | google.maps.Map): void {
+    addTo(map: Map): void {
         if (map instanceof Map) {
             this.marker.setMap(map.get());
-        } else if (map instanceof google.maps.Map) {
-            this.marker.setMap(map);
         }
     }
 
