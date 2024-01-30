@@ -67,6 +67,10 @@ export class InfoWindow extends Layer {
     constructor(options?: InfoWindowOptions) {
         super();
         this.infoWindow = new google.maps.InfoWindow();
+        this.infoWindow.addListener('closeclick', () => {
+            InfoWindowCollection.getInstance().remove(this);
+        });
+
         if (isObject(options)) {
             this.setOptions(options);
         }
