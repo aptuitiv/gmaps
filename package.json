@@ -1,6 +1,6 @@
 {
     "name": "@aptuitiv/google-maps-display",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Library to help with displaying a Google map with markers, overlays, and custom buttons",
     "source": "src/index.ts",
     "main": "dist/index.js",
