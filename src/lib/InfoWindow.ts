@@ -29,6 +29,7 @@ export type InfoWindowOptions = {
     minWidth?: number;
     // The offset, in pixels, of the tip of the info window from the point on the map at whose geographical coordinates the info window is anchored.
     // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
+    // Defaults to [0, -4]
     pixelOffset?: SizeValue;
     // The zIndex of the InfoWindow.
     zIndex?: number;
@@ -82,7 +83,9 @@ export class InfoWindow extends Layer {
      * @param options The InfoWindow options
      */
     setOptions(options: InfoWindowOptions) {
-        const iwOptions: google.maps.InfoWindowOptions = {};
+        const iwOptions: google.maps.InfoWindowOptions = {
+            pixelOffset: size(0, -4).get(),
+        };
         if (isStringWithValue(options.ariaLabel)) {
             iwOptions.ariaLabel = options.ariaLabel;
         }
