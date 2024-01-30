@@ -144,7 +144,7 @@ export class Size {
 }
 
 // Possible values for the size in other classes
-export type SizeValue = Size | number[] | string[] | SizeObject;
+export type SizeValue = Size | number | number[] | string | string[] | SizeObject;
 
 /**
  * Helper function to set up the size object
