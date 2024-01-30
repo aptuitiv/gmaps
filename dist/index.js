@@ -2052,12 +2052,21 @@
     constructor(options) {
       super();
       /**
+       * Whether to automatically close other open InfoWindows when opening this one
+       *
+       * @type {boolean}
+       */
+      this.autoClose = true;
+      /**
        * Whether focus should be moved to the InfoWindow when it is opened
        *
        * @type {boolean}
        */
       this.focus = false;
       this.infoWindow = new google.maps.InfoWindow();
+      this.infoWindow.addListener("closeclick", () => {
+        InfoWindowCollection.getInstance().remove(this);
+      });
       if (isObject(options)) {
         this.setOptions(options);
       }
@@ -2068,7 +2077,9 @@
      * @param options The InfoWindow options
      */
     setOptions(options) {
-      const iwOptions = {};
+      const iwOptions = {
+        pixelOffset: size(0, -4).get()
+      };
       if (isStringWithValue(options.ariaLabel)) {
         iwOptions.ariaLabel = options.ariaLabel;
       }
@@ -2091,13 +2102,16 @@
       if (options.pixelOffset) {
         iwOptions.pixelOffset = size(options.pixelOffset).get();
       }
-      if (typeof options.focus === "boolean") {
-        this.focus = options.focus;
-      }
       if (options.zIndex) {
         this.setZIndex(options.zIndex);
       }
       this.infoWindow.setOptions(iwOptions);
+      if (typeof options.autoClose === "boolean") {
+        this.autoClose = options.autoClose;
+      }
+      if (typeof options.focus === "boolean") {
+        this.focus = options.focus;
+      }
     }
     /**
      * Set the InfoWindow content
@@ -2138,17 +2152,27 @@
      *
      * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
-     * @param anchorOrMap The anchor object or map object
+     * @param {Map | Marker | google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | google.maps.MaP} anchorOrMap The anchor object or map object.
+     *      This should ideally be the Map or Marker object and not the Google maps object.
+     *      If this is used internally then the Google maps object can be used.
      */
     open(anchorOrMap) {
-      if (anchorOrMap instanceof google.maps.Map) {
+      if (this.autoClose) {
+        InfoWindowCollection.getInstance().closeAll();
+      }
+      if (anchorOrMap instanceof Map) {
+        this.infoWindow.open({
+          map: anchorOrMap.get(),
+          shouldFocus: this.focus
+        });
+      } else if (anchorOrMap instanceof google.maps.Map) {
         this.infoWindow.open({
           map: anchorOrMap,
           shouldFocus: this.focus
         });
-      } else if (anchorOrMap instanceof Map) {
+      } else if (anchorOrMap instanceof Marker) {
         this.infoWindow.open({
-          map: anchorOrMap.get(),
+          anchor: anchorOrMap.get(),
           shouldFocus: this.focus
         });
       } else {
@@ -2157,6 +2181,14 @@
           shouldFocus: this.focus
         });
       }
+      InfoWindowCollection.getInstance().add(this);
+    }
+    /**
+     * Close the info window
+     */
+    close() {
+      this.infoWindow.close();
+      InfoWindowCollection.getInstance().remove(this);
     }
   };
   var infoWindow = (options) => {
@@ -2195,6 +2227,60 @@
       });
     }
   });
+  var InfoWindowCollection = /* @__PURE__ */ (() => {
+    let instance;
+    function createInstance() {
+      return {
+        /**
+         * Holds the InfoWindow objects
+         */
+        infoWindows: [],
+        /**
+         * Adds an InfoWindow to the collection
+         * @param iw The InfoWindow object to add
+         */
+        add(iw) {
+          this.infoWindows.push(iw);
+        },
+        /**
+         * Removes an InfoWindow from the collection
+         * @param iw The InfoWindow object to remove
+         */
+        remove(iw) {
+          const index = this.infoWindows.indexOf(iw);
+          if (index > -1) {
+            this.infoWindows.splice(index, 1);
+          }
+        },
+        /**
+         * Clears the collection
+         */
+        clear() {
+          this.infoWindows = [];
+        },
+        /**
+         * Closes all the InfoWindows in the collection
+         */
+        closeAll() {
+          this.infoWindows.forEach((iw) => {
+            iw.close();
+          });
+        }
+      };
+    }
+    return {
+      /**
+       * Get the singleton instance of the object
+       * @returns {InfoWindowCollectionObject}
+       */
+      getInstance() {
+        if (!instance) {
+          instance = createInstance();
+        }
+        return instance;
+      }
+    };
+  })();
 
   // node_modules/@googlemaps/markerclusterer/dist/index.esm.js
   var import_fast_deep_equal = __toESM(require_fast_deep_equal());
