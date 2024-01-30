@@ -4,7 +4,6 @@
     Usage:
     const tooltip = G.tooltip({
         className: 'MapTooltip',
-        container: '#map'
     });
     const marker = G.marker({
         latitude: 40.730610,
@@ -20,7 +19,6 @@
         title: 'My Marker',
         tooltip: {
             className: 'MapTooltip',
-            container: '#map'
         }
     });
 
@@ -28,12 +26,12 @@
     But, you can also set custom content. This could be useful if the component doesn't have a title (like polylines).
     const tooltip = G.tooltip({
         className: 'MapTooltip',
-        container: '#map',
         content: 'Some tooltip content here'
     });
 =========================================================================== */
 
-import { getPixelsFromLatLng, isObject, isString, isStringWithValue } from './helpers';
+import { isObject, isString, isStringWithValue } from './helpers';
+import { Overlay } from './Overlay';
 
 type TooltipOptions = {
     className?: string;
@@ -44,14 +42,7 @@ type TooltipOptions = {
 /**
  * Tooltip class
  */
-export class Tooltip {
-    /**
-     * Holds the container that the tooltip will display in
-     *
-     * @type {HTMLElement}
-     */
-    private container: HTMLElement;
-
+class Tooltip extends Overlay {
     /**
      * Holds the tooltip content.
      * This can be a simple string of text, or string of HTML code.
@@ -59,6 +50,13 @@ export class Tooltip {
      * @type {string}
      */
     private content: string;
+
+    /**
+     * Holds the position of the tooltip
+     *
+     * @type {google.maps.LatLng}
+     */
+    private position: google.maps.LatLng;
 
     /**
      * Holds the tooltip HTML element
@@ -73,14 +71,12 @@ export class Tooltip {
      * @param {TooltipOptions} [options] Tooltip options
      */
     constructor(options?: TooltipOptions) {
-        this.tooltip = document.createElement('div');
-        this.tooltip.style.position = 'absolute';
+        super();
 
         if (isObject(options)) {
             this.setOptions(options);
         } else {
-            this.tooltip.classList.add('tooltip');
-            this.container = document.body;
+            this.setClassName('tooltip');
         }
     }
 
@@ -94,39 +90,8 @@ export class Tooltip {
             this.setContent(options.content);
         }
         if (isString(options.className)) {
+            this.removeClassName('tooltip');
             this.setClassName(options.className);
-        }
-        if (options.container) {
-            this.setContainer(options.container);
-        }
-    }
-
-    /**
-     * Set the class name(s) for the tooltip
-     *
-     * If you need multiple class names then separate them with a space.
-     *
-     * @param className The class name(s) to add to the tooltip.
-     *    This can be a space separated list of class names.
-     */
-    setClassName(className: string) {
-        this.tooltip.classList.remove('tooltip');
-        const classes = className.split(' ');
-        classes.forEach((cn) => {
-            this.tooltip.classList.add(cn.trim());
-        });
-    }
-
-    /**
-     * Sets the container for the tooltip
-     *
-     * @param {HTMLElement|string} container The container for the tooltip
-     */
-    setContainer(container: HTMLElement | string) {
-        if (isString(container)) {
-            this.container = document.querySelector(container);
-        } else if (container instanceof HTMLElement) {
-            this.container = container;
         }
     }
 
@@ -146,27 +111,49 @@ export class Tooltip {
      */
     setContent(content: string) {
         this.content = content;
-        this.tooltip.innerHTML = content;
+        this.overlay.innerHTML = content;
     }
 
     /**
      * Show the tooltip at the specified position
      *
+     * @internal Intended to be called only by internal classes
      * @param map The Google map object
      * @param position The Google maps lat/lng position of where the tooltip should show
      */
     show(map: google.maps.Map, position: google.maps.LatLng) {
-        const pixels = getPixelsFromLatLng(map, position);
-        this.tooltip.style.left = `${pixels.x}px`;
-        this.tooltip.style.top = `${pixels.y}px`;
-        this.container.appendChild(this.tooltip);
+        this.position = position;
+        this.setMap(map);
     }
 
     /**
-     * Hide the tooltip
+     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @param panes The Google maps panes object
      */
-    hide() {
-        this.container.removeChild(this.tooltip);
+    add(panes: google.maps.MapPanes) {
+        panes.floatPane.appendChild(this.overlay);
+    }
+
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @param projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection) {
+        const divPosition = projection.fromLatLngToDivPixel(this.position)!;
+
+        // Hide the tooltip when it is far out of view.
+        const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
+
+        if (display === 'block') {
+            this.overlay.style.left = `${divPosition.x}px`;
+            this.overlay.style.top = `${divPosition.y}px`;
+        }
+
+        if (this.overlay.style.display !== display) {
+            this.overlay.style.display = display;
+        }
     }
 }
 
