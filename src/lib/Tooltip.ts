@@ -35,7 +35,6 @@ import { Overlay } from './Overlay';
 
 type TooltipOptions = {
     className?: string;
-    container?: HTMLElement | string;
     content?: string;
 };
 
