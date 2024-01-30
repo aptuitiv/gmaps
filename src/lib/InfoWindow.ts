@@ -2,6 +2,8 @@
     Helps to set up the built-in Google InfoWindow
 =========================================================================== */
 
+/* eslint-disable no-use-before-define */
+
 import { isNumber, isNumberString, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 import Layer from './Layer';
 import { Map } from './Map';
@@ -36,6 +38,13 @@ export type InfoWindowOptions = {
  * InfoWindow class
  */
 export class InfoWindow extends Layer {
+    /**
+     * Whether to automatically close other open InfoWindows when opening this one
+     *
+     * @type {boolean}
+     */
+    private autoClose: boolean = true;
+
     /**
      * Whether focus should be moved to the InfoWindow when it is opened
      *
@@ -92,14 +101,19 @@ export class InfoWindow extends Layer {
         if (options.pixelOffset) {
             iwOptions.pixelOffset = size(options.pixelOffset).get();
         }
-        if (typeof options.focus === 'boolean') {
-            this.focus = options.focus;
-        }
         if (options.zIndex) {
             this.setZIndex(options.zIndex);
         }
 
         this.infoWindow.setOptions(iwOptions);
+
+        // Other options
+        if (typeof options.autoClose === 'boolean') {
+            this.autoClose = options.autoClose;
+        }
+        if (typeof options.focus === 'boolean') {
+            this.focus = options.focus;
+        }
     }
 
     /**
@@ -151,6 +165,11 @@ export class InfoWindow extends Layer {
     open(
         anchorOrMap: Map | Marker | google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | google.maps.Map
     ) {
+        // Close other open InfoWindows if necessary
+        if (this.autoClose) {
+            InfoWindowCollection.getInstance().closeAll();
+        }
+
         if (anchorOrMap instanceof Map) {
             this.infoWindow.open({
                 map: anchorOrMap.get(),
@@ -172,6 +191,15 @@ export class InfoWindow extends Layer {
                 shouldFocus: this.focus,
             });
         }
+        InfoWindowCollection.getInstance().add(this);
+    }
+
+    /**
+     * Close the info window
+     */
+    close() {
+        this.infoWindow.close();
+        InfoWindowCollection.getInstance().remove(this);
     }
 }
 
@@ -223,3 +251,83 @@ Marker.include({
         });
     },
 });
+
+type InfoWindowCollectionObject = {
+    infoWindows: InfoWindow[];
+    add(iw: InfoWindow): void;
+    remove(iw: InfoWindow): void;
+    clear(): void;
+    closeAll(): void;
+};
+
+/**
+ * Singleton class to hold the open InfoWindows.
+ * Usage:
+ * const collection = InfoWindowCollection.getInstance();
+ * collection.add(infoWindow);
+ * collection.closeAll();
+ */
+const InfoWindowCollection = (() => {
+    /**
+     * The singleton instance of the object
+     */
+    let instance: InfoWindowCollectionObject;
+
+    /**
+     * Create the object instance
+     * @private
+     * @returns {InfoWindowCollectionObject}
+     */
+    function createInstance(): InfoWindowCollectionObject {
+        return {
+            /**
+             * Holds the InfoWindow objects
+             */
+            infoWindows: [],
+            /**
+             * Adds an InfoWindow to the collection
+             * @param iw The InfoWindow object to add
+             */
+            add(iw: InfoWindow) {
+                this.infoWindows.push(iw);
+            },
+            /**
+             * Removes an InfoWindow from the collection
+             * @param iw The InfoWindow object to remove
+             */
+            remove(iw: InfoWindow) {
+                const index = this.infoWindows.indexOf(iw);
+                if (index > -1) {
+                    this.infoWindows.splice(index, 1);
+                }
+            },
+            /**
+             * Clears the collection
+             */
+            clear() {
+                this.infoWindows = [];
+            },
+            /**
+             * Closes all the InfoWindows in the collection
+             */
+            closeAll() {
+                this.infoWindows.forEach((iw: InfoWindow) => {
+                    iw.close();
+                });
+            },
+        };
+    }
+
+    return {
+        /**
+         * Get the singleton instance of the object
+         * @returns {InfoWindowCollectionObject}
+         */
+        getInstance() {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        },
+    };
+})();
