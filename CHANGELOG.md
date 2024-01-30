@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0 (January 30, 2024)
+
+- Added support for InfoWindow.
+- Added support for Tooltip.
+
 ## 0.1.0 (January 28, 2024)
 
 Initial release.
