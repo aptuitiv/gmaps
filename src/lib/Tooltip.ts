@@ -32,10 +32,12 @@
 
 import { isObject, isString, isStringWithValue } from './helpers';
 import { Overlay } from './Overlay';
+import { PointValue } from './Point';
 
 type TooltipOptions = {
     className?: string;
     content?: string;
+    offset?: PointValue;
 };
 
 /**
@@ -92,6 +94,9 @@ class Tooltip extends Overlay {
             this.removeClassName('tooltip');
             this.setClassName(options.className);
         }
+        if (options.offset) {
+            this.setOffset(options.offset);
+        }
     }
 
     /**
@@ -146,8 +151,9 @@ class Tooltip extends Overlay {
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
         if (display === 'block') {
-            this.overlay.style.left = `${divPosition.x}px`;
-            this.overlay.style.top = `${divPosition.y}px`;
+            const offset = this.getOffset();
+            this.overlay.style.left = `${divPosition.x + offset.getX()}px`;
+            this.overlay.style.top = `${divPosition.y + offset.getY()}px`;
         }
 
         if (this.overlay.style.display !== display) {

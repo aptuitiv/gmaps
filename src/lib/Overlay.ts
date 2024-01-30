@@ -8,6 +8,7 @@
 
 import { isObject } from './helpers';
 import { Map } from './Map';
+import { Point, point, PointValue } from './Point';
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -16,6 +17,11 @@ import { Map } from './Map';
  * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
  */
 export class Overlay {
+    /**
+     * Holds the offset for the overlay
+     */
+    private offset: Point;
+
     /**
      * Holds the overlay HTML element. This is the container element that the
      * content for the overlay will get displayed in.
@@ -47,6 +53,9 @@ export class Overlay {
         // Stops click, tap, drag, and wheel events on the element from bubbling up to the map.
         // This prevents map dragging and zooming, as well as map "click" events.
         google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.overlay);
+
+        // Set the default offset
+        this.offset = point(0, 0);
     }
 
     /**
@@ -95,6 +104,26 @@ export class Overlay {
         } else if (map instanceof google.maps.Map) {
             this.overlayView.setMap(map);
         }
+    }
+
+    /**
+     * Get the offset value
+     *
+     * @returns {Point}
+     */
+    getOffset(): Point {
+        return this.offset;
+    }
+
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param offset The offset value
+     */
+    setOffset(offset: PointValue) {
+        this.offset = point(offset);
     }
 
     /**
