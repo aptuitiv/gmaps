@@ -327,7 +327,7 @@ const InfoWindowCollection = (() => {
          * Get the singleton instance of the object
          * @returns {InfoWindowCollectionObject}
          */
-        getInstance() {
+        getInstance(): InfoWindowCollectionObject {
             if (!instance) {
                 instance = createInstance();
             }
