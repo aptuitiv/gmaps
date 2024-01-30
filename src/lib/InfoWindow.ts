@@ -9,13 +9,26 @@ import { Marker } from './Marker';
 import { size, SizeValue } from './Size';
 
 export type InfoWindowOptions = {
+    // The aria label for the info window
     ariaLabel?: string;
+    // Whether to automatically close other open InfoWindows when opening this one
+    autoClose?: boolean;
+    // The content to display in the InfoWindow. This can be an HTML element, a plain-text string, or a string containing HTML.
+    // The InfoWindow will be sized according to the content. To set an explicit size for the content, set content to be a HTML element with that size,
+    // or use maxWidth.
     content?: string | Element | Text;
+    // Disable panning the map to make the InfoWindow fully visible when it opens.
     disableAutoPan?: boolean;
+    // Whether focus should be set on the info window when it is opened. Defaults to false.
     focus?: boolean;
+    // Maximum width of the InfoWindow, regardless of content's width.
     maxWidth?: number;
+    // Minimum width of the InfoWindow, regardless of the content's width.
     minWidth?: number;
+    // The offset, in pixels, of the tip of the info window from the point on the map at whose geographical coordinates the info window is anchored.
+    // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
     pixelOffset?: SizeValue;
+    // The zIndex of the InfoWindow.
     zIndex?: number;
 };
 
