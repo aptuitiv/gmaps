@@ -1,6 +1,8 @@
 /* ===========================================================================
     Base class to be extended by classes that need to emit events.
 
+    If you don't need events then you can just extend from the Base class.
+
     This is a wrapper around the EventTarget class to provide a more
     succinct interface for emitting events.
 =========================================================================== */
@@ -198,5 +200,16 @@ export class Evented extends EventTarget {
             return this.eventListeners[type].filter((event) => event.callback === callback).length > 0;
         }
         return this.eventListeners[type] && this.eventListeners[type].length > 0;
+    }
+
+    /**
+     * Include the mixin into the class
+     *
+     * @link https://javascript.info/mixins
+     * @link https://www.digitalocean.com/community/tutorials/js-using-js-mixins
+     * @param mixin The mixin to include
+     */
+    static include(mixin: any) {
+        Object.assign(this.prototype, mixin);
     }
 }

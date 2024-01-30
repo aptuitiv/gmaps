@@ -4,7 +4,7 @@
 
 // Import the class helpers
 import { icon } from './lib/Icon';
-import { svgSymbol } from './lib/SvgSymbol';
+import { infoWindow } from './lib/InfoWindow';
 import { latLng } from './lib/LatLng';
 import { latLngBounds } from './lib/LatLngBounds';
 import { map } from './lib/Map';
@@ -12,6 +12,7 @@ import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';
 import { point } from './lib/Point';
 import { size } from './lib/Size';
+import { svgSymbol } from './lib/SvgSymbol';
 import { tooltip } from './lib/Tooltip';
 
 // Types
@@ -20,7 +21,7 @@ import GlobalObj from './types';
 // Set up the global namespace object
 const G: GlobalObj = {
     icon,
-    svgSymbol,
+    infoWindow,
     latLng,
     latLngBounds,
     map,
@@ -28,6 +29,7 @@ const G: GlobalObj = {
     markerCluster,
     point,
     size,
+    svgSymbol,
     tooltip,
 };
 

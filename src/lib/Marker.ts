@@ -88,9 +88,10 @@
     });
 =========================================================================== */
 
-import { Evented, EventCallbackData } from './Evented';
+import { EventCallbackData } from './Evented';
 import { icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
+import Layer from './Layer';
 import { Map } from './Map';
 import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { tooltip, TooltipValue } from './Tooltip';
@@ -144,7 +145,7 @@ export type MarkerOptions = {
 /**
  * Marker class to set up a single marker and add it to the map
  */
-export class Marker extends Evented {
+export class Marker extends Layer {
     /**
      * Holds the latitude/longitude pair
      */
