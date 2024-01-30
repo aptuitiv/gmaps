@@ -88,20 +88,14 @@
     });
 =========================================================================== */
 
+import { EventCallbackData } from './Evented';
 import { icon, IconValue } from './Icon';
-import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
+import Layer from './Layer';
 import { Map } from './Map';
-import {
-    getPixelsFromLatLng,
-    isFunction,
-    isNumber,
-    isObject,
-    isString,
-    isStringOrNumber,
-    isStringWithValue,
-} from './helpers';
-import { Evented, EventCallbackData } from './Evented';
+import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
+import { tooltip, TooltipValue } from './Tooltip';
+import { isFunction, isNumber, isObject, isStringOrNumber, isStringWithValue } from './helpers';
 
 export type MarkerLabel = {
     // A CSS class name to be added to the label element
@@ -144,17 +138,14 @@ export type MarkerOptions = {
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
     // that shows when you hover over a link with a title.
     title?: string;
-    // The selector for the parent element that tooltips are added to.
-    // Ideally this is the map container, but it can be any element.
-    tooltipContainer?: string;
-    // The class name for the tooltip element. Defaults to "tooltip" if not set
-    tooltipClass?: string;
+    // The tooltip for the marker. This will show when hovering over the tooltip.
+    tooltip?: TooltipValue;
 };
 
 /**
  * Marker class to set up a single marker and add it to the map
  */
-export class Marker extends Evented {
+export class Marker extends Layer {
     /**
      * Holds the latitude/longitude pair
      */
@@ -229,10 +220,9 @@ export class Marker extends Evented {
         if (this.latLng) {
             markerOptions.position = this.latLng.toJson();
         }
-        if (options.title && options.tooltipContainer) {
+        if (options.title && options.tooltip) {
             // The title will be a custom tooltip that is added to the map container
-            const tooltipClass = options.tooltipClass || 'tooltip';
-            this.setTooltip(options.tooltipContainer, options.title, tooltipClass);
+            this.setTooltip(options.tooltip, options.title);
         } else if (options.title) {
             markerOptions.title = options.title;
         }
@@ -296,44 +286,29 @@ export class Marker extends Evented {
      * @param {string} [tooltipClass] The class or classes for the tooltip element. If multiple classes are used then separate them with a space.
      * @returns
      */
-    setTooltip(containerSelector: string, title: string, tooltipClass?: string): Marker {
+    setTooltip(tooltipValue: TooltipValue, title: string): Marker {
         // Get the tooltip container and make sure it exists
-        const container = document.querySelector(containerSelector);
-        if (container) {
-            const tooltip = document.createElement('div');
-            if (isString(tooltipClass)) {
-                const classes = tooltipClass.split(' ');
-                classes.forEach((className) => {
-                    tooltip.classList.add(className.trim());
-                });
-            }
-            tooltip.innerHTML = title;
-            tooltip.style.position = 'absolute';
-            this.marker.addListener('mouseover', () => {
-                const pixels = getPixelsFromLatLng(this.marker.getMap() as google.maps.Map, this.marker.getPosition());
-                tooltip.style.left = `${pixels.x}px`;
-                tooltip.style.top = `${pixels.y}px`;
-                container.appendChild(tooltip);
-            });
-            this.marker.addListener('mouseout', () => {
-                container.removeChild(tooltip);
-            });
-        } else {
-            throw new Error('Invalid tool tip container selector');
+        const tt = tooltip(tooltipValue);
+        if (!tt.hasContent()) {
+            tt.setContent(title);
         }
+        this.marker.addListener('mouseover', () => {
+            tt.show(this.marker.getMap() as google.maps.Map, this.marker.getPosition());
+        });
+        this.marker.addListener('mouseout', () => {
+            tt.hide();
+        });
         return this;
     }
 
     /**
-     * Adds the marker to the Google map object
+     * Adds the marker to the map object
      *
-     * @param {Map|google.maps.Map} map The map object
+     * @param {Map} map The map object
      */
-    addTo(map: Map | google.maps.Map): void {
+    addTo(map: Map): void {
         if (map instanceof Map) {
             this.marker.setMap(map.get());
-        } else if (map instanceof google.maps.Map) {
-            this.marker.setMap(map);
         }
     }
 

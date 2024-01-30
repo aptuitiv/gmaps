@@ -144,7 +144,7 @@ export class Point {
 }
 
 // Possible values for the point in other classes
-export type PointValue = Point | number[] | string[] | PointObject;
+export type PointValue = Point | number | number[] | string | string[] | PointObject;
 
 /**
  * Helper function to set up the point object

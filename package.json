@@ -1,45 +1,45 @@
 {
-  "name": "@aptuitiv/google-maps-display",
-  "version": "0.1.0",
-  "description": "Library to help with displaying a Google map with markers, overlays, and custom buttons",
-  "source": "src/index.ts",
-  "main": "dist/index.js",
-  "type": "module",
-  "scripts": {
-    "build": "node scripts/build.js",
-    "build:types": "tsc --emitDeclarationOnly --declaration",
-    "lint": "eslint --fix --ext .js,.ts .",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "ts-build": "tsc",
-    "ts-dev": "tsc -w",
-    "watch": "node scripts/watch.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/aptuitiv/google-map-display.git"
-  },
-  "author": "Aptuitiv",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/aptuitiv/google-map-display/issues"
-  },
-  "homepage": "https://github.com/aptuitiv/google-map-display#readme",
-  "devDependencies": {
-    "@types/google.maps": "^3.54.10",
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^6.19.0",
-    "chalk": "^5.3.0",
-    "esbuild": "^0.19.11",
-    "esbuild-plugin-eslint": "^0.3.7",
-    "eslint": "^8.56.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-config-prettier": "^9.1.0",
-    "log-symbols": "^6.0.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "@googlemaps/js-api-loader": "^1.16.2",
-    "@googlemaps/markerclusterer": "^2.5.2"
-  }
+    "name": "@aptuitiv/google-maps-display",
+    "version": "0.2.0",
+    "description": "Library to help with displaying a Google map with markers, overlays, and custom buttons",
+    "source": "src/index.ts",
+    "main": "dist/index.js",
+    "type": "module",
+    "scripts": {
+        "build": "node scripts/build.js",
+        "build:types": "tsc --emitDeclarationOnly --declaration --stripInternal",
+        "lint": "eslint --fix --ext .js,.ts .",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "ts-build": "tsc",
+        "ts-dev": "tsc -w",
+        "watch": "node scripts/watch.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/aptuitiv/google-map-display.git"
+    },
+    "author": "Aptuitiv",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/aptuitiv/google-map-display/issues"
+    },
+    "homepage": "https://github.com/aptuitiv/google-map-display#readme",
+    "devDependencies": {
+        "@types/google.maps": "^3.54.10",
+        "@typescript-eslint/eslint-plugin": "^6.19.0",
+        "@typescript-eslint/parser": "^6.19.0",
+        "chalk": "^5.3.0",
+        "esbuild": "^0.19.11",
+        "esbuild-plugin-eslint": "^0.3.7",
+        "eslint": "^8.56.0",
+        "eslint-config-airbnb-base": "^15.0.0",
+        "eslint-config-prettier": "^9.1.0",
+        "log-symbols": "^6.0.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    },
+    "dependencies": {
+        "@googlemaps/js-api-loader": "^1.16.2",
+        "@googlemaps/markerclusterer": "^2.5.2"
+    }
 }
