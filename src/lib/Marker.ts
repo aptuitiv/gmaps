@@ -293,7 +293,7 @@ export class Marker extends Layer {
             tt.setContent(title);
         }
         this.marker.addListener('mouseover', () => {
-            tt.show(this.marker.getMap() as google.maps.Map, this.marker.getPosition());
+            tt.show(this.getMap(), this.marker.getPosition());
         });
         this.marker.addListener('mouseout', () => {
             tt.hide();
@@ -309,6 +309,7 @@ export class Marker extends Layer {
     addTo(map: Map): void {
         if (map instanceof Map) {
             this.marker.setMap(map.get());
+            this.setMap(map);
         }
     }
 

@@ -3,6 +3,7 @@
 =========================================================================== */
 
 import { Evented } from './Evented';
+import { Map } from './Map';
 import {} from './helpers';
 
 /**
@@ -11,6 +12,13 @@ import {} from './helpers';
  * Other classes, like InfoWindow add functionality to this class with the include() method.
  */
 class Layer extends Evented {
+    /**
+     * Holds the Map object that the layer is added to
+     *
+     * @type {Map|null}
+     */
+    private map: Map | null = null;
+
     /**
      * Get the Google maps object that this layer represents.
      *
@@ -22,6 +30,44 @@ class Layer extends Evented {
     // eslint-disable-next-line class-methods-use-this
     get(): google.maps.MVCObject {
         return new google.maps.MVCObject();
+    }
+
+    /**
+     * Return the Map object or null if the Map object is not set
+     *
+     * @returns {Map|null}
+     */
+    getMap(): Map | null {
+        return this.map;
+    }
+
+    /**
+     * Returns the Google maps object that this layer is assigned to.
+     *
+     * If it's not assigned to a map, it returns null.
+     *
+     * @returns {google.maps.Map|null}
+     */
+    getGoogleMap(): google.maps.Map | null {
+        if (this.map instanceof Map) {
+            return this.map.get();
+        }
+        return null;
+    }
+
+    /**
+     * Clears the map object that the layer is added to
+     */
+    removeMap(): void {
+        this.map = null;
+    }
+
+    /**
+     * Sets the map object that the layer is added to
+     * @param {Map} map The map object to add the layer to
+     */
+    setMap(map: Map | null) {
+        this.map = map;
     }
 }
 

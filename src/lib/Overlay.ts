@@ -66,6 +66,7 @@ export class Overlay extends Layer {
      */
     hide() {
         this.overlayView.setMap(null);
+        this.removeMap();
     }
 
     /**
@@ -98,13 +99,12 @@ export class Overlay extends Layer {
     /**
      * Set the map object to display the overlay in
      *
-     * @param {Map | google.maps.Map} map The Google maps map object or the Map object
+     * @param {Map} map The Map object
      */
-    setMap(map: Map | google.maps.Map) {
+    setMap(map: Map) {
         if (map instanceof Map) {
             this.overlayView.setMap(map.get());
-        } else if (map instanceof google.maps.Map) {
-            this.overlayView.setMap(map);
+            super.setMap(map);
         }
     }
 

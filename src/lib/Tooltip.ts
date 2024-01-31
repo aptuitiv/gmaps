@@ -31,6 +31,7 @@
 =========================================================================== */
 
 import { isObject, isString, isStringWithValue } from './helpers';
+import { Map } from './Map';
 import { Overlay } from './Overlay';
 import { PointValue } from './Point';
 
@@ -125,7 +126,7 @@ class Tooltip extends Overlay {
      * @param map The Google map object
      * @param position The Google maps lat/lng position of where the tooltip should show
      */
-    show(map: google.maps.Map, position: google.maps.LatLng) {
+    show(map: Map, position: google.maps.LatLng) {
         this.position = position;
         this.setMap(map);
     }
