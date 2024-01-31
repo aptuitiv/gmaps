@@ -147,9 +147,11 @@ export type MarkerOptions = {
  */
 export class Marker extends Layer {
     /**
-     * Holds the latitude/longitude pair
+     * Holds the marker position
+     *
+     * @type {LatLng}
      */
-    private latLng: LatLng;
+    private position: LatLng;
 
     /**
      * Holds the Google maps marker object
@@ -176,17 +178,17 @@ export class Marker extends Layer {
         // Set the marker latitude and longitude value
         if (latLngValue instanceof LatLng) {
             // The value passed is a LatLng class object
-            this.latLng = latLngValue;
+            this.position = latLngValue;
         } else if (Array.isArray(latLngValue)) {
             // The value passed is likely an array of [lat, lng] pairs
-            this.latLng = latLng(latLngValue);
+            this.position = latLng(latLngValue);
         } else if (
             isObject(latLngValue) &&
             typeof (latLngValue as LatLngLiteral).lat !== 'undefined' &&
             typeof (latLngValue as LatLngLiteral).lng !== 'undefined'
         ) {
             // The value passed is an object with lat/lng properties
-            this.latLng = latLng(latLngValue as LatLngLiteral);
+            this.position = latLng(latLngValue as LatLngLiteral);
         } else if (
             isObject(latLngValue) &&
             typeof (latLngValue as LatLngLiteralExpanded).latitude !== 'undefined' &&
@@ -194,7 +196,7 @@ export class Marker extends Layer {
         ) {
             // The value passed is an object with latitude/longitude properties or its
             // the marker options with latitude and longitude set
-            this.latLng = latLng(latLngValue as LatLngLiteralExpanded);
+            this.position = latLng(latLngValue as LatLngLiteralExpanded);
         }
 
         // Create the Google marker object
@@ -217,8 +219,8 @@ export class Marker extends Layer {
     setOptions(options: MarkerOptions): Marker {
         const markerOptions: google.maps.MarkerOptions = {};
 
-        if (this.latLng) {
-            markerOptions.position = this.latLng.toJson();
+        if (this.position) {
+            markerOptions.position = this.position.toJson();
         }
         if (options.title && options.tooltip) {
             // The title will be a custom tooltip that is added to the map container
@@ -293,7 +295,7 @@ export class Marker extends Layer {
             tt.setContent(title);
         }
         this.marker.addListener('mouseover', () => {
-            tt.show(this.getMap(), this.latLng);
+            tt.show(this.getMap(), this.position);
         });
         this.marker.addListener('mouseout', () => {
             tt.hide();
@@ -314,13 +316,13 @@ export class Marker extends Layer {
     }
 
     /**
-     * Get the LatLng object
+     * Get the marker position (i.e. the LatLng object)
      *
      * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
      * @returns {LatLng}
      */
-    getLatLng(): LatLng {
-        return this.latLng;
+    getPosition(): LatLng {
+        return this.position;
     }
 
     /**
@@ -357,9 +359,9 @@ export class Marker extends Layer {
      * @param {LatLngValue} latLngValue The latitude/longitude position for the marker
      * @returns {Marker}
      */
-    setLatLng(latLngValue: LatLngValue): Marker {
-        this.latLng = latLng(latLngValue);
-        this.marker.setPosition(this.latLng.get());
+    setPosition(latLngValue: LatLngValue): Marker {
+        this.position = latLng(latLngValue);
+        this.marker.setPosition(this.position.get());
         return this;
     }
 

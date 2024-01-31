@@ -36,7 +36,7 @@
     });
     marker.addTo(map);
     const bounds = G.latLngBounds();
-    bounds.extend(marker.getLatLng());
+    bounds.extend(marker.getPosition());
     map.fitBounds(bounds);
 =========================================================================== */
 
