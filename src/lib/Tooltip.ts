@@ -31,6 +31,7 @@
 =========================================================================== */
 
 import { isObject, isString, isStringWithValue } from './helpers';
+import { LatLng } from './LatLng';
 import { Map } from './Map';
 import { Overlay } from './Overlay';
 import { PointValue } from './Point';
@@ -56,9 +57,9 @@ class Tooltip extends Overlay {
     /**
      * Holds the position of the tooltip
      *
-     * @type {google.maps.LatLng}
+     * @type {LatLng}
      */
-    private position: google.maps.LatLng;
+    private position: LatLng;
 
     /**
      * Holds the tooltip HTML element
@@ -126,7 +127,7 @@ class Tooltip extends Overlay {
      * @param map The Google map object
      * @param position The Google maps lat/lng position of where the tooltip should show
      */
-    show(map: Map, position: google.maps.LatLng) {
+    show(map: Map, position: LatLng) {
         this.position = position;
         this.setMap(map);
     }
@@ -146,7 +147,7 @@ class Tooltip extends Overlay {
      * @param projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position)!;
+        const divPosition = projection.fromLatLngToDivPixel(this.position.get())!;
 
         // Hide the tooltip when it is far out of view.
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';

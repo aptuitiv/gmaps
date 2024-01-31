@@ -293,7 +293,7 @@ export class Marker extends Layer {
             tt.setContent(title);
         }
         this.marker.addListener('mouseover', () => {
-            tt.show(this.getMap(), this.marker.getPosition());
+            tt.show(this.getMap(), this.latLng);
         });
         this.marker.addListener('mouseout', () => {
             tt.hide();
