@@ -31,6 +31,8 @@ export type InfoWindowOptions = {
     // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
     // Defaults to [0, -4]
     pixelOffset?: SizeValue;
+    // Whether or not clicking the thing that triggered the info window to open should also close the info window.
+    toggleDisplay?: boolean;
     // The zIndex of the InfoWindow.
     zIndex?: number;
 };
@@ -52,6 +54,20 @@ export class InfoWindow extends Layer {
      * @type {boolean}
      */
     private focus: boolean = false;
+
+    /**
+     * Holds if the InfoWindow is open or not
+     *
+     * @type {boolean}
+     */
+    private isOpen: boolean = false;
+
+    /**
+     * Whether clicking the thing that triggered the info window to open should also close the info window
+     *
+     * @type {boolean}
+     */
+    private toggleDisplay: boolean = true;
 
     /**
      * Holds the Google maps InfoWindow object
@@ -121,6 +137,9 @@ export class InfoWindow extends Layer {
         if (typeof options.focus === 'boolean') {
             this.focus = options.focus;
         }
+        if (typeof options.toggleDisplay === 'boolean') {
+            this.toggleDisplay = options.toggleDisplay;
+        }
     }
 
     /**
@@ -172,33 +191,41 @@ export class InfoWindow extends Layer {
     open(
         anchorOrMap: Map | Marker | google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | google.maps.Map
     ) {
-        // Close other open InfoWindows if necessary
-        if (this.autoClose) {
-            InfoWindowCollection.getInstance().closeAll();
-        }
-
-        if (anchorOrMap instanceof Map) {
-            this.infoWindow.open({
-                map: anchorOrMap.get(),
-                shouldFocus: this.focus,
-            });
-        } else if (anchorOrMap instanceof google.maps.Map) {
-            this.infoWindow.open({
-                map: anchorOrMap,
-                shouldFocus: this.focus,
-            });
-        } else if (anchorOrMap instanceof Marker) {
-            this.infoWindow.open({
-                anchor: anchorOrMap.get(),
-                shouldFocus: this.focus,
-            });
+        const collection = InfoWindowCollection.getInstance();
+        if (collection.has(this) && this.isOpen) {
+            if (this.toggleDisplay) {
+                this.close();
+            }
         } else {
-            this.infoWindow.open({
-                anchor: anchorOrMap,
-                shouldFocus: this.focus,
-            });
+            // Close other open InfoWindows if necessary
+            if (this.autoClose) {
+                collection.closeOthers(this);
+            }
+
+            if (anchorOrMap instanceof Map) {
+                this.infoWindow.open({
+                    map: anchorOrMap.get(),
+                    shouldFocus: this.focus,
+                });
+            } else if (anchorOrMap instanceof google.maps.Map) {
+                this.infoWindow.open({
+                    map: anchorOrMap,
+                    shouldFocus: this.focus,
+                });
+            } else if (anchorOrMap instanceof Marker) {
+                this.infoWindow.open({
+                    anchor: anchorOrMap.get(),
+                    shouldFocus: this.focus,
+                });
+            } else {
+                this.infoWindow.open({
+                    anchor: anchorOrMap,
+                    shouldFocus: this.focus,
+                });
+            }
+            this.isOpen = true;
+            collection.add(this);
         }
-        InfoWindowCollection.getInstance().add(this);
     }
 
     /**
@@ -206,6 +233,7 @@ export class InfoWindow extends Layer {
      */
     close() {
         this.infoWindow.close();
+        this.isOpen = false;
         InfoWindowCollection.getInstance().remove(this);
     }
 }
@@ -262,9 +290,11 @@ Marker.include({
 type InfoWindowCollectionObject = {
     infoWindows: InfoWindow[];
     add(iw: InfoWindow): void;
-    remove(iw: InfoWindow): void;
     clear(): void;
     closeAll(): void;
+    closeOthers(iw: InfoWindow): void;
+    has(iw: InfoWindow): boolean;
+    remove(iw: InfoWindow): void;
 };
 
 /**
@@ -299,16 +329,6 @@ const InfoWindowCollection = (() => {
                 this.infoWindows.push(iw);
             },
             /**
-             * Removes an InfoWindow from the collection
-             * @param iw The InfoWindow object to remove
-             */
-            remove(iw: InfoWindow) {
-                const index = this.infoWindows.indexOf(iw);
-                if (index > -1) {
-                    this.infoWindows.splice(index, 1);
-                }
-            },
-            /**
              * Clears the collection
              */
             clear() {
@@ -321,6 +341,37 @@ const InfoWindowCollection = (() => {
                 this.infoWindows.forEach((iw: InfoWindow) => {
                     iw.close();
                 });
+            },
+            /**
+             * Close all the InfoWindows in the collection except for the one passed in
+             *
+             * @param {InfoWindow} iw The InfoWindow object to keep open
+             */
+            closeOthers(iw: InfoWindow) {
+                this.infoWindows.forEach((infoW: InfoWindow) => {
+                    if (infoW !== iw) {
+                        infoW.close();
+                    }
+                });
+            },
+            /**
+             * Returns whether the collection has the InfoWindow object
+             *
+             * @param {InfoWindow} iw The InfoWindow object to check for
+             * @returns {boolean}
+             */
+            has(iw: InfoWindow): boolean {
+                return this.infoWindows.indexOf(iw) > -1;
+            },
+            /**
+             * Removes an InfoWindow from the collection
+             * @param iw The InfoWindow object to remove
+             */
+            remove(iw: InfoWindow) {
+                const index = this.infoWindows.indexOf(iw);
+                if (index > -1) {
+                    this.infoWindows.splice(index, 1);
+                }
             },
         };
     }
