@@ -20,19 +20,6 @@ class Layer extends Evented {
     private map: Map | null = null;
 
     /**
-     * Get the Google maps object that this layer represents.
-     *
-     * The classes that extend the layer should override this method and return the appropriate Google maps object.
-     * For example, the Marker class should return a google.maps.Marker object.
-     *
-     * @returns {google.maps.MVCObject}
-     */
-    // eslint-disable-next-line class-methods-use-this
-    get(): google.maps.MVCObject {
-        return new google.maps.MVCObject();
-    }
-
-    /**
      * Return the Map object or null if the Map object is not set
      *
      * @returns {Map|null}

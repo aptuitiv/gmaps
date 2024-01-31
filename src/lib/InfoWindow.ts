@@ -184,13 +184,10 @@ export class InfoWindow extends Layer {
      *
      * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
-     * @param {Map | Marker | google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | google.maps.MaP} anchorOrMap The anchor object or map object.
-     *      This should ideally be the Map or Marker object and not the Google maps object.
-     *      If this is used internally then the Google maps object can be used.
+     * @param {Map | Marker} anchorOrMap The anchor object or map object.
+     *      This should ideally be the Map or Marker object.
      */
-    open(
-        anchorOrMap: Map | Marker | google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | google.maps.Map
-    ) {
+    open(anchorOrMap: Map | Marker) {
         const collection = InfoWindowCollection.getInstance();
         if (collection.has(this) && this.isOpen) {
             if (this.toggleDisplay) {
@@ -207,19 +204,9 @@ export class InfoWindow extends Layer {
                     map: anchorOrMap.get(),
                     shouldFocus: this.focus,
                 });
-            } else if (anchorOrMap instanceof google.maps.Map) {
-                this.infoWindow.open({
-                    map: anchorOrMap,
-                    shouldFocus: this.focus,
-                });
             } else if (anchorOrMap instanceof Marker) {
                 this.infoWindow.open({
                     anchor: anchorOrMap.get(),
-                    shouldFocus: this.focus,
-                });
-            } else {
-                this.infoWindow.open({
-                    anchor: anchorOrMap,
                     shouldFocus: this.focus,
                 });
             }
@@ -281,7 +268,7 @@ Layer.include({
         }
         this.on('click', () => {
             if (this.layerInfoWindow) {
-                this.layerInfoWindow.open(this.get());
+                this.layerInfoWindow.open(this);
             }
         });
     },
