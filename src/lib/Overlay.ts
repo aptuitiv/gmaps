@@ -6,9 +6,10 @@
 
 /* eslint-disable max-classes-per-file */
 
-import { isObject } from './helpers';
+import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
+import { isObject } from './helpers';
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -16,7 +17,7 @@ import { Point, point, PointValue } from './Point';
  * The methods are purposely left blank so you can override them in your own class.
  * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
  */
-export class Overlay {
+export class Overlay extends Layer {
     /**
      * Holds the offset for the overlay
      */
@@ -42,6 +43,7 @@ export class Overlay {
      * Constructor
      */
     constructor() {
+        super();
         // Get the overlay view class
         // eslint-disable-next-line no-use-before-define
         this.overlayView = getOverlayViewClass(this);
