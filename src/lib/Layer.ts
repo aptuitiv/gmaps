@@ -6,6 +6,11 @@ import { Evented } from './Evented';
 import { Map } from './Map';
 import {} from './helpers';
 
+/**
+ * Base class to help with drawing stuff on the map.
+ *
+ * Other classes, like InfoWindow add functionality to this class with the include() method.
+ */
 class Layer extends Evented {
     /**
      * Holds the Map object that the layer is added to

@@ -254,9 +254,9 @@ export const infoWindow = (options?: InfoWindowValue): InfoWindow => {
 };
 
 /**
- * To avoid circilar dependencies we need to add the bindInfoWindow method to the Marker class here
+ * To avoid circilar dependencies we need to add the bindInfoWindow method to the Layer class here
  */
-Marker.include({
+Layer.include({
     /**
      * Holds the InfoWindow object
      * @type {InfoWindow}
