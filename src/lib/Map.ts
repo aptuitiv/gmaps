@@ -225,30 +225,35 @@ export class Map extends Evented {
      *
      * @param {function} callback The callback function to call after the map loads
      */
-    load(callback?: () => void) {
-        // Set up the Google maps loader
-        // https://www.npmjs.com/package/@googlemaps/js-api-loader
-        const loader = new Loader({
-            apiKey: this.apiKey,
-            libraries: this.libraries,
-            version: this.version,
-        });
-
-        loader
-            .importLibrary('maps')
-            .then((google) => {
-                this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapOptions);
-                this.dispatch('load');
-
-                // Call the callback function if necessary
-                if (typeof callback === 'function') {
-                    callback();
-                }
-            })
-            .catch((err) => {
-                // eslint-disable-next-line no-console
-                console.error(err);
+    load(callback?: (map?: Map) => void) {
+        if (isStringWithValue(this.mapApiKey)) {
+            // Set up the Google maps loader
+            // https://www.npmjs.com/package/@googlemaps/js-api-loader
+            const loader = new Loader({
+                apiKey: this.mapApiKey,
+                libraries: this.libraries,
+                version: this.version,
             });
+
+            loader
+                .importLibrary('maps')
+                .then((google) => {
+                    this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapOptions);
+                    this.dispatch('load');
+
+                    // Call the callback function if necessary
+                    if (typeof callback === 'function') {
+                        callback(this);
+                    }
+                })
+                .catch((err) => {
+                    // eslint-disable-next-line no-console
+                    console.error(err);
+                });
+        } else {
+            throw new Error('The Google Maps API key is not set');
+        }
+        return this;
     }
 
     /**
@@ -381,24 +386,34 @@ export class Map extends Evented {
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
-        if (this.map instanceof google.maps.Map) {
-            if (isFunction(callback)) {
-                super.on(type, callback, options);
-                if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                    google.maps.event.addListenerOnce(this.map, type, () => {
-                        this.dispatch(type);
-                        this.off(type, callback);
-                    });
+        if (isFunction(callback)) {
+            if (isObject(google) && isObject(google.maps)) {
+                if (isObject(this.map) && this.map instanceof google.maps.Map) {
+                    super.on(type, callback, options);
+                    if (isObject(options) && typeof options.once === 'boolean' && options.once) {
+                        google.maps.event.addListenerOnce(this.map, type, () => {
+                            this.dispatch(type);
+                            this.off(type, callback);
+                        });
+                    } else {
+                        this.map.addListener(type, () => {
+                            this.dispatch(type);
+                        });
+                    }
+                } else if (type === 'load') {
+                    super.on(type, callback, options);
                 } else {
-                    this.map.addListener(type, () => {
-                        this.dispatch(type);
-                    });
+                    throw new Error('The map object is not available yet');
                 }
+            } else if (type === 'load') {
+                super.on(type, callback, options);
             } else {
-                throw new Error('the event handler needs a callback function');
+                throw new Error(
+                    'Google maps not loaded. You must wait to set the event until the Google map library is loaded.'
+                );
             }
         } else {
-            throw new Error('The map object is not available yet');
+            throw new Error('the event handler needs a callback function');
         }
     }
 }
