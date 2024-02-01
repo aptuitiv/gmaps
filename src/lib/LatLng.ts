@@ -22,10 +22,12 @@
 import { isNumber, isNumberString, isObject } from './helpers';
 
 // The object literal for a latitude/longitude pair.
+// The values are optional so that this type can be used when building a lat/lng object pair.
+// In reality, both values are required.
 // Example: `{lat: 32.33, lng: -64.45}`
 export type LatLngLiteral = {
-    lat: number | string;
-    lng: number | string;
+    lat?: number | string;
+    lng?: number | string;
 };
 
 // The object literal for a latitude/longitude pair with expanded property names.
