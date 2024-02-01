@@ -29,6 +29,16 @@ export const isNumberString = (thing: any): thing is string =>
     typeof thing === 'string' && !Number.isNaN(Number(thing)) && thing !== 'Infinity';
 
 /**
+ * Returns if the given value is a number or string that represents a numerical value
+ *   e.g. returns true for 34 or "34" and false for "text34" and "text"
+ *
+ * @param {mixed} thing The value to test
+ * @returns {boolean}
+ */
+export const isNumberOrNumberString = (thing: any): thing is number | string =>
+    isNumber(thing) || isNumberString(thing);
+
+/**
  * Returns if the value is a string
  *
  * @param {mixed} thing The value to test
