@@ -1,5 +1,12 @@
 /* ===========================================================================
     Display a custom popup on the map
+
+    Usage:
+    marker = G.marker({
+        latitude: 40.730610,
+        longitude: -73.935242,
+    });
+    marker.bindPopup('My Popup');
 =========================================================================== */
 
 /* eslint-disable no-use-before-define */
