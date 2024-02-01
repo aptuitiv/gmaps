@@ -4,6 +4,12 @@
     https://developers.google.com/maps/documentation/javascript/reference/map
     https://developers.google.com/maps/documentation/javascript/load-maps-js-api
 
+    If we want to use google.maps.marker.AdvancedMarkerElementOptions, we need to load the "marker" library.
+    When we add support for Advanced Markers, make sure that "marker" in included in the libraries array.
+    If there are code examples that use await google.maps.importLibrary(), the library that is loaded
+    should be included in the libraries array to properly load.
+    https://developers.google.com/maps/documentation/javascript/places
+
     Example usage:
     const map = G.map('map', {
         apiKey: 'myMapApiKey',
@@ -18,7 +24,7 @@
 
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
-import { isFunction, isObject } from './helpers';
+import { isFunction, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 import { LatLng, latLng } from './LatLng';
 import { Evented } from './Evented';
 
@@ -86,7 +92,7 @@ export class Map extends Evented {
     /**
      * Holds the Google Maps API key
      */
-    private apiKey: string;
+    private mapApiKey: string;
 
     /**
      * Holds the id of the element that the map will be rendered in
@@ -96,7 +102,7 @@ export class Map extends Evented {
     /**
      * Holds the libraries to load with Google maps
      */
-    private libraries: Libraries;
+    private libraries: Libraries = [];
 
     /**
      * Holds the Google map object
@@ -106,7 +112,7 @@ export class Map extends Evented {
     /**
      * Holds the options object for the Google maps object
      */
-    private mapOptions: google.maps.MapOptions;
+    private mapOptions: google.maps.MapOptions = {};
 
     /**
      * The type of object. For this class it will always be "map"
@@ -119,7 +125,7 @@ export class Map extends Evented {
     /**
      * Holds the version of the Google Maps API to load
      */
-    private version: string;
+    private version: string = 'weekly';
 
     /**
      * Holds the watchId for the watchPosition() function
@@ -130,40 +136,73 @@ export class Map extends Evented {
      * Class constructor
      *
      * @param {string} id The id of the element that the map will be rendered in
-     * @param {MapOptions} options The options object for the map
+     * @param {MapOptions} [options] The options object for the map
      */
-    constructor(id: string, options: MapOptions) {
+    constructor(id: string, options?: MapOptions) {
         super();
-        if (!isObject(options) || typeof options.apiKey !== 'string') {
-            throw new Error('Invalid map options');
-        }
+
+        // Set some default values
+        this.libraries = [];
+        this.version = 'weekly';
+
         this.id = id;
-        this.apiKey = options.apiKey;
-        // If we want to use google.maps.marker.AdvancedMarkerElementOptions, we need to load the "marker" library.
-        // When we add support for Advanced Markers, make sure that "marker" in included in the libraries array.
-        // If there are code examples that use await google.maps.importLibrary(), the library that is loaded
-        // should be included in the libraries array to properly load.
-        // https://developers.google.com/maps/documentation/javascript/places
-        this.libraries = options.libraries ?? [];
-        this.version = options.version ?? 'weekly';
+        if (isObject(options)) {
+            this.setOptions(options);
+        }
+    }
 
-        // Default map options
-        const defaultConfig = {
-            zoom: 8,
-        };
-        const config = { ...defaultConfig, ...options };
-        delete config.apiKey;
-        delete config.libraries;
-        delete config.version;
+    /**
+     * Set the map options
+     * @param {MapOptions} options The map options
+     * @returns {Map}
+     */
+    setOptions(options: MapOptions): Map {
+        if (isObjectWithValues(options)) {
+            if (options.apiKey) {
+                this.setApiKey(options.apiKey);
+            }
+            if (Array.isArray(options.libraries)) {
+                this.libraries = options.libraries;
+            }
+            if (isString(options.version)) {
+                this.version = options.version;
+            }
+            // Default map options
+            const defaultConfig = {
+                zoom: 8,
+            };
+            const config = { ...defaultConfig, ...options };
+            const deleteKeys = ['apiKey', 'libraries', 'version'];
+            deleteKeys.forEach((key) => {
+                delete config[key];
+            });
 
-        this.mapOptions = {
-            center: {
-                lat: config.latitude,
-                lng: config.longitude,
-            },
-            rotateControl: true,
-            zoom: config.zoom,
-        };
+            this.mapOptions = {
+                center: {
+                    lat: config.latitude,
+                    lng: config.longitude,
+                },
+                rotateControl: true,
+                zoom: config.zoom,
+            };
+        } else {
+            throw new Error('Invalid map options. You must pass an object of options');
+        }
+        return this;
+    }
+
+    /**
+     * Set the API key
+     * @param key The API key
+     * @returns
+     */
+    setApiKey(key: string): Map {
+        if (isStringWithValue(key)) {
+            this.mapApiKey = key;
+        } else {
+            throw new Error('You must pass a valid API key');
+        }
+        return this;
     }
 
     /**
@@ -368,7 +407,7 @@ export class Map extends Evented {
  * Helper function to set up the map object
  *
  * @param {string} id The id of the element that the map will be rendered in
- * @param {MapOptions} config The map options
+ * @param {MapOptions} [config] The map options
  * @returns {Map}
  */
-export const map = (id: string, config: MapOptions): Map => new Map(id, config);
+export const map = (id: string, config?: MapOptions): Map => new Map(id, config);
