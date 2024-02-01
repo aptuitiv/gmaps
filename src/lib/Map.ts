@@ -333,6 +333,35 @@ export class Map extends Evented {
         }
         return this;
     }
+
+    /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {function} callback The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     */
+    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
+        if (this.map instanceof google.maps.Map) {
+            if (isFunction(callback)) {
+                super.on(type, callback, options);
+                if (isObject(options) && typeof options.once === 'boolean' && options.once) {
+                    google.maps.event.addListenerOnce(this.map, type, () => {
+                        this.dispatch(type);
+                        this.off(type, callback);
+                    });
+                } else {
+                    this.map.addListener(type, () => {
+                        this.dispatch(type);
+                    });
+                }
+            } else {
+                throw new Error('the event handler needs a callback function');
+            }
+        } else {
+            throw new Error('The map object is not available yet');
+        }
+    }
 }
 
 /**
