@@ -332,12 +332,19 @@ export class Marker extends Layer {
      * @param {function} callback The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
-    on(type: string, callback: EventListenerOrEventListenerObject): void {
+    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
         if (isFunction(callback)) {
-            super.on(type, callback);
-            this.marker.addListener(type, () => {
-                this.dispatch(type);
-            });
+            super.on(type, callback, options);
+            if (isObject(options) && typeof options.once === 'boolean' && options.once) {
+                google.maps.event.addListenerOnce(this.marker, type, () => {
+                    this.dispatch(type);
+                    this.off(type, callback);
+                });
+            } else {
+                this.marker.addListener(type, () => {
+                    this.dispatch(type);
+                });
+            }
         } else {
             throw new Error('the event handler needs a callback function');
         }
