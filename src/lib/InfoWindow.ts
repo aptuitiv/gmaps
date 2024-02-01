@@ -204,11 +204,13 @@ export class InfoWindow extends Layer {
                     map: anchorOrMap.get(),
                     shouldFocus: this.focus,
                 });
+                this.setMap(anchorOrMap);
             } else if (anchorOrMap instanceof Marker) {
                 this.infoWindow.open({
                     anchor: anchorOrMap.get(),
                     shouldFocus: this.focus,
                 });
+                this.setMap(anchorOrMap.getMap());
             }
             this.isOpen = true;
             collection.add(this);
