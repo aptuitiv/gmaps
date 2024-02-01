@@ -84,8 +84,22 @@ export class InfoWindow extends Layer {
     constructor(options?: InfoWindowOptions) {
         super();
         this.infoWindow = new google.maps.InfoWindow();
+        // Handle when the close button is clicked
         this.infoWindow.addListener('closeclick', () => {
             InfoWindowCollection.getInstance().remove(this);
+        });
+        // Handle when the map changes.
+        // This is used to handle when the InfoWindow is closed programatically by another
+        // Google InfoWindow. This can happen if one of our windows is open and then the
+        // user clicks on a map location ang Google shows their own info window.
+        // Without doing this, we can't track that our window was closed.
+        this.infoWindow.addListener('map_changed', () => {
+            // The getMap() function technically works, but it's not part of the public API
+            // so we don't use it. get('map') seems to work the same.
+            if (this.infoWindow.get('map') === null) {
+                this.isOpen = false;
+                InfoWindowCollection.getInstance().remove(this);
+            }
         });
 
         if (isObject(options)) {
