@@ -90,12 +90,12 @@
 
 import { EventCallbackData } from './Evented';
 import { icon, IconValue } from './Icon';
-import { latLng, LatLng, LatLngValue, LatLngLiteral, LatLngLiteralExpanded } from './LatLng';
+import { latLng, LatLng, LatLngValue, LatLngLiteral } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { tooltip, TooltipValue } from './Tooltip';
-import { isFunction, isNumber, isObject, isStringOrNumber, isStringWithValue } from './helpers';
+import { isFunction, isNumber, isNumberOrNumberString, isObject, isStringOrNumber, isStringWithValue } from './helpers';
 
 export type MarkerLabel = {
     // A CSS class name to be added to the label element
@@ -131,6 +131,9 @@ export type MarkerOptions = {
     longitude: number | string;
     // The map to add the marker to.
     map?: Map | google.maps.Map;
+    // The position for the marker.
+    // This is an alternate to setting the latitude and longitude separately.
+    position?: LatLngValue;
     // The SVG icon value for the marker
     svgIcon?: SvgSymbolValue;
     // The XML code for an SVG icon
@@ -182,21 +185,6 @@ export class Marker extends Layer {
         } else if (Array.isArray(latLngValue)) {
             // The value passed is likely an array of [lat, lng] pairs
             this.position = latLng(latLngValue);
-        } else if (
-            isObject(latLngValue) &&
-            typeof (latLngValue as LatLngLiteral).lat !== 'undefined' &&
-            typeof (latLngValue as LatLngLiteral).lng !== 'undefined'
-        ) {
-            // The value passed is an object with lat/lng properties
-            this.position = latLng(latLngValue as LatLngLiteral);
-        } else if (
-            isObject(latLngValue) &&
-            typeof (latLngValue as LatLngLiteralExpanded).latitude !== 'undefined' &&
-            typeof (latLngValue as LatLngLiteralExpanded).longitude !== 'undefined'
-        ) {
-            // The value passed is an object with latitude/longitude properties or its
-            // the marker options with latitude and longitude set
-            this.position = latLng(latLngValue as LatLngLiteralExpanded);
         }
 
         // Create the Google marker object
@@ -218,6 +206,30 @@ export class Marker extends Layer {
      */
     setOptions(options: MarkerOptions): Marker {
         const markerOptions: google.maps.MarkerOptions = {};
+        // Set up the marker position if necessary
+        if (
+            isNumberOrNumberString(options.lat) ||
+            isNumberOrNumberString(options.latitude) ||
+            isNumberOrNumberString(options.lng) ||
+            isNumberOrNumberString(options.longitude)
+        ) {
+            const latLngValues: LatLngLiteral = {};
+            if (isNumberOrNumberString(options.lat)) {
+                latLngValues.lat = options.lat;
+            } else if (isNumberOrNumberString(options.latitude)) {
+                latLngValues.lat = options.latitude;
+            }
+            if (isNumberOrNumberString(options.lng)) {
+                latLngValues.lng = options.lng;
+            } else if (isNumberOrNumberString(options.longitude)) {
+                latLngValues.lng = options.longitude;
+            }
+            if (isNumberOrNumberString(latLngValues.lat) && isNumberOrNumberString(latLngValues.lng)) {
+                this.position = latLng(latLngValues);
+            }
+        } else if (options.position) {
+            this.position = latLng(options.position);
+        }
 
         if (this.position) {
             markerOptions.position = this.position.toJson();
