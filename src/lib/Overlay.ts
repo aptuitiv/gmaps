@@ -20,6 +20,8 @@ import { isObject } from './helpers';
 export class Overlay extends Layer {
     /**
      * Holds the offset for the overlay
+     *
+     * @type {Point}
      */
     private offset: Point;
 
