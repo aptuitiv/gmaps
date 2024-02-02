@@ -150,16 +150,6 @@ export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.
 };
 
 /**
- * Simulator for extending multiple classes, which Javascript doesn't allow.
- *
- * @link https://medium.com/@thevirtuoid/extending-multiple-classes-in-javascript-2f4752574e65
- *
- * @param parts The classes to extend
- * @returns {any} The bundled class
- */
-export const extender = (...parts: any): any => parts.reduce((allParts: any, part: any) => part(allParts), class {});
-
-/**
  * Checks to see if Google maps has been loaded
  *
  * @param {string} object The object that needs Google maps
