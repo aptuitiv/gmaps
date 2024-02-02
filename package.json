@@ -14,7 +14,7 @@
         "ts-dev": "tsc -w",
         "watch": "node scripts/watch.js",
         "site-build": "eleventy",
-        "site-serve": "eleventy --serve --watch"
+        "site-serve": "eleventy --serve --incremental"
     },
     "repository": {
         "type": "git",
