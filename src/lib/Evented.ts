@@ -8,6 +8,7 @@
 =========================================================================== */
 
 import { isFunction, isObject, isString } from './helpers';
+import BaseMixin from './BaseMixin';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -30,6 +31,23 @@ export class Evented extends EventTarget {
      * @type {object}
      */
     private eventCallbackData: EventCallbackData = {};
+
+    /**
+     * Holds the object type
+     *
+     * @type {string}
+     */
+    private objectType: string;
+
+    /**
+     * Constructor
+     *
+     * @param {string} objectType The object type for the class
+     */
+    constructor(objectType: string) {
+        super();
+        this.objectType = objectType;
+    }
 
     /**
      * Holds the event listeners
@@ -213,3 +231,5 @@ export class Evented extends EventTarget {
         Object.assign(this.prototype, mixin);
     }
 }
+
+Evented.include(BaseMixin);

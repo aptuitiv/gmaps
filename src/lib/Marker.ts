@@ -170,22 +170,13 @@ export class Marker extends Layer {
     private marker: google.maps.Marker;
 
     /**
-     * The type of object. For this class it will always be "marker"
-     *
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'marker') {}
-     */
-    objectType: string = 'marker';
-
-    /**
      * Constructor
      *
      * @param {LatLngValue|MarkerOptions} [latLngValue] The latitude longitude pair
      * @param {MarkerOptions} [options] The marker options
      */
     constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
-        super();
+        super('marker');
         checkForGoogleMaps('Marker', 'Marker');
         // Set the marker latitude and longitude value
         if (latLngValue instanceof LatLng) {

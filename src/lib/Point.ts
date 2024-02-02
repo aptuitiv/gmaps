@@ -21,6 +21,7 @@
 
 /* eslint-disable no-use-before-define */
 
+import Base from './Base';
 import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the x and y coordinates
@@ -36,15 +37,7 @@ export type XPoint = number | number[] | string | string[] | PointObject;
 /**
  * The Point class to set up and manage x/y coordinates
  */
-export class Point {
-    /**
-     * The type of object. For this class it will always be "point"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'point') {}
-     */
-    objectType: string = 'point';
-
+export class Point extends Base {
     /**
      * Holds the Google maps point object
      */
@@ -67,6 +60,7 @@ export class Point {
      * @param {number|string} y The Y value
      */
     constructor(x: XPoint, y?: number | string) {
+        super('point');
         if (Array.isArray(x)) {
             if ((isNumber(x[0]) || isNumberString(x[0])) && (isNumber(x[1]) || isNumberString(x[1]))) {
                 if (isNumberString(x[0])) {

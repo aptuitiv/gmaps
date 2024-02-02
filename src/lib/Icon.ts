@@ -15,6 +15,7 @@
     });
 =========================================================================== */
 
+import Base from './Base';
 import { isObject, isStringWithValue } from './helpers';
 import { point, PointValue } from './Point';
 import { size, SizeValue } from './Size';
@@ -41,15 +42,7 @@ type IconOptions = {
 /**
  * Icon class to set up an icon options for a marker
  */
-export class Icon {
-    /**
-     * The type of object. For this class it will always be "icon"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'icon') {}
-     */
-    objectType: string = 'icon';
-
+export class Icon extends Base {
     /**
      * Holds the Google maps icon options
      */
@@ -62,6 +55,7 @@ export class Icon {
      * @param {IconOptions} [options] The icon options
      */
     constructor(url?: string | IconOptions, options?: IconOptions) {
+        super('icon');
         this.options = { url: '' };
         if (typeof url === 'string') {
             this.options = {

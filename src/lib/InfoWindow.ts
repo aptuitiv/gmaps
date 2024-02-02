@@ -90,7 +90,7 @@ export class InfoWindow extends Layer {
      * @param {InfoWindowOptions} [options] The InfoWindow options
      */
     constructor(options?: InfoWindowOptions) {
-        super();
+        super('infowindow');
         // Make sure that the Google maps library is ready
         checkForGoogleMaps('InfoWindow', 'InfoWindow');
 

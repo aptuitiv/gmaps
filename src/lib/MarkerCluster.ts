@@ -31,6 +31,7 @@ import { Marker } from './Marker';
 import { getNumber, isNumber, isNumberString, isObject } from './helpers';
 import { ClusterColors, DefaultRenderer } from './MarkerCluster/DefaultRender';
 import { ClusterImages, ClusterImageValue, ImageRenderer } from './MarkerCluster/ImageRenderer';
+import Base from './Base';
 
 // Options for the default renderer
 type DefaultRenderOptions = {
@@ -153,19 +154,11 @@ type MarkerClusterOptions = {
 /**
  * The MarkerCluster class to handle clusting of markers on a map
  */
-export class MarkerCluster {
+export class MarkerCluster extends Base {
     /**
      * The MarkerClusterer object
      */
     private clusterer: MarkerClusterer;
-
-    /**
-     * The type of object. For this class it will always be "markercluster"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'markercluster') {}
-     */
-    objectType: string = 'markercluster';
 
     /**
      * The constructor for the MarkerCluster class
@@ -175,6 +168,7 @@ export class MarkerCluster {
      * @param {MarkerClusterOptions} [options] Options for the marker clusterer
      */
     constructor(map: Map, markers?: Marker[] | MarkerClusterOptions, options?: MarkerClusterOptions) {
+        super('markercluster');
         const clusterOptions: MarkerClustererOptions = {
             map: map.get(),
         };

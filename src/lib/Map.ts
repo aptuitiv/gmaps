@@ -138,16 +138,6 @@ export class Map extends Evented {
     private mapApiKey: string;
 
     /**
-     * The type of object. For this class it will always be "map"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'map') {}
-     *
-     * @type {string}
-     */
-    objectType: string = 'map';
-
-    /**
      * Holds the version of the Google Maps API to load
      *
      * @type {string}
@@ -172,7 +162,7 @@ export class Map extends Evented {
      * @param {MapOptions} [options] The options object for the map
      */
     constructor(id: string, options?: MapOptions) {
-        super();
+        super('map');
 
         // Set some default values
         this.center = latLng(0, 0);

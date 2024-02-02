@@ -79,7 +79,7 @@ export class Popup extends Overlay {
      * @param {PopupOptions} [options] The Popup options
      */
     constructor(options: PopupOptions) {
-        super();
+        super('popup');
 
         this.popupOffset = point(0, 0);
         if (isObject(options)) {

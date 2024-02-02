@@ -19,6 +19,7 @@
     latLng(latLngClassInstance);
 =========================================================================== */
 
+import Base from './Base';
 import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object literal for a latitude/longitude pair.
@@ -43,7 +44,7 @@ export type Latitude = number | number[] | string | string[] | LatLngLiteral | L
 /**
  * The LatLng class to set up and manage latitude/longitude pairs
  */
-export class LatLng {
+export class LatLng extends Base {
     /**
      * Holds the Google maps LatLng object
      * @type {google.maps.LatLng}
@@ -63,20 +64,13 @@ export class LatLng {
     longitude: number;
 
     /**
-     * The type of object. For this class it will always be "latlng"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'latlng') {}
-     */
-    objectType: string = 'latlng';
-
-    /**
      * Constructor
      *
      * @param {Latitude} latitude The latitude value or the latitude/longitude pair
      * @param {number|string} [longitude] The longitude value
      */
     constructor(latitude: Latitude, longitude?: number | string) {
+        super('latlng');
         if (Array.isArray(latitude)) {
             const [lat, lng] = latitude;
             if ((isNumber(lat) || isNumberString(lat)) && (isNumber(lng) || isNumberString(lng))) {

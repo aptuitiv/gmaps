@@ -40,25 +40,18 @@
     map.fitBounds(bounds);
 =========================================================================== */
 
+import Base from './Base';
 import { checkForGoogleMaps } from './helpers';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 
 /**
  * The LatLngBounds class to set up and manage latitude/longitude bounds
  */
-export class LatLngBounds {
+export class LatLngBounds extends Base {
     /**
      * Holds the Google maps LatLngBounds object
      */
     private bounds: google.maps.LatLngBounds;
-
-    /**
-     * The type of object. For this class it will always be "latlngbounds"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'latlngbounds') {}
-     */
-    objectType: string = 'latlngbounds';
 
     /**
      * Constructor
@@ -67,6 +60,7 @@ export class LatLngBounds {
      *      See comments on the extended method for the types of values that latLngValue can be.
      */
     constructor(latLngValue?: LatLngValue) {
+        super('latlngbounds');
         checkForGoogleMaps('LatLngBounds', 'LatLngBounds');
         this.bounds = new google.maps.LatLngBounds();
         if (latLngValue) {

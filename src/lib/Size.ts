@@ -17,6 +17,7 @@
     size(sizeClassInstance);
 =========================================================================== */
 
+import Base from './Base';
 import { isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the width and height
@@ -32,7 +33,7 @@ export type WidthSize = number | number[] | string | string[] | SizeObject;
 /**
  * The Size class to set up and manage width and height values for an element
  */
-export class Size {
+export class Size extends Base {
     /**
      * Holds the Google maps size object
      */
@@ -49,20 +50,13 @@ export class Size {
     private height: number;
 
     /**
-     * The type of object. For this class it will always be "size"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'size') {}
-     */
-    objectType: string = 'size';
-
-    /**
      * Constructor
      *
      * @param {WidthSize} width The X value
      * @param {number|string} height The Y value
      */
     constructor(width: WidthSize, height?: number | string) {
+        super('size');
         if (Array.isArray(width)) {
             const [w, h] = width;
             if ((isNumber(w) || isNumberString(w)) && (isNumber(h) || isNumberString(h))) {

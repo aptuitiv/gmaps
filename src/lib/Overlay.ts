@@ -43,9 +43,11 @@ export class Overlay extends Layer {
 
     /**
      * Constructor
+     *
+     * @param {string} objectType The object type for the class
      */
-    constructor() {
-        super();
+    constructor(objectType: string) {
+        super(objectType);
         // Get the overlay view class
         // eslint-disable-next-line no-use-before-define
         this.overlayView = getOverlayViewClass(this);

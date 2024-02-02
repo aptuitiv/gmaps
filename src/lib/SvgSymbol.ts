@@ -21,6 +21,7 @@
     });
 =========================================================================== */
 
+import Base from './Base';
 import { point, PointValue } from './Point';
 import { isNumber, isNumberString, isObject, isStringWithValue } from './helpers';
 
@@ -52,15 +53,7 @@ type SvgSymbolOptions = {
 /**
  * Class to set up an SVG icon for a marker
  */
-export class SvgSymbol {
-    /**
-     * The type of object. For this class it will always be "svgsymbol"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'svgsymbol') {}
-     */
-    objectType: string = 'svgsymbol';
-
+export class SvgSymbol extends Base {
     /**
      * Holds the icon options
      * @type {google.maps.Symbol}
@@ -74,6 +67,7 @@ export class SvgSymbol {
      * @param {SvgSymbolOptions} [options] The options for the icon
      */
     constructor(path?: string | SvgSymbolOptions, options?: SvgSymbolOptions) {
+        super('svgsymbol');
         this.options = { path: '' };
         if (typeof path === 'string') {
             this.options = {

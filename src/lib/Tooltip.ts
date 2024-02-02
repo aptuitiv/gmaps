@@ -67,7 +67,7 @@ class Tooltip extends Overlay {
      * @param {TooltipOptions} [options] Tooltip options
      */
     constructor(options?: TooltipOptions) {
-        super();
+        super('tooltip');
 
         if (isObject(options)) {
             this.setOptions(options);
