@@ -24,21 +24,34 @@
 
 import { Loader, Libraries } from '@googlemaps/js-api-loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
-import { isFunction, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
-import { LatLng, latLng } from './LatLng';
+import {
+    isFunction,
+    isNumber,
+    isNumberString,
+    isObject,
+    isObjectWithValues,
+    isString,
+    isStringWithValue,
+} from './helpers';
+import { LatLng, latLng, LatLngValue } from './LatLng';
 import { Evented } from './Evented';
 
 export type MapOptions = {
     // The Google Maps API key
     apiKey: string;
+    // The position for the marker.
+    // This is an alternate to setting the latitude and longitude separately.
+    center?: LatLngValue;
     // The latitude for the center point of the map
-    latitude: number;
+    lat: number | string;
+    latitude: number | string;
     // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
     // The "places" library is a common one to load. https://developers.google.com/maps/documentation/javascript/places
     // https://developers.google.com/maps/documentation/javascript/libraries
     libraries?: Libraries;
     // The longitude for the center point of the map
-    longitude: number;
+    lng: number | string;
+    longitude: number | string;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
@@ -90,40 +103,54 @@ type LocationOnSuccess = (position: LocationPosition) => void;
  */
 export class Map extends Evented {
     /**
-     * Holds the Google Maps API key
+     * Holds the center point for the map
+     *
+     * @type {LatLng}
      */
-    private mapApiKey: string;
+    private center: LatLng;
 
     /**
      * Holds the id of the element that the map will be rendered in
+     *
+     * @type {string}
      */
     private id: string;
 
     /**
      * Holds the libraries to load with Google maps
+     *
+     * @type {Libraries}
      */
     private libraries: Libraries = [];
 
     /**
      * Holds the Google map object
+     *
+     * @type {google.maps.Map}
      */
     private map: google.maps.Map;
 
     /**
-     * Holds the options object for the Google maps object
+     * Holds the Google Maps API key
+     *
+     * @type {string}
      */
-    private mapOptions: google.maps.MapOptions = {};
+    private mapApiKey: string;
 
     /**
      * The type of object. For this class it will always be "map"
      *
      * You can use this in your logic to determine what type of object you're dealing with.
      * if (thing.objectType === 'map') {}
+     *
+     * @type {string}
      */
     objectType: string = 'map';
 
     /**
      * Holds the version of the Google Maps API to load
+     *
+     * @type {string}
      */
     private version: string = 'weekly';
 
@@ -131,6 +158,12 @@ export class Map extends Evented {
      * Holds the watchId for the watchPosition() function
      */
     private watchId: number;
+
+    /**
+     * Holds the map zoom value
+     * @type {number}
+     */
+    private zoom: number = 8;
 
     /**
      * Class constructor
@@ -142,6 +175,7 @@ export class Map extends Evented {
         super();
 
         // Set some default values
+        this.center = latLng(0, 0);
         this.libraries = [];
         this.version = 'weekly';
 
@@ -167,24 +201,21 @@ export class Map extends Evented {
             if (isString(options.version)) {
                 this.version = options.version;
             }
-            // Default map options
-            const defaultConfig = {
-                zoom: 8,
-            };
-            const config = { ...defaultConfig, ...options };
-            const deleteKeys = ['apiKey', 'libraries', 'version'];
-            deleteKeys.forEach((key) => {
-                delete config[key];
-            });
+            // Set the center point for the map
+            if (options.center) {
+                this.center = latLng(options.center);
+            } else if (isString(options.lat) && isString(options.lng)) {
+                this.center = latLng(options.lat, options.lng);
+            } else if (isString(options.latitude) && isString(options.longitude)) {
+                this.center = latLng(options.latitude, options.longitude);
+            }
 
-            this.mapOptions = {
-                center: {
-                    lat: config.latitude,
-                    lng: config.longitude,
-                },
-                rotateControl: true,
-                zoom: config.zoom,
-            };
+            // Set the zoom level for the map
+            if (isNumber(options.zoom)) {
+                this.zoom = options.zoom;
+            } else if (isNumberString(options.zoom)) {
+                this.zoom = Number(options.zoom);
+            }
         } else {
             throw new Error('Invalid map options. You must pass an object of options');
         }
@@ -194,7 +225,7 @@ export class Map extends Evented {
     /**
      * Set the API key
      * @param key The API key
-     * @returns
+     * @returns {Map}
      */
     setApiKey(key: string): Map {
         if (isStringWithValue(key)) {
@@ -203,6 +234,19 @@ export class Map extends Evented {
             throw new Error('You must pass a valid API key');
         }
         return this;
+    }
+
+    /**
+     * Get the map options for displaying the map
+     *
+     * @private Internal use only
+     */
+    getMapOptions(): google.maps.MapOptions {
+        const options: google.maps.MapOptions = {
+            center: this.center.toJson(),
+            zoom: this.zoom,
+        };
+        return options;
     }
 
     /**
@@ -238,7 +282,7 @@ export class Map extends Evented {
             loader
                 .importLibrary('maps')
                 .then((google) => {
-                    this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapOptions);
+                    this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.getMapOptions());
                     this.dispatch('load');
 
                     // Call the callback function if necessary
