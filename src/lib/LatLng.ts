@@ -155,7 +155,6 @@ export class LatLng {
                 this.longitude = longitude;
             }
         }
-        this.latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
     }
 
     /**
@@ -183,7 +182,18 @@ export class LatLng {
      * @returns {google.maps.LatLng}
      */
     get(): google.maps.LatLng {
-        return this.latLngObject;
+        if (
+            typeof google !== 'undefined' &&
+            isObject(google) &&
+            isObject(google.maps) &&
+            isObject(google.maps.LatLng)
+        ) {
+            if (!isObject(this.latLngObject)) {
+                this.latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
+            }
+            return this.latLngObject;
+        }
+        throw new Error('Google maps has not been loaded');
     }
 
     /**

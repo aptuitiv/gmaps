@@ -116,7 +116,6 @@ export class Point {
                 this.y = y;
             }
         }
-        this.pointObject = new google.maps.Point(this.x, this.y);
     }
 
     /**
@@ -211,7 +210,13 @@ export class Point {
      * @returns {google.maps.Point}
      */
     get(): google.maps.Point {
-        return this.pointObject;
+        if (typeof google !== 'undefined' && isObject(google) && isObject(google.maps) && isObject(google.maps.Point)) {
+            if (!isObject(this.pointObject)) {
+                this.pointObject = new google.maps.Point(this.x, this.y);
+            }
+            return this.pointObject;
+        }
+        throw new Error('Google maps has not been loaded');
     }
 
     /**
