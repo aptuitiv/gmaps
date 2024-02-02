@@ -62,13 +62,6 @@ class Tooltip extends Overlay {
     private position: LatLng;
 
     /**
-     * Holds the tooltip HTML element
-     *
-     * @type {HTMLElement}
-     */
-    private tooltip: HTMLElement;
-
-    /**
      * Constructor
      *
      * @param {TooltipOptions} [options] Tooltip options
