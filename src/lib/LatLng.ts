@@ -19,7 +19,7 @@
     latLng(latLngClassInstance);
 =========================================================================== */
 
-import { isNumber, isNumberString, isObject } from './helpers';
+import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object literal for a latitude/longitude pair.
 // The values are optional so that this type can be used when building a lat/lng object pair.
@@ -179,21 +179,16 @@ export class LatLng {
      * Get the Google maps LatLng object
      *
      * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
-     * @returns {google.maps.LatLng}
+     * @returns {google.maps.LatLng|null}
      */
-    get(): google.maps.LatLng {
-        if (
-            typeof google !== 'undefined' &&
-            isObject(google) &&
-            isObject(google.maps) &&
-            isObject(google.maps.LatLng)
-        ) {
+    get(): google.maps.LatLng | null {
+        if (checkForGoogleMaps('LatLng', 'LatLng')) {
             if (!isObject(this.latLngObject)) {
                 this.latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
             }
             return this.latLngObject;
         }
-        throw new Error('Google maps has not been loaded');
+        return null;
     }
 
     /**

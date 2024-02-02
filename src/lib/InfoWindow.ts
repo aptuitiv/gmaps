@@ -4,7 +4,15 @@
 
 /* eslint-disable no-use-before-define */
 
-import { isNumber, isNumberString, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
+import {
+    checkForGoogleMaps,
+    isNumber,
+    isNumberString,
+    isObject,
+    isObjectWithValues,
+    isString,
+    isStringWithValue,
+} from './helpers';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
@@ -83,6 +91,10 @@ export class InfoWindow extends Layer {
      */
     constructor(options?: InfoWindowOptions) {
         super();
+        // Make sure that the Google maps library is ready
+        checkForGoogleMaps('InfoWindow', 'InfoWindow');
+
+        // Create the InfoWindow object
         this.infoWindow = new google.maps.InfoWindow();
         // Handle when the close button is clicked
         this.infoWindow.addListener('closeclick', () => {

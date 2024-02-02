@@ -158,3 +158,31 @@ export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.
  * @returns {any} The bundled class
  */
 export const extender = (...parts: any): any => parts.reduce((allParts: any, part: any) => part(allParts), class {});
+
+/**
+ * Checks to see if Google maps has been loaded
+ *
+ * @param {string} object The object that needs Google maps
+ * @param {string} [library] An optional Google maps library class to check for. This needs to be part of the google.maps object
+ * @return {boolean}
+ */
+export const checkForGoogleMaps = (object: string, library?: string): boolean => {
+    let passed = false;
+    if (typeof google !== 'undefined' && isObject(google) && isObject(google.maps)) {
+        if (library) {
+            passed = typeof google.maps[library] !== 'undefined';
+        } else {
+            passed = true;
+        }
+    }
+    if (!passed) {
+        let msg = 'The Google Maps Javascript API library must be loaded.';
+        if (library) {
+            msg = ` The google.maps.${library} class is not available. Did you load the Google Maps Javascript API?`;
+        }
+        msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
+        msg += ' See https://developers.google.com/maps/documentation/javascript for more information.';
+        throw new Error(msg);
+    }
+    return passed;
+};

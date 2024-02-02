@@ -21,7 +21,7 @@
 
 /* eslint-disable no-use-before-define */
 
-import { isNumber, isNumberString, isObject } from './helpers';
+import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the x and y coordinates
 // Example: `{x: 34, y: 6}`
@@ -210,13 +210,13 @@ export class Point {
      * @returns {google.maps.Point}
      */
     get(): google.maps.Point {
-        if (typeof google !== 'undefined' && isObject(google) && isObject(google.maps) && isObject(google.maps.Point)) {
+        if (checkForGoogleMaps('Point', 'Point')) {
             if (!isObject(this.pointObject)) {
                 this.pointObject = new google.maps.Point(this.x, this.y);
             }
             return this.pointObject;
         }
-        throw new Error('Google maps has not been loaded');
+        return null;
     }
 
     /**

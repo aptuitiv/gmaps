@@ -9,7 +9,7 @@
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
-import { isObject } from './helpers';
+import { checkForGoogleMaps } from './helpers';
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -166,11 +166,7 @@ export class Overlay extends Layer {
  * @returns {OverlayView}
  */
 export const getOverlayViewClass = (classObject: Overlay) => {
-    if (!isObject(google) || !isObject(google.maps)) {
-        throw new Error(
-            'Google maps not loaded. You must wait to run the overlay code until the Google map library is loaded.'
-        );
-    }
+    checkForGoogleMaps('Overlay', 'OverlayView');
     /**
      * Basic overlay class to handle displaying the overlay
      */

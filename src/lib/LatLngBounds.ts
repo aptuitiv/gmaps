@@ -40,6 +40,7 @@
     map.fitBounds(bounds);
 =========================================================================== */
 
+import { checkForGoogleMaps } from './helpers';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 
 /**
@@ -66,6 +67,7 @@ export class LatLngBounds {
      *      See comments on the extended method for the types of values that latLngValue can be.
      */
     constructor(latLngValue?: LatLngValue) {
+        checkForGoogleMaps('LatLngBounds', 'LatLngBounds');
         this.bounds = new google.maps.LatLngBounds();
         if (latLngValue) {
             this.extend(latLngValue);

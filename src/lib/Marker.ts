@@ -95,7 +95,15 @@ import Layer from './Layer';
 import { Map } from './Map';
 import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { tooltip, TooltipValue } from './Tooltip';
-import { isFunction, isNumber, isNumberOrNumberString, isObject, isStringOrNumber, isStringWithValue } from './helpers';
+import {
+    checkForGoogleMaps,
+    isFunction,
+    isNumber,
+    isNumberOrNumberString,
+    isObject,
+    isStringOrNumber,
+    isStringWithValue,
+} from './helpers';
 
 export type MarkerLabel = {
     // A CSS class name to be added to the label element
@@ -178,6 +186,7 @@ export class Marker extends Layer {
      */
     constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
         super();
+        checkForGoogleMaps('Marker', 'Marker');
         // Set the marker latitude and longitude value
         if (latLngValue instanceof LatLng) {
             // The value passed is a LatLng class object
