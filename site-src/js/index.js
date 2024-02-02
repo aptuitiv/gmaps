@@ -9,7 +9,6 @@ const map = G.map('map1', {
 
 });
 
-console.log('map1: ', map1);
 
 const map2 = G.map('map2', {
     apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
@@ -17,4 +16,3 @@ const map2 = G.map('map2', {
 }).load(() => {
 
 });
-console.log('map 2 object', map2);
