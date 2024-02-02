@@ -35,3 +35,6 @@ ts-out
 # Error logs
 npm-debug.log
 yarn-error.log
+
+# static site output
+site-dist
