@@ -7,11 +7,6 @@ layout: "base.njk"
 <h1>Google Map Tests</h1>
 <h2>Map 1</h2>
 <div id="map1" class="mapContainer"></div>
-
-<script>
-const map = G.map('map1', {
-    apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
-    center: { lat: -34.397, lng: 150.644 },
-    zoom: 8
-}).load();
-</script>
+<h2>Map 2</h2>
+<div id="map2" class="mapContainer"></div>
+<script src="{{ 'js/index.js'|url|safe}}"></script>
