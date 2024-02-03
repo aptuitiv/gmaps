@@ -1,10 +1,10 @@
-/*  eslint-disable @typescript-eslint/no-explicit-any  */
-/*  eslint-disable @typescript-eslint/ban-types  */
+/* global google */
+/*  eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types  */
 
 /**
  * Returns if the thing is a function
  *
- * @param {mixed} thing The thing to test
+ * @param {any} thing The thing to test
  * @returns {boolean}
  */
 export const isFunction = (thing: any): thing is Function => typeof thing === 'function';
@@ -12,7 +12,7 @@ export const isFunction = (thing: any): thing is Function => typeof thing === 'f
 /**
  * Returns if the value is a valid number
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export const isNumber = (thing: any): thing is number =>
@@ -22,7 +22,7 @@ export const isNumber = (thing: any): thing is number =>
  * Returns if the given value is a string that represents a numerical value
  *   e.g. returns true for `"34"` and false for `"text34"` and `34`
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export const isNumberString = (thing: any): thing is string =>
@@ -32,7 +32,7 @@ export const isNumberString = (thing: any): thing is string =>
  * Returns if the given value is a number or string that represents a numerical value
  *   e.g. returns true for 34 or "34" and false for "text34" and "text"
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export const isNumberOrNumberString = (thing: any): thing is number | string =>
@@ -41,7 +41,7 @@ export const isNumberOrNumberString = (thing: any): thing is number | string =>
 /**
  * Returns if the value is a string
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export const isString = (thing: any): thing is string => typeof thing === 'string';
@@ -49,7 +49,7 @@ export const isString = (thing: any): thing is string => typeof thing === 'strin
 /**
  * Returns if the value is string and has a length greater than 0
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export const isStringWithValue = (thing: any): thing is string => isString(thing) && thing.trim().length > 0;
@@ -92,7 +92,7 @@ export const getNumber = (thing: any): number | typeof NaN => {
  * - 1 (number)
  * - '1' (string)
  *
- * @param thing The value to convert to a boolean
+ * @param {any} thing The value to convert to a boolean
  * @returns {boolean}
  */
 export const getBoolean = (thing: any): boolean => {
@@ -113,9 +113,9 @@ export const getBoolean = (thing: any): boolean => {
 /**
  * Returns if the value is an object
  *
- * @link https://attacomsian.com/blog/javascript-check-variable-is-object
+ * https://attacomsian.com/blog/javascript-check-variable-is-object
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export const isObject = <T = object>(thing: any): thing is T =>
@@ -124,9 +124,9 @@ export const isObject = <T = object>(thing: any): thing is T =>
 /**
  * Returns if the value is an object
  *
- * @link https://attacomsian.com/blog/javascript-check-variable-is-object
+ * https://attacomsian.com/blog/javascript-check-variable-is-object
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export const isObjectWithValues = <T = object>(thing: any): thing is T =>
@@ -155,7 +155,7 @@ export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.
  * @param {string} object The object that needs Google maps
  * @param {string} [library] An optional Google maps library class to check for. This needs to be part of the google.maps object
  * @param {boolean} [throwError] An optional flag to throw an error if the Google maps library is not loaded
- * @return {boolean}
+ * @returns {boolean}
  */
 export const checkForGoogleMaps = (object: string, library?: string, throwError?: boolean): boolean => {
     let passed = false;

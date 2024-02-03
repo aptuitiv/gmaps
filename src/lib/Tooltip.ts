@@ -30,6 +30,8 @@
     });
 =========================================================================== */
 
+/* global google */
+
 import { isObject, isString, isStringWithValue } from './helpers';
 import { LatLng } from './LatLng';
 import { Map } from './Map';
@@ -106,7 +108,7 @@ class Tooltip extends Overlay {
     /**
      * Set the content for the tooltip
      *
-     * @param content The content for the tooltip
+     * @param {string} content The content for the tooltip
      */
     setContent(content: string) {
         this.content = content;
@@ -116,9 +118,9 @@ class Tooltip extends Overlay {
     /**
      * Show the tooltip at the specified position
      *
-     * @internal Intended to be called only by internal classes
-     * @param map The Google map object
-     * @param position The Google maps lat/lng position of where the tooltip should show
+     * @internal
+     * @param {Map} map The Google map object
+     * @param {LatLng} position The Google maps lat/lng position of where the tooltip should show
      */
     show(map: Map, position: LatLng) {
         this.position = position;
@@ -128,7 +130,7 @@ class Tooltip extends Overlay {
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
-     * @param panes The Google maps panes object
+     * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
         panes.floatPane.appendChild(this.overlay);
@@ -137,7 +139,7 @@ class Tooltip extends Overlay {
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
-     * @param projection The Google maps projection object
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
         const divPosition = projection.fromLatLngToDivPixel(this.position.get())!;

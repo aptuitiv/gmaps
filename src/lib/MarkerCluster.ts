@@ -100,7 +100,8 @@ type MarkerClusterOptions = {
      * An algorithm to cluster markers. This determines how many markers are clustered together.
      * Default is SuperClusterAlgorithm. Must provide a `calculate` method accepting AlgorithmInput and returning
      * an array of Cluster.
-     * @link https://googlemaps.github.io/js-markerclusterer/classes/GridAlgorithm.html
+     *
+     * https://googlemaps.github.io/js-markerclusterer/classes/GridAlgorithm.html
      */
     algorithmClass?: Algorithm;
     /**
@@ -110,9 +111,9 @@ type MarkerClusterOptions = {
      * - maxZoom
      * - minPoints
      *
-     * @link https://googlemaps.github.io/js-markerclusterer/interfaces/AlgorithmOptions.html
-     * @link https://googlemaps.github.io/js-markerclusterer/interfaces/GridOptions.html
-     * @link https://www.npmjs.com/package/supercluster - This is what the SueprClusterAlgorithm uses
+     * https://googlemaps.github.io/js-markerclusterer/interfaces/AlgorithmOptions.html
+     * https://googlemaps.github.io/js-markerclusterer/interfaces/GridOptions.html
+     * https://www.npmjs.com/package/supercluster - This is what the SueprClusterAlgorithm uses
      */
     algorithmOptions?: SuperClusterOptions;
     /**
@@ -145,8 +146,9 @@ type MarkerClusterOptions = {
      * An object that converts a cluster into a `google.maps.Marker`.
      * Default is DefaultRenderer.
      * It must provide a `render` method accepting Cluster, ClusterStatus, and `google.maps.Map` and returning a `google.maps.Marker`.
-     * @link https://github.com/googlemaps/js-markerclusterer/blob/main/src/renderer.ts
-     * @link https://googlemaps.github.io/js-markerclusterer/classes/DefaultRenderer.html
+     *
+     * https://github.com/googlemaps/js-markerclusterer/blob/main/src/renderer.ts
+     * https://googlemaps.github.io/js-markerclusterer/classes/DefaultRenderer.html
      */
     renderer?: Renderer;
 };
@@ -342,7 +344,7 @@ export class MarkerCluster extends Base {
 
     /**
      *
-     * @param marker The marker to remove
+     * @param {Marker} marker The marker to remove
      * @param {boolean} draw Whether to redraw the clusters after removing the marker.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */

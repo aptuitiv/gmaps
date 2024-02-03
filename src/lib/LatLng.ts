@@ -19,6 +19,8 @@
     latLng(latLngClassInstance);
 =========================================================================== */
 
+/* global google */
+
 import Base from './Base';
 import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
@@ -47,18 +49,21 @@ export type Latitude = number | number[] | string | string[] | LatLngLiteral | L
 export class LatLng extends Base {
     /**
      * Holds the Google maps LatLng object
+     *
      * @type {google.maps.LatLng}
      */
     latLngObject: google.maps.LatLng;
 
     /**
      * Holds the latitude
+     *
      * @type {number}
      */
     latitude: number;
 
     /**
      * Holds the longitude
+     *
      * @type {number}
      */
     longitude: number;
@@ -143,7 +148,8 @@ export class LatLng extends Base {
     /**
      * Get the Google maps LatLng object
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
+     *
      * @returns {google.maps.LatLng|null}
      */
     get(): google.maps.LatLng | null {
@@ -163,6 +169,7 @@ export class LatLng extends Base {
 
     /**
      * Returns if the latitude/longitude pair is a valid value
+     *
      * @returns {boolean}
      */
     isValid(): boolean {

@@ -21,6 +21,8 @@
     });
 =========================================================================== */
 
+/* global google */
+
 import Base from './Base';
 import { point, PointValue } from './Point';
 import { isNumber, isNumberString, isObject, isStringWithValue } from './helpers';
@@ -56,6 +58,7 @@ type SvgSymbolOptions = {
 export class SvgSymbol extends Base {
     /**
      * Holds the icon options
+     *
      * @type {google.maps.Symbol}
      */
     private options: google.maps.Symbol;
@@ -91,8 +94,8 @@ export class SvgSymbol extends Base {
     /**
      * Set the icon options
      *
-     * @param {IconOptions} options The icon options
-     * @return {SvgSymbol}
+     * @param {SvgSymbolOptions} options The icon options
+     * @returns {SvgSymbol}
      */
     setOptions(options: SvgSymbolOptions): SvgSymbol {
         if (isObject(options)) {
@@ -177,7 +180,7 @@ export class SvgSymbol extends Base {
     /**
      * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
      *
-     * @param labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
      * @returns {SvgSymbol}
      */
     setLabelOrigin(labelOrigin: PointValue): SvgSymbol {
@@ -278,9 +281,9 @@ export type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
 /**
  * Helper function to set up the icon object
  *
- * @param {IconValue} [path] The SVG path for the icon, the icon object, or the icon options
- * @param {IconOptions} [options] The options for the icon
- * @returns {Icon}
+ * @param {SvgSymbolValue} [path] The SVG path for the icon, the icon object, or the icon options
+ * @param {SvgSymbolOptions} [options] The options for the icon
+ * @returns {SvgSymbol}
  */
 export const svgSymbol = (path: SvgSymbolValue, options?: SvgSymbolOptions): SvgSymbol => {
     if (path instanceof SvgSymbol) {

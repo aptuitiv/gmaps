@@ -39,6 +39,8 @@
     });
 =========================================================================== */
 
+/* global google */
+
 import { Cluster, ClusterStats, Renderer } from '@googlemaps/markerclusterer';
 import { getBoolean, isObject, isStringOrNumber } from '../helpers';
 import { marker, MarkerLabel } from '../Marker';
@@ -262,7 +264,7 @@ export class ImageRenderer implements Renderer {
      * Renders the cluster marker
      *
      * @param {Cluster} cluster The cluster information
-     * @param {ClusterStatus} stats The status for all of the clusters
+     * @param {ClusterStats} stats The status for all of the clusters
      * @param {google.maps.Map} map The map object
      * @returns {google.maps.Marker}
      */

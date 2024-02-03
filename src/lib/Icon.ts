@@ -15,6 +15,8 @@
     });
 =========================================================================== */
 
+/* global google */
+
 import Base from './Base';
 import { isObject, isStringWithValue } from './helpers';
 import { point, PointValue } from './Point';

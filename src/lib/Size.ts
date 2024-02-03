@@ -17,6 +17,8 @@
     size(sizeClassInstance);
 =========================================================================== */
 
+/* global google */
+
 import Base from './Base';
 import { isNumber, isNumberString, isObject } from './helpers';
 
@@ -111,7 +113,8 @@ export class Size extends Base {
     /**
      * Returns the size object
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+     *
      * @returns {google.maps.Size}
      */
     get(): google.maps.Size {

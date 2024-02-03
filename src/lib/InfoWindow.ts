@@ -2,6 +2,7 @@
     Helps to set up the built-in Google InfoWindow
 =========================================================================== */
 
+/* global google, Element, Text */
 /* eslint-disable no-use-before-define */
 
 import {
@@ -122,7 +123,7 @@ export class InfoWindow extends Layer {
     /**
      * Set the InfoWindow options
      *
-     * @param options The InfoWindow options
+     * @param {InfoWindowOptions} options The InfoWindow options
      */
     setOptions(options: InfoWindowOptions) {
         const iwOptions: google.maps.InfoWindowOptions = {
@@ -170,7 +171,8 @@ export class InfoWindow extends Layer {
 
     /**
      * Set the InfoWindow content
-     * @param content The InfoWindow content
+     *
+     * @param {string | Element | Text} content The InfoWindow content
      */
     setContent(content: string | Element | Text) {
         if (isStringWithValue(content) || content instanceof Element || content instanceof Text) {
@@ -180,7 +182,9 @@ export class InfoWindow extends Layer {
 
     /**
      * Sets the zIndex value for the InfoWindow
-     * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
+     *
      * @param {number|string} zIndex The zindex value
      */
     setZIndex(zIndex: number | string) {
@@ -194,7 +198,8 @@ export class InfoWindow extends Layer {
     /**
      * Get the Google maps InfoWindow object
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
+     *
      * @returns {google.maps.InfoWindow}
      */
     get(): google.maps.InfoWindow {
@@ -208,7 +213,7 @@ export class InfoWindow extends Layer {
      * If an anchor object is passed in then the info window will be displayed at the anchor's position.
      * If a map object is passed in then the info window will be displayed at the position of the info window.
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
      * @param {Map | Marker} anchorOrMap The anchor object or map object.
      *      This should ideally be the Map or Marker object.
@@ -274,6 +279,7 @@ export const infoWindow = (options?: InfoWindowValue): InfoWindow => {
 Layer.include({
     /**
      * Holds the InfoWindow object
+     *
      * @type {InfoWindow}
      */
     layerInfoWindow: null,
@@ -327,6 +333,7 @@ const InfoWindowCollection = (() => {
 
     /**
      * Create the object instance
+     *
      * @private
      * @returns {InfoWindowCollectionObject}
      */
@@ -338,7 +345,8 @@ const InfoWindowCollection = (() => {
             infoWindows: [],
             /**
              * Adds an InfoWindow to the collection
-             * @param iw The InfoWindow object to add
+             *
+             * @param {InfoWindow} iw The InfoWindow object to add
              */
             add(iw: InfoWindow) {
                 this.infoWindows.push(iw);
@@ -380,7 +388,8 @@ const InfoWindowCollection = (() => {
             },
             /**
              * Removes an InfoWindow from the collection
-             * @param iw The InfoWindow object to remove
+             *
+             * @param {InfoWindow} iw The InfoWindow object to remove
              */
             remove(iw: InfoWindow) {
                 const index = this.infoWindows.indexOf(iw);
@@ -394,6 +403,7 @@ const InfoWindowCollection = (() => {
     return {
         /**
          * Get the singleton instance of the object
+         *
          * @returns {InfoWindowCollectionObject}
          */
         getInstance(): InfoWindowCollectionObject {

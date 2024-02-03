@@ -2,6 +2,8 @@
     Base class to help with drawing stuff on the map.
 =========================================================================== */
 
+/* global google */
+
 import { Evented } from './Evented';
 import { Map } from './Map';
 import {} from './helpers';
@@ -51,6 +53,7 @@ class Layer extends Evented {
 
     /**
      * Sets the map object that the layer is added to
+     *
      * @param {Map} map The map object to add the layer to
      */
     setMap(map: Map | null) {

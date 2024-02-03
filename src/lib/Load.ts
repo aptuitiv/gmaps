@@ -30,6 +30,7 @@ export const LoadData = (() => {
 
     /**
      * Create the object instance
+     *
      * @private
      * @returns {LoadOptions}
      */
@@ -47,6 +48,7 @@ export const LoadData = (() => {
     return {
         /**
          * Get the singleton instance of the object
+         *
          * @returns {LoadOptions}
          */
         getInstance(): LoadOptions {
@@ -140,7 +142,7 @@ export class Load extends Evented {
     /**
      * Load the Google maps API
      *
-     * @param {function} callback A callback function to run when the Google maps API has loaded
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
      * @returns {Promise<void>}
      */
     load(callback?: () => void): Promise<void> {

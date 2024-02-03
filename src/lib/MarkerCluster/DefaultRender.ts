@@ -31,6 +31,8 @@
     cluster.addMarker(marker);
 =========================================================================== */
 
+/* global google */
+
 import { Cluster, ClusterStats, MarkerUtils, Renderer } from '@googlemaps/markerclusterer';
 import { getBoolean, getNumber, isNumber, isObject, isString } from '../helpers';
 
@@ -209,6 +211,7 @@ export class DefaultRenderer implements Renderer {
      * Get the color for the cluster.
      *
      * @param {number} count The number of markers in the cluster.
+     * @param {number} mean The average number of markers in a cluster.
      * @returns {ClusterColor}
      */
     protected getColor(count: number, mean: number): ClusterColor {
@@ -248,7 +251,7 @@ export class DefaultRenderer implements Renderer {
      * Renders the cluster marker
      *
      * @param {Cluster} cluster The cluster information
-     * @param {ClusterStatus} stats The status for all of the clusters
+     * @param {ClusterStats} stats The status for all of the clusters
      * @param {google.maps.Map} map The map object
      * @returns {google.maps.Marker | google.maps.marker.AdvancedMarkerElement}
      */

@@ -2,6 +2,8 @@
     Main file for the Google Map Display library
 =========================================================================== */
 
+/* global globalThis, NodeJS, Window */
+
 // Import the class helpers
 import { icon } from './lib/Icon';
 import { infoWindow } from './lib/InfoWindow';

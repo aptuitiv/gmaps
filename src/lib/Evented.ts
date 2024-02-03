@@ -7,6 +7,8 @@
     succinct interface for emitting events.
 =========================================================================== */
 
+/* global AddEventListenerOptions, EventListenerOrEventListenerObject */
+
 import { isFunction, isObject, isString } from './helpers';
 import BaseMixin from './BaseMixin';
 
@@ -108,7 +110,7 @@ export class Evented extends EventTarget {
      *     this.offAll();
      *
      * @param {string} [type] The event type
-     * @param {function} [callback] The event listener function
+     * @param {Function} [callback] The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     off(type?: string, callback?: EventListenerOrEventListenerObject, options?: EventListenerOptions | boolean): void {
@@ -149,7 +151,7 @@ export class Evented extends EventTarget {
      * Add an event listener to the object
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
@@ -161,7 +163,7 @@ export class Evented extends EventTarget {
      * Sets up an event listener that will only be called once
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      */
     once(type: string, callback: EventListenerOrEventListenerObject | null): void {
         this.on(type, callback, { once: true });
@@ -175,7 +177,7 @@ export class Evented extends EventTarget {
      * This is also used to remove event listeners.
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     registerListener(
@@ -223,9 +225,10 @@ export class Evented extends EventTarget {
     /**
      * Include the mixin into the class
      *
-     * @link https://javascript.info/mixins
-     * @link https://www.digitalocean.com/community/tutorials/js-using-js-mixins
-     * @param mixin The mixin to include
+     * https://javascript.info/mixins
+     * https://www.digitalocean.com/community/tutorials/js-using-js-mixins
+     *
+     * @param {any} mixin The mixin to include
      */
     static include(mixin: any) {
         Object.assign(this.prototype, mixin);

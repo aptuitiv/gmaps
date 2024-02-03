@@ -22,6 +22,8 @@
     });
 =========================================================================== */
 
+/* global google */
+
 import { Libraries } from '@googlemaps/js-api-loader';
 import { LoadData, loader } from './Load';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
@@ -224,7 +226,8 @@ export class Map extends Evented {
 
     /**
      * Set the API key
-     * @param key The API key
+     *
+     * @param {string} key The API key
      * @returns {Map}
      */
     setApiKey(key: string): Map {
@@ -239,7 +242,8 @@ export class Map extends Evented {
     /**
      * Get the map options for displaying the map
      *
-     * @private Internal use only
+     * @private
+     * @returns {google.maps.MapOptions}
      */
     getMapOptions(): google.maps.MapOptions {
         const options: google.maps.MapOptions = {
@@ -267,7 +271,7 @@ export class Map extends Evented {
      *     // Do something after the map loads
      *   });
      *
-     * @param {function} callback The callback function to call after the map loads
+     * @param {Function} callback The callback function to call after the map loads
      */
     load(callback?: (map: Map) => void) {
         return new Promise((resolve, reject) => {
@@ -299,7 +303,7 @@ export class Map extends Evented {
      * If the google.maps.Map class is not available yet, but the google object is, then
      * this will try to display the map up to 10 times.
      *
-     * @param {function} callback The callback function to call after the map loads
+     * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<Map>}
      */
     display(callback?: (map: Map) => void): Promise<Map> {
@@ -365,9 +369,8 @@ export class Map extends Evented {
      * Usage:
      * Add marks to the map.
      * Then call map.fitBounds() to set the viewport to contain the markers.
-     *
      * @param {LatLngBoundsValue} bounds The bounds to fit
-     * @return {Map}
+     * @returns {Map}
      */
     fitBounds(bounds: LatLngBoundsValue): Map {
         if (bounds instanceof LatLngBounds) {
@@ -393,8 +396,7 @@ export class Map extends Evented {
      *  });
      *
      * @param {LocateOptions|LocationOnSuccess} [options] The options for the locate() function. Or the callback function.
-     * @param {function} [onSuccess] The callback function for when the user's location is found.
-     *
+     * @param {Function} [onSuccess] The callback function for when the user's location is found.
      * @returns {Map}
      */
     locate(options?: LocateOptions | LocationOnSuccess, onSuccess?: LocationOnSuccess): Map {
@@ -465,7 +467,7 @@ export class Map extends Evented {
      * Add an event listener to the object
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {

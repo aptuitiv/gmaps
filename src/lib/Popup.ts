@@ -9,6 +9,7 @@
     marker.bindPopup('My Popup');
 =========================================================================== */
 
+/* global google, HTMLElement, Element, Text */
 /* eslint-disable no-use-before-define */
 
 import { LatLng } from './LatLng';
@@ -105,7 +106,8 @@ export class Popup extends Overlay {
 
     /**
      * Set the Popup content
-     * @param content The Popup content
+     *
+     * @param {string | HTMLElement | Element | Text} content The Popup content
      */
     setContent(content: string | HTMLElement | Element | Text) {
         if (isStringWithValue(content)) {
@@ -127,7 +129,7 @@ export class Popup extends Overlay {
      * If an anchor object is passed in then the popup will be displayed at the anchor's position.
      * If a map object is passed in then the popup will be displayed at the position of the popup.
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
      *
      * @param {Map | Marker} anchorOrMap The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
@@ -172,7 +174,7 @@ export class Popup extends Overlay {
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
-     * @param panes The Google maps panes object
+     * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
         panes.floatPane.appendChild(this.overlay);
@@ -181,7 +183,7 @@ export class Popup extends Overlay {
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
-     * @param projection The Google maps projection object
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
         const divPosition = projection.fromLatLngToDivPixel(this.position.get())!;
@@ -230,6 +232,7 @@ export const popup = (options?: PopupValue): Popup => {
 Layer.include({
     /**
      * Holds the Popup object
+     *
      * @type {Popup}
      */
     layerPopup: null,
@@ -283,6 +286,7 @@ const PopupCollection = (() => {
 
     /**
      * Create the object instance
+     *
      * @private
      * @returns {PopupCollectionObject}
      */
@@ -294,7 +298,8 @@ const PopupCollection = (() => {
             popups: [],
             /**
              * Adds an Popup to the collection
-             * @param p The Popup object to add
+             *
+             * @param {Popup} p The Popup object to add
              */
             add(p: Popup) {
                 this.popups.push(p);
@@ -336,7 +341,8 @@ const PopupCollection = (() => {
             },
             /**
              * Removes an Popup from the collection
-             * @param p The Popup object to remove
+             *
+             * @param {Popup} p The Popup object to remove
              */
             remove(p: Popup) {
                 const index = this.popups.indexOf(p);
@@ -350,6 +356,7 @@ const PopupCollection = (() => {
     return {
         /**
          * Get the singleton instance of the object
+         *
          * @returns {PopupCollectionObject}
          */
         getInstance(): PopupCollectionObject {

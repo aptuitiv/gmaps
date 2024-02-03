@@ -40,6 +40,8 @@
     map.fitBounds(bounds);
 =========================================================================== */
 
+/* global google */
+
 import Base from './Base';
 import { checkForGoogleMaps } from './helpers';
 import { latLng, LatLng, LatLngValue } from './LatLng';
@@ -71,7 +73,7 @@ export class LatLngBounds extends Base {
     /**
      * Extends this bounds to contain the given point
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
      *
      * The latLngValue parameter can be:
      * - a LatLngBounds object

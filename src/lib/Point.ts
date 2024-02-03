@@ -19,6 +19,7 @@
     point(pointClassInstance);
 =========================================================================== */
 
+/* global google */
 /* eslint-disable no-use-before-define */
 
 import Base from './Base';
@@ -165,7 +166,7 @@ export class Point extends Base {
      * This returns the cartesian distance between this point and the given point.
      *
      * @param {PointValue} p The point to compare to
-     * @returns {Number}
+     * @returns {number}
      */
     distanceTo(p: PointValue): number {
         const p2 = point(p);
@@ -198,7 +199,8 @@ export class Point extends Base {
     /**
      * Returns the Google maps point object
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
+     *
      * @returns {google.maps.Point}
      */
     get(): google.maps.Point {
@@ -273,7 +275,8 @@ export class Point extends Base {
     /**
      * Returns a copy of the curent point with the x/y values changed to the integer part of a number by removing any fractional digits.
      *
-     * @link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/trunc
+     * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/trunc
+     *
      * @returns {Point}
      */
     trunc(): Point {

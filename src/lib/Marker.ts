@@ -88,6 +88,8 @@
     });
 =========================================================================== */
 
+/* global google */
+
 import { EventCallbackData } from './Evented';
 import { icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue, LatLngLiteral } from './LatLng';
@@ -295,10 +297,9 @@ export class Marker extends Layer {
     /**
      * Set up a custom tooltip for the marker instead of relying on the default browser tooltip
      *
-     * @param {string} containerSelector The selector for the parent element that tooltips are added to.
+     * @param {TooltipValue} tooltipValue The tooltip value
      * @param {string} title The tooltip title
-     * @param {string} [tooltipClass] The class or classes for the tooltip element. If multiple classes are used then separate them with a space.
-     * @returns
+     * @returns {Marker}
      */
     setTooltip(tooltipValue: TooltipValue, title: string): Marker {
         // Get the tooltip container and make sure it exists
@@ -330,7 +331,8 @@ export class Marker extends Layer {
     /**
      * Get the marker position (i.e. the LatLng object)
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
+     *
      * @returns {LatLng}
      */
     getPosition(): LatLng {
@@ -341,7 +343,7 @@ export class Marker extends Layer {
      * Add an event listener to the object
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
@@ -387,7 +389,8 @@ export class Marker extends Layer {
     /**
      * Get the Google maps marker object
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/marker#Marker
+     * https://developers.google.com/maps/documentation/javascript/reference/marker#Marker
+     *
      * @returns {google.maps.Marker}
      */
     get(): google.maps.Marker {
