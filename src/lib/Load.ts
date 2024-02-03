@@ -9,7 +9,7 @@ import { Evented } from './Evented';
 // Loader Options
 export type LoadOptions = {
     // The Google Maps API key
-    apiKey: string;
+    apiKey?: string;
     // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
     // The "places" library is a common one to load. https://developers.google.com/maps/documentation/javascript/places
     // https://developers.google.com/maps/documentation/javascript/libraries
