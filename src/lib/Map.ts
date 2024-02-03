@@ -29,6 +29,7 @@ import {
     checkForGoogleMaps,
     isFunction,
     isNumber,
+    isNumberOrNumberString,
     isNumberString,
     isObject,
     isString,
@@ -190,12 +191,23 @@ export class Map extends Evented {
             }
 
             // Set the center point for the map
+            let center = latLng();
             if (options.center) {
-                this.center = latLng(options.center);
-            } else if (isString(options.lat) && isString(options.lng)) {
-                this.center = latLng(options.lat, options.lng);
-            } else if (isString(options.latitude) && isString(options.longitude)) {
-                this.center = latLng(options.latitude, options.longitude);
+                center = latLng(options.center);
+            } else {
+                if (isNumberOrNumberString(options.lat)) {
+                    center.setLat(options.lat);
+                } else if (isNumberOrNumberString(options.latitude)) {
+                    center.setLat(options.latitude);
+                }
+                if (isNumberOrNumberString(options.lng)) {
+                    center.setLng(options.lng);
+                } else if (isNumberOrNumberString(options.longitude)) {
+                    center.setLng(options.longitude);
+                }
+            }
+            if (center.isValid()) {
+                this.center = center;
             }
 
             // Set the zoom level for the map
