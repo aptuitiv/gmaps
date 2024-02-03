@@ -20,7 +20,7 @@
 =========================================================================== */
 
 import Base from './Base';
-import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
+import { checkForGoogleMaps, isNumber, isNumberOrNumberString, isNumberString, isObject } from './helpers';
 
 // The object literal for a latitude/longitude pair.
 // The values are optional so that this type can be used when building a lat/lng object pair.
@@ -93,12 +93,7 @@ export class LatLng extends Base {
                 typeof (latitude as LatLngLiteral).lng !== 'undefined'
             ) {
                 const latObject: LatLngLiteral = latitude as unknown as LatLngLiteral;
-                if (
-                    !isNumber(latObject.lat) &&
-                    !isNumberString(latObject.lat) &&
-                    !isNumber(latObject.lng) &&
-                    !isNumberString(latObject.lng)
-                ) {
+                if (!isNumberOrNumberString(latObject.lat) || !isNumberOrNumberString(latObject.lng)) {
                     throw new Error('Invalid latitude/longitude pair');
                 }
                 if (isNumberString(latObject.lat)) {
@@ -116,12 +111,7 @@ export class LatLng extends Base {
                 typeof (latitude as LatLngLiteralExpanded).longitude !== 'undefined'
             ) {
                 const latObject: LatLngLiteralExpanded = latitude as unknown as LatLngLiteralExpanded;
-                if (
-                    !isNumber(latObject.latitude) ||
-                    !isNumberString(latObject.latitude) ||
-                    !isNumber(latObject.longitude) ||
-                    !isNumberString(latObject.longitude)
-                ) {
+                if (!isNumberOrNumberString(latObject.latitude) || !isNumberOrNumberString(latObject.latitude)) {
                     throw new Error('Invalid latitude/longitude pair');
                 }
                 if (isNumberString(latObject.latitude)) {

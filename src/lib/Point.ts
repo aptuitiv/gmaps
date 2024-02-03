@@ -22,7 +22,7 @@
 /* eslint-disable no-use-before-define */
 
 import Base from './Base';
-import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
+import { checkForGoogleMaps, isNumber, isNumberOrNumberString, isNumberString, isObject } from './helpers';
 
 // The object for the x and y coordinates
 // Example: `{x: 34, y: 6}`
@@ -80,11 +80,9 @@ export class Point extends Base {
             const xObject: PointObject = x as unknown as PointObject;
             if (
                 typeof xObject.x === 'undefined' ||
-                !isNumber(xObject.x) ||
-                !isNumberString(xObject.x) ||
+                !isNumberOrNumberString(xObject.x) ||
                 typeof xObject.y === 'undefined' ||
-                !isNumber(xObject.y) ||
-                !isNumberString(xObject.y)
+                !isNumberOrNumberString(xObject.y)
             ) {
                 throw new Error('Invalid x/y pair');
             }
