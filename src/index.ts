@@ -7,6 +7,7 @@ import { icon } from './lib/Icon';
 import { infoWindow } from './lib/InfoWindow';
 import { latLng } from './lib/LatLng';
 import { latLngBounds } from './lib/LatLngBounds';
+import { loader } from './lib/Load';
 import { map } from './lib/Map';
 import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';
@@ -25,6 +26,7 @@ const G: GlobalObj = {
     infoWindow,
     latLng,
     latLngBounds,
+    loader,
     map,
     marker,
     markerCluster,

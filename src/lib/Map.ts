@@ -22,14 +22,15 @@
     });
 =========================================================================== */
 
-import { Loader, Libraries } from '@googlemaps/js-api-loader';
+import { Libraries } from '@googlemaps/js-api-loader';
+import { LoadData, loader } from './Load';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
+    checkForGoogleMaps,
     isFunction,
     isNumber,
     isNumberString,
     isObject,
-    isObjectWithValues,
     isString,
     isStringWithValue,
 } from './helpers';
@@ -117,13 +118,6 @@ export class Map extends Evented {
     private id: string;
 
     /**
-     * Holds the libraries to load with Google maps
-     *
-     * @type {Libraries}
-     */
-    private libraries: Libraries = [];
-
-    /**
      * Holds the Google map object
      *
      * @type {google.maps.Map}
@@ -146,14 +140,17 @@ export class Map extends Evented {
 
     /**
      * Holds the watchId for the watchPosition() function
+     *
+     * @type {number}
      */
     private watchId: number;
 
     /**
      * Holds the map zoom value
+     *
      * @type {number}
      */
-    private zoom: number = 8;
+    private zoom: number = 6;
 
     /**
      * Class constructor
@@ -166,8 +163,6 @@ export class Map extends Evented {
 
         // Set some default values
         this.center = latLng(0, 0);
-        this.libraries = [];
-        this.version = 'weekly';
 
         this.id = id;
         if (isObject(options)) {
@@ -177,20 +172,23 @@ export class Map extends Evented {
 
     /**
      * Set the map options
+     *
      * @param {MapOptions} options The map options
      * @returns {Map}
      */
     setOptions(options: MapOptions): Map {
-        if (isObjectWithValues(options)) {
+        if (isObject(options)) {
+            // Load the loader options if neccessary
             if (options.apiKey) {
-                this.setApiKey(options.apiKey);
+                LoadData.getInstance().apiKey = options.apiKey;
             }
             if (Array.isArray(options.libraries)) {
-                this.libraries = options.libraries;
+                LoadData.getInstance().libraries = options.libraries;
             }
             if (isString(options.version)) {
-                this.version = options.version;
+                LoadData.getInstance().version = options.version;
             }
+
             // Set the center point for the map
             if (options.center) {
                 this.center = latLng(options.center);
@@ -247,47 +245,86 @@ export class Map extends Evented {
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'load' event
-     *   map.on('load', () => {
+     * 2. Listen for the 'display' event
+     *   map.on('display', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'load' event only once. The event
+     * 2a. Use the once() function to listen for the 'display' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('load', () => {
+     *   map.once('display', () => {
      *     // Do something after the map loads
      *   });
      *
      * @param {function} callback The callback function to call after the map loads
      */
-    load(callback?: (map?: Map) => void) {
-        if (isStringWithValue(this.mapApiKey)) {
-            // Set up the Google maps loader
-            // https://www.npmjs.com/package/@googlemaps/js-api-loader
-            const loader = new Loader({
-                apiKey: this.mapApiKey,
-                libraries: this.libraries,
-                version: this.version,
-            });
-
-            loader
-                .importLibrary('maps')
-                .then((google) => {
-                    this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.getMapOptions());
-                    this.dispatch('load');
+    load(callback?: (map: Map) => void) {
+        return new Promise((resolve, reject) => {
+            loader(LoadData.getInstance())
+                .load()
+                .then(() => {
+                    this.map = new google.maps.Map(
+                        document.getElementById(this.id) as HTMLElement,
+                        this.getMapOptions()
+                    );
+                    this.dispatch('display');
 
                     // Call the callback function if necessary
-                    if (typeof callback === 'function') {
+                    if (isFunction(callback)) {
                         callback(this);
                     }
+                    resolve(this);
                 })
                 .catch((err) => {
-                    // eslint-disable-next-line no-console
-                    console.error(err);
+                    reject(err);
                 });
-        } else {
-            throw new Error('The Google Maps API key is not set');
-        }
-        return this;
+        });
+    }
+
+    /**
+     * Display the map
+     *
+     * This assumes that the Google Maps API has already been loaded.
+     * If the google.maps.Map class is not available yet, but the google object is, then
+     * this will try to display the map up to 10 times.
+     *
+     * @param {function} callback The callback function to call after the map loads
+     * @returns {Promise<Map>}
+     */
+    display(callback?: (map: Map) => void): Promise<Map> {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+
+            // Internal function to display the map
+            const displayMap = () => {
+                attempts += 1;
+
+                if (checkForGoogleMaps('Map', 'Map', false)) {
+                    // The Google maps library has successfully loaded
+                    this.map = new google.maps.Map(
+                        document.getElementById(this.id) as HTMLElement,
+                        this.getMapOptions()
+                    );
+                    // Call the callback function if necessary
+                    if (isFunction(callback)) {
+                        callback(this);
+                    }
+                    this.dispatch('display');
+                    resolve(this);
+                } else if (typeof google !== 'undefined' && attempts <= 10) {
+                    // It's possible that the Google maps library is loaded but the Map class is not available yet.
+                    // Try again in a few milliseconds
+                    setTimeout(displayMap, 200);
+                } else {
+                    reject(
+                        new Error(
+                            'Failed to display the map. The Google Maps API library must be fully loaded before the map can be displayed.'
+                        )
+                    );
+                }
+            };
+
+            displayMap();
+        });
     }
 
     /**
@@ -421,7 +458,7 @@ export class Map extends Evented {
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
         if (isFunction(callback)) {
-            if (isObject(google) && isObject(google.maps)) {
+            if (checkForGoogleMaps('Map', 'Map', false)) {
                 if (isObject(this.map) && this.map instanceof google.maps.Map) {
                     super.on(type, callback, options);
                     if (isObject(options) && typeof options.once === 'boolean' && options.once) {
@@ -434,12 +471,12 @@ export class Map extends Evented {
                             this.dispatch(type);
                         });
                     }
-                } else if (type === 'load') {
+                } else if (type === 'display') {
                     super.on(type, callback, options);
                 } else {
                     throw new Error('The map object is not available yet');
                 }
-            } else if (type === 'load') {
+            } else if (type === 'display') {
                 super.on(type, callback, options);
             } else {
                 throw new Error(

@@ -229,8 +229,9 @@
   };
   var isObject = (thing) => Object.prototype.toString.call(thing) === "[object Object]";
   var isObjectWithValues = (thing) => Object.prototype.toString.call(thing) === "[object Object]" && Object.keys(thing).length > 0;
-  var checkForGoogleMaps = (object, library) => {
+  var checkForGoogleMaps = (object, library, throwError) => {
     let passed = false;
+    const doError = typeof throwError === "boolean" ? throwError : true;
     if (typeof google !== "undefined" && isObject(google) && isObject(google.maps)) {
       if (library) {
         passed = typeof google.maps[library] !== "undefined";
@@ -245,7 +246,9 @@
       }
       msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
       msg += " See https://developers.google.com/maps/documentation/javascript for more information.";
-      throw new Error(msg);
+      if (doError) {
+        throw new Error(msg);
+      }
     }
     return passed;
   };
@@ -1256,6 +1259,138 @@
     }
   };
 
+  // src/lib/Load.ts
+  var LoadData = /* @__PURE__ */ (() => {
+    let instance;
+    function createInstance() {
+      return {
+        // The Google Maps API key
+        apiKey: "",
+        // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
+        libraries: [],
+        // The version of the Google Maps API to load.
+        version: "weekly"
+      };
+    }
+    return {
+      /**
+       * Get the singleton instance of the object
+       * @returns {LoadOptions}
+       */
+      getInstance() {
+        if (!instance) {
+          instance = createInstance();
+        }
+        return instance;
+      }
+    };
+  })();
+  var Load = class extends Evented {
+    /**
+     * Class constructor
+     *
+     * @param {LoadOptions} [options] The loader options object
+     */
+    constructor(options) {
+      super("load");
+      if (isObject(options)) {
+        this.setOptions(options);
+      }
+    }
+    /**
+     * Set the loader options
+     *
+     * @param {LoadOptions} options The loader options object
+     * @returns {Load}
+     */
+    setOptions(options) {
+      if (isObjectWithValues(options)) {
+        const data = LoadData.getInstance();
+        if (isString(options.apiKey)) {
+          data.apiKey = options.apiKey;
+        }
+        if (Array.isArray(options.libraries)) {
+          data.libraries = options.libraries;
+        }
+        if (isString(options.version)) {
+          data.version = options.version;
+        }
+      } else {
+        throw new Error("The Load.setOptions() options parameter is required and must be an object");
+      }
+      return this;
+    }
+    /**
+     * Set the Google Maps API key
+     *
+     * @param {string} apiKey The Google Maps API key
+     * @returns {Load}
+     */
+    setApiKey(apiKey) {
+      if (isString(apiKey)) {
+        LoadData.getInstance().apiKey = apiKey;
+      }
+      return this;
+    }
+    /**
+     * Set the libraries to load with Google maps
+     * The "places" library is a common one to load.
+     * https://developers.google.com/maps/documentation/javascript/places
+     *
+     * @param {Libraries} libraries The libraries to load with Google maps
+     * @returns {Load}
+     */
+    setLibraries(libraries) {
+      if (Array.isArray(libraries)) {
+        LoadData.getInstance().libraries = libraries;
+      }
+      return this;
+    }
+    /**
+     * Set the version of the Google Maps API to load
+     * https://developers.google.com/maps/documentation/javascript/versions
+     *
+     * @param {string} version The version of the Google Maps API to load
+     * @returns {Load}
+     */
+    setVersion(version) {
+      if (isString(version)) {
+        LoadData.getInstance().version = version;
+      }
+      return this;
+    }
+    /**
+     * Load the Google maps API
+     *
+     * @param {function} callback A callback function to run when the Google maps API has loaded
+     * @returns {Promise<void>}
+     */
+    load(callback) {
+      return new Promise((resolve, reject) => {
+        const data = LoadData.getInstance();
+        if (isStringWithValue(data.apiKey)) {
+          const loader2 = new Loader({
+            apiKey: data.apiKey,
+            version: data.version,
+            libraries: data.libraries
+          });
+          loader2.importLibrary("maps").then(() => {
+            if (isFunction(callback)) {
+              callback();
+            }
+            this.dispatch("load");
+            resolve();
+          }).catch((err) => {
+            reject(err);
+          });
+        } else {
+          reject(new Error("The Google Maps API key is not set"));
+        }
+      });
+    }
+  };
+  var loader = (config) => new Load(config);
+
   // src/lib/LatLng.ts
   var LatLng = class extends Base_default {
     /**
@@ -1455,12 +1590,6 @@
     constructor(id, options) {
       super("map");
       /**
-       * Holds the libraries to load with Google maps
-       *
-       * @type {Libraries}
-       */
-      this.libraries = [];
-      /**
        * Holds the version of the Google Maps API to load
        *
        * @type {string}
@@ -1468,12 +1597,11 @@
       this.version = "weekly";
       /**
        * Holds the map zoom value
+       *
        * @type {number}
        */
-      this.zoom = 8;
+      this.zoom = 6;
       this.center = latLng(0, 0);
-      this.libraries = [];
-      this.version = "weekly";
       this.id = id;
       if (isObject(options)) {
         this.setOptions(options);
@@ -1481,19 +1609,20 @@
     }
     /**
      * Set the map options
+     *
      * @param {MapOptions} options The map options
      * @returns {Map}
      */
     setOptions(options) {
-      if (isObjectWithValues(options)) {
+      if (isObject(options)) {
         if (options.apiKey) {
-          this.setApiKey(options.apiKey);
+          LoadData.getInstance().apiKey = options.apiKey;
         }
         if (Array.isArray(options.libraries)) {
-          this.libraries = options.libraries;
+          LoadData.getInstance().libraries = options.libraries;
         }
         if (isString(options.version)) {
-          this.version = options.version;
+          LoadData.getInstance().version = options.version;
         }
         if (options.center) {
           this.center = latLng(options.center);
@@ -1545,38 +1674,72 @@
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'load' event
-     *   map.on('load', () => {
+     * 2. Listen for the 'display' event
+     *   map.on('display', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'load' event only once. The event
+     * 2a. Use the once() function to listen for the 'display' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('load', () => {
+     *   map.once('display', () => {
      *     // Do something after the map loads
      *   });
      *
      * @param {function} callback The callback function to call after the map loads
      */
     load(callback) {
-      if (isStringWithValue(this.mapApiKey)) {
-        const loader = new Loader({
-          apiKey: this.mapApiKey,
-          libraries: this.libraries,
-          version: this.version
-        });
-        loader.importLibrary("maps").then((google2) => {
-          this.map = new google2.Map(document.getElementById(this.id), this.getMapOptions());
-          this.dispatch("load");
-          if (typeof callback === "function") {
+      return new Promise((resolve, reject) => {
+        loader(LoadData.getInstance()).load().then(() => {
+          this.map = new google.maps.Map(
+            document.getElementById(this.id),
+            this.getMapOptions()
+          );
+          this.dispatch("display");
+          if (isFunction(callback)) {
             callback(this);
           }
+          resolve(this);
         }).catch((err) => {
-          console.error(err);
+          reject(err);
         });
-      } else {
-        throw new Error("The Google Maps API key is not set");
-      }
-      return this;
+      });
+    }
+    /**
+     * Display the map
+     *
+     * This assumes that the Google Maps API has already been loaded.
+     * If the google.maps.Map class is not available yet, but the google object is, then
+     * this will try to display the map up to 10 times.
+     *
+     * @param {function} callback The callback function to call after the map loads
+     * @returns {Promise<Map>}
+     */
+    display(callback) {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const displayMap = () => {
+          attempts += 1;
+          if (checkForGoogleMaps("Map", "Map", false)) {
+            this.map = new google.maps.Map(
+              document.getElementById(this.id),
+              this.getMapOptions()
+            );
+            if (isFunction(callback)) {
+              callback(this);
+            }
+            this.dispatch("display");
+            resolve(this);
+          } else if (typeof google !== "undefined" && attempts <= 10) {
+            setTimeout(displayMap, 200);
+          } else {
+            reject(
+              new Error(
+                "Failed to display the map. The Google Maps API library must be fully loaded before the map can be displayed."
+              )
+            );
+          }
+        };
+        displayMap();
+      });
     }
     /**
      * Returns the Google map object
@@ -1703,7 +1866,7 @@
      */
     on(type, callback, options) {
       if (isFunction(callback)) {
-        if (isObject(google) && isObject(google.maps)) {
+        if (checkForGoogleMaps("Map", "Map", false)) {
           if (isObject(this.map) && this.map instanceof google.maps.Map) {
             super.on(type, callback, options);
             if (isObject(options) && typeof options.once === "boolean" && options.once) {
@@ -1716,12 +1879,12 @@
                 this.dispatch(type);
               });
             }
-          } else if (type === "load") {
+          } else if (type === "display") {
             super.on(type, callback, options);
           } else {
             throw new Error("The map object is not available yet");
           }
-        } else if (type === "load") {
+        } else if (type === "display") {
           super.on(type, callback, options);
         } else {
           throw new Error(
@@ -4736,6 +4899,7 @@
     infoWindow,
     latLng,
     latLngBounds,
+    loader,
     map,
     marker,
     markerCluster,
