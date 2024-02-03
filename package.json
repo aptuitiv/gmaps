@@ -8,7 +8,7 @@
     "scripts": {
         "build": "node scripts/build.js",
         "build:types": "tsc --emitDeclarationOnly --declaration --stripInternal",
-        "lint": "eslint --fix --ext .js,.ts .",
+        "lint": "eslint --fix --ext .js,.ts ./src",
         "test": "echo \"Error: no test specified\" && exit 1",
         "ts-build": "tsc",
         "ts-dev": "tsc -w",
@@ -37,6 +37,7 @@
         "eslint": "^8.56.0",
         "eslint-config-airbnb-base": "^15.0.0",
         "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-jsdoc": "^48.0.4",
         "log-symbols": "^6.0.0",
         "ts-node": "^10.9.2",
         "typescript": "^5.3.3"
