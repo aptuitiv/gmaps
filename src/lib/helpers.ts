@@ -154,10 +154,12 @@ export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.
  *
  * @param {string} object The object that needs Google maps
  * @param {string} [library] An optional Google maps library class to check for. This needs to be part of the google.maps object
+ * @param {boolean} [throwError] An optional flag to throw an error if the Google maps library is not loaded
  * @return {boolean}
  */
-export const checkForGoogleMaps = (object: string, library?: string): boolean => {
+export const checkForGoogleMaps = (object: string, library?: string, throwError?: boolean): boolean => {
     let passed = false;
+    const doError = typeof throwError === 'boolean' ? throwError : true;
     if (typeof google !== 'undefined' && isObject(google) && isObject(google.maps)) {
         if (library) {
             passed = typeof google.maps[library] !== 'undefined';
@@ -172,7 +174,9 @@ export const checkForGoogleMaps = (object: string, library?: string): boolean =>
         }
         msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
         msg += ' See https://developers.google.com/maps/documentation/javascript for more information.';
-        throw new Error(msg);
+        if (doError) {
+            throw new Error(msg);
+        }
     }
     return passed;
 };
