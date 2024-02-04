@@ -4,13 +4,30 @@
 
 /* global G */
 
-G.map('map2', { apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', center: ['50.864716', 10.3522], zoom: 11 }).load().then(() => {
-    // Do something after loading an displaying the map
-});
-
-// G.loader({ apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', }).load().then(() => {
-//     G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } }).display();
+// G.map('map2', { apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', center: ['50.864716', 10.3522], zoom: 11 }).load().then(() => {
+//     // Do something after loading an displaying the map
 // });
+
+G.loader({ apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', }).load().then(() => {
+    G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } }).display();
+    const point1 = G.point(2, 4);
+    console.log('point1: ', point1);
+    console.log('clone: ', point1.clone());
+    console.log('add: ', point1.add(2, 2));
+    console.log('sub: ', point1.subtract(10, 5));
+    console.log('mul2: ', point1.multiply(2));
+    console.log('divi: ', point1.divide(2));
+    console.log('ceil: ', G.point(2.5, 3.5).ceil());
+    console.log('floor: ', G.point(2.5, 3.5).floor());
+    console.log('round: ', G.point(2.5, 3.5).round());
+    console.log('distance: ', G.point(2, 4).distanceTo(G.point(4, 6)));
+    console.log('equals: ', G.point(2, 4).equals(G.point(2, 4)));
+    console.log('equals: ', G.point(2, 4).equals(G.point(4, 6)));
+    console.log('setX: ', G.point(2, 4).setX(10));
+    console.log('setY: ', G.point(2, 4).setY(10));
+    console.log('set: ', G.point(2, 4).set(10, 3));
+    console.log('truclate: ', G.point(2.5, 3.5).trunc());
+});
 // load.on('load', () => { console.log('loaded event'); });
 // load.load();
 
@@ -22,10 +39,10 @@ const map = G.map('map1', {
     // apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
     center: { lat: 36.224, lng: -81.688 },
 }).load().then(() => { console.log('1 loaded') });
-load.load(() => {
-    console.log('Loaded in callback');
-    map.display();
-});
+// load.load(() => {
+//     console.log('Loaded in callback');
+//     map.display();
+// });
 
 // await load.load();
 // map.display();
