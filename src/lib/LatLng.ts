@@ -83,6 +83,15 @@ export class LatLng extends Base {
     }
 
     /**
+     * Returns a new copy of the latitude/longitude pair
+     *
+     * @returns {LatLng}
+     */
+    clone(): LatLng {
+        return new LatLng(this.latitude, this.longitude);
+    }
+
+    /**
      * Set the latitude/longitude pair
      *
      * @param {Latitude} latitude The latitude value or the latitude/longitude pair
