@@ -50,6 +50,7 @@ export class LatLng extends Base {
     /**
      * Holds the Google maps LatLng object
      *
+     * @private
      * @type {google.maps.LatLng}
      */
     latLngObject: google.maps.LatLng;
@@ -57,6 +58,7 @@ export class LatLng extends Base {
     /**
      * Holds the latitude
      *
+     * @private
      * @type {number}
      */
     latitude: number;
@@ -64,6 +66,7 @@ export class LatLng extends Base {
     /**
      * Holds the longitude
      *
+     * @private
      * @type {number}
      */
     longitude: number;
@@ -168,7 +171,7 @@ export class LatLng extends Base {
     }
 
     /**
-     * Returns if the latitude/longitude pair is a valid value
+     * Returns whether the latitude/longitude pair is a valid value
      *
      * @returns {boolean}
      */

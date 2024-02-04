@@ -18,14 +18,14 @@ G.map('map2', { apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', center: ['50.
 // load.on('load', () => { console.log('loaded event'); });
 
 
-// const map = G.map('map1', {
-//     // apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
-//     center: { lat: 36.224, lng: -81.688 },
-// }).load().then(() => { console.log('1 loaded') });
-// load.load(() => {
-//     console.log('Loaded in callback');
-//     map.display();
-// });
+const map = G.map('map1', {
+    // apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
+    center: { lat: 36.224, lng: -81.688 },
+}).load().then(() => { console.log('1 loaded') });
+load.load(() => {
+    console.log('Loaded in callback');
+    map.display();
+});
 
 // await load.load();
 // map.display();
