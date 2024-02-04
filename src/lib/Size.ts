@@ -181,21 +181,21 @@ export class Size extends Base {
         /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(width)) {
             const [widthValue, heightValue] = width;
-            this.setWidth(widthValue);
-            this.setHeight(heightValue);
+            this.width = widthValue;
+            this.height = heightValue;
         } else if (isObject(width)) {
             const widthObject: SizeObject = width as unknown as SizeObject;
             if (typeof widthObject.width !== 'undefined') {
-                this.setWidth(widthObject.width);
+                this.width = widthObject.width;
             }
             if (typeof widthObject.height !== 'undefined') {
-                this.setHeight(widthObject.height);
+                this.height = widthObject.height;
             }
         } else if ((width as any) instanceof Size) {
             return (width as any).clone();
         } else {
-            this.setWidth(width);
-            this.setHeight(height);
+            this.width = width;
+            this.height = height;
         }
         /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;
