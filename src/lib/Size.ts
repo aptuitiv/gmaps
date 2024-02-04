@@ -39,23 +39,25 @@ export class Size extends Base {
     /**
      * Holds the Google maps size object
      *
+     * @private
      * @type {google.maps.Size}
      */
-    private sizeObject: google.maps.Size;
+    #sizeObject: google.maps.Size;
 
     /**
      * The width value
      *
+     * @private
      * @type {number}
      */
-    private widthValue: number;
+    #width: number;
 
     /**
      * The height value
      *
      * @type {number}
      */
-    private heightValue: number;
+    #height: number;
 
     /**
      * Constructor
@@ -74,7 +76,7 @@ export class Size extends Base {
      * @returns {number}
      */
     get height(): number {
-        return this.heightValue;
+        return this.#height;
     }
 
     /**
@@ -83,7 +85,14 @@ export class Size extends Base {
      * @param {number|string} height The height value. Ideallheight it's a number but it could be a number string
      */
     set height(height: number | string) {
-        this.setHeight(height);
+        if (isNumberString(height)) {
+            this.#height = Number(height);
+        } else if (isNumber(height)) {
+            this.#height = height;
+        }
+        if (isObject(this.#sizeObject)) {
+            this.#sizeObject.height = this.#height;
+        }
     }
 
     /**
@@ -92,7 +101,7 @@ export class Size extends Base {
      * @returns {number}
      */
     get width(): number {
-        return this.widthValue;
+        return this.#width;
     }
 
     /**
@@ -101,7 +110,11 @@ export class Size extends Base {
      * @param {number|string} width The width value. Ideally it's a number but it could be a number string
      */
     set width(width: number | string) {
-        this.setWidth(width);
+        if (isNumberString(width)) {
+            this.#width = Number(width);
+        } else if (isNumber(width)) {
+            this.#width = width;
+        }
     }
 
     /**
@@ -110,11 +123,11 @@ export class Size extends Base {
      * @returns {Size}
      */
     clone(): Size {
-        return new Size(this.widthValue, this.heightValue);
+        return new Size(this.#width, this.#height);
     }
 
     /**
-     * Returns the size object
+     * Returns the Google maps size object
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
      *
@@ -122,10 +135,10 @@ export class Size extends Base {
      */
     get(): google.maps.Size | null {
         if (checkForGoogleMaps('Size', 'Size')) {
-            if (!isObject(this.sizeObject)) {
-                this.sizeObject = new google.maps.Size(this.widthValue, this.heightValue);
+            if (!isObject(this.#sizeObject)) {
+                this.#sizeObject = new google.maps.Size(this.#width, this.#height);
             }
-            return this.sizeObject;
+            return this.#sizeObject;
         }
         return null;
     }
@@ -136,7 +149,7 @@ export class Size extends Base {
      * @returns {number}
      */
     getHeight(): number {
-        return this.heightValue;
+        return this.#height;
     }
 
     /**
@@ -145,7 +158,7 @@ export class Size extends Base {
      * @returns {number}
      */
     getWidth(): number {
-        return this.widthValue;
+        return this.#width;
     }
 
     /**
@@ -154,7 +167,7 @@ export class Size extends Base {
      * @returns {boolean}
      */
     isValid(): boolean {
-        return isNumber(this.widthValue) && isNumber(this.heightValue);
+        return isNumber(this.#width) && isNumber(this.#height);
     }
 
     /**
@@ -195,14 +208,7 @@ export class Size extends Base {
      * @returns {Size}
      */
     setHeight(height: number | string): Size {
-        if (isNumberString(height)) {
-            this.heightValue = Number(height);
-        } else if (isNumber(height)) {
-            this.heightValue = height;
-        }
-        if (isObject(this.sizeObject)) {
-            this.sizeObject.height = this.heightValue;
-        }
+        this.height = height;
         return this;
     }
 
@@ -213,11 +219,7 @@ export class Size extends Base {
      * @returns {Size}
      */
     setWidth(width: number | string): Size {
-        if (isNumberString(width)) {
-            this.widthValue = Number(width);
-        } else if (isNumber(width)) {
-            this.widthValue = width;
-        }
+        this.width = width;
         return this;
     }
 }
