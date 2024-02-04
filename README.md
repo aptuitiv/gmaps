@@ -10,6 +10,7 @@ Inspired by [Leaflet](https://leafletjs.com/).
     - [Map](#map)
       - [Example Usage](#example-usage)
   - [Testing while developing local](#testing-while-developing-local)
+  - [Testing locally with another project](#testing-locally-with-another-project)
     - [Unlink the project](#unlink-the-project)
     - [Resources](#resources)
 
@@ -70,6 +71,20 @@ map.load(() => {
 You must call the `load()` function on the map object before doing anything else. That function is what actually loads the Google Maps library and sets up the map.
 
 ## Testing while developing local
+
+We've included [11ty](https://www.11ty.dev/) to build a local static site that you can use for testing.
+
+The files ae in the `site-src` directory.
+
+You will need to create a `.env` file that contains the `GOOGLE_MAPS_API_KEY` variable. Assign your Google maps API key to that variable.
+
+```env
+GOOGLE_MAPS_API_KEY=my-api-key-here
+```
+
+You can then edit `site-src/index.njk` and `site-src/js/index.js` for your testing.
+
+## Testing locally with another project
 
 In the `google-maps-display` library path use `npm link` to add the project to the local npm registry.
 
