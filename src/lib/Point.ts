@@ -42,17 +42,17 @@ export class Point extends Base {
     /**
      * Holds the Google maps point object
      */
-    private pointObject: google.maps.Point;
+    #pointObject: google.maps.Point;
 
     /**
      * The X value
      */
-    private x: number;
+    #x: number;
 
     /**
      * The Y value
      */
-    private y: number;
+    #y: number;
 
     /**
      * Constructor
@@ -63,6 +63,56 @@ export class Point extends Base {
     constructor(x: XPoint | Point, y?: number | string) {
         super('point');
         this.set(x, y);
+    }
+
+    /**
+     * Get the x value
+     *
+     * @returns {number}
+     */
+    get x(): number {
+        return this.#x;
+    }
+
+    /**
+     * Set the x value
+     *
+     * @param {number|string} x The x value. Ideallx it's a number but it could be a number string
+     */
+    set x(x: number | string) {
+        if (isNumberString(x)) {
+            this.#x = Number(x);
+        } else if (isNumber(x)) {
+            this.#x = x;
+        }
+        if (isObject(this.#pointObject)) {
+            this.#pointObject.x = this.#x;
+        }
+    }
+
+    /**
+     * Get the y value
+     *
+     * @returns {number}
+     */
+    get y(): number {
+        return this.#y;
+    }
+
+    /**
+     * Set the y value
+     *
+     * @param {number|string} y The y value. Ideally it's a number but it could be a number string
+     */
+    set y(y: number | string) {
+        if (isNumberString(y)) {
+            this.#y = Number(y);
+        } else if (isNumber(y)) {
+            this.#y = y;
+        }
+        if (isObject(this.#pointObject)) {
+            this.#pointObject.y = this.#y;
+        }
     }
 
     /**
@@ -77,7 +127,7 @@ export class Point extends Base {
      */
     add(x: PointValue, y?: number | string): Point {
         const p2 = point(x, y);
-        return new Point(this.x + p2.getX(), this.y + p2.getY());
+        return new Point(this.x + p2.x, this.y + p2.y);
     }
 
     /**
@@ -128,8 +178,8 @@ export class Point extends Base {
      */
     distanceTo(p: PointValue): number {
         const p2 = point(p);
-        const dx = this.x - p2.getX();
-        const dy = this.y - p2.getY();
+        const dx = this.x - p2.x;
+        const dy = this.y - p2.y;
         return Math.sqrt(dx * dx + dy * dy);
     }
 
@@ -141,7 +191,7 @@ export class Point extends Base {
      */
     equals(p: PointValue): boolean {
         const p2 = point(p);
-        return this.x === p2.getX() && this.y === p2.getY();
+        return this.x === p2.x && this.y === p2.y;
     }
 
     /**
@@ -165,10 +215,10 @@ export class Point extends Base {
      */
     get(): google.maps.Point {
         if (checkForGoogleMaps('Point', 'Point')) {
-            if (!isObject(this.pointObject)) {
-                this.pointObject = new google.maps.Point(this.x, this.y);
+            if (!isObject(this.#pointObject)) {
+                this.#pointObject = new google.maps.Point(this.x, this.y);
             }
-            return this.pointObject;
+            return this.#pointObject;
         }
         return null;
     }
@@ -241,21 +291,21 @@ export class Point extends Base {
         /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(x)) {
             const [xValue, yValue] = x;
-            this.setX(xValue);
-            this.setY(yValue);
+            this.x = xValue;
+            this.y = yValue;
         } else if (isObject(x)) {
             const xObject: PointObject = x as unknown as PointObject;
             if (typeof xObject.x !== 'undefined') {
-                this.setX(xObject.x);
+                this.x = xObject.x;
             }
             if (typeof xObject.y !== 'undefined') {
-                this.setY(xObject.y);
+                this.y = xObject.y;
             }
         } else if ((x as any) instanceof Point) {
             return (x as any).clone();
         } else {
-            this.setX(x);
-            this.setY(y);
+            this.x = x;
+            this.y = y;
         }
         /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;
@@ -268,11 +318,7 @@ export class Point extends Base {
      * @returns {Point}
      */
     setX(x: number | string): Point {
-        if (isNumberString(x)) {
-            this.x = Number(x);
-        } else if (isNumber(x)) {
-            this.x = x;
-        }
+        this.x = x;
         return this;
     }
 
@@ -283,11 +329,7 @@ export class Point extends Base {
      * @returns {Point}
      */
     setY(y: number | string): Point {
-        if (isNumberString(y)) {
-            this.y = Number(y);
-        } else if (isNumber(y)) {
-            this.y = y;
-        }
+        this.y = y;
         return this;
     }
 
@@ -303,8 +345,8 @@ export class Point extends Base {
      */
     subtract(x: PointValue, y?: number | string): Point {
         const p2 = point(x, y);
-        this.x -= p2.getX();
-        this.y -= p2.getY();
+        this.x -= p2.x;
+        this.y -= p2.y;
         return this;
     }
 
