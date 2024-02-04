@@ -3,6 +3,7 @@
     https://www.11ty.dev/docs/config/
 =========================================================================== */
 
+require('dotenv').config();
 
 module.exports = function (eleventyConfig) {
     // Support the CSS files
@@ -23,6 +24,9 @@ module.exports = function (eleventyConfig) {
         // and errors getting thrown because the variable already exists.
         domDiff: false,
     });
+
+    // Add the Google Maps API key to the global data
+    eleventyConfig.addGlobalData('apiKey', process.env.GOOGLE_MAPS_API_KEY);
 
     // Return your Object options:
     return {

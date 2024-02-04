@@ -9,4 +9,6 @@ layout: "base.njk"
 <div id="map1" class="mapContainer"></div>
 <h2>Map 2</h2>
 <div id="map2" class="mapContainer"></div>
+{# Output the API key from the global variable set in eleventy.config.cjs #}
+<script>const apiKey = '{{ apiKey }}';</script>
 <script src="{{ 'js/index.js'|url|safe}}"></script>

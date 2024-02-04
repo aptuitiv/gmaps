@@ -2,13 +2,13 @@
     Javascript for the index page
 =========================================================================== */
 
+
 /* global G */
 
-// G.map('map2', { apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', center: ['50.864716', 10.3522], zoom: 11 }).load().then(() => {
+// G.map('map2', { apiKey: apiKey, center: ['50.864716', 10.3522], zoom: 11 }).load().then(() => {
 //     // Do something after loading an displaying the map
 // });
-
-G.loader({ apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', }).load().then(() => {
+G.loader({ apiKey: apiKey, }).load().then(() => {
     G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } }).display();
     // const lat = G.latLng(48.864716, 2.3522);
     // const lat2 = G.latLng().set(lat);
@@ -56,12 +56,12 @@ G.loader({ apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', }).load().then(() 
 // load.on('load', () => { console.log('loaded event'); });
 // load.load();
 
-// const load = G.loader({ apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', });
+// const load = G.loader({ apiKey: apiKey, });
 // load.on('load', () => { console.log('loaded event'); });
 
 
 const map = G.map('map1', {
-    // apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
+    // apiKey: apiKey,
     center: { lat: 36.224, lng: -81.688 },
 }).load().then(() => { console.log('1 loaded') });
 // load.load(() => {
@@ -82,7 +82,7 @@ const map = G.map('map1', {
 // });
 // console.log('load: ', load);
 // const map = G.map('map1', {
-//     apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
+//     apiKey: apiKey,
 //     center: { lat: 36.224, lng: -81.688 },
 // }).load(() => {
 
@@ -93,10 +93,10 @@ const map = G.map('map1', {
 // });
 
 
-// G.loader({ apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', }).load().then(() => {
+// G.loader({ apiKey: apiKey, }).load().then(() => {
 //     console.log('Loaded 3');
 //     const map2 = G.map('map2', {
-//         // apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM',
+//         // apiKey: apiKey,
 //         // center: { lat: 10, lng: 0 },
 //     }).display(() => {
 //         console.log('Displayd xs 2')
