@@ -23,7 +23,7 @@
 /* eslint-disable no-use-before-define */
 
 import Base from './Base';
-import { checkForGoogleMaps, isNumber, isNumberOrNumberString, isNumberString, isObject } from './helpers';
+import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the x and y coordinates
 // Example: `{x: 34, y: 6}`
@@ -62,53 +62,7 @@ export class Point extends Base {
      */
     constructor(x: XPoint, y?: number | string) {
         super('point');
-        if (Array.isArray(x)) {
-            if ((isNumber(x[0]) || isNumberString(x[0])) && (isNumber(x[1]) || isNumberString(x[1]))) {
-                if (isNumberString(x[0])) {
-                    this.x = Number(x[0]);
-                } else {
-                    [this.x] = x;
-                }
-                if (isNumberString(x[1])) {
-                    this.y = Number(x[1]);
-                } else {
-                    this.y = x.pop() as number;
-                }
-            } else {
-                throw new Error('Invalid x/y pair');
-            }
-        } else if (isObject(x)) {
-            const xObject: PointObject = x as unknown as PointObject;
-            if (
-                typeof xObject.x === 'undefined' ||
-                !isNumberOrNumberString(xObject.x) ||
-                typeof xObject.y === 'undefined' ||
-                !isNumberOrNumberString(xObject.y)
-            ) {
-                throw new Error('Invalid x/y pair');
-            }
-            if (isNumberString(xObject.x)) {
-                this.x = Number(xObject.x);
-            } else {
-                this.x = xObject.x;
-            }
-            if (isNumberString(xObject.y)) {
-                this.y = Number(xObject.y);
-            } else {
-                this.y = xObject.y;
-            }
-        } else {
-            if (isNumberString(x)) {
-                this.x = Number(x);
-            } else {
-                this.x = x;
-            }
-            if (isNumberString(y)) {
-                this.y = Number(y);
-            } else {
-                this.y = y;
-            }
-        }
+        this.set(x, y);
     }
 
     /**
@@ -232,12 +186,21 @@ export class Point extends Base {
     }
 
     /**
+     * Returns whether the x/y pair are valid values
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean {
+        return isNumber(this.x) && isNumber(this.y);
+    }
+
+    /**
      * Multiplies the x/y values by a number and returns the result as a new Point object.
      *
      * @param {number|string} num The number to multiply the x and y values by
      * @returns {Point}
      */
-    multipy(num: number | string): Point {
+    multiply(num: number | string): Point {
         if (isNumber(num) && num !== 0) {
             return new Point(this.x * num, this.y * num);
         }
@@ -255,6 +218,63 @@ export class Point extends Base {
      */
     round(): Point {
         return new Point(Math.round(this.x), Math.round(this.y));
+    }
+
+    /**
+     * Set the x/y values
+     *
+     * @param {XPoint} x The x value, or the Point object, or an array of [x, y] pairs, or a {x, y} object
+     * @param {number|string} y The y value
+     * @returns {Point}
+     */
+    set(x: XPoint, y?: number | string): Point {
+        if (Array.isArray(x)) {
+            const [xValue, yValue] = x;
+            this.setX(xValue);
+            this.setY(yValue);
+        } else if (isObject(x)) {
+            const xObject: PointObject = x as unknown as PointObject;
+            if (typeof xObject.x !== 'undefined') {
+                this.setX(xObject.x);
+            }
+            if (typeof xObject.y !== 'undefined') {
+                this.setY(xObject.y);
+            }
+        } else {
+            this.setX(x);
+            this.setY(y);
+        }
+        return this;
+    }
+
+    /**
+     * Set the x value
+     *
+     * @param {number|string} x The x value. Ideally it's a number but it could be a number string
+     * @returns {Point}
+     */
+    setX(x: number | string): Point {
+        if (isNumberString(x)) {
+            this.x = Number(x);
+        } else if (isNumber(x)) {
+            this.x = x;
+        }
+        return this;
+    }
+
+    /**
+     * Set the y value
+     *
+     * @param {number|string} y The y value. Ideally it's a number but it could be a number string
+     * @returns {Point}
+     */
+    setY(y: number | string): Point {
+        if (isNumberString(y)) {
+            this.y = Number(y);
+        } else if (isNumber(y)) {
+            this.y = y;
+        }
+        return this;
     }
 
     /**
