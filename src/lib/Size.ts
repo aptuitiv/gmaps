@@ -20,7 +20,7 @@
 /* global google */
 
 import Base from './Base';
-import { isNumber, isNumberString, isObject } from './helpers';
+import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the width and height
 // Example: `{width: 34, height: 6}`
@@ -38,76 +38,79 @@ export type WidthSize = number | number[] | string | string[] | SizeObject;
 export class Size extends Base {
     /**
      * Holds the Google maps size object
+     *
+     * @type {google.maps.Size}
      */
     private sizeObject: google.maps.Size;
 
     /**
      * The width value
+     *
+     * @type {number}
      */
-    private width: number;
+    private widthValue: number;
 
     /**
      * The height value
+     *
+     * @type {number}
      */
-    private height: number;
+    private heightValue: number;
 
     /**
      * Constructor
      *
-     * @param {WidthSize} width The X value
+     * @param {WidthSize|Size} width The X value
      * @param {number|string} height The Y value
      */
-    constructor(width: WidthSize, height?: number | string) {
+    constructor(width: WidthSize | Size, height?: number | string) {
         super('size');
-        if (Array.isArray(width)) {
-            const [w, h] = width;
-            if ((isNumber(w) || isNumberString(w)) && (isNumber(h) || isNumberString(h))) {
-                if (isNumberString(w)) {
-                    this.width = Number(w);
-                } else {
-                    this.width = w;
-                }
-                if (isNumberString(h)) {
-                    this.height = Number(h);
-                } else {
-                    this.height = h;
-                }
-            } else {
-                throw new Error('Invalid width/height pair');
-            }
-        } else if (isObject(width)) {
-            const widthObject: SizeObject = width as unknown as SizeObject;
-            if (
-                typeof widthObject.width === 'undefined' ||
-                (!isNumber(widthObject.width) && !isNumberString(widthObject.width)) ||
-                typeof widthObject.height === 'undefined' ||
-                (!isNumber(widthObject.height) && !isNumberString(widthObject.height))
-            ) {
-                throw new Error('Invalid width/height pair');
-            }
-            if (isNumberString(widthObject.width)) {
-                this.width = Number(widthObject.width);
-            } else {
-                this.width = widthObject.width;
-            }
-            if (isNumberString(widthObject.height)) {
-                this.height = Number(widthObject.height);
-            } else {
-                this.height = widthObject.height;
-            }
-        } else {
-            if (isNumberString(width)) {
-                this.width = Number(width);
-            } else {
-                this.width = width;
-            }
-            if (isNumberString(height)) {
-                this.height = Number(height);
-            } else {
-                this.height = height;
-            }
-        }
-        this.sizeObject = new google.maps.Size(this.width, this.height);
+        this.set(width, height);
+    }
+
+    /**
+     * Get the height value
+     *
+     * @returns {number}
+     */
+    get height(): number {
+        return this.heightValue;
+    }
+
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideallheight it's a number but it could be a number string
+     */
+    set height(height: number | string) {
+        this.setHeight(height);
+    }
+
+    /**
+     * Get the width value
+     *
+     * @returns {number}
+     */
+    get width(): number {
+        return this.widthValue;
+    }
+
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     */
+    set width(width: number | string) {
+        this.setWidth(width);
+    }
+
+    /**
+     * Returns a new copy of the size
+     *
+     * @returns {Size}
+     */
+    clone(): Size {
+        return new Size(this.widthValue, this.heightValue);
     }
 
     /**
@@ -115,10 +118,16 @@ export class Size extends Base {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
      *
-     * @returns {google.maps.Size}
+     * @returns {google.maps.Size|null}
      */
-    get(): google.maps.Size {
-        return this.sizeObject;
+    get(): google.maps.Size | null {
+        if (checkForGoogleMaps('Size', 'Size')) {
+            if (!isObject(this.sizeObject)) {
+                this.sizeObject = new google.maps.Size(this.widthValue, this.heightValue);
+            }
+            return this.sizeObject;
+        }
+        return null;
     }
 
     /**
@@ -127,7 +136,7 @@ export class Size extends Base {
      * @returns {number}
      */
     getHeight(): number {
-        return this.height;
+        return this.heightValue;
     }
 
     /**
@@ -136,7 +145,80 @@ export class Size extends Base {
      * @returns {number}
      */
     getWidth(): number {
-        return this.width;
+        return this.widthValue;
+    }
+
+    /**
+     * Returns whether the width/height pair are valid values
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean {
+        return isNumber(this.widthValue) && isNumber(this.heightValue);
+    }
+
+    /**
+     * Set the width/height values
+     *
+     * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
+     * @param {number|string} height The height value
+     * @returns {Size}
+     */
+    set(width: WidthSize | Size, height?: number | string): Size {
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        if (Array.isArray(width)) {
+            const [widthValue, heightValue] = width;
+            this.setWidth(widthValue);
+            this.setHeight(heightValue);
+        } else if (isObject(width)) {
+            const widthObject: SizeObject = width as unknown as SizeObject;
+            if (typeof widthObject.width !== 'undefined') {
+                this.setWidth(widthObject.width);
+            }
+            if (typeof widthObject.height !== 'undefined') {
+                this.setHeight(widthObject.height);
+            }
+        } else if ((width as any) instanceof Size) {
+            return (width as any).clone();
+        } else {
+            this.setWidth(width);
+            this.setHeight(height);
+        }
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+        return this;
+    }
+
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideallheight it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setHeight(height: number | string): Size {
+        if (isNumberString(height)) {
+            this.heightValue = Number(height);
+        } else if (isNumber(height)) {
+            this.heightValue = height;
+        }
+        if (isObject(this.sizeObject)) {
+            this.sizeObject.height = this.heightValue;
+        }
+        return this;
+    }
+
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setWidth(width: number | string): Size {
+        if (isNumberString(width)) {
+            this.widthValue = Number(width);
+        } else if (isNumber(width)) {
+            this.widthValue = width;
+        }
+        return this;
     }
 }
 
@@ -150,9 +232,4 @@ export type SizeValue = Size | number | number[] | string | string[] | SizeObjec
  * @param {number|string }height The height value
  * @returns {Size}
  */
-export const size = (width: SizeValue, height?: number | string): Size => {
-    if (width instanceof Size) {
-        return width;
-    }
-    return new Size(width, height);
-};
+export const size = (width: SizeValue, height?: number | string): Size => new Size(width, height);
