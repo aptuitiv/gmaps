@@ -79,6 +79,17 @@ export class LatLng extends Base {
      */
     constructor(latitude?: Latitude, longitude?: number | string) {
         super('latlng');
+        this.set(latitude, longitude);
+    }
+
+    /**
+     * Set the latitude/longitude pair
+     *
+     * @param {Latitude} latitude The latitude value or the latitude/longitude pair
+     * @param {number|string} longitude The longitude value
+     * @returns {LatLng}
+     */
+    set(latitude: Latitude, longitude?: number | string): LatLng {
         if (Array.isArray(latitude)) {
             const [lat, lng] = latitude;
             this.setLat(lat);
@@ -98,6 +109,7 @@ export class LatLng extends Base {
             this.setLat(latitude);
             this.setLng(longitude);
         }
+        return this;
     }
 
     /**
@@ -171,7 +183,7 @@ export class LatLng extends Base {
     }
 
     /**
-     * Returns whether the latitude/longitude pair is a valid value
+     * Returns whether the latitude/longitude pair are valid values
      *
      * @returns {boolean}
      */
