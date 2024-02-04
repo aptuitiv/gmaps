@@ -115,6 +115,9 @@ export class Size extends Base {
         } else if (isNumber(width)) {
             this.#width = width;
         }
+        if (isObject(this.#sizeObject)) {
+            this.#sizeObject.width = this.#width;
+        }
     }
 
     /**
