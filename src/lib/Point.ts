@@ -57,25 +57,16 @@ export class Point extends Base {
     /**
      * Constructor
      *
-     * @param {XPoint} x The X value
+     * @param {XPoint|Point} x The X value
      * @param {number|string} y The Y value
      */
-    constructor(x: XPoint, y?: number | string) {
+    constructor(x: XPoint | Point, y?: number | string) {
         super('point');
         this.set(x, y);
     }
 
     /**
-     * Returns a new copy of the point
-     *
-     * @returns {Point}
-     */
-    clone(): Point {
-        return new Point(this.x, this.y);
-    }
-
-    /**
-     * Adds the x/y values to this point and returns the result as a new Point object.
+     * Adds the x/y values to this point.
      *
      * This is the best way to either explicitly add an absolute x/y position, or to combine
      * two points together. The other point could include negative values.
@@ -90,30 +81,43 @@ export class Point extends Base {
     }
 
     /**
-     * Returns a copy of the curent point with the x/y values rounded up to the nearest integer.
+     * Rounds the x/y values up to the nearest integer.
      * If the value is already an integer, it will return the same value.
      *
      * @returns {Point}
      */
     ceil(): Point {
-        return new Point(Math.ceil(this.x), Math.ceil(this.y));
+        this.x = Math.ceil(this.x);
+        this.y = Math.ceil(this.y);
+        return this;
     }
 
     /**
-     * Divides the x/y values by a number and returns the result as a new Point object.
+     * Returns a new copy of the point
+     *
+     * @returns {Point}
+     */
+    clone(): Point {
+        return new Point(this.x, this.y);
+    }
+
+    /**
+     * Divides the x/y values by a number.
      *
      * @param {number|string} num The number to divide the x and y values by
      * @returns {Point}
      */
     divide(num: number | string): Point {
         if (isNumber(num) && num !== 0) {
-            return new Point(this.x / num, this.y / num);
+            this.x /= num;
+            this.y /= num;
         }
         if (isNumberString(num) && Number(num) !== 0) {
             const n = Number(num);
-            return new Point(this.x / n, this.y / n);
+            this.x /= n;
+            this.y /= n;
         }
-        return this.clone();
+        return this;
     }
 
     /**
@@ -147,7 +151,9 @@ export class Point extends Base {
      * @returns {Point}
      */
     floor(): Point {
-        return new Point(Math.floor(this.x), Math.floor(this.y));
+        this.x = Math.floor(this.x);
+        this.y = Math.floor(this.y);
+        return this;
     }
 
     /**
@@ -195,39 +201,44 @@ export class Point extends Base {
     }
 
     /**
-     * Multiplies the x/y values by a number and returns the result as a new Point object.
+     * Multiplies the x/y values by a number
      *
      * @param {number|string} num The number to multiply the x and y values by
      * @returns {Point}
      */
     multiply(num: number | string): Point {
         if (isNumber(num) && num !== 0) {
-            return new Point(this.x * num, this.y * num);
+            this.x *= num;
+            this.y *= num;
         }
         if (isNumberString(num) && Number(num) !== 0) {
             const n = Number(num);
-            return new Point(this.x * n, this.y * n);
+            this.x *= n;
+            this.y *= n;
         }
-        return this.clone();
+        return this;
     }
 
     /**
-     * Returns a copy of the curent point with the x/y values rounded to the nearest integer.
+     * Rounds the x/y values to the nearest integer.
      *
      * @returns {Point}
      */
     round(): Point {
-        return new Point(Math.round(this.x), Math.round(this.y));
+        this.x = Math.round(this.x);
+        this.y = Math.round(this.y);
+        return this;
     }
 
     /**
      * Set the x/y values
      *
-     * @param {XPoint} x The x value, or the Point object, or an array of [x, y] pairs, or a {x, y} object
+     * @param {XPoint|Point} x The x value, or the Point object, or an array of [x, y] pairs, or a {x, y} object
      * @param {number|string} y The y value
      * @returns {Point}
      */
-    set(x: XPoint, y?: number | string): Point {
+    set(x: XPoint | Point, y?: number | string): Point {
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(x)) {
             const [xValue, yValue] = x;
             this.setX(xValue);
@@ -240,10 +251,13 @@ export class Point extends Base {
             if (typeof xObject.y !== 'undefined') {
                 this.setY(xObject.y);
             }
+        } else if ((x as any) instanceof Point) {
+            return (x as any).clone();
         } else {
             this.setX(x);
             this.setY(y);
         }
+        /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;
     }
 
@@ -278,7 +292,7 @@ export class Point extends Base {
     }
 
     /**
-     * Subtract the x/y values to this point and returns the result as a new Point object.
+     * Subtract the x/y values to this point.
      *
      * The x/y values to subtract should ideally be absolute values to avoid confusion.
      * While they can include negative numbers, that may return unexpected results.
@@ -289,18 +303,22 @@ export class Point extends Base {
      */
     subtract(x: PointValue, y?: number | string): Point {
         const p2 = point(x, y);
-        return new Point(this.x - p2.getX(), this.y - p2.getY());
+        this.x -= p2.getX();
+        this.y -= p2.getY();
+        return this;
     }
 
     /**
-     * Returns a copy of the curent point with the x/y values changed to the integer part of a number by removing any fractional digits.
+     * Change the x/y values to the integer part of a number by removing any fractional digits.
      *
      * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/trunc
      *
      * @returns {Point}
      */
     trunc(): Point {
-        return new Point(Math.trunc(this.x), Math.trunc(this.y));
+        this.x = Math.trunc(this.x);
+        this.y = Math.trunc(this.y);
+        return this;
     }
 }
 
@@ -314,9 +332,4 @@ export type PointValue = Point | number | number[] | string | string[] | PointOb
  * @param {number|string} [y] The y value
  * @returns {Point}
  */
-export const point = (x: PointValue, y?: number | string): Point => {
-    if (x instanceof Point) {
-        return x;
-    }
-    return new Point(x, y);
-};
+export const point = (x: PointValue, y?: number | string): Point => new Point(x, y);
