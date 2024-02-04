@@ -10,6 +10,11 @@
 
 G.loader({ apiKey: 'AIzaSyCOQopRM-4Mrbi_E7_-BTEw7-cPqiDJ7UM', }).load().then(() => {
     G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } }).display();
+    const lat = G.latLng(48.864716, 2.3522);
+    const lat2 = G.latLng().set(lat);
+    console.log('lat2: ', lat2);
+    console.log(G.latLng(lat).setLat(10));
+    console.log(lat);
     const point1 = G.point(2, 4);
     console.log('point1: ', point1);
     console.log('clone: ', point1.clone());
