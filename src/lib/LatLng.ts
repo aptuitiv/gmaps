@@ -74,10 +74,10 @@ export class LatLng extends Base {
     /**
      * Constructor
      *
-     * @param {Latitude} latitude The latitude value or the latitude/longitude pair
+     * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
      * @param {number|string} [longitude] The longitude value
      */
-    constructor(latitude?: Latitude, longitude?: number | string) {
+    constructor(latitude?: Latitude | LatLng, longitude?: number | string) {
         super('latlng');
         this.set(latitude, longitude);
     }
@@ -94,11 +94,12 @@ export class LatLng extends Base {
     /**
      * Set the latitude/longitude pair
      *
-     * @param {Latitude} latitude The latitude value or the latitude/longitude pair
+     * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
      * @param {number|string} longitude The longitude value
      * @returns {LatLng}
      */
-    set(latitude: Latitude, longitude?: number | string): LatLng {
+    set(latitude: Latitude | LatLng, longitude?: number | string): LatLng {
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(latitude)) {
             const [lat, lng] = latitude;
             this.setLat(lat);
@@ -114,10 +115,13 @@ export class LatLng extends Base {
             } else if (typeof (latitude as LatLngLiteralExpanded).longitude !== 'undefined') {
                 this.setLng((latitude as LatLngLiteralExpanded).longitude);
             }
+        } else if ((latitude as any) instanceof LatLng) {
+            return (latitude as any).clone();
         } else {
             this.setLat(latitude);
             this.setLng(longitude);
         }
+        /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;
     }
 
@@ -223,9 +227,5 @@ export type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExp
  * @param {number|string} [longitude] The longitude value
  * @returns {LatLng}
  */
-export const latLng = (latitude?: LatLngValue | string | number, longitude?: number | string): LatLng => {
-    if (latitude instanceof LatLng) {
-        return latitude;
-    }
-    return new LatLng(latitude, longitude);
-};
+export const latLng = (latitude?: LatLngValue | string | number, longitude?: number | string): LatLng =>
+    new LatLng(latitude, longitude);
