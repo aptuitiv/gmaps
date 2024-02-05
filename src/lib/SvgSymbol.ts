@@ -308,7 +308,6 @@ export class SvgSymbol extends Base {
      */
     setOptions(options: SvgSymbolOptions): SvgSymbol {
         if (isObject(options)) {
-            console.log('Existing options: ', this.#options);
             const numberValues = ['fillOpacity', 'rotation', 'scale', 'strokeOpacity', 'strokeWeight'];
             const pointValues = ['anchor', 'labelOrigin'];
             const stringValues = ['fillColor', 'path', 'strokeColor'];
