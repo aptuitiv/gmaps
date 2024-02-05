@@ -73,7 +73,7 @@ export class LatLngBounds extends Base {
     /**
      * Returns whether the the given LatLng value is within this bounds
      *
-     * @param latLngValue The LatLng value to test
+     * @param {LatLngValue} latLngValue The LatLng value to test
      * @returns {boolean}
      */
     contains(latLngValue: LatLngValue): boolean {
@@ -91,7 +91,7 @@ export class LatLngBounds extends Base {
     /**
      * Returns whether this bounds approximately equals the given bounds
      *
-     * @param other The LatLngBounds object to compare
+     * @param {LatLngBounds} other The LatLngBounds object to compare
      * @returns {boolean}
      */
     equals(other: LatLngBounds): boolean {
