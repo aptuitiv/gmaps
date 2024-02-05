@@ -1,12 +1,9 @@
 /* ===========================================================================
-    Javascript for the index page
+    Javascript for the Map page
 =========================================================================== */
 
 
 /* global G */
-
-
-
 
 const map = G.map('map1', {
     apiKey: apiKey,

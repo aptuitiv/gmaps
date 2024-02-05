@@ -17,8 +17,8 @@ loader.version = 'monthly';
 loader.setApiKey('Another one').setLibraries('places').setVersion('quarterly');
 loader.libraries = 'geometry';
 
-// const load = G.loader({ apiKey: apiKey, });
-// load.on('load', () => { console.log('loaded event'); });
+const load = G.loader({ apiKey: apiKey, });
+load.on('load', () => { console.log('loaded event'); });
 
 
 // load.load(() => {
