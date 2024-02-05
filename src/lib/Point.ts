@@ -77,7 +77,7 @@ export class Point extends Base {
     /**
      * Set the x value
      *
-     * @param {number|string} x The x value. Ideallx it's a number but it could be a number string
+     * @param {number|string} x The x value. Ideally it's a number but it could be a number string
      */
     set x(x: number | string) {
         if (isNumberString(x)) {

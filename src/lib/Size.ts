@@ -82,7 +82,7 @@ export class Size extends Base {
     /**
      * Set the height value
      *
-     * @param {number|string} height The height value. Ideallheight it's a number but it could be a number string
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
      */
     set height(height: number | string) {
         if (isNumberString(height)) {
@@ -207,7 +207,7 @@ export class Size extends Base {
     /**
      * Set the height value
      *
-     * @param {number|string} height The height value. Ideallheight it's a number but it could be a number string
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
      * @returns {Size}
      */
     setHeight(height: number | string): Size {
