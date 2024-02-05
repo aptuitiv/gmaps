@@ -113,8 +113,10 @@ class Tooltip extends Overlay {
      * @param {string} content The content for the tooltip
      */
     setContent(content: string) {
-        this.#content = content;
-        this.overlay.innerHTML = content;
+        if (isStringWithValue(content)) {
+            this.#content = content;
+            this.overlay.innerHTML = content;
+        }
     }
 
     /**
