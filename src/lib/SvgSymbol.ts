@@ -10,7 +10,7 @@
     https://www.smashingmagazine.com/2019/03/svg-circle-decomposition-paths/
 
     Example usage:
-    const icon = G.svgSymbol({
+    const symbol = G.svgSymbol({
         path: 'M0,6a6,6 0 1,0 12,0a6,6 0 1,0 -12,0',
         fillColor: '#5284ed',
         fillOpacity: 1,
@@ -59,9 +59,10 @@ export class SvgSymbol extends Base {
     /**
      * Holds the icon options
      *
+     * @private
      * @type {google.maps.Symbol}
      */
-    private options: google.maps.Symbol;
+    #options: google.maps.Symbol;
 
     /**
      * Constructor
@@ -71,9 +72,21 @@ export class SvgSymbol extends Base {
      */
     constructor(path?: string | SvgSymbolOptions, options?: SvgSymbolOptions) {
         super('svgsymbol');
-        this.options = { path: '' };
+        // Set up the initial options object
+        this.#options = {
+            anchor: point([0, 0]),
+            fillColor: '#000000',
+            fillOpacity: 0,
+            labelOrigin: point([0, 0]),
+            path: '',
+            rotation: 0,
+            scale: 1,
+            strokeColor: '#000000',
+            strokeOpacity: 1,
+            strokeWeight: undefined,
+        };
         if (typeof path === 'string') {
-            this.options = {
+            this.#options = {
                 path,
             };
             this.setOptions(options);
@@ -96,20 +109,20 @@ export class SvgSymbol extends Base {
             numberValues.forEach((key) => {
                 if ((options[key] && isNumber(options[key])) || isNumberString(options[key])) {
                     if (isNumberString(options[key])) {
-                        this.options[key] = Number(options[key]);
+                        this.#options[key] = Number(options[key]);
                     } else {
-                        this.options[key] = options[key];
+                        this.#options[key] = options[key];
                     }
                 }
             });
             pointValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = point(options[key]).toGoogle();
+                    this.#options[key] = point(options[key]).toGoogle();
                 }
             });
             stringValues.forEach((key) => {
                 if (options[key] && isStringWithValue(options[key])) {
-                    this.options[key] = options[key];
+                    this.#options[key] = options[key];
                 }
             });
         }
@@ -122,21 +135,21 @@ export class SvgSymbol extends Base {
      *
      * By default, the anchor is located along the center point of the bottom of the image.
      *
-     * const icon = G.icon({
+     * const symbol = G.icon({
      *    url: 'https://mywebsite.com/images/marker.png',
      * });
-     * icon.setAnchor([10, 32]);
+     * symbol.setAnchor([10, 32]);
      *
      * Valid values are:
-     * icon.setAnchor([10, 32]);
-     * icon.setAnchor({x: 10, y: 32});
-     * icon.setAnchor(pointClassInstance);
+     * symbol.setAnchor([10, 32]);
+     * symbol.setAnchor({x: 10, y: 32});
+     * symbol.setAnchor(pointClassInstance);
      *
      * @param {PointValue} anchor The anchor point value
      * @returns {SvgSymbol}
      */
     setAnchor(anchor: PointValue): SvgSymbol {
-        this.options.anchor = point(anchor).toGoogle();
+        this.#options.anchor = point(anchor).toGoogle();
         return this;
     }
 
@@ -148,7 +161,7 @@ export class SvgSymbol extends Base {
      */
     setFillColor(fillColor: string): SvgSymbol {
         if (isStringWithValue(fillColor)) {
-            this.options.fillColor = fillColor;
+            this.#options.fillColor = fillColor;
         }
         return this;
     }
@@ -161,9 +174,9 @@ export class SvgSymbol extends Base {
      */
     setFillOpacity(fillOpacity: number | string): SvgSymbol {
         if (isNumber(fillOpacity)) {
-            this.options.fillOpacity = fillOpacity;
+            this.#options.fillOpacity = fillOpacity;
         } else if (isNumberString(fillOpacity)) {
-            this.options.fillOpacity = Number(fillOpacity);
+            this.#options.fillOpacity = Number(fillOpacity);
         }
         return this;
     }
@@ -175,7 +188,7 @@ export class SvgSymbol extends Base {
      * @returns {SvgSymbol}
      */
     setLabelOrigin(labelOrigin: PointValue): SvgSymbol {
-        this.options.labelOrigin = point(labelOrigin).toGoogle();
+        this.#options.labelOrigin = point(labelOrigin).toGoogle();
         return this;
     }
 
@@ -187,7 +200,7 @@ export class SvgSymbol extends Base {
      */
     setPath(path: string): SvgSymbol {
         if (isStringWithValue(path)) {
-            this.options.path = path;
+            this.#options.path = path;
         }
         return this;
     }
@@ -200,9 +213,9 @@ export class SvgSymbol extends Base {
      */
     setRotation(rotation: number | string): SvgSymbol {
         if (isNumber(rotation)) {
-            this.options.rotation = rotation;
+            this.#options.rotation = rotation;
         } else if (isNumberString(rotation)) {
-            this.options.rotation = Number(rotation);
+            this.#options.rotation = Number(rotation);
         }
         return this;
     }
@@ -215,9 +228,9 @@ export class SvgSymbol extends Base {
      */
     setScale(scale: number | string): SvgSymbol {
         if (isNumber(scale)) {
-            this.options.scale = scale;
+            this.#options.scale = scale;
         } else if (isNumberString(scale)) {
-            this.options.scale = Number(scale);
+            this.#options.scale = Number(scale);
         }
         return this;
     }
@@ -230,7 +243,7 @@ export class SvgSymbol extends Base {
      */
     setStrokeColor(strokeColor: string): SvgSymbol {
         if (isStringWithValue(strokeColor)) {
-            this.options.strokeColor = strokeColor;
+            this.#options.strokeColor = strokeColor;
         }
         return this;
     }
@@ -243,9 +256,9 @@ export class SvgSymbol extends Base {
      */
     setStrokeOpacity(strokeOpacity: number | string): SvgSymbol {
         if (isNumber(strokeOpacity)) {
-            this.options.strokeOpacity = strokeOpacity;
+            this.#options.strokeOpacity = strokeOpacity;
         } else if (isNumberString(strokeOpacity)) {
-            this.options.strokeOpacity = Number(strokeOpacity);
+            this.#options.strokeOpacity = Number(strokeOpacity);
         }
         return this;
     }
@@ -258,9 +271,9 @@ export class SvgSymbol extends Base {
      */
     setStrokeWeight(strokeWeight: number | string): SvgSymbol {
         if (isNumber(strokeWeight)) {
-            this.options.strokeWeight = strokeWeight;
+            this.#options.strokeWeight = strokeWeight;
         } else if (isNumberString(strokeWeight)) {
-            this.options.strokeWeight = Number(strokeWeight);
+            this.#options.strokeWeight = Number(strokeWeight);
         }
         return this;
     }
@@ -271,7 +284,7 @@ export class SvgSymbol extends Base {
      * @returns {google.maps.Symbol}
      */
     toGoogle(): google.maps.Symbol {
-        return this.options;
+        return this.#options;
     }
 }
 
