@@ -58,10 +58,10 @@ export class LatLngBounds extends Base {
     /**
      * Constructor
      *
-     * @param {LatLngValue} [latLngValue] The latitude/longitude value. If not set then add points with the extend method.
+     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
      *      See comments on the extended method for the types of values that latLngValue can be.
      */
-    constructor(latLngValue?: LatLngValue) {
+    constructor(latLngValue?: LatLngValue | LatLngValue[]) {
         super('latlngbounds');
         checkForGoogleMaps('LatLngBounds', 'LatLngBounds');
         this.#bounds = new google.maps.LatLngBounds();
@@ -76,7 +76,6 @@ export class LatLngBounds extends Base {
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
      *
      * The latLngValue parameter can be:
-     * - a LatLngBounds object
      * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
      * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
      * - an array of LatLng objects: [LatLng, LatLng, ...]
@@ -84,16 +83,42 @@ export class LatLngBounds extends Base {
      * - a [lat, lng] pair
      * - a {lat, lng} object (LatLngLiteral)
      *
-     * @param {LatLngValue} latLngValue The latitude/longitude value
+     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
      * @returns {LatLngBounds}
      */
-    extend(latLngValue: LatLngValue): LatLngBounds {
-        const latLngObject = latLng(latLngValue);
-        if (latLngObject.isValid()) {
-            this.#bounds.extend(latLngObject.toGoogle());
+    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds {
+        if (Array.isArray(latLngValue)) {
+            if (Array.isArray(latLngValue[0])) {
+                // The value is likely an array of LatLngValues.
+                const value = latLngValue as LatLngValue[];
+                value.forEach((latLngVal: LatLngValue) => {
+                    this.extend(latLngVal);
+                });
+            } else {
+                // This is likely the array version of a LatLngValue.
+                const latLngObject = latLng(latLngValue as LatLngValue);
+                if (latLngObject.isValid()) {
+                    this.#bounds.extend(latLngObject.toGoogle());
+                } else {
+                    throw new Error(
+                        `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(
+                            latLngValue
+                        )}`
+                    );
+                }
+            }
         } else {
-            throw new Error(`Invalid latitude/longitude pair. You passed: ${JSON.stringify(latLngValue)}`);
+            // This is likely a LatLngValue.
+            const latLngObject = latLng(latLngValue);
+            if (latLngObject.isValid()) {
+                this.#bounds.extend(latLngObject.toGoogle());
+            } else {
+                throw new Error(
+                    `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(latLngValue)}`
+                );
+            }
         }
+
         return this;
     }
 
@@ -121,17 +146,6 @@ export type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
 export const latLngBounds = (latLngValue?: LatLngBoundsValue): LatLngBounds => {
     if (latLngValue instanceof LatLngBounds) {
         return latLngValue;
-    }
-    if (Array.isArray(latLngValue) && Array.isArray(latLngValue[0]) && latLngValue[0].length === 2) {
-        // The value is an array of LatLngValue values.
-        // This could be an array of [lat, lng] pairs, an aray of {lat, lng} objects,
-        // or an array of LatLng objects.
-        const bounds = new LatLngBounds();
-        const value = latLngValue as LatLngValue[];
-        value.forEach((latLngVal: LatLngValue) => {
-            bounds.extend(latLngVal);
-        });
-        return bounds;
     }
     return new LatLngBounds(latLngValue as LatLngValue);
 };
