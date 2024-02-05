@@ -25,6 +25,8 @@ export type LoadOptions = {
 export const LoadData = (() => {
     /**
      * The singleton instance of the object
+     *
+     * @type {LoadOptions}
      */
     let instance: LoadOptions;
 
@@ -60,7 +62,18 @@ export const LoadData = (() => {
     };
 })();
 
+/**
+ * Class to load the Google maps API
+ */
 export class Load extends Evented {
+    /**
+     * Holds the loader options singleton object
+     *
+     * @private
+     * @type {LoadOptions}
+     */
+    #options: LoadOptions;
+
     /**
      * Class constructor
      *
@@ -68,8 +81,74 @@ export class Load extends Evented {
      */
     constructor(options?: LoadOptions) {
         super('load');
+        this.#options = LoadData.getInstance();
         if (isObject(options)) {
             this.setOptions(options);
+        }
+    }
+
+    /**
+     * Get the Google Maps API key
+     *
+     * @returns {string}
+     */
+    get apiKey(): string {
+        return this.#options.apiKey;
+    }
+
+    /**
+     * Set the Google Maps API key
+     *
+     * @param {string} apiKey The Google Maps API key
+     */
+    set apiKey(apiKey: string) {
+        if (isString(apiKey)) {
+            this.#options.apiKey = apiKey;
+        }
+    }
+
+    /**
+     * Get the libraries to load with Google maps
+     *
+     * @returns {Libraries}
+     */
+    get libraries(): Libraries {
+        return this.#options.libraries;
+    }
+
+    /**
+     * Set the libraries to load with Google maps
+     * The "places" library is a common one to load.
+     * https://developers.google.com/maps/documentation/javascript/places
+     *
+     * @param {Libraries} libraries The libraries to load with Google maps
+     */
+    set libraries(libraries: Libraries) {
+        if (Array.isArray(libraries)) {
+            this.#options.libraries = libraries;
+        } else if (isStringWithValue(libraries)) {
+            this.#options.libraries = [libraries];
+        }
+    }
+
+    /**
+     * Get the version of the Google Maps API to load
+     *
+     * @returns {string}
+     */
+    get version(): string {
+        return this.#options.version;
+    }
+
+    /**
+     * Set the version of the Google Maps API to load
+     * https://developers.google.com/maps/documentation/javascript/versions
+     *
+     * @param {string} version The version of the Google Maps API to load
+     */
+    set version(version: string) {
+        if (isString(version)) {
+            this.#options.version = version;
         }
     }
 
@@ -104,9 +183,7 @@ export class Load extends Evented {
      * @returns {Load}
      */
     setApiKey(apiKey: string): Load {
-        if (isString(apiKey)) {
-            LoadData.getInstance().apiKey = apiKey;
-        }
+        this.apiKey = apiKey;
         return this;
     }
 
@@ -119,9 +196,7 @@ export class Load extends Evented {
      * @returns {Load}
      */
     setLibraries(libraries: Libraries): Load {
-        if (Array.isArray(libraries)) {
-            LoadData.getInstance().libraries = libraries;
-        }
+        this.libraries = libraries;
         return this;
     }
 
@@ -133,9 +208,7 @@ export class Load extends Evented {
      * @returns {Load}
      */
     setVersion(version: string): Load {
-        if (isString(version)) {
-            LoadData.getInstance().version = version;
-        }
+        this.version = version;
         return this;
     }
 
