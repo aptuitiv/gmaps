@@ -47,7 +47,7 @@ type TooltipOptions = {
 /**
  * Tooltip class
  */
-class Tooltip extends Overlay {
+export class Tooltip extends Overlay {
     /**
      * Holds the tooltip content.
      * This can be a simple string of text, or string of HTML code.
