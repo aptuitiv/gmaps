@@ -311,3 +311,12 @@ export type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExp
  */
 export const latLng = (latitude?: LatLngValue | string | number, longitude?: number | string): LatLng =>
     new LatLng(latitude, longitude);
+
+/**
+ * Converts the Google maps LatLng object to a LatLng object
+ *
+ * @param {google.maps.LatLng} googleLatLng The Google maps LatLng object
+ * @returns {LatLng}
+ */
+export const latLngConvert = (googleLatLng: google.maps.LatLng): LatLng =>
+    new LatLng(googleLatLng.lat(), googleLatLng.lng());
