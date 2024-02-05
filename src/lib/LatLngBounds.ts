@@ -79,7 +79,6 @@ export class LatLngBounds extends Base {
      * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
      * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
      * - an array of LatLng objects: [LatLng, LatLng, ...]
-     * - a LatLng object
      * - a [lat, lng] pair
      * - a {lat, lng} object (LatLngLiteral)
      *
@@ -88,24 +87,30 @@ export class LatLngBounds extends Base {
      */
     extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds {
         if (Array.isArray(latLngValue)) {
-            if (Array.isArray(latLngValue[0])) {
-                // The value is likely an array of LatLngValues.
-                const value = latLngValue as LatLngValue[];
-                value.forEach((latLngVal: LatLngValue) => {
-                    this.extend(latLngVal);
-                });
-            } else {
-                // This is likely the array version of a LatLngValue.
-                const latLngObject = latLng(latLngValue as LatLngValue);
-                if (latLngObject.isValid()) {
-                    this.#bounds.extend(latLngObject.toGoogle());
+            // Don't throw an error if the array is empty
+            if (latLngValue.length > 0) {
+                if (Array.isArray(latLngValue[0])) {
+                    // The value is likely an array of LatLngValues.
+                    const value = latLngValue as LatLngValue[];
+                    value.forEach((latLngVal: LatLngValue) => {
+                        this.extend(latLngVal);
+                    });
                 } else {
-                    throw new Error(
-                        `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(
-                            latLngValue
-                        )}`
-                    );
+                    // This is likely the array version of a LatLngValue.
+                    const latLngObject = latLng(latLngValue as LatLngValue);
+                    if (latLngObject.isValid()) {
+                        this.#bounds.extend(latLngObject.toGoogle());
+                    } else {
+                        throw new Error(
+                            `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(
+                                latLngValue
+                            )}`
+                        );
+                    }
                 }
+            } else {
+                // eslint-disable-next-line no-console
+                console.warn('The array passed to LatLngBounds.extend is empty. Nothing to extend.');
             }
         } else {
             // This is likely a LatLngValue.
