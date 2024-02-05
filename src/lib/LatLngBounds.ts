@@ -53,7 +53,7 @@ export class LatLngBounds extends Base {
     /**
      * Holds the Google maps LatLngBounds object
      */
-    private bounds: google.maps.LatLngBounds;
+    #bounds: google.maps.LatLngBounds;
 
     /**
      * Constructor
@@ -64,7 +64,7 @@ export class LatLngBounds extends Base {
     constructor(latLngValue?: LatLngValue) {
         super('latlngbounds');
         checkForGoogleMaps('LatLngBounds', 'LatLngBounds');
-        this.bounds = new google.maps.LatLngBounds();
+        this.#bounds = new google.maps.LatLngBounds();
         if (latLngValue) {
             this.extend(latLngValue);
         }
@@ -88,9 +88,9 @@ export class LatLngBounds extends Base {
      */
     extend(latLngValue: LatLngValue): void {
         if (latLngValue instanceof LatLng) {
-            this.bounds.extend(latLngValue.toGoogle());
+            this.#bounds.extend(latLngValue.toGoogle());
         } else if (Array.isArray(latLngValue) && latLngValue.length === 2) {
-            this.bounds.extend(latLng(latLngValue).toGoogle());
+            this.#bounds.extend(latLng(latLngValue).toGoogle());
         } else {
             throw new Error('Invalid latitude/longitude pair');
         }
@@ -102,7 +102,7 @@ export class LatLngBounds extends Base {
      * @returns {google.maps.LatLngBounds}
      */
     toGoogle(): google.maps.LatLngBounds {
-        return this.bounds;
+        return this.#bounds;
     }
 }
 
