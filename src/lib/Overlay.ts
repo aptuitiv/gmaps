@@ -22,9 +22,10 @@ export class Overlay extends Layer {
     /**
      * Holds the offset for the overlay
      *
+     * @private
      * @type {Point}
      */
-    private offset: Point;
+    #offset: Point;
 
     /**
      * Holds the overlay HTML element. This is the container element that the
@@ -62,7 +63,7 @@ export class Overlay extends Layer {
         google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.overlay);
 
         // Set the default offset
-        this.offset = point(0, 0);
+        this.#offset = point(0, 0);
     }
 
     /**
@@ -120,7 +121,7 @@ export class Overlay extends Layer {
      * @returns {Point}
      */
     getOffset(): Point {
-        return this.offset;
+        return this.#offset;
     }
 
     /**
@@ -131,7 +132,7 @@ export class Overlay extends Layer {
      * @param {PointValue} offset The offset value
      */
     setOffset(offset: PointValue) {
-        this.offset = point(offset);
+        this.#offset = point(offset);
     }
 
     /**

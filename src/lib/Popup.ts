@@ -41,38 +41,43 @@ export class Popup extends Overlay {
     /**
      * Whether to automatically close other open InfoWindows when opening this one
      *
+     * @private
      * @type {boolean}
      */
-    private autoClose: boolean = true;
+    #autoClose: boolean = true;
 
     /**
      * Holds if the Popup is open or not
      *
+     * @private
      * @type {boolean}
      */
-    private isOpen: boolean = false;
+    #isOpen: boolean = false;
 
     /**
      * The total offset from the element that includes the anchor point of the element (if it exists) and the overlay offset.
      * Markers have an anchor point, but polygons and polylines do not.
      *
+     * @private
      * @type {Point}
      */
-    private popupOffset: Point;
+    #popupOffset: Point;
 
     /**
      * Holds the position of the tooltip
      *
+     * @private
      * @type {LatLng}
      */
-    private position: LatLng;
+    #position: LatLng;
 
     /**
      * Whether clicking the thing that triggered the popup to open should also close the popup
      *
+     * @private
      * @type {boolean}
      */
-    private toggleDisplay: boolean = true;
+    #toggleDisplay: boolean = true;
 
     /**
      * Constructor
@@ -82,7 +87,7 @@ export class Popup extends Overlay {
     constructor(options: PopupOptions) {
         super('popup');
 
-        this.popupOffset = point(0, 0);
+        this.#popupOffset = point(0, 0);
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -137,21 +142,21 @@ export class Popup extends Overlay {
      */
     open(anchorOrMap: Map | Marker) {
         const collection = PopupCollection.getInstance();
-        if (collection.has(this) && this.isOpen) {
-            if (this.toggleDisplay) {
+        if (collection.has(this) && this.#isOpen) {
+            if (this.#toggleDisplay) {
                 this.close();
             }
         } else {
             // Close other open Popups if necessary
-            if (this.autoClose) {
+            if (this.#autoClose) {
                 collection.closeOthers(this);
             }
 
             if (anchorOrMap instanceof Map) {
-                this.popupOffset = this.getOffset().clone();
+                this.#popupOffset = this.getOffset().clone();
                 this.setMap(anchorOrMap);
             } else if (anchorOrMap instanceof Marker) {
-                this.position = anchorOrMap.getPosition();
+                this.#position = anchorOrMap.getPosition();
                 // If the anchor is a marker then add the anchor's anchorPoint to the offset.
                 // The anchorPoint for the marker contains the x/y values to add to the marker's position that
                 // an InfoWindow should be displayed at. This can also be used with our Popup.
@@ -159,14 +164,14 @@ export class Popup extends Overlay {
                 const m = anchorOrMap.toGoogle();
                 const anchorPoint = m.get('anchorPoint');
                 if (anchorPoint instanceof google.maps.Point) {
-                    this.popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
+                    this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
                 } else {
-                    this.popupOffset = this.getOffset().clone();
+                    this.#popupOffset = this.getOffset().clone();
                 }
                 // Set the map value to display the popup and call the add() and draw() functions.
                 this.setMap(anchorOrMap.getMap());
             }
-            this.isOpen = true;
+            this.#isOpen = true;
             collection.add(this);
         }
     }
@@ -186,14 +191,14 @@ export class Popup extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
+        const divPosition = projection.fromLatLngToDivPixel(this.#position.toGoogle())!;
 
         // Hide the tooltip when it is far out of view.
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
         if (display === 'block') {
-            this.overlay.style.left = `${divPosition.x + this.popupOffset.getX()}px`;
-            this.overlay.style.top = `${divPosition.y + this.popupOffset.getY()}px`;
+            this.overlay.style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
+            this.overlay.style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
         }
 
         if (this.overlay.style.display !== display) {
@@ -206,7 +211,7 @@ export class Popup extends Overlay {
      */
     close() {
         this.hide();
-        this.isOpen = false;
+        this.#isOpen = false;
         PopupCollection.getInstance().remove(this);
     }
 }

@@ -52,16 +52,18 @@ class Tooltip extends Overlay {
      * Holds the tooltip content.
      * This can be a simple string of text, or string of HTML code.
      *
+     * @private
      * @type {string}
      */
-    private content: string;
+    #content: string;
 
     /**
      * Holds the position of the tooltip
      *
+     * @private
      * @type {LatLng}
      */
-    private position: LatLng;
+    #position: LatLng;
 
     /**
      * Constructor
@@ -102,7 +104,7 @@ class Tooltip extends Overlay {
      * @returns {boolean}
      */
     hasContent(): boolean {
-        return isStringWithValue(this.content);
+        return isStringWithValue(this.#content);
     }
 
     /**
@@ -111,7 +113,7 @@ class Tooltip extends Overlay {
      * @param {string} content The content for the tooltip
      */
     setContent(content: string) {
-        this.content = content;
+        this.#content = content;
         this.overlay.innerHTML = content;
     }
 
@@ -123,7 +125,7 @@ class Tooltip extends Overlay {
      * @param {LatLng} position The Google maps lat/lng position of where the tooltip should show
      */
     show(map: Map, position: LatLng) {
-        this.position = position;
+        this.#position = position;
         this.setMap(map);
     }
 
@@ -142,7 +144,7 @@ class Tooltip extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
+        const divPosition = projection.fromLatLngToDivPixel(this.#position.toGoogle())!;
 
         // Hide the tooltip when it is far out of view.
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';

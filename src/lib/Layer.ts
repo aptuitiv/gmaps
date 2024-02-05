@@ -15,9 +15,10 @@ class Layer extends Evented {
     /**
      * Holds the Map object that the layer is added to
      *
+     * @private
      * @type {Map|null}
      */
-    private map: Map | null = null;
+    #map: Map | null = null;
 
     /**
      * Return the Map object or null if the Map object is not set
@@ -32,7 +33,7 @@ class Layer extends Evented {
      * Clears the map object that the layer is added to
      */
     removeMap(): void {
-        this.map = null;
+        this.#map = null;
     }
 
     /**
@@ -41,7 +42,7 @@ class Layer extends Evented {
      * @param {Map} map The map object to add the layer to
      */
     setMap(map: Map | null) {
-        this.map = map;
+        this.#map = map;
     }
 }
 

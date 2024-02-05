@@ -49,56 +49,56 @@ export class DefaultRenderer implements Renderer {
     /**
      * The colors to use for the clusters.
      */
-    private colors: ClusterColors = {
+    #colors: ClusterColors = {
         0: '#0000ff',
     };
 
     /**
      * The color to use for the cluster if it has more than the average number of markers in a cluster.
      */
-    private averageColor?: string = '#ff0000';
+    #averageColor?: string = '#ff0000';
 
     /**
      * The opacity to use for the center of the marker
      *
      * @type {number}
      */
-    private centerOpacity: number = 0.7;
+    #centerOpacity: number = 0.7;
 
     /**
      * The opacity to use for the middle ring of the marker
      *
      * @type {number}
      */
-    private middleOpacity: number = 0.4;
+    #middleOpacity: number = 0.4;
 
     /**
      * The opacity to use for the outer ring of the marker
      *
      * @type {number}
      */
-    private outerOpacity: number = 0.2;
+    #outerOpacity: number = 0.2;
 
     /**
      * Holds the font family for the cluster marker label
      *
      * @type {string}
      */
-    private labelFontFamily: string = 'roboto,arial,sans-serif';
+    #labelFontFamily: string = 'roboto,arial,sans-serif';
 
     /**
      * Holds the font size for the cluster marker
      *
      * @type {string}
      */
-    private labelFontSize: string = '12px';
+    #labelFontSize: string = '12px';
 
     /**
      * Holds if the number of markers in the cluster should be displayed
      *
      * @type {boolean}
      */
-    private showNumber: boolean = true;
+    #showNumber: boolean = true;
 
     /**
      * Set the color to use for the cluster if it has more than the average number of markers in a cluster,
@@ -108,8 +108,8 @@ export class DefaultRenderer implements Renderer {
      * @param {string} fallback The color to use if the cluster has less than the average number of markers in a cluster.
      */
     setAverageColor(color: string, fallback: string): void {
-        this.averageColor = color;
-        this.colors = { 0: fallback };
+        this.#averageColor = color;
+        this.#colors = { 0: fallback };
     }
 
     /**
@@ -135,7 +135,7 @@ export class DefaultRenderer implements Renderer {
                     return acc;
                 }, {});
             if (Object.keys(sortedColors).length > 0) {
-                this.colors = sortedColors;
+                this.#colors = sortedColors;
             }
         }
     }
@@ -148,7 +148,7 @@ export class DefaultRenderer implements Renderer {
     setCenterOpacity(center: number): void {
         const opacity = getNumber(center);
         if (!Number.isNaN(opacity) && opacity >= 0 && opacity <= 1) {
-            this.centerOpacity = opacity;
+            this.#centerOpacity = opacity;
         }
     }
 
@@ -160,7 +160,7 @@ export class DefaultRenderer implements Renderer {
     setMiddleOpacity(middle: number): void {
         const opacity = getNumber(middle);
         if (!Number.isNaN(opacity) && opacity >= 0 && opacity <= 1) {
-            this.middleOpacity = opacity;
+            this.#middleOpacity = opacity;
         }
     }
 
@@ -172,7 +172,7 @@ export class DefaultRenderer implements Renderer {
     setOuterOpacity(outer: number): void {
         const opacity = getNumber(outer);
         if (!Number.isNaN(opacity) && opacity >= 0 && opacity <= 1) {
-            this.outerOpacity = opacity;
+            this.#outerOpacity = opacity;
         }
     }
 
@@ -182,7 +182,7 @@ export class DefaultRenderer implements Renderer {
      * @param {string} fontFamily The font family to use for the cluster marker
      */
     setFontFamily(fontFamily: string): void {
-        this.labelFontFamily = fontFamily;
+        this.#labelFontFamily = fontFamily;
     }
 
     /**
@@ -192,9 +192,9 @@ export class DefaultRenderer implements Renderer {
      */
     setFontSize(fontSize: string | number): void {
         if (isString(fontSize)) {
-            this.labelFontSize = fontSize;
+            this.#labelFontSize = fontSize;
         } else if (isNumber(fontSize)) {
-            this.labelFontSize = `${fontSize}px`;
+            this.#labelFontSize = `${fontSize}px`;
         }
     }
 
@@ -204,7 +204,7 @@ export class DefaultRenderer implements Renderer {
      * @param {boolean} showNumber Whether to show the number of markers in the cluster
      */
     setShowNumber(showNumber: boolean): void {
-        this.showNumber = getBoolean(showNumber);
+        this.#showNumber = getBoolean(showNumber);
     }
 
     /**
@@ -215,18 +215,18 @@ export class DefaultRenderer implements Renderer {
      * @returns {ClusterColor}
      */
     protected getColor(count: number, mean: number): ClusterColor {
-        const keys = Object.keys(this.colors);
-        let color = this.colors[keys[0]];
+        const keys = Object.keys(this.#colors);
+        let color = this.#colors[keys[0]];
         let bgColor = typeof color === 'string' ? color : color.bgColor;
         let textColor = color.textColor ?? '#ffffff';
 
-        if (typeof this.averageColor === 'string' && count >= Math.max(parseInt(keys[keys.length - 1], 10), mean)) {
-            bgColor = this.averageColor;
+        if (typeof this.#averageColor === 'string' && count >= Math.max(parseInt(keys[keys.length - 1], 10), mean)) {
+            bgColor = this.#averageColor;
         } else {
             for (let i = 0; i < keys.length; i += 1) {
                 const k = keys[i];
                 if (count >= parseInt(k, 10)) {
-                    color = this.colors[k];
+                    color = this.#colors[k];
                     if (typeof color === 'string') {
                         bgColor = color;
                     } else {
@@ -268,12 +268,12 @@ export class DefaultRenderer implements Renderer {
         const svg = `<svg fill="${
             color.bgColor
         }" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
-                <circle cx="25" cy="25" opacity="${this.centerOpacity}" r="16" />
-                <circle cx="25" cy="25" opacity="${this.middleOpacity}" r="22" />
-                <circle cx="25" cy="25" opacity="${this.outerOpacity}" r="25" />
+                <circle cx="25" cy="25" opacity="${this.#centerOpacity}" r="16" />
+                <circle cx="25" cy="25" opacity="${this.#middleOpacity}" r="22" />
+                <circle cx="25" cy="25" opacity="${this.#outerOpacity}" r="25" />
                 <text x="50%" y="50%" style="fill:${color.textColor}" text-anchor="middle" font-size="${
-            this.labelFontSize
-        }" dominant-baseline="middle" font-family="${this.labelFontFamily}">${this.showNumber ? count : ''}</text>
+            this.#labelFontSize
+        }" dominant-baseline="middle" font-family="${this.#labelFontFamily}">${this.#showNumber ? count : ''}</text>
             </svg>`;
 
         const title = `Cluster of ${count} markers`;

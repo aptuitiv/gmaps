@@ -162,14 +162,18 @@ export class Marker extends Layer {
     /**
      * Holds the marker position
      *
+     * @private
      * @type {LatLng}
      */
-    private position: LatLng;
+    #position: LatLng;
 
     /**
      * Holds the Google maps marker object
+     *
+     * @private
+     * @type {google.maps.Marker}
      */
-    private marker: google.maps.Marker;
+    #marker: google.maps.Marker;
 
     /**
      * Constructor
@@ -183,14 +187,14 @@ export class Marker extends Layer {
         // Set the marker latitude and longitude value
         if (latLngValue instanceof LatLng) {
             // The value passed is a LatLng class object
-            this.position = latLngValue;
+            this.#position = latLngValue;
         } else if (Array.isArray(latLngValue)) {
             // The value passed is likely an array of [lat, lng] pairs
-            this.position = latLng(latLngValue);
+            this.#position = latLng(latLngValue);
         }
 
         // Create the Google marker object
-        this.marker = new google.maps.Marker();
+        this.#marker = new google.maps.Marker();
 
         // Set up the marker options
         if (isObject(latLngValue)) {
@@ -227,14 +231,14 @@ export class Marker extends Layer {
                 latLngValues.lng = options.longitude;
             }
             if (isNumberOrNumberString(latLngValues.lat) && isNumberOrNumberString(latLngValues.lng)) {
-                this.position = latLng(latLngValues);
+                this.#position = latLng(latLngValues);
             }
         } else if (options.position) {
-            this.position = latLng(options.position);
+            this.#position = latLng(options.position);
         }
 
-        if (this.position) {
-            markerOptions.position = this.position.toJson();
+        if (this.#position) {
+            markerOptions.position = this.#position.toJson();
         }
         if (options.title && options.tooltip) {
             // The title will be a custom tooltip that is added to the map container
@@ -284,7 +288,7 @@ export class Marker extends Layer {
                 markerOptions.map = options.map as google.maps.Map;
             }
         }
-        this.marker.setOptions(markerOptions);
+        this.#marker.setOptions(markerOptions);
 
         // Handle event data.
         // This allows you to pass custom data to events on the marker
@@ -307,10 +311,10 @@ export class Marker extends Layer {
         if (!tt.hasContent()) {
             tt.setContent(title);
         }
-        this.marker.addListener('mouseover', () => {
-            tt.show(this.getMap(), this.position);
+        this.#marker.addListener('mouseover', () => {
+            tt.show(this.getMap(), this.#position);
         });
-        this.marker.addListener('mouseout', () => {
+        this.#marker.addListener('mouseout', () => {
             tt.hide();
         });
         return this;
@@ -323,7 +327,7 @@ export class Marker extends Layer {
      */
     addTo(map: Map): void {
         if (map instanceof Map) {
-            this.marker.setMap(map.toGoogle());
+            this.#marker.setMap(map.toGoogle());
             this.setMap(map);
         }
     }
@@ -336,7 +340,7 @@ export class Marker extends Layer {
      * @returns {LatLng}
      */
     getPosition(): LatLng {
-        return this.position;
+        return this.#position;
     }
 
     /**
@@ -350,12 +354,12 @@ export class Marker extends Layer {
         if (isFunction(callback)) {
             super.on(type, callback, options);
             if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                google.maps.event.addListenerOnce(this.marker, type, () => {
+                google.maps.event.addListenerOnce(this.#marker, type, () => {
                     this.dispatch(type);
                     this.off(type, callback);
                 });
             } else {
-                this.marker.addListener(type, () => {
+                this.#marker.addListener(type, () => {
                     this.dispatch(type);
                 });
             }
@@ -370,7 +374,7 @@ export class Marker extends Layer {
      * @returns {Marker}
      */
     remove(): Marker {
-        this.marker.setMap(null);
+        this.#marker.setMap(null);
         return this;
     }
 
@@ -381,8 +385,8 @@ export class Marker extends Layer {
      * @returns {Marker}
      */
     setPosition(latLngValue: LatLngValue): Marker {
-        this.position = latLng(latLngValue);
-        this.marker.setPosition(this.position.toGoogle());
+        this.#position = latLng(latLngValue);
+        this.#marker.setPosition(this.#position.toGoogle());
         return this;
     }
 
@@ -394,7 +398,7 @@ export class Marker extends Layer {
      * @returns {google.maps.Marker}
      */
     toGoogle(): google.maps.Marker {
-        return this.marker;
+        return this.#marker;
     }
 }
 

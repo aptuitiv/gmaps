@@ -53,37 +53,42 @@ export class InfoWindow extends Layer {
     /**
      * Whether to automatically close other open InfoWindows when opening this one
      *
+     * @private
      * @type {boolean}
      */
-    private autoClose: boolean = true;
+    #autoClose: boolean = true;
 
     /**
      * Whether focus should be moved to the InfoWindow when it is opened
      *
+     * @private
      * @type {boolean}
      */
-    private focus: boolean = false;
+    #focus: boolean = false;
 
     /**
      * Holds if the InfoWindow is open or not
      *
+     * @private
      * @type {boolean}
      */
-    private isOpen: boolean = false;
+    #isOpen: boolean = false;
 
     /**
      * Whether clicking the thing that triggered the info window to open should also close the info window
      *
+     * @private
      * @type {boolean}
      */
-    private toggleDisplay: boolean = true;
+    #toggleDisplay: boolean = true;
 
     /**
      * Holds the Google maps InfoWindow object
      *
+     * @private
      * @type {google.maps.InfoWindow}
      */
-    private infoWindow: google.maps.InfoWindow;
+    #infoWindow: google.maps.InfoWindow;
 
     /**
      * Constructor
@@ -96,9 +101,9 @@ export class InfoWindow extends Layer {
         checkForGoogleMaps('InfoWindow', 'InfoWindow');
 
         // Create the InfoWindow object
-        this.infoWindow = new google.maps.InfoWindow();
+        this.#infoWindow = new google.maps.InfoWindow();
         // Handle when the close button is clicked
-        this.infoWindow.addListener('closeclick', () => {
+        this.#infoWindow.addListener('closeclick', () => {
             InfoWindowCollection.getInstance().remove(this);
         });
         // Handle when the map changes.
@@ -106,11 +111,11 @@ export class InfoWindow extends Layer {
         // Google InfoWindow. This can happen if one of our windows is open and then the
         // user clicks on a map location ang Google shows their own info window.
         // Without doing this, we can't track that our window was closed.
-        this.infoWindow.addListener('map_changed', () => {
+        this.#infoWindow.addListener('map_changed', () => {
             // The getMap() function technically works, but it's not part of the public API
             // so we don't use it. get('map') seems to work the same.
-            if (this.infoWindow.get('map') === null) {
-                this.isOpen = false;
+            if (this.#infoWindow.get('map') === null) {
+                this.#isOpen = false;
                 InfoWindowCollection.getInstance().remove(this);
             }
         });
@@ -155,17 +160,17 @@ export class InfoWindow extends Layer {
             this.setZIndex(options.zIndex);
         }
 
-        this.infoWindow.setOptions(iwOptions);
+        this.#infoWindow.setOptions(iwOptions);
 
         // Other options
         if (typeof options.autoClose === 'boolean') {
-            this.autoClose = options.autoClose;
+            this.#autoClose = options.autoClose;
         }
         if (typeof options.focus === 'boolean') {
-            this.focus = options.focus;
+            this.#focus = options.focus;
         }
         if (typeof options.toggleDisplay === 'boolean') {
-            this.toggleDisplay = options.toggleDisplay;
+            this.#toggleDisplay = options.toggleDisplay;
         }
     }
 
@@ -176,7 +181,7 @@ export class InfoWindow extends Layer {
      */
     setContent(content: string | Element | Text) {
         if (isStringWithValue(content) || content instanceof Element || content instanceof Text) {
-            this.infoWindow.setContent(content);
+            this.#infoWindow.setContent(content);
         }
     }
 
@@ -189,9 +194,9 @@ export class InfoWindow extends Layer {
      */
     setZIndex(zIndex: number | string) {
         if (isNumber(zIndex)) {
-            this.infoWindow.setZIndex(zIndex);
+            this.#infoWindow.setZIndex(zIndex);
         } else if (isNumberString(zIndex)) {
-            this.infoWindow.setZIndex(Number(zIndex));
+            this.#infoWindow.setZIndex(Number(zIndex));
         }
     }
 
@@ -209,30 +214,30 @@ export class InfoWindow extends Layer {
      */
     open(anchorOrMap: Map | Marker) {
         const collection = InfoWindowCollection.getInstance();
-        if (collection.has(this) && this.isOpen) {
-            if (this.toggleDisplay) {
+        if (collection.has(this) && this.#isOpen) {
+            if (this.#toggleDisplay) {
                 this.close();
             }
         } else {
             // Close other open InfoWindows if necessary
-            if (this.autoClose) {
+            if (this.#autoClose) {
                 collection.closeOthers(this);
             }
 
             if (anchorOrMap instanceof Map) {
-                this.infoWindow.open({
+                this.#infoWindow.open({
                     map: anchorOrMap.toGoogle(),
-                    shouldFocus: this.focus,
+                    shouldFocus: this.#focus,
                 });
                 this.setMap(anchorOrMap);
             } else if (anchorOrMap instanceof Marker) {
-                this.infoWindow.open({
+                this.#infoWindow.open({
                     anchor: anchorOrMap.toGoogle(),
-                    shouldFocus: this.focus,
+                    shouldFocus: this.#focus,
                 });
                 this.setMap(anchorOrMap.getMap());
             }
-            this.isOpen = true;
+            this.#isOpen = true;
             collection.add(this);
         }
     }
@@ -241,8 +246,8 @@ export class InfoWindow extends Layer {
      * Close the info window
      */
     close() {
-        this.infoWindow.close();
-        this.isOpen = false;
+        this.#infoWindow.close();
+        this.#isOpen = false;
         InfoWindowCollection.getInstance().remove(this);
     }
 
@@ -254,7 +259,7 @@ export class InfoWindow extends Layer {
      * @returns {google.maps.InfoWindow}
      */
     toGoogle(): google.maps.InfoWindow {
-        return this.infoWindow;
+        return this.#infoWindow;
     }
 }
 

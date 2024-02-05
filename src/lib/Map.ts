@@ -109,51 +109,42 @@ export class Map extends Evented {
     /**
      * Holds the center point for the map
      *
+     * @private
      * @type {LatLng}
      */
-    private center: LatLng;
+    #center: LatLng;
 
     /**
      * Holds the id of the element that the map will be rendered in
      *
+     * @private
      * @type {string}
      */
-    private id: string;
+    #id: string;
 
     /**
      * Holds the Google map object
      *
+     * @private
      * @type {google.maps.Map}
      */
-    private map: google.maps.Map;
-
-    /**
-     * Holds the Google Maps API key
-     *
-     * @type {string}
-     */
-    private mapApiKey: string;
-
-    /**
-     * Holds the version of the Google Maps API to load
-     *
-     * @type {string}
-     */
-    private version: string = 'weekly';
+    #map: google.maps.Map;
 
     /**
      * Holds the watchId for the watchPosition() function
      *
+     * @private
      * @type {number}
      */
-    private watchId: number;
+    #watchId: number;
 
     /**
      * Holds the map zoom value
      *
+     * @private
      * @type {number}
      */
-    private zoom: number = 6;
+    #zoom: number = 6;
 
     /**
      * Class constructor
@@ -165,9 +156,9 @@ export class Map extends Evented {
         super('map');
 
         // Set some default values
-        this.center = latLng(0, 0);
+        this.#center = latLng(0, 0);
 
-        this.id = id;
+        this.#id = id;
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -209,14 +200,14 @@ export class Map extends Evented {
                 }
             }
             if (center.isValid()) {
-                this.center = center;
+                this.#center = center;
             }
 
             // Set the zoom level for the map
             if (isNumber(options.zoom)) {
-                this.zoom = options.zoom;
+                this.#zoom = options.zoom;
             } else if (isNumberString(options.zoom)) {
-                this.zoom = Number(options.zoom);
+                this.#zoom = Number(options.zoom);
             }
         } else {
             throw new Error('Invalid map options. You must pass an object of options');
@@ -232,7 +223,7 @@ export class Map extends Evented {
      */
     setApiKey(key: string): Map {
         if (isStringWithValue(key)) {
-            this.mapApiKey = key;
+            LoaderData.getInstance().apiKey = key;
         } else {
             throw new Error('You must pass a valid API key');
         }
@@ -247,8 +238,8 @@ export class Map extends Evented {
      */
     #getMapOptions(): google.maps.MapOptions {
         const options: google.maps.MapOptions = {
-            center: this.center.toJson(),
-            zoom: this.zoom,
+            center: this.#center.toJson(),
+            zoom: this.#zoom,
         };
         return options;
     }
@@ -278,8 +269,8 @@ export class Map extends Evented {
             loader(LoaderData.getInstance())
                 .load()
                 .then(() => {
-                    this.map = new google.maps.Map(
-                        document.getElementById(this.id) as HTMLElement,
+                    this.#map = new google.maps.Map(
+                        document.getElementById(this.#id) as HTMLElement,
                         this.#getMapOptions()
                     );
                     this.dispatch('display');
@@ -316,8 +307,8 @@ export class Map extends Evented {
 
                 if (checkForGoogleMaps('Map', 'Map', false)) {
                     // The Google maps library has successfully loaded
-                    this.map = new google.maps.Map(
-                        document.getElementById(this.id) as HTMLElement,
+                    this.#map = new google.maps.Map(
+                        document.getElementById(this.#id) as HTMLElement,
                         this.#getMapOptions()
                     );
                     // Call the callback function if necessary
@@ -365,9 +356,9 @@ export class Map extends Evented {
      */
     fitBounds(bounds: LatLngBoundsValue): Map {
         if (bounds instanceof LatLngBounds) {
-            this.map.fitBounds(bounds.toGoogle());
+            this.#map.fitBounds(bounds.toGoogle());
         }
-        this.map.fitBounds(latLngBounds(bounds).toGoogle());
+        this.#map.fitBounds(latLngBounds(bounds).toGoogle());
         return this;
     }
 
@@ -431,7 +422,7 @@ export class Map extends Evented {
                 console.error(err);
             };
             if (config.watch) {
-                this.watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
+                this.#watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
             } else {
                 navigator.geolocation.getCurrentPosition(success, error, positionOptions);
             }
@@ -449,7 +440,7 @@ export class Map extends Evented {
      */
     stopLocate(): Map {
         if (navigator.geolocation) {
-            navigator.geolocation.clearWatch(this.watchId);
+            navigator.geolocation.clearWatch(this.#watchId);
         }
         return this;
     }
@@ -464,15 +455,15 @@ export class Map extends Evented {
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
         if (isFunction(callback)) {
             if (checkForGoogleMaps('Map', 'Map', false)) {
-                if (isObject(this.map) && this.map instanceof google.maps.Map) {
+                if (isObject(this.#map) && this.#map instanceof google.maps.Map) {
                     super.on(type, callback, options);
                     if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                        google.maps.event.addListenerOnce(this.map, type, () => {
+                        google.maps.event.addListenerOnce(this.#map, type, () => {
                             this.dispatch(type);
                             this.off(type, callback);
                         });
                     } else {
-                        this.map.addListener(type, () => {
+                        this.#map.addListener(type, () => {
                             this.dispatch(type);
                         });
                     }
@@ -499,7 +490,7 @@ export class Map extends Evented {
      * @returns {google.maps.Map}
      */
     toGoogle(): google.maps.Map {
-        return this.map;
+        return this.#map;
     }
 }
 

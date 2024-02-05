@@ -30,9 +30,18 @@ export class Evented extends EventTarget {
     /**
      * Holds the event callback data
      *
+     * @private
      * @type {object}
      */
-    private eventCallbackData: EventCallbackData = {};
+    #eventCallbackData: EventCallbackData = {};
+
+    /**
+     * Holds the event listeners
+     *
+     * @private
+     * @type {object}
+     */
+    #eventListeners: Events = {};
 
     /**
      * Holds the object type
@@ -68,7 +77,7 @@ export class Evented extends EventTarget {
      * @returns {EventCallbackData}
      */
     getEventCallbackData(): EventCallbackData {
-        return this.eventCallbackData;
+        return this.#eventCallbackData;
     }
 
     /**
@@ -77,7 +86,7 @@ export class Evented extends EventTarget {
      * @param {EventCallbackData} data The event callback data
      */
     setEventCallbackData(data: EventCallbackData): void {
-        this.eventCallbackData = data;
+        this.#eventCallbackData = data;
     }
 
     /**
@@ -88,7 +97,7 @@ export class Evented extends EventTarget {
      *      Event is created
      */
     dispatch(event: string, data?: any) {
-        let eventData = { ...this.eventCallbackData };
+        let eventData = { ...this.#eventCallbackData };
         if (isObject(data)) {
             eventData = { ...data, ...eventData };
         }
@@ -122,8 +131,8 @@ export class Evented extends EventTarget {
             this.removeEventListener(type, callback, options);
         } else if (isString(type)) {
             // Remove all listeners for the given event type
-            if (this.eventListeners[type]) {
-                this.eventListeners[type].forEach((event) => {
+            if (this.#eventListeners[type]) {
+                this.#eventListeners[type].forEach((event) => {
                     this.removeEventListener(type, event.callback, event.options);
                 });
             }
@@ -131,8 +140,8 @@ export class Evented extends EventTarget {
             this.offAll();
         }
 
-        if (this.eventListeners[type]) {
-            this.eventListeners[type] = this.eventListeners[type].filter(
+        if (this.#eventListeners[type]) {
+            this.#eventListeners[type] = this.#eventListeners[type].filter(
                 (event) => event.callback !== callback && event.options !== options
             );
         }
@@ -142,12 +151,12 @@ export class Evented extends EventTarget {
      * Removes all event listeners
      */
     offAll(): void {
-        Object.keys(this.eventListeners).forEach((type) => {
-            this.eventListeners[type].forEach((event) => {
+        Object.keys(this.#eventListeners).forEach((type) => {
+            this.#eventListeners[type].forEach((event) => {
                 this.removeEventListener(type, event.callback, event.options);
             });
         });
-        this.eventListeners = {};
+        this.#eventListeners = {};
     }
 
     /**
@@ -188,10 +197,10 @@ export class Evented extends EventTarget {
         callback: EventListenerOrEventListenerObject,
         options?: AddEventListenerOptions | boolean
     ): void {
-        if (!this.eventListeners[type]) {
-            this.eventListeners[type] = [];
+        if (!this.#eventListeners[type]) {
+            this.#eventListeners[type] = [];
         }
-        this.eventListeners[type].push({ callback, options });
+        this.#eventListeners[type].push({ callback, options });
     }
 
     /**
@@ -209,20 +218,20 @@ export class Evented extends EventTarget {
         callback?: EventListenerOrEventListenerObject,
         options?: AddEventListenerOptions | boolean
     ): boolean {
-        if (!this.eventListeners[type]) {
+        if (!this.#eventListeners[type]) {
             return false;
         }
         if (typeof callback === 'function') {
             if (options) {
                 return (
-                    this.eventListeners[type].filter(
+                    this.#eventListeners[type].filter(
                         (event) => event.callback === callback && event.options === options
                     ).length > 0
                 );
             }
-            return this.eventListeners[type].filter((event) => event.callback === callback).length > 0;
+            return this.#eventListeners[type].filter((event) => event.callback === callback).length > 0;
         }
-        return this.eventListeners[type] && this.eventListeners[type].length > 0;
+        return this.#eventListeners[type] && this.#eventListeners[type].length > 0;
     }
 
     /**

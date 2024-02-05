@@ -94,51 +94,58 @@ export class ImageRenderer implements Renderer {
     /**
      * Holds the images that can be used for the marker cluster icons
      *
+     * @private
      * @type {ClusterImages}
      */
-    private images: ClusterImages = {};
+    #images: ClusterImages = {};
 
     /**
      * A CSS class name to be added to the label element
      *
+     * @private
      * @type {string}
      */
-    private labelClassName: string;
+    #labelClassName: string;
 
     /**
      * The color of the label text. Default color is black.
      *
+     * @private
      * @type {string}
      */
-    private labelColor: string;
+    #labelColor: string;
 
     /**
      * Holds the font family for the cluster marker label.
      *
+     * @private
      * @type {string}
      */
-    private labelFontFamily: string;
+    #labelFontFamily: string;
 
     /**
      * Holds the font size for the cluster marker
      *
+     * @private
      * @type {number}
      */
-    private labelFontSize: number | string;
+    #labelFontSize: number | string;
 
     /**
      * The font weight of the label text (equivalent to the CSS font-weight property).
      *
+     * @private
      * @type {string}
      */
-    private labelFontWeight: string;
+    #labelFontWeight: string;
 
     /**
      * Holds if the number of markers in the cluster should be displayed
      *
+     * @private
      * @type {boolean}
      */
-    private showNumber: boolean = true;
+    #showNumber: boolean = true;
 
     /**
      * Set custom images to use for the cluster markers.
@@ -163,7 +170,7 @@ export class ImageRenderer implements Renderer {
                     return acc;
                 }, {});
             if (Object.keys(sortedImages).length > 0) {
-                this.images = sortedImages;
+                this.#images = sortedImages;
             }
         }
     }
@@ -178,7 +185,7 @@ export class ImageRenderer implements Renderer {
      */
     setImage(image: ClusterImageValue): void {
         if (typeof image === 'string' || (isObject(image) && typeof image.url === 'string')) {
-            this.images = { 0: image };
+            this.#images = { 0: image };
         }
     }
 
@@ -188,7 +195,7 @@ export class ImageRenderer implements Renderer {
      * @param {string} labelClassName The class name to use for the label
      */
     setLabelClassName(labelClassName: string): void {
-        this.labelClassName = labelClassName;
+        this.#labelClassName = labelClassName;
     }
 
     /**
@@ -197,7 +204,7 @@ export class ImageRenderer implements Renderer {
      * @param {string} labelColor The color of the label text. Default color is black.
      */
     setLabelColor(labelColor: string): void {
-        this.labelColor = labelColor;
+        this.#labelColor = labelColor;
     }
 
     /**
@@ -206,7 +213,7 @@ export class ImageRenderer implements Renderer {
      * @param {string} fontFamily The font family to use for the cluster marker
      */
     setLabelFontFamily(fontFamily: string): void {
-        this.labelFontFamily = fontFamily;
+        this.#labelFontFamily = fontFamily;
     }
 
     /**
@@ -216,7 +223,7 @@ export class ImageRenderer implements Renderer {
      */
     setLabelFontSize(fontSize: string | number): void {
         if (isStringOrNumber(fontSize)) {
-            this.labelFontSize = fontSize;
+            this.#labelFontSize = fontSize;
         }
     }
 
@@ -226,7 +233,7 @@ export class ImageRenderer implements Renderer {
      * @param {string} labelFontWeight The font weight to use for the cluster marker
      */
     setLabelFontWeight(labelFontWeight: string): void {
-        this.labelFontWeight = labelFontWeight;
+        this.#labelFontWeight = labelFontWeight;
     }
 
     /**
@@ -235,7 +242,7 @@ export class ImageRenderer implements Renderer {
      * @param {boolean} showNumber Whether to show the number of markers in the cluster
      */
     setShowNumber(showNumber: boolean): void {
-        this.showNumber = getBoolean(showNumber);
+        this.#showNumber = getBoolean(showNumber);
     }
 
     /**
@@ -245,13 +252,13 @@ export class ImageRenderer implements Renderer {
      * @returns {ClusterImage}
      */
     protected getImage(count: number): ClusterImage {
-        const keys = Object.keys(this.images);
-        let image = this.images[keys[0]];
+        const keys = Object.keys(this.#images);
+        let image = this.#images[keys[0]];
 
         for (let i = 0; i < keys.length; i += 1) {
             const k = keys[i];
             if (count >= parseInt(k, 10)) {
-                image = this.images[k];
+                image = this.#images[k];
             } else {
                 break;
             }
@@ -288,28 +295,28 @@ export class ImageRenderer implements Renderer {
 
         // Set the label
         const label: MarkerLabel = { text: count.toString() };
-        if (this.labelClassName) {
-            label.className = this.labelClassName;
+        if (this.#labelClassName) {
+            label.className = this.#labelClassName;
         } else if (image.labelClassName) {
             label.className = image.labelClassName;
         }
-        if (this.labelColor) {
-            label.color = this.labelColor;
+        if (this.#labelColor) {
+            label.color = this.#labelColor;
         } else if (image.labelColor) {
             label.color = image.labelColor;
         }
-        if (this.labelFontFamily) {
-            label.fontFamily = this.labelFontFamily;
+        if (this.#labelFontFamily) {
+            label.fontFamily = this.#labelFontFamily;
         } else if (image.labelFontFamily) {
             label.fontFamily = image.labelFontFamily;
         }
-        if (this.labelFontSize) {
-            label.fontSize = this.labelFontSize.toString();
+        if (this.#labelFontSize) {
+            label.fontSize = this.#labelFontSize.toString();
         } else if (image.labelFontSize) {
             label.fontSize = image.labelFontSize;
         }
-        if (this.labelFontWeight) {
-            label.fontWeight = this.labelFontWeight;
+        if (this.#labelFontWeight) {
+            label.fontWeight = this.#labelFontWeight;
         } else if (image.labelFontWeight) {
             label.fontWeight = image.labelFontWeight;
         }
@@ -320,7 +327,7 @@ export class ImageRenderer implements Renderer {
             lng: position.lng(),
             icon: markerImage,
             map,
-            label: this.showNumber ? label : undefined,
+            label: this.#showNumber ? label : undefined,
         });
         return clusterMarker.toGoogle();
     }

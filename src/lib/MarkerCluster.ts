@@ -159,8 +159,11 @@ type MarkerClusterOptions = {
 export class MarkerCluster extends Base {
     /**
      * The MarkerClusterer object
+     *
+     * @private
+     * @type {MarkerClusterer}
      */
-    private clusterer: MarkerClusterer;
+    #clusterer: MarkerClusterer;
 
     /**
      * The constructor for the MarkerCluster class
@@ -302,13 +305,13 @@ export class MarkerCluster extends Base {
         }
 
         // Set the marker cluster object
-        this.clusterer = new MarkerClusterer(clusterOptions);
+        this.#clusterer = new MarkerClusterer(clusterOptions);
 
         // Set the markers if they were passed in
         if (Array.isArray(markers)) {
             markers.forEach((marker) => {
                 if (marker instanceof Marker) {
-                    this.clusterer.addMarker(marker.toGoogle(), true);
+                    this.#clusterer.addMarker(marker.toGoogle(), true);
                 }
             });
         }
@@ -322,7 +325,7 @@ export class MarkerCluster extends Base {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     addMarker(marker: Marker, draw: boolean = true) {
-        this.clusterer.addMarker(marker.toGoogle(), !draw);
+        this.#clusterer.addMarker(marker.toGoogle(), !draw);
     }
 
     /**
@@ -339,7 +342,7 @@ export class MarkerCluster extends Base {
                 markersToAdd.push(marker.toGoogle());
             }
         });
-        this.clusterer.addMarkers(markersToAdd, !draw);
+        this.#clusterer.addMarkers(markersToAdd, !draw);
     }
 
     /**
@@ -349,7 +352,7 @@ export class MarkerCluster extends Base {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     removeMarker(marker: Marker, draw: boolean = false) {
-        this.clusterer.removeMarker(marker.toGoogle(), !draw);
+        this.#clusterer.removeMarker(marker.toGoogle(), !draw);
     }
 
     /**
@@ -359,14 +362,14 @@ export class MarkerCluster extends Base {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     clearMarkers(draw: boolean = true) {
-        this.clusterer.clearMarkers(!draw);
+        this.#clusterer.clearMarkers(!draw);
     }
 
     /**
      * Force a recalculation and redraw of all the marker clusters.
      */
     render() {
-        this.clusterer.render();
+        this.#clusterer.render();
     }
 }
 
