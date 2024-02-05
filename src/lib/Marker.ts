@@ -65,9 +65,9 @@
             icon: `data:image/svg+xml;base64,${btoa(svg)}`,
             title: 'My location',
         });
-        This, however, can be simplified with the svgIconXml option. It takes care of doing the base64 encoding.
+        This, however, can be simplified with the svgIcon option. It takes care of doing the base64 encoding.
         G.marker(this.map, {
-            svgIconXml: svg,
+            svgIcon: svg,
             title: 'My location',
         });
 
@@ -90,12 +90,13 @@
 
 /* global google */
 
-import { EventCallbackData } from './Evented';
-import { icon, IconValue } from './Icon';
-import { latLng, LatLng, LatLngValue, LatLngLiteral } from './LatLng';
+import { icon, Icon, IconValue } from './Icon';
+import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
+import { loader } from './Loader';
 import { Map } from './Map';
-import { svgSymbol, SvgSymbolValue } from './SvgSymbol';
+import { point, Point, PointValue } from './Point';
+import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { tooltip, TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
@@ -103,6 +104,7 @@ import {
     isNumber,
     isNumberOrNumberString,
     isObject,
+    isString,
     isStringOrNumber,
     isStringWithValue,
 } from './helpers';
@@ -123,34 +125,43 @@ export type MarkerLabel = {
     text: string | number;
 };
 
-// Marker options
-export type MarkerOptions = {
+// Options that will be passed to the Google maps marker object
+type GMMarkerOptions = {
+    // The offset from the marker's position to the tip of an InfoWindow that has been opened with the marker as anchor.
+    anchorPoint?: Point;
     // The cursor type to show on hover. Defaults to "pointer" if not set.
     cursor?: string;
-    // Custom data to pass to any events
-    eventData?: EventCallbackData;
     // The icon value for the marker
-    icon?: IconValue;
+    icon?: Icon | SvgSymbol | string;
     // The label value for the marker
     label?: string | number | MarkerLabel;
-    // The latitude for the marker. You can use "lat" or "latitude" as the property name.
-    lat: number | string;
-    latitude: number | string;
-    // The longitude for the marker. You can use "lng" or "longitude" as the property name.
-    lng: number | string;
-    longitude: number | string;
     // The map to add the marker to.
-    map?: Map | google.maps.Map;
+    map?: Map;
+    // The position for the marker.
+    position?: LatLng;
+    // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
+    // that shows when you hover over a link with a title.
+    title?: string;
+};
+
+// Marker options that aren't part of the options used to set up the Google maps marker
+export type MarkerOptions = GMMarkerOptions & {
+    // The offset from the marker's position to the tip of an InfoWindow that has been opened with the marker as anchor.
+    anchorPoint?: PointValue;
+    // The icon value for the marker
+    icon?: IconValue;
+    // The latitude for the marker. You can use "lat" or "latitude" as the property name.
+    lat?: number | string;
+    latitude?: number | string;
+    // The longitude for the marker. You can use "lng" or "longitude" as the property name.
+    lng?: number | string;
+    longitude?: number | string;
     // The position for the marker.
     // This is an alternate to setting the latitude and longitude separately.
     position?: LatLngValue;
     // The SVG icon value for the marker
-    svgIcon?: SvgSymbolValue;
-    // The XML code for an SVG icon
-    svgIconXml?: string;
-    // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
-    // that shows when you hover over a link with a title.
-    title?: string;
+    // If it's a string then it's the XML code for the SVG icon.
+    svgIcon?: SvgSymbolValue | string;
     // The tooltip for the marker. This will show when hovering over the tooltip.
     tooltip?: TooltipValue;
 };
@@ -160,20 +171,20 @@ export type MarkerOptions = {
  */
 export class Marker extends Layer {
     /**
-     * Holds the marker position
-     *
-     * @private
-     * @type {LatLng}
-     */
-    #position: LatLng;
-
-    /**
      * Holds the Google maps marker object
      *
      * @private
      * @type {google.maps.Marker}
      */
     #marker: google.maps.Marker;
+
+    /**
+     * Holds the marker options
+     *
+     * @private
+     * @type {GMMarkerOptions}
+     */
+    #options: GMMarkerOptions = {};
 
     /**
      * Constructor
@@ -183,153 +194,206 @@ export class Marker extends Layer {
      */
     constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
         super('marker');
-        checkForGoogleMaps('Marker', 'Marker');
+        loader().on('load', () => {
+            console.log('GM loaded');
+        });
+
+        // Set a default position
+        this.#options.position = latLng([0, 0]);
+
         // Set the marker latitude and longitude value
-        if (latLngValue instanceof LatLng) {
+        if (latLngValue instanceof LatLng || Array.isArray(latLngValue)) {
             // The value passed is a LatLng class object
-            this.#position = latLngValue;
-        } else if (Array.isArray(latLngValue)) {
-            // The value passed is likely an array of [lat, lng] pairs
-            this.#position = latLng(latLngValue);
-        }
-
-        // Create the Google marker object
-        this.#marker = new google.maps.Marker();
-
-        // Set up the marker options
-        if (isObject(latLngValue)) {
+            this.position = latLngValue;
+            // Set up the marker options
+            if (isObject(options)) {
+                this.setOptions(options);
+            }
+        } else if (isObject(latLngValue)) {
+            // The value passed is a marker options object
             this.setOptions(latLngValue as MarkerOptions);
-        } else if (isObject(options)) {
-            this.setOptions(options);
         }
     }
 
     /**
-     * Set the marker options
+     * Get the anchor point for the marker
      *
-     * @param {MarkerOptions} options The marker options
-     * @returns {Marker}
+     * @returns {Point}
      */
-    setOptions(options: MarkerOptions): Marker {
-        const markerOptions: google.maps.MarkerOptions = {};
-        // Set up the marker position if necessary
-        if (
-            isNumberOrNumberString(options.lat) ||
-            isNumberOrNumberString(options.latitude) ||
-            isNumberOrNumberString(options.lng) ||
-            isNumberOrNumberString(options.longitude)
-        ) {
-            const latLngValues: LatLngLiteral = {};
-            if (isNumberOrNumberString(options.lat)) {
-                latLngValues.lat = options.lat;
-            } else if (isNumberOrNumberString(options.latitude)) {
-                latLngValues.lat = options.latitude;
-            }
-            if (isNumberOrNumberString(options.lng)) {
-                latLngValues.lng = options.lng;
-            } else if (isNumberOrNumberString(options.longitude)) {
-                latLngValues.lng = options.longitude;
-            }
-            if (isNumberOrNumberString(latLngValues.lat) && isNumberOrNumberString(latLngValues.lng)) {
-                this.#position = latLng(latLngValues);
-            }
-        } else if (options.position) {
-            this.#position = latLng(options.position);
-        }
+    get anchorPoint(): Point {
+        return this.#options.anchorPoint;
+    }
 
-        if (this.#position) {
-            markerOptions.position = this.#position.toJson();
+    /**
+     * Set the anchor point for the marker
+     *
+     * @param {PointValue} value The anchor point for the marker
+     */
+    set anchorPoint(value: PointValue) {
+        const anchor = point(value);
+        if (anchor.isValid()) {
+            this.#options.anchorPoint = anchor;
         }
-        if (options.title && options.tooltip) {
-            // The title will be a custom tooltip that is added to the map container
-            this.setTooltip(options.tooltip, options.title);
-        } else if (options.title) {
-            markerOptions.title = options.title;
+    }
+
+    /**
+     * Get the cursor type to show on hover
+     *
+     * @returns {string}
+     */
+    get cursor(): string {
+        return this.#options.cursor;
+    }
+
+    /**
+     * Set the cursor type to show on hover
+     *
+     * @param {string} value The cursor type to show on hover
+     */
+    set cursor(value: string) {
+        if (isStringWithValue(value)) {
+            this.#options.cursor = value;
         }
-        // Set the marker icon
-        if (options.icon) {
-            markerOptions.icon = icon(options.icon).toGoogle();
-        } else if (options.svgIconXml) {
-            markerOptions.icon = `data:image/svg+xml;base64,${btoa(options.svgIconXml)}`;
-        } else if (options.svgIcon) {
-            markerOptions.icon = svgSymbol(options.svgIcon).toGoogle();
+    }
+
+    /**
+     * Get the icon for the marker
+     *
+     * @returns {Icon | SvgSymbol | string}
+     */
+    get icon(): Icon | SvgSymbol | string {
+        return this.#options.icon;
+    }
+
+    /**
+     * Set the icon for the marker
+     *
+     * @param {Icon | SvgSymbol | string} value The icon value for the marker
+     */
+    set icon(value: Icon | SvgSymbol | string) {
+        if (isString(value) || value instanceof Icon || value instanceof SvgSymbol) {
+            this.#options.icon = value;
         }
-        // Set the marker label
-        if (isStringWithValue(options.label)) {
-            markerOptions.label = options.label;
-        } else if (isObject(options.label) && isStringOrNumber(options.label.text)) {
-            markerOptions.label = {
-                text: options.label.text.toString(),
-                className: isStringWithValue(options.label.className) ? options.label.className : undefined,
-                color: isStringWithValue(options.label.color) ? options.label.color : undefined,
-                fontFamily: isStringWithValue(options.label.fontFamily) ? options.label.fontFamily : undefined,
-                fontWeight: isStringWithValue(options.label.fontWeight) ? options.label.fontWeight : undefined,
+    }
+
+    /**
+     * Get the label for the marker
+     *
+     * @returns {string | number | MarkerLabel}
+     */
+    get label(): string | number | MarkerLabel {
+        return this.#options.label;
+    }
+
+    /**
+     * Set the label for the marker
+     *
+     * @param {string | number | MarkerLabel} value The label value for the marker
+     */
+    set label(value: string | number | MarkerLabel) {
+        if (isStringWithValue(value)) {
+            this.#options.label = value;
+        } else if (isObject(value) && isStringOrNumber(value.text)) {
+            this.#options.label = {
+                text: value.text.toString(),
+                className: isStringWithValue(value.className) ? value.className : undefined,
+                color: isStringWithValue(value.color) ? value.color : undefined,
+                fontFamily: isStringWithValue(value.fontFamily) ? value.fontFamily : undefined,
+                fontWeight: isStringWithValue(value.fontWeight) ? value.fontWeight : undefined,
             };
             // The font size must be a string with a unit. If it's a number then add "px" to the end of it
-            if (isStringWithValue(options.label.fontSize) || isNumber(options.label.fontSize)) {
-                if (isNumber(options.label.fontSize)) {
-                    markerOptions.label.fontSize = `${options.label.fontSize}px`;
+            if (isStringWithValue(value.fontSize) || isNumber(value.fontSize)) {
+                if (isNumber(value.fontSize)) {
+                    this.#options.label.fontSize = `${value.fontSize}px`;
                 } else {
-                    markerOptions.label.fontSize = options.label.fontSize.toString();
+                    this.#options.label.fontSize = value.fontSize.toString();
                 }
             }
         }
-        // Set simple options
-        const stringOptions = ['cursor'];
-        stringOptions.forEach((key) => {
-            if (options[key] && isStringWithValue(options[key])) {
-                markerOptions[key] = options[key];
-            }
-        });
-        if (options.map) {
-            if (options.map instanceof Map) {
-                markerOptions.map = options.map.toGoogle();
-            } else if (options.map instanceof google.maps.Map) {
-                markerOptions.map = options.map as google.maps.Map;
-            }
-        }
-        this.#marker.setOptions(markerOptions);
-
-        // Handle event data.
-        // This allows you to pass custom data to events on the marker
-        if (isObject(options.eventData)) {
-            this.setEventCallbackData(options.eventData);
-        }
-        return this;
     }
 
     /**
-     * Set up a custom tooltip for the marker instead of relying on the default browser tooltip
+     * Get the map object
      *
-     * @param {TooltipValue} tooltipValue The tooltip value
-     * @param {string} title The tooltip title
-     * @returns {Marker}
+     * @returns {Map}
      */
-    setTooltip(tooltipValue: TooltipValue, title: string): Marker {
-        // Get the tooltip container and make sure it exists
-        const tt = tooltip(tooltipValue);
-        if (!tt.hasContent()) {
-            tt.setContent(title);
+    get map(): Map {
+        return this.#options.map;
+    }
+
+    /**
+     * Set the map object
+     *
+     * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
+     */
+    set map(value: Map | null) {
+        if (value instanceof Map) {
+            // Set the map
+            this.#options.map = value;
+            super.setMap(value);
+            if (this.#marker) {
+                this.#marker.setMap(value.toGoogle());
+            }
+        } else if (value === null) {
+            // Remove the marker from the map
+            this.#options.map = null;
+            super.setMap(null);
+            if (this.#marker) {
+                this.#marker.setMap(null);
+            }
         }
-        this.#marker.addListener('mouseover', () => {
-            tt.show(this.getMap(), this.#position);
-        });
-        this.#marker.addListener('mouseout', () => {
-            tt.hide();
-        });
-        return this;
+    }
+
+    /**
+     * Get the marker position
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng {
+        return this.#options.position;
+    }
+
+    /**
+     * Set the latitude and longitude value for the marker
+     *
+     * @param {LatLngValue} value The latitude/longitude position for the marker
+     */
+    set position(value: LatLngValue) {
+        const position = latLng(value);
+        if (position.isValid()) {
+            this.#options.position = position;
+        }
+    }
+
+    /**
+     * Get the title for the marker
+     *
+     * @returns {string}
+     */
+    get title(): string {
+        return this.#options.title;
+    }
+
+    /**
+     * Set the title for the marker
+     *
+     * @param {string} value The title for the marker
+     */
+    set title(value: string) {
+        if (isStringWithValue(value)) {
+            this.#options.title = value;
+        }
     }
 
     /**
      * Adds the marker to the map object
      *
+     * Alternate to setMap()
+     *
      * @param {Map} map The map object
      */
     addTo(map: Map): void {
-        if (map instanceof Map) {
-            this.#marker.setMap(map.toGoogle());
-            this.setMap(map);
-        }
+        this.map = map;
     }
 
     /**
@@ -340,7 +404,7 @@ export class Marker extends Layer {
      * @returns {LatLng}
      */
     getPosition(): LatLng {
-        return this.#position;
+        return this.position;
     }
 
     /**
@@ -374,19 +438,127 @@ export class Marker extends Layer {
      * @returns {Marker}
      */
     remove(): Marker {
-        this.#marker.setMap(null);
+        this.map = null;
+        return this;
+    }
+
+    /**
+     * Adds the marker to the map object
+     *
+     * Alternate of addTo()
+     *
+     * @param {Map} map The map object
+     */
+    setMap(map: Map): void {
+        this.map = map;
+    }
+
+    /**
+     * Set the marker options
+     *
+     * @param {MarkerOptions} options The marker options
+     * @returns {Marker}
+     */
+    setOptions(options: MarkerOptions): Marker {
+        // Set the anchor point
+        if (options.anchorPoint) {
+            this.anchorPoint = options.anchorPoint;
+        }
+
+        // Set the icon
+        if (options.icon) {
+            this.icon = icon(options.icon);
+        } else if (options.svgIcon) {
+            if (isString(options.svgIcon)) {
+                this.icon = `data:image/svg+xml;base64,${btoa(options.svgIcon)}`;
+            } else {
+                this.icon = svgSymbol(options.svgIcon);
+            }
+        }
+
+        // Set the label
+        if (isStringWithValue(options.label) || (isObject(options.label) && isStringOrNumber(options.label.text))) {
+            this.label = options.label;
+        }
+
+        // Set the map
+        if (options.map) {
+            this.map = options.map;
+        }
+
+        // Set up the position
+        if (
+            isNumberOrNumberString(options.lat) ||
+            isNumberOrNumberString(options.latitude) ||
+            isNumberOrNumberString(options.lng) ||
+            isNumberOrNumberString(options.longitude)
+        ) {
+            const latLngValue = latLng();
+            if (isNumberOrNumberString(options.lat)) {
+                latLngValue.lat = options.lat;
+            } else if (isNumberOrNumberString(options.latitude)) {
+                latLngValue.lat = options.latitude;
+            }
+            if (isNumberOrNumberString(options.lng)) {
+                latLngValue.lng = options.lng;
+            } else if (isNumberOrNumberString(options.longitude)) {
+                latLngValue.lng = options.longitude;
+            }
+            this.position = latLngValue;
+        } else if (options.position) {
+            this.position = options.position;
+        }
+
+        // Set the title and tooltip
+        if (options.title && options.tooltip) {
+            // The title will be a custom tooltip that is added to the map container
+            this.setTooltip(options.tooltip, options.title);
+        } else if (options.title) {
+            this.title = options.title;
+        }
+
+        // Set simple options
+        const stringOptions = ['cursor'];
+        stringOptions.forEach((key) => {
+            if (options[key] && isStringWithValue(options[key])) {
+                this.#options[key] = options[key];
+            }
+        });
+
+        return this;
+    }
+
+    /**
+     * Set up a custom tooltip for the marker instead of relying on the default browser tooltip
+     *
+     * @param {TooltipValue} tooltipValue The tooltip value
+     * @param {string} title The tooltip title
+     * @returns {Marker}
+     */
+    setTooltip(tooltipValue: TooltipValue, title?: string): Marker {
+        const tt = tooltip(tooltipValue);
+        if (!tt.hasContent()) {
+            tt.setContent(title);
+        }
+        if (tt.hasContent()) {
+            this.#marker.addListener('mouseover', () => {
+                tt.show(this.getMap(), this.#options.position);
+            });
+            this.#marker.addListener('mouseout', () => {
+                tt.hide();
+            });
+        }
         return this;
     }
 
     /**
      * Set the latitude and longitude value for the marker
      *
-     * @param {LatLngValue} latLngValue The latitude/longitude position for the marker
+     * @param {LatLngValue} value The latitude/longitude position for the marker
      * @returns {Marker}
      */
-    setPosition(latLngValue: LatLngValue): Marker {
-        this.#position = latLng(latLngValue);
-        this.#marker.setPosition(this.#position.toGoogle());
+    setPosition(value: LatLngValue): Marker {
+        this.position = value;
         return this;
     }
 
@@ -398,7 +570,48 @@ export class Marker extends Layer {
      * @returns {google.maps.Marker}
      */
     toGoogle(): google.maps.Marker {
+        this.#setupGoogleMarker();
         return this.#marker;
+    }
+
+    /**
+     * Set up the Google maps marker object if necessary and return it.
+     *
+     * @private
+     */
+    #setupGoogleMarker() {
+        if (!isObject(this.#marker)) {
+            if (checkForGoogleMaps('Marker', 'Marker')) {
+                const markerOptions: google.maps.MarkerOptions = {};
+                // Options that can be set on the marker without any modification
+                const optionsToSet = ['cursor', 'title'];
+                optionsToSet.forEach((key) => {
+                    if (this.#options[key]) {
+                        markerOptions[key] = this.#options[key];
+                    }
+                });
+
+                // Options that have to be converted to Google maps objects
+                if (this.#options.anchorPoint) {
+                    markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
+                }
+                if (this.#options.icon) {
+                    if (isString(this.#options.icon)) {
+                        markerOptions.icon = this.#options.icon;
+                    } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
+                        markerOptions.icon = this.#options.icon.toGoogle();
+                    }
+                }
+                if (this.#options.map) {
+                    markerOptions.map = this.#options.map.toGoogle();
+                }
+                if (this.#options.position) {
+                    markerOptions.position = this.#options.position.toGoogle();
+                }
+
+                this.#marker = new google.maps.Marker(markerOptions);
+            }
+        }
     }
 }
 
