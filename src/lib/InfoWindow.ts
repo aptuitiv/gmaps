@@ -127,7 +127,7 @@ export class InfoWindow extends Layer {
      */
     setOptions(options: InfoWindowOptions) {
         const iwOptions: google.maps.InfoWindowOptions = {
-            pixelOffset: size(0, -4).get(),
+            pixelOffset: size(0, -4).toGoogle(),
         };
         if (isStringWithValue(options.ariaLabel)) {
             iwOptions.ariaLabel = options.ariaLabel;
@@ -149,7 +149,7 @@ export class InfoWindow extends Layer {
             iwOptions.minWidth = Number(options.minWidth);
         }
         if (options.pixelOffset) {
-            iwOptions.pixelOffset = size(options.pixelOffset).get();
+            iwOptions.pixelOffset = size(options.pixelOffset).toGoogle();
         }
         if (options.zIndex) {
             this.setZIndex(options.zIndex);
@@ -196,17 +196,6 @@ export class InfoWindow extends Layer {
     }
 
     /**
-     * Get the Google maps InfoWindow object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
-     *
-     * @returns {google.maps.InfoWindow}
-     */
-    get(): google.maps.InfoWindow {
-        return this.infoWindow;
-    }
-
-    /**
      * Open the info window
      *
      * You need to pass in either an anchor object or a map object.
@@ -232,13 +221,13 @@ export class InfoWindow extends Layer {
 
             if (anchorOrMap instanceof Map) {
                 this.infoWindow.open({
-                    map: anchorOrMap.get(),
+                    map: anchorOrMap.toGoogle(),
                     shouldFocus: this.focus,
                 });
                 this.setMap(anchorOrMap);
             } else if (anchorOrMap instanceof Marker) {
                 this.infoWindow.open({
-                    anchor: anchorOrMap.get(),
+                    anchor: anchorOrMap.toGoogle(),
                     shouldFocus: this.focus,
                 });
                 this.setMap(anchorOrMap.getMap());
@@ -255,6 +244,17 @@ export class InfoWindow extends Layer {
         this.infoWindow.close();
         this.isOpen = false;
         InfoWindowCollection.getInstance().remove(this);
+    }
+
+    /**
+     * Get the Google maps InfoWindow object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
+     *
+     * @returns {google.maps.InfoWindow}
+     */
+    toGoogle(): google.maps.InfoWindow {
+        return this.infoWindow;
     }
 }
 

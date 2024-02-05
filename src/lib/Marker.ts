@@ -244,11 +244,11 @@ export class Marker extends Layer {
         }
         // Set the marker icon
         if (options.icon) {
-            markerOptions.icon = icon(options.icon).get();
+            markerOptions.icon = icon(options.icon).toGoogle();
         } else if (options.svgIconXml) {
             markerOptions.icon = `data:image/svg+xml;base64,${btoa(options.svgIconXml)}`;
         } else if (options.svgIcon) {
-            markerOptions.icon = svgSymbol(options.svgIcon).get();
+            markerOptions.icon = svgSymbol(options.svgIcon).toGoogle();
         }
         // Set the marker label
         if (isStringWithValue(options.label)) {
@@ -279,7 +279,7 @@ export class Marker extends Layer {
         });
         if (options.map) {
             if (options.map instanceof Map) {
-                markerOptions.map = options.map.get();
+                markerOptions.map = options.map.toGoogle();
             } else if (options.map instanceof google.maps.Map) {
                 markerOptions.map = options.map as google.maps.Map;
             }
@@ -323,7 +323,7 @@ export class Marker extends Layer {
      */
     addTo(map: Map): void {
         if (map instanceof Map) {
-            this.marker.setMap(map.get());
+            this.marker.setMap(map.toGoogle());
             this.setMap(map);
         }
     }
@@ -382,7 +382,7 @@ export class Marker extends Layer {
      */
     setPosition(latLngValue: LatLngValue): Marker {
         this.position = latLng(latLngValue);
-        this.marker.setPosition(this.position.get());
+        this.marker.setPosition(this.position.toGoogle());
         return this;
     }
 
@@ -393,7 +393,7 @@ export class Marker extends Layer {
      *
      * @returns {google.maps.Marker}
      */
-    get(): google.maps.Marker {
+    toGoogle(): google.maps.Marker {
         return this.marker;
     }
 }

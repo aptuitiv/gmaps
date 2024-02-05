@@ -207,23 +207,6 @@ export class Point extends Base {
     }
 
     /**
-     * Returns the Google maps point object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
-     *
-     * @returns {google.maps.Point}
-     */
-    get(): google.maps.Point {
-        if (checkForGoogleMaps('Point', 'Point')) {
-            if (!isObject(this.#pointObject)) {
-                this.#pointObject = new google.maps.Point(this.x, this.y);
-            }
-            return this.#pointObject;
-        }
-        return null;
-    }
-
-    /**
      * Get the x value
      *
      * @returns {number}
@@ -348,6 +331,23 @@ export class Point extends Base {
         this.x -= p2.x;
         this.y -= p2.y;
         return this;
+    }
+
+    /**
+     * Returns the Google maps point object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
+     *
+     * @returns {google.maps.Point}
+     */
+    toGoogle(): google.maps.Point {
+        if (checkForGoogleMaps('Point', 'Point')) {
+            if (!isObject(this.#pointObject)) {
+                this.#pointObject = new google.maps.Point(this.x, this.y);
+            }
+            return this.#pointObject;
+        }
+        return null;
     }
 
     /**

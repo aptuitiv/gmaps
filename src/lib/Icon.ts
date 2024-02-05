@@ -70,15 +70,6 @@ export class Icon extends Base {
     }
 
     /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Icon}
-     */
-    get(): google.maps.Icon {
-        return this.options;
-    }
-
-    /**
      * Set the icon options
      *
      * @param {IconOptions} options The icon options
@@ -91,12 +82,12 @@ export class Icon extends Base {
             const stringValues = ['url'];
             pointValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = point(options[key]).get();
+                    this.options[key] = point(options[key]).toGoogle();
                 }
             });
             sizeValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = size(options[key]).get();
+                    this.options[key] = size(options[key]).toGoogle();
                 }
             });
             stringValues.forEach((key) => {
@@ -128,7 +119,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setAnchor(anchor: PointValue): Icon {
-        this.options.anchor = point(anchor).get();
+        this.options.anchor = point(anchor).toGoogle();
         return this;
     }
 
@@ -152,7 +143,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setLabelOrigin(origin: PointValue): Icon {
-        this.options.labelOrigin = point(origin).get();
+        this.options.labelOrigin = point(origin).toGoogle();
         return this;
     }
 
@@ -174,7 +165,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setOrigin(origin: PointValue): Icon {
-        this.options.origin = point(origin).get();
+        this.options.origin = point(origin).toGoogle();
         return this;
     }
 
@@ -197,7 +188,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setScaledSize(sizeValue: SizeValue): Icon {
-        this.options.scaledSize = size(sizeValue).get();
+        this.options.scaledSize = size(sizeValue).toGoogle();
         return this;
     }
 
@@ -222,7 +213,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setSize(sizeValue: SizeValue): Icon {
-        this.options.size = size(sizeValue).get();
+        this.options.size = size(sizeValue).toGoogle();
         return this;
     }
 
@@ -235,6 +226,15 @@ export class Icon extends Base {
     setUrl(url: string): Icon {
         this.options.url = url;
         return this;
+    }
+
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Icon}
+     */
+    toGoogle(): google.maps.Icon {
+        return this.options;
     }
 }
 

@@ -156,7 +156,7 @@ export class Popup extends Overlay {
                 // The anchorPoint for the marker contains the x/y values to add to the marker's position that
                 // an InfoWindow should be displayed at. This can also be used with our Popup.
                 // We add the offset value for the Popup to the anchorPoint value.
-                const m = anchorOrMap.get();
+                const m = anchorOrMap.toGoogle();
                 const anchorPoint = m.get('anchorPoint');
                 if (anchorPoint instanceof google.maps.Point) {
                     this.popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
@@ -186,7 +186,7 @@ export class Popup extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position.get())!;
+        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
         // Hide the tooltip when it is far out of view.
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';

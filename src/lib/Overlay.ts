@@ -109,7 +109,7 @@ export class Overlay extends Layer {
      */
     setMap(map: Map) {
         if (map instanceof Map) {
-            this.overlayView.setMap(map.get());
+            this.overlayView.setMap(map.toGoogle());
             super.setMap(map);
         }
     }

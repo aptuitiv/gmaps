@@ -130,23 +130,6 @@ export class Size extends Base {
     }
 
     /**
-     * Returns the Google maps size object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
-     *
-     * @returns {google.maps.Size|null}
-     */
-    get(): google.maps.Size | null {
-        if (checkForGoogleMaps('Size', 'Size')) {
-            if (!isObject(this.#sizeObject)) {
-                this.#sizeObject = new google.maps.Size(this.#width, this.#height);
-            }
-            return this.#sizeObject;
-        }
-        return null;
-    }
-
-    /**
      * Get the height value
      *
      * @returns {number}
@@ -224,6 +207,23 @@ export class Size extends Base {
     setWidth(width: number | string): Size {
         this.width = width;
         return this;
+    }
+
+    /**
+     * Returns the Google maps size object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+     *
+     * @returns {google.maps.Size|null}
+     */
+    toGoogle(): google.maps.Size | null {
+        if (checkForGoogleMaps('Size', 'Size')) {
+            if (!isObject(this.#sizeObject)) {
+                this.#sizeObject = new google.maps.Size(this.#width, this.#height);
+            }
+            return this.#sizeObject;
+        }
+        return null;
     }
 }
 

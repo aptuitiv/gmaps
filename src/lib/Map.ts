@@ -344,15 +344,6 @@ export class Map extends Evented {
     }
 
     /**
-     * Returns the Google map object
-     *
-     * @returns {google.maps.Map}
-     */
-    get(): google.maps.Map {
-        return this.map;
-    }
-
-    /**
      * Sets the viewport to contain the given bounds.
      *
      * The bounds parameter can be:
@@ -374,9 +365,9 @@ export class Map extends Evented {
      */
     fitBounds(bounds: LatLngBoundsValue): Map {
         if (bounds instanceof LatLngBounds) {
-            this.map.fitBounds(bounds.get());
+            this.map.fitBounds(bounds.toGoogle());
         }
-        this.map.fitBounds(latLngBounds(bounds).get());
+        this.map.fitBounds(latLngBounds(bounds).toGoogle());
         return this;
     }
 
@@ -500,6 +491,15 @@ export class Map extends Evented {
         } else {
             throw new Error('the event handler needs a callback function');
         }
+    }
+
+    /**
+     * Returns the Google map object
+     *
+     * @returns {google.maps.Map}
+     */
+    toGoogle(): google.maps.Map {
+        return this.map;
     }
 }
 

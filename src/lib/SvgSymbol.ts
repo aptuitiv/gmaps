@@ -83,15 +83,6 @@ export class SvgSymbol extends Base {
     }
 
     /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Symbol}
-     */
-    get(): google.maps.Symbol {
-        return this.options;
-    }
-
-    /**
      * Set the icon options
      *
      * @param {SvgSymbolOptions} options The icon options
@@ -113,7 +104,7 @@ export class SvgSymbol extends Base {
             });
             pointValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = point(options[key]).get();
+                    this.options[key] = point(options[key]).toGoogle();
                 }
             });
             stringValues.forEach((key) => {
@@ -145,7 +136,7 @@ export class SvgSymbol extends Base {
      * @returns {SvgSymbol}
      */
     setAnchor(anchor: PointValue): SvgSymbol {
-        this.options.anchor = point(anchor).get();
+        this.options.anchor = point(anchor).toGoogle();
         return this;
     }
 
@@ -184,7 +175,7 @@ export class SvgSymbol extends Base {
      * @returns {SvgSymbol}
      */
     setLabelOrigin(labelOrigin: PointValue): SvgSymbol {
-        this.options.labelOrigin = point(labelOrigin).get();
+        this.options.labelOrigin = point(labelOrigin).toGoogle();
         return this;
     }
 
@@ -272,6 +263,15 @@ export class SvgSymbol extends Base {
             this.options.strokeWeight = Number(strokeWeight);
         }
         return this;
+    }
+
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Symbol}
+     */
+    toGoogle(): google.maps.Symbol {
+        return this.options;
     }
 }
 

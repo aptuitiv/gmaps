@@ -99,24 +99,6 @@ export class LatLng extends Base {
     }
 
     /**
-     * Get the latitude value (shortened version of the latitude property)
-     *
-     * @returns {number}
-     */
-    get lat(): number {
-        return this.#latitude ?? 0;
-    }
-
-    /**
-     * Set the latitude value
-     *
-     * @param {number|string} latitude The latitude value. Ideally it's a number but it could be a number string
-     */
-    set lat(lat: number | string) {
-        this.latitude = lat;
-    }
-
-    /**
      * Set the latitude value
      *
      * @param {number|string} latitude The latitude value. Ideally it's a number but it could be a number string
@@ -131,12 +113,44 @@ export class LatLng extends Base {
     }
 
     /**
+     * Get the latitude value (shortened version of the latitude property)
+     *
+     * @returns {number}
+     */
+    get lat(): number {
+        return this.#latitude ?? 0;
+    }
+
+    /**
+     * Set the latitude value
+     *
+     * @param {number|string} latitude The latitude value. Ideally it's a number but it could be a number string
+     */
+    set lat(latitude: number | string) {
+        this.latitude = latitude;
+    }
+
+    /**
      * Get the longitude value
      *
      * @returns {number}
      */
     get longitude(): number {
         return this.#longitude ?? 0;
+    }
+
+    /**
+     * Set the longitude value
+     *
+     * @param {number|string} longitude The longitude value. Ideally it's a number but it could be a number string
+     */
+    set longitude(longitude: number | string) {
+        if (isNumberString(longitude)) {
+            this.#longitude = Number(longitude);
+        } else if (isNumber(longitude)) {
+            this.#longitude = longitude;
+        }
+        this.#valuesChanged = true;
     }
 
     /**
@@ -153,22 +167,8 @@ export class LatLng extends Base {
      *
      * @param {number|string} longitude The longitude value. Ideally it's a number but it could be a number string
      */
-    set lng(lng: number | string) {
-        this.longitude = lng;
-    }
-
-    /**
-     * Set the longitude value
-     *
-     * @param {number|string} longitude The longitude value. Ideally it's a number but it could be a number string
-     */
-    set longitude(longitude: number | string) {
-        if (isNumberString(longitude)) {
-            this.#longitude = Number(longitude);
-        } else if (isNumber(longitude)) {
-            this.#longitude = longitude;
-        }
-        this.#valuesChanged = true;
+    set lng(longitude: number | string) {
+        this.longitude = longitude;
     }
 
     /**

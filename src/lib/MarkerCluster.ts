@@ -172,7 +172,7 @@ export class MarkerCluster extends Base {
     constructor(map: Map, markers?: Marker[] | MarkerClusterOptions, options?: MarkerClusterOptions) {
         super('markercluster');
         const clusterOptions: MarkerClustererOptions = {
-            map: map.get(),
+            map: map.toGoogle(),
         };
 
         // Set the options
@@ -308,7 +308,7 @@ export class MarkerCluster extends Base {
         if (Array.isArray(markers)) {
             markers.forEach((marker) => {
                 if (marker instanceof Marker) {
-                    this.clusterer.addMarker(marker.get(), true);
+                    this.clusterer.addMarker(marker.toGoogle(), true);
                 }
             });
         }
@@ -322,7 +322,7 @@ export class MarkerCluster extends Base {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     addMarker(marker: Marker, draw: boolean = true) {
-        this.clusterer.addMarker(marker.get(), !draw);
+        this.clusterer.addMarker(marker.toGoogle(), !draw);
     }
 
     /**
@@ -336,7 +336,7 @@ export class MarkerCluster extends Base {
         const markersToAdd: MarkerClustererMarker[] = [];
         markers.forEach((marker) => {
             if (marker instanceof Marker) {
-                markersToAdd.push(marker.get());
+                markersToAdd.push(marker.toGoogle());
             }
         });
         this.clusterer.addMarkers(markersToAdd, !draw);
@@ -349,7 +349,7 @@ export class MarkerCluster extends Base {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     removeMarker(marker: Marker, draw: boolean = false) {
-        this.clusterer.removeMarker(marker.get(), !draw);
+        this.clusterer.removeMarker(marker.toGoogle(), !draw);
     }
 
     /**

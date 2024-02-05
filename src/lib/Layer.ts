@@ -39,7 +39,7 @@ class Layer extends Evented {
      */
     getGoogleMap(): google.maps.Map | null {
         if (this.map instanceof Map) {
-            return this.map.get();
+            return this.map.toGoogle();
         }
         return null;
     }

@@ -322,6 +322,6 @@ export class ImageRenderer implements Renderer {
             map,
             label: this.showNumber ? label : undefined,
         });
-        return clusterMarker.get();
+        return clusterMarker.toGoogle();
     }
 }

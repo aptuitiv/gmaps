@@ -88,9 +88,9 @@ export class LatLngBounds extends Base {
      */
     extend(latLngValue: LatLngValue): void {
         if (latLngValue instanceof LatLng) {
-            this.bounds.extend(latLngValue.get());
+            this.bounds.extend(latLngValue.toGoogle());
         } else if (Array.isArray(latLngValue) && latLngValue.length === 2) {
-            this.bounds.extend(latLng(latLngValue).get());
+            this.bounds.extend(latLng(latLngValue).toGoogle());
         } else {
             throw new Error('Invalid latitude/longitude pair');
         }
@@ -101,7 +101,7 @@ export class LatLngBounds extends Base {
      *
      * @returns {google.maps.LatLngBounds}
      */
-    get(): google.maps.LatLngBounds {
+    toGoogle(): google.maps.LatLngBounds {
         return this.bounds;
     }
 }
