@@ -20,26 +20,15 @@ type EventData = {
 };
 type Events = { [key: string]: EventData[] };
 
-// Data to pass to the event callback function
-export type EventCallbackData = { [key: string]: string | number | boolean | object };
-
 /**
  * Evented class to add syntatic sugar to handling events
  */
 export class Evented extends EventTarget {
     /**
-     * Holds the event callback data
-     *
-     * @private
-     * @type {object}
-     */
-    #eventCallbackData: EventCallbackData = {};
-
-    /**
      * Holds the event listeners
      *
      * @private
-     * @type {object}
+     * @type {Events}
      */
     #eventListeners: Events = {};
 
@@ -50,6 +39,14 @@ export class Evented extends EventTarget {
      * @type {string}
      */
     #objectType: string;
+
+    /**
+     * Holds the event listeners that are waiting to be added once the Google Maps API is loaded
+     *
+     * @private
+     * @type {Events}
+     */
+    #pendingEventListeners: Events = {};
 
     /**
      * Constructor
@@ -71,22 +68,33 @@ export class Evented extends EventTarget {
     }
 
     /**
-     * Gets the event callback data
-     * This is the data that will be passed to the event callback function
+     * Add an event listener that will be set up after the Google Maps API is loaded
      *
-     * @returns {EventCallbackData}
+     * @param {string} [type] The event type
+     * @param {Function} [callback] The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
-    getEventCallbackData(): EventCallbackData {
-        return this.#eventCallbackData;
+    addPendingEventListener(
+        type: string,
+        callback: EventListenerOrEventListenerObject,
+        options?: AddEventListenerOptions | boolean
+    ) {
+        if (!this.#pendingEventListeners[type]) {
+            this.#pendingEventListeners[type] = [];
+        }
+        this.#pendingEventListeners[type].push({ callback, options });
     }
 
     /**
-     * Sets the event callback data
-     *
-     * @param {EventCallbackData} data The event callback data
+     * Sets up the pending event listeners so that they run now that the Google Maps API is loaded
      */
-    setEventCallbackData(data: EventCallbackData): void {
-        this.#eventCallbackData = data;
+    setupPendingEventListeners() {
+        Object.keys(this.#pendingEventListeners).forEach((type) => {
+            this.#pendingEventListeners[type].forEach((event) => {
+                this.on(type, event.callback, event.options);
+            });
+        });
+        this.#pendingEventListeners = {};
     }
 
     /**
@@ -97,7 +105,7 @@ export class Evented extends EventTarget {
      *      Event is created
      */
     dispatch(event: string, data?: any) {
-        let eventData = { ...this.#eventCallbackData };
+        let eventData = {};
         if (isObject(data)) {
             eventData = { ...data, ...eventData };
         }

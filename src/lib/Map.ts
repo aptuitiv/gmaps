@@ -268,6 +268,8 @@ export class Map extends Evented {
                     );
                     this.dispatch('display');
 
+                    this.setupPendingEventListeners();
+
                     // Call the callback function if necessary
                     if (isFunction(callback)) {
                         callback(this);
@@ -463,14 +465,12 @@ export class Map extends Evented {
                 } else if (type === 'display') {
                     super.on(type, callback, options);
                 } else {
-                    throw new Error('The map object is not available yet');
+                    this.addPendingEventListener(type, callback, options);
                 }
             } else if (type === 'display') {
                 super.on(type, callback, options);
             } else {
-                throw new Error(
-                    'Google maps not loaded. You must wait to set the event until the Google map library is loaded.'
-                );
+                this.addPendingEventListener(type, callback, options);
             }
         } else {
             throw new Error('the event handler needs a callback function');
