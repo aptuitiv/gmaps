@@ -10,17 +10,18 @@
 // });
 G.loader({ apiKey: apiKey, }).load().then(() => {
     G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } }).display();
-    const lat = G.latLng(48.864716, 2.3522);
-    const lat2 = G.latLng().set(lat);
-    console.log('lat2: ', lat2);
-    console.log(G.latLng(lat).setLat(10));
-    console.log(lat);
-    console.log('long: ', lat2.latitude, ' :: ', lat2.longitude);
-    console.log('short: ', lat2.lat, ' :: ', lat2.longitude);
-    console.log('google: ', lat2.toGoogle());
-    lat2.lat = 10;
-    lat2.lng = 20;
-    console.log('lat2: ', lat2, ' :: ', lat2.lat, ' :: ', lat2.longitude);
+    // const lat = G.latLng(48.864716, 2.3522);
+    // const lat2 = G.latLng().set(lat);
+    // console.log('lat2: ', lat2);
+    // console.log(G.latLng(lat).setLat(10));
+    // console.log(lat);
+    // console.log('long: ', lat2.latitude, ' :: ', lat2.longitude);
+    // console.log('short: ', lat2.lat, ' :: ', lat2.longitude);
+    // console.log('google: ', lat2.toGoogle());
+    // lat2.lat = 10;
+    // lat2.lng = 20;
+    // console.log('lat2: ', lat2, ' :: ', lat2.lat, ' :: ', lat2.longitude);
+
     // const point1 = G.point(2, 4);
     // console.log('point1: ', point1);
     // console.log('clone: ', point1.clone());
@@ -58,6 +59,30 @@ G.loader({ apiKey: apiKey, }).load().then(() => {
     // size3.height = 200;
     // console.log('size3: ', size3);
 
+    const bounds = G.latLngBounds([
+        // [40.712, -74.227],
+        [40.774, -74.125]
+    ]);
+    bounds.extend([40.715, -75.227]);
+    console.log('bounds: ', bounds);
+
+    const bounds2 = G.latLngBounds([40.712, -75.227]);
+    console.log('bounds2: ', bounds2);
+
+    console.log('contains: ', bounds.contains(G.latLng(43.712, -74.227)));
+    console.log('equals: ', bounds.equals(G.latLngBounds([40.712, -74.227])));
+    console.log('equals: ', bounds.equals(bounds2));
+    console.log('center: ', bounds.getCenter());
+    console.log('getNorthEast: ', bounds.getNorthEast());
+    console.log('getSouthWest: ', bounds.getSouthWest());
+    console.log('intersects: ', bounds.intersects(bounds2));
+    console.log('isEmpty: ', bounds.isEmpty());
+    console.log('toJson: ', bounds.toJson());
+    console.log('toSpan: ', bounds.toSpan());
+    console.log('toString: ', bounds.toString());
+    console.log('toUrlValue: ', bounds.toUrlValue());
+    console.log('union: ', bounds.union(bounds2));
+    console.log('center: ', bounds.getCenter());
 });
 // load.on('load', () => { console.log('loaded event'); });
 // load.load();

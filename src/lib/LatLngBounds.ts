@@ -169,12 +169,102 @@ export class LatLngBounds extends Base {
     }
 
     /**
+     * Get the north-east corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getNorthEast(): LatLng {
+        return latLngConvert(this.#bounds.getNorthEast());
+    }
+
+    /**
+     * Get the south-west corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getSouthWest(): LatLng {
+        return latLngConvert(this.#bounds.getSouthWest());
+    }
+
+    /**
+     * Returns whether this bounds shares any points with the other bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {boolean}
+     */
+    intersects(other: LatLngBounds): boolean {
+        if (!(other instanceof LatLngBounds)) {
+            throw new Error(
+                `Invalid LatLngBounds object passed to LatLngBounds.intersects. You passed: ${JSON.stringify(other)}`
+            );
+        }
+        return this.#bounds.intersects(other.toGoogle());
+    }
+
+    /**
+     * Returns whether this bounds is empty
+     *
+     * @returns {boolean}
+     */
+    isEmpty(): boolean {
+        return this.#bounds.isEmpty();
+    }
+
+    /**
      * Get the Google maps LatLngBounds object
      *
      * @returns {google.maps.LatLngBounds}
      */
     toGoogle(): google.maps.LatLngBounds {
         return this.#bounds;
+    }
+
+    /**
+     * Converts the LatLngBounds object to a JSON object
+     *
+     * @returns {google.maps.LatLngBoundsLiteral}
+     */
+    toJson(): google.maps.LatLngBoundsLiteral {
+        return this.#bounds.toJSON();
+    }
+
+    /**
+     * Converts the LatLngBounds object to a lat/lng span
+     *
+     * @returns {LatLng}
+     */
+    toSpan(): LatLng {
+        return latLngConvert(this.#bounds.toSpan());
+    }
+
+    /**
+     * Converts the LatLngBounds object to a string
+     *
+     * @returns {string}
+     */
+    toString(): string {
+        return this.#bounds.toString();
+    }
+
+    /**
+     * Returns the LatLngBounds object as a string that can be used in a URL
+     *
+     * @param {number} [precision] The number of decimal places to round the lat/lng values to
+     * @returns {string}
+     */
+    toUrlValue(precision?: number): string {
+        return this.#bounds.toUrlValue(precision);
+    }
+
+    /**
+     * Extends this bounds to contain the union of this and the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to join with
+     * @returns {LatLngBounds}
+     */
+    union(other: LatLngBounds): LatLngBounds {
+        this.#bounds.union(other.toGoogle());
+        return this;
     }
 }
 
