@@ -2,8 +2,6 @@
     Base class to help with drawing stuff on the map.
 =========================================================================== */
 
-/* global google */
-
 import { Evented } from './Evented';
 import { Map } from './Map';
 import {} from './helpers';
@@ -27,21 +25,7 @@ class Layer extends Evented {
      * @returns {Map|null}
      */
     getMap(): Map | null {
-        return this.map;
-    }
-
-    /**
-     * Returns the Google maps object that this layer is assigned to.
-     *
-     * If it's not assigned to a map, it returns null.
-     *
-     * @returns {google.maps.Map|null}
-     */
-    getGoogleMap(): google.maps.Map | null {
-        if (this.map instanceof Map) {
-            return this.map.toGoogle();
-        }
-        return null;
+        return this.#map;
     }
 
     /**
