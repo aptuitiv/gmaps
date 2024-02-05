@@ -43,8 +43,8 @@
 /* global google */
 
 import Base from './Base';
-import { checkForGoogleMaps, isObject } from './helpers';
-import { latLng, LatLng, LatLngValue } from './LatLng';
+import { checkForGoogleMaps } from './helpers';
+import { latLng, latLngConvert, LatLng, LatLngValue } from './LatLng';
 
 /**
  * The LatLngBounds class to set up and manage latitude/longitude bounds
@@ -164,9 +164,8 @@ export class LatLngBounds extends Base {
      * @returns {LatLng}
      */
     getCenter(): LatLng {
-        const center = this.#bounds.getCenter();
         // Convert the center to a LatLngValue
-        return latLng([center.lat(), center.lng()]);
+        return latLngConvert(this.#bounds.getCenter());
     }
 
     /**
