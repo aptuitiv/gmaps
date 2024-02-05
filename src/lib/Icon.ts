@@ -48,7 +48,7 @@ export class Icon extends Base {
     /**
      * Holds the Google maps icon options
      */
-    private options: google.maps.Icon;
+    #options: google.maps.Icon;
 
     /**
      * Constructor
@@ -58,9 +58,9 @@ export class Icon extends Base {
      */
     constructor(url?: string | IconOptions, options?: IconOptions) {
         super('icon');
-        this.options = { url: '' };
+        this.#options = { url: '' };
         if (typeof url === 'string') {
-            this.options = {
+            this.#options = {
                 url,
             };
             this.setOptions(options);
@@ -82,17 +82,17 @@ export class Icon extends Base {
             const stringValues = ['url'];
             pointValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = point(options[key]).toGoogle();
+                    this.#options[key] = point(options[key]).toGoogle();
                 }
             });
             sizeValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = size(options[key]).toGoogle();
+                    this.#options[key] = size(options[key]).toGoogle();
                 }
             });
             stringValues.forEach((key) => {
                 if (options[key] && isStringWithValue(options[key])) {
-                    this.options[key] = options[key];
+                    this.#options[key] = options[key];
                 }
             });
         }
@@ -119,7 +119,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setAnchor(anchor: PointValue): Icon {
-        this.options.anchor = point(anchor).toGoogle();
+        this.#options.anchor = point(anchor).toGoogle();
         return this;
     }
 
@@ -143,7 +143,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setLabelOrigin(origin: PointValue): Icon {
-        this.options.labelOrigin = point(origin).toGoogle();
+        this.#options.labelOrigin = point(origin).toGoogle();
         return this;
     }
 
@@ -165,7 +165,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setOrigin(origin: PointValue): Icon {
-        this.options.origin = point(origin).toGoogle();
+        this.#options.origin = point(origin).toGoogle();
         return this;
     }
 
@@ -188,7 +188,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setScaledSize(sizeValue: SizeValue): Icon {
-        this.options.scaledSize = size(sizeValue).toGoogle();
+        this.#options.scaledSize = size(sizeValue).toGoogle();
         return this;
     }
 
@@ -213,7 +213,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setSize(sizeValue: SizeValue): Icon {
-        this.options.size = size(sizeValue).toGoogle();
+        this.#options.size = size(sizeValue).toGoogle();
         return this;
     }
 
@@ -224,7 +224,7 @@ export class Icon extends Base {
      * @returns {Icon}
      */
     setUrl(url: string): Icon {
-        this.options.url = url;
+        this.#options.url = url;
         return this;
     }
 
@@ -234,7 +234,7 @@ export class Icon extends Base {
      * @returns {google.maps.Icon}
      */
     toGoogle(): google.maps.Icon {
-        return this.options;
+        return this.#options;
     }
 }
 
