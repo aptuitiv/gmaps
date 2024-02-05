@@ -44,7 +44,7 @@
 
 import Base from './Base';
 import { checkForGoogleMaps } from './helpers';
-import { latLng, LatLng, LatLngValue } from './LatLng';
+import { latLng, LatLngValue } from './LatLng';
 
 /**
  * The LatLngBounds class to set up and manage latitude/longitude bounds
@@ -85,14 +85,14 @@ export class LatLngBounds extends Base {
      * - a {lat, lng} object (LatLngLiteral)
      *
      * @param {LatLngValue} latLngValue The latitude/longitude value
+     * @returns {LatLngBounds}
      */
     extend(latLngValue: LatLngValue): LatLngBounds {
-        if (latLngValue instanceof LatLng) {
-            this.#bounds.extend(latLngValue.toGoogle());
-        } else if (Array.isArray(latLngValue) && latLngValue.length === 2) {
-            this.#bounds.extend(latLng(latLngValue).toGoogle());
+        const latLngObject = latLng(latLngValue);
+        if (latLngObject.isValid()) {
+            this.#bounds.extend(latLngObject.toGoogle());
         } else {
-            throw new Error('Invalid latitude/longitude pair');
+            throw new Error(`Invalid latitude/longitude pair. You passed: ${JSON.stringify(latLngValue)}`);
         }
         return this;
     }
