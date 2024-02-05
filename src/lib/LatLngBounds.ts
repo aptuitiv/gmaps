@@ -43,8 +43,8 @@
 /* global google */
 
 import Base from './Base';
-import { checkForGoogleMaps } from './helpers';
-import { latLng, LatLngValue } from './LatLng';
+import { checkForGoogleMaps, isObject } from './helpers';
+import { latLng, LatLng, LatLngValue } from './LatLng';
 
 /**
  * The LatLngBounds class to set up and manage latitude/longitude bounds
@@ -68,6 +68,37 @@ export class LatLngBounds extends Base {
         if (latLngValue) {
             this.extend(latLngValue);
         }
+    }
+
+    /**
+     * Returns whether the the given LatLng value is within this bounds
+     *
+     * @param latLngValue The LatLng value to test
+     * @returns {boolean}
+     */
+    contains(latLngValue: LatLngValue): boolean {
+        const latLngObject = latLng(latLngValue);
+        if (!latLngObject.isValid()) {
+            throw new Error(
+                `Invalid latitude/longitude data passed to LatLngBounds.contains. You passed: ${JSON.stringify(
+                    latLngValue
+                )}`
+            );
+        }
+        return this.#bounds.contains(latLng(latLngValue).toGoogle());
+    }
+
+    /**
+     * Returns whether this bounds approximately equals the given bounds
+     *
+     * @param other The LatLngBounds object to compare
+     * @returns {boolean}
+     */
+    equals(other: LatLngBounds): boolean {
+        if (other instanceof LatLngBounds) {
+            return this.#bounds.equals(other.toGoogle());
+        }
+        return false;
     }
 
     /**
@@ -125,6 +156,17 @@ export class LatLngBounds extends Base {
         }
 
         return this;
+    }
+
+    /**
+     * Get the center of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getCenter(): LatLng {
+        const center = this.#bounds.getCenter();
+        // Convert the center to a LatLngValue
+        return latLng([center.lat(), center.lng()]);
     }
 
     /**
