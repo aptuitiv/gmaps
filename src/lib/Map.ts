@@ -25,7 +25,7 @@
 /* global google */
 
 import { Libraries } from '@googlemaps/js-api-loader';
-import { LoaderData, loader } from './Loader';
+import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
     checkForGoogleMaps,
@@ -34,7 +34,6 @@ import {
     isNumberOrNumberString,
     isNumberString,
     isObject,
-    isString,
     isStringWithValue,
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
@@ -172,15 +171,9 @@ export class Map extends Evented {
      */
     setOptions(options: MapOptions): Map {
         if (isObject(options)) {
-            // Load the loader options if neccessary
-            if (options.apiKey) {
-                LoaderData.getInstance().apiKey = options.apiKey;
-            }
-            if (Array.isArray(options.libraries)) {
-                LoaderData.getInstance().libraries = options.libraries;
-            }
-            if (isString(options.version)) {
-                LoaderData.getInstance().version = options.version;
+            // Set the loader options if necessary
+            if (options.apiKey || options.libraries || options.version) {
+                loader(options);
             }
 
             // Set the center point for the map
@@ -223,7 +216,7 @@ export class Map extends Evented {
      */
     setApiKey(key: string): Map {
         if (isStringWithValue(key)) {
-            LoaderData.getInstance().apiKey = key;
+            loader().apiKey = key;
         } else {
             throw new Error('You must pass a valid API key');
         }
@@ -266,7 +259,7 @@ export class Map extends Evented {
      */
     load(callback?: (map: Map) => void) {
         return new Promise((resolve, reject) => {
-            loader(LoaderData.getInstance())
+            loader()
                 .load()
                 .then(() => {
                     this.#map = new google.maps.Map(

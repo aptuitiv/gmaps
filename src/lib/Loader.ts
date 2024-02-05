@@ -20,59 +20,42 @@ export type LoaderOptions = {
 };
 
 /**
- * Singleton object to hold the loader options
- */
-export const LoaderData = (() => {
-    /**
-     * The singleton instance of the object
-     *
-     * @type {LoaderOptions}
-     */
-    let instance: LoaderOptions;
-
-    /**
-     * Create the object instance
-     *
-     * @private
-     * @returns {LoaderOptions}
-     */
-    function createInstance(): LoaderOptions {
-        return {
-            // The Google Maps API key
-            apiKey: '',
-            // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
-            libraries: [],
-            // The version of the Google Maps API to load.
-            version: 'weekly',
-        };
-    }
-
-    return {
-        /**
-         * Get the singleton instance of the object
-         *
-         * @returns {LoaderOptions}
-         */
-        getInstance(): LoaderOptions {
-            if (!instance) {
-                instance = createInstance();
-            }
-            return instance;
-        },
-    };
-})();
-
-/**
  * Class to load the Google maps API
+ *
+ * This should be a singleton object and prevent multiple loader objects on the page.
  */
 export class Loader extends Evented {
     /**
-     * Holds the loader options singleton object
+     * Holds the Google Maps API key
      *
      * @private
-     * @type {LoaderOptions}
+     * @type {string}
      */
-    #options: LoaderOptions;
+    #apiKey: string;
+
+    /**
+     * Holds the loaded state
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isLoaded: boolean = false;
+
+    /**
+     * Holds the libraries to load with Google maps
+     *
+     * @private
+     * @type {Libraries}
+     */
+    #libraries: Libraries = [];
+
+    /**
+     * Holds the version of the Google Maps API to load
+     *
+     * @private
+     * @type {string}
+     */
+    #version: string = 'weekly';
 
     /**
      * Class constructor
@@ -81,7 +64,6 @@ export class Loader extends Evented {
      */
     constructor(options?: LoaderOptions) {
         super('load');
-        this.#options = LoaderData.getInstance();
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -93,7 +75,7 @@ export class Loader extends Evented {
      * @returns {string}
      */
     get apiKey(): string {
-        return this.#options.apiKey;
+        return this.#apiKey;
     }
 
     /**
@@ -103,7 +85,7 @@ export class Loader extends Evented {
      */
     set apiKey(apiKey: string) {
         if (isString(apiKey)) {
-            this.#options.apiKey = apiKey;
+            this.#apiKey = apiKey;
         }
     }
 
@@ -113,7 +95,7 @@ export class Loader extends Evented {
      * @returns {Libraries}
      */
     get libraries(): Libraries {
-        return this.#options.libraries;
+        return this.#libraries;
     }
 
     /**
@@ -125,9 +107,9 @@ export class Loader extends Evented {
      */
     set libraries(libraries: Libraries) {
         if (Array.isArray(libraries)) {
-            this.#options.libraries = libraries;
+            this.#libraries = libraries;
         } else if (isStringWithValue(libraries)) {
-            this.#options.libraries = [libraries];
+            this.#libraries = [libraries];
         }
     }
 
@@ -137,7 +119,7 @@ export class Loader extends Evented {
      * @returns {string}
      */
     get version(): string {
-        return this.#options.version;
+        return this.#version;
     }
 
     /**
@@ -148,7 +130,7 @@ export class Loader extends Evented {
      */
     set version(version: string) {
         if (isString(version)) {
-            this.#options.version = version;
+            this.#version = version;
         }
     }
 
@@ -160,15 +142,14 @@ export class Loader extends Evented {
      */
     setOptions(options: LoaderOptions): Loader {
         if (isObjectWithValues(options)) {
-            const data = LoaderData.getInstance();
             if (isString(options.apiKey)) {
-                data.apiKey = options.apiKey;
+                this.apiKey = options.apiKey;
             }
             if (Array.isArray(options.libraries)) {
-                data.libraries = options.libraries;
+                this.libraries = options.libraries;
             }
             if (isString(options.version)) {
-                data.version = options.version;
+                this.version = options.version;
             }
         } else {
             throw new Error('The Load.setOptions() options parameter is required and must be an object');
@@ -220,18 +201,18 @@ export class Loader extends Evented {
      */
     load(callback?: () => void): Promise<void> {
         return new Promise((resolve, reject) => {
-            const data = LoaderData.getInstance();
-            if (isStringWithValue(data.apiKey)) {
+            if (isStringWithValue(this.#apiKey)) {
                 // Set up the Google maps loader
                 // https://www.npmjs.com/package/@googlemaps/js-api-loader
                 const loader = new GoogleLoader({
-                    apiKey: data.apiKey,
-                    version: data.version,
-                    libraries: data.libraries,
+                    apiKey: this.#apiKey,
+                    version: this.#version,
+                    libraries: this.#libraries,
                 });
                 loader
                     .importLibrary('maps')
                     .then(() => {
+                        this.#isLoaded = true;
                         if (isFunction(callback)) {
                             callback();
                         }
@@ -246,12 +227,49 @@ export class Loader extends Evented {
             }
         });
     }
+
+    /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     */
+    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
+        if (isFunction(callback)) {
+            console.log('is loaded: ', this.#isLoaded);
+            super.on(type, callback, options);
+            if (this.#isLoaded) {
+                console.log('Map is loaded is loaded');
+                this.dispatch('load');
+            }
+        } else {
+            throw new Error('the event handler needs a callback function');
+        }
+    }
 }
 
 /**
- * Helper function to set up the map object
+ * Holds the loader instance.
+ * This is used to a singleton object and prevent multiple loader objects on the page.
+ */
+let loaderInstance: Loader;
+
+/**
+ * Helper function to set up the loader object.
  *
- * @param {LoaderOptions} [config] The map options
+ * Only one loader object can be created on a page.
+ * This prevents trying to load the Google maps library multiple times.
+ * It also allows us to internally handle when the Google maps library is loaded.
+ *
+ * @param {LoaderOptions} [config] The loader options
  * @returns {Loader}
  */
-export const loader = (config?: LoaderOptions): Loader => new Loader(config);
+export const loader = (config?: LoaderOptions): Loader => {
+    console.log('loaderInstance 1', loaderInstance);
+    if (!loaderInstance) {
+        loaderInstance = new Loader(config);
+    }
+    console.log('loaderInstance 2', loaderInstance);
+    return loaderInstance;
+};
