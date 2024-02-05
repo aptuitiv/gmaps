@@ -86,7 +86,7 @@ export class LatLngBounds extends Base {
      *
      * @param {LatLngValue} latLngValue The latitude/longitude value
      */
-    extend(latLngValue: LatLngValue): void {
+    extend(latLngValue: LatLngValue): LatLngBounds {
         if (latLngValue instanceof LatLng) {
             this.#bounds.extend(latLngValue.toGoogle());
         } else if (Array.isArray(latLngValue) && latLngValue.length === 2) {
@@ -94,6 +94,7 @@ export class LatLngBounds extends Base {
         } else {
             throw new Error('Invalid latitude/longitude pair');
         }
+        return this;
     }
 
     /**
