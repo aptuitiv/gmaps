@@ -13,9 +13,10 @@ class Base {
      *
      * The BaseMixin object has methods that use this.
      *
+     * @private
      * @type {string}
      */
-    private objectType: string;
+    #objectType: string;
 
     /**
      * Constructor
@@ -23,7 +24,16 @@ class Base {
      * @param {string} objectType The object type for the class
      */
     constructor(objectType: string) {
-        this.objectType = objectType;
+        this.#objectType = objectType;
+    }
+
+    /**
+     * Returns the object type
+     *
+     * @returns {string}
+     */
+    getObjectType(): string {
+        return this.#objectType;
     }
 
     /**

@@ -37,9 +37,10 @@ export class Evented extends EventTarget {
     /**
      * Holds the object type
      *
+     * @private
      * @type {string}
      */
-    private objectType: string;
+    #objectType: string;
 
     /**
      * Constructor
@@ -48,15 +49,17 @@ export class Evented extends EventTarget {
      */
     constructor(objectType: string) {
         super();
-        this.objectType = objectType;
+        this.#objectType = objectType;
     }
 
     /**
-     * Holds the event listeners
+     * Returns the object type
      *
-     * @type {object}
+     * @returns {string}
      */
-    private eventListeners: Events = {};
+    getObjectType(): string {
+        return this.#objectType;
+    }
 
     /**
      * Gets the event callback data

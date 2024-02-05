@@ -4,21 +4,12 @@
 
 const BaseMixin = {
     /**
-     * Returns the object type
-     *
-     * @returns {string}
-     */
-    getObjectType(): string {
-        return this.objectType;
-    },
-
-    /**
      * Returns if the object is an Icon object
      *
      * @returns {boolean}
      */
     isIcon(): boolean {
-        return this.objectType === 'icon';
+        return this.getObjectType() === 'icon';
     },
 
     /**
@@ -27,7 +18,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isInfoWindow(): boolean {
-        return this.objectType === 'infowindow';
+        return this.getObjectType() === 'infowindow';
     },
 
     /**
@@ -36,7 +27,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isLatLng(): boolean {
-        return this.objectType === 'latlng';
+        return this.getObjectType() === 'latlng';
     },
 
     /**
@@ -45,7 +36,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isLatLngBounds(): boolean {
-        return this.objectType === 'latlngbounds';
+        return this.getObjectType() === 'latlngbounds';
     },
 
     /**
@@ -54,7 +45,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isMap(): boolean {
-        return this.objectType === 'map';
+        return this.getObjectType() === 'map';
     },
 
     /**
@@ -63,7 +54,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isMarker(): boolean {
-        return this.objectType === 'marker';
+        return this.getObjectType() === 'marker';
     },
 
     /**
@@ -72,7 +63,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isMarkerCluster(): boolean {
-        return this.objectType === 'markercluster';
+        return this.getObjectType() === 'markercluster';
     },
 
     /**
@@ -81,7 +72,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isPoint(): boolean {
-        return this.objectType === 'point';
+        return this.getObjectType() === 'point';
     },
 
     /**
@@ -90,7 +81,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isPopup(): boolean {
-        return this.objectType === 'popup';
+        return this.getObjectType() === 'popup';
     },
 
     /**
@@ -99,7 +90,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isSize(): boolean {
-        return this.objectType === 'size';
+        return this.getObjectType() === 'size';
     },
 
     /**
@@ -108,7 +99,7 @@ const BaseMixin = {
      * @returns {boolean}
      */
     isSvgSymbol(): boolean {
-        return this.objectType === 'svgsymbol';
+        return this.getObjectType() === 'svgsymbol';
     },
 };
 
