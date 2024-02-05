@@ -6,4 +6,16 @@ layout: "base.njk"
 
 <h1>Plugin test</h1>
 
+<p>Plugins use the <code>include()</code> functon on classes to add functionality to those classes.</p>
+
+<pre>
+<code>
+    L.Marker.include({
+        myCustomFunction: function() {
+            console.log('Hello from my custom function');
+        }
+    });
+</code>
+</pre>
+
 <script src="{{ '/js/plugin.js'|url|safe}}"></script>
