@@ -245,7 +245,7 @@ export class Map extends Evented {
      * @private
      * @returns {google.maps.MapOptions}
      */
-    getMapOptions(): google.maps.MapOptions {
+    #getMapOptions(): google.maps.MapOptions {
         const options: google.maps.MapOptions = {
             center: this.center.toJson(),
             zoom: this.zoom,
@@ -280,7 +280,7 @@ export class Map extends Evented {
                 .then(() => {
                     this.map = new google.maps.Map(
                         document.getElementById(this.id) as HTMLElement,
-                        this.getMapOptions()
+                        this.#getMapOptions()
                     );
                     this.dispatch('display');
 
@@ -318,7 +318,7 @@ export class Map extends Evented {
                     // The Google maps library has successfully loaded
                     this.map = new google.maps.Map(
                         document.getElementById(this.id) as HTMLElement,
-                        this.getMapOptions()
+                        this.#getMapOptions()
                     );
                     // Call the callback function if necessary
                     if (isFunction(callback)) {
