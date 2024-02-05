@@ -2,7 +2,7 @@ import { icon } from './lib/Icon';
 import { infoWindow } from './lib/InfoWindow';
 import { latLng } from './lib/LatLng';
 import { latLngBounds } from './lib/LatLngBounds';
-import { loader } from './lib/Load';
+import { loader } from './lib/Loader';
 import { map } from './lib/Map';
 import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';

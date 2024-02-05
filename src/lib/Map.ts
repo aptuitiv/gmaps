@@ -25,7 +25,7 @@
 /* global google */
 
 import { Libraries } from '@googlemaps/js-api-loader';
-import { LoadData, loader } from './Load';
+import { LoaderData, loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
     checkForGoogleMaps,
@@ -183,13 +183,13 @@ export class Map extends Evented {
         if (isObject(options)) {
             // Load the loader options if neccessary
             if (options.apiKey) {
-                LoadData.getInstance().apiKey = options.apiKey;
+                LoaderData.getInstance().apiKey = options.apiKey;
             }
             if (Array.isArray(options.libraries)) {
-                LoadData.getInstance().libraries = options.libraries;
+                LoaderData.getInstance().libraries = options.libraries;
             }
             if (isString(options.version)) {
-                LoadData.getInstance().version = options.version;
+                LoaderData.getInstance().version = options.version;
             }
 
             // Set the center point for the map
@@ -275,7 +275,7 @@ export class Map extends Evented {
      */
     load(callback?: (map: Map) => void) {
         return new Promise((resolve, reject) => {
-            loader(LoadData.getInstance())
+            loader(LoaderData.getInstance())
                 .load()
                 .then(() => {
                     this.map = new google.maps.Map(

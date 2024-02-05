@@ -2,12 +2,12 @@
     Google Maps Loader
 =========================================================================== */
 
-import { Loader, Libraries } from '@googlemaps/js-api-loader';
+import { Loader as GoogleLoader, Libraries } from '@googlemaps/js-api-loader';
 import { isFunction, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 import { Evented } from './Evented';
 
 // Loader Options
-export type LoadOptions = {
+export type LoaderOptions = {
     // The Google Maps API key
     apiKey?: string;
     // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
@@ -22,21 +22,21 @@ export type LoadOptions = {
 /**
  * Singleton object to hold the loader options
  */
-export const LoadData = (() => {
+export const LoaderData = (() => {
     /**
      * The singleton instance of the object
      *
-     * @type {LoadOptions}
+     * @type {LoaderOptions}
      */
-    let instance: LoadOptions;
+    let instance: LoaderOptions;
 
     /**
      * Create the object instance
      *
      * @private
-     * @returns {LoadOptions}
+     * @returns {LoaderOptions}
      */
-    function createInstance(): LoadOptions {
+    function createInstance(): LoaderOptions {
         return {
             // The Google Maps API key
             apiKey: '',
@@ -51,9 +51,9 @@ export const LoadData = (() => {
         /**
          * Get the singleton instance of the object
          *
-         * @returns {LoadOptions}
+         * @returns {LoaderOptions}
          */
-        getInstance(): LoadOptions {
+        getInstance(): LoaderOptions {
             if (!instance) {
                 instance = createInstance();
             }
@@ -65,23 +65,23 @@ export const LoadData = (() => {
 /**
  * Class to load the Google maps API
  */
-export class Load extends Evented {
+export class Loader extends Evented {
     /**
      * Holds the loader options singleton object
      *
      * @private
-     * @type {LoadOptions}
+     * @type {LoaderOptions}
      */
-    #options: LoadOptions;
+    #options: LoaderOptions;
 
     /**
      * Class constructor
      *
-     * @param {LoadOptions} [options] The loader options object
+     * @param {LoaderOptions} [options] The loader options object
      */
-    constructor(options?: LoadOptions) {
+    constructor(options?: LoaderOptions) {
         super('load');
-        this.#options = LoadData.getInstance();
+        this.#options = LoaderData.getInstance();
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -155,12 +155,12 @@ export class Load extends Evented {
     /**
      * Set the loader options
      *
-     * @param {LoadOptions} options The loader options object
-     * @returns {Load}
+     * @param {LoaderOptions} options The loader options object
+     * @returns {Loader}
      */
-    setOptions(options: LoadOptions): Load {
+    setOptions(options: LoaderOptions): Loader {
         if (isObjectWithValues(options)) {
-            const data = LoadData.getInstance();
+            const data = LoaderData.getInstance();
             if (isString(options.apiKey)) {
                 data.apiKey = options.apiKey;
             }
@@ -180,9 +180,9 @@ export class Load extends Evented {
      * Set the Google Maps API key
      *
      * @param {string} apiKey The Google Maps API key
-     * @returns {Load}
+     * @returns {Loader}
      */
-    setApiKey(apiKey: string): Load {
+    setApiKey(apiKey: string): Loader {
         this.apiKey = apiKey;
         return this;
     }
@@ -193,9 +193,9 @@ export class Load extends Evented {
      * https://developers.google.com/maps/documentation/javascript/places
      *
      * @param {Libraries} libraries The libraries to load with Google maps
-     * @returns {Load}
+     * @returns {Loader}
      */
-    setLibraries(libraries: Libraries): Load {
+    setLibraries(libraries: Libraries): Loader {
         this.libraries = libraries;
         return this;
     }
@@ -205,9 +205,9 @@ export class Load extends Evented {
      * https://developers.google.com/maps/documentation/javascript/versions
      *
      * @param {string} version The version of the Google Maps API to load
-     * @returns {Load}
+     * @returns {Loader}
      */
-    setVersion(version: string): Load {
+    setVersion(version: string): Loader {
         this.version = version;
         return this;
     }
@@ -220,11 +220,11 @@ export class Load extends Evented {
      */
     load(callback?: () => void): Promise<void> {
         return new Promise((resolve, reject) => {
-            const data = LoadData.getInstance();
+            const data = LoaderData.getInstance();
             if (isStringWithValue(data.apiKey)) {
                 // Set up the Google maps loader
                 // https://www.npmjs.com/package/@googlemaps/js-api-loader
-                const loader = new Loader({
+                const loader = new GoogleLoader({
                     apiKey: data.apiKey,
                     version: data.version,
                     libraries: data.libraries,
@@ -251,7 +251,7 @@ export class Load extends Evented {
 /**
  * Helper function to set up the map object
  *
- * @param {LoadOptions} [config] The map options
- * @returns {Load}
+ * @param {LoaderOptions} [config] The map options
+ * @returns {Loader}
  */
-export const loader = (config?: LoadOptions): Load => new Load(config);
+export const loader = (config?: LoaderOptions): Loader => new Loader(config);
