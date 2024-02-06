@@ -85,7 +85,7 @@ export class Popup extends Overlay {
      * @param {PopupOptions} [options] The Popup options
      */
     constructor(options: PopupOptions) {
-        super('popup');
+        super('popup', 'Popup');
 
         this.#popupOffset = point(0, 0);
         if (isObject(options)) {
