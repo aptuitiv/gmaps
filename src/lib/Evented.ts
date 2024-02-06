@@ -11,6 +11,7 @@
 
 import { isFunction, isObject, isString } from './helpers';
 import BaseMixin from './BaseMixin';
+import { loader } from './Loader';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -31,6 +32,15 @@ class Evented extends EventTarget {
      * @type {Events}
      */
     #eventListeners: Events = {};
+
+    /**
+     * Holds whether the onload event was set on the Loader class to
+     * set up the pending event listeners after the Google Maps API library is loaded.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isOnLoadEventSet: boolean = false;
 
     /**
      * Holds the object type
@@ -73,16 +83,26 @@ class Evented extends EventTarget {
      * @param {string} [type] The event type
      * @param {Function} [callback] The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {boolean} setupOnLoad Whether to set up the event listener after the Google Maps API is loaded. If
+     *    false then you will need to call the setupPendingEventListeners() method manually.
      */
     addPendingEventListener(
         type: string,
         callback: EventListenerOrEventListenerObject,
-        options?: AddEventListenerOptions | boolean
+        options?: AddEventListenerOptions | boolean,
+        setupOnLoad: boolean = true
     ) {
         if (!this.#pendingEventListeners[type]) {
             this.#pendingEventListeners[type] = [];
         }
         this.#pendingEventListeners[type].push({ callback, options });
+
+        if (!this.#isOnLoadEventSet && setupOnLoad) {
+            loader().once('load', () => {
+                this.setupPendingEventListeners();
+            });
+            this.#isOnLoadEventSet = true;
+        }
     }
 
     /**
