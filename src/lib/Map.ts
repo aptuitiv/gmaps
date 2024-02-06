@@ -299,7 +299,7 @@ export class Map extends Evented {
      * Display the map
      *
      * This also dispatches the "display" and "map_loaded" events,
-     * calls the callback function, and sets up any pending event listeners.
+     * and calls the callback function.
      *
      * @param {Function} callback The callback function to call after the map loads
      */
@@ -311,8 +311,6 @@ export class Map extends Evented {
         // This is done because the map is loaded after the loader's "load" event is dispatched
         // and some objects depend on the map being loaded before they can be set up.
         loader().dispatch('map_loaded');
-
-        this.setupPendingEventListeners();
 
         // Call the callback function if necessary
         if (isFunction(callback)) {
@@ -456,12 +454,12 @@ export class Map extends Evented {
                 } else if (type === 'display') {
                     super.on(type, callback, options);
                 } else {
-                    this.addPendingEventListener(type, callback, options, false);
+                    this.addPendingEventListener(type, callback, options);
                 }
             } else if (type === 'display') {
                 super.on(type, callback, options);
             } else {
-                this.addPendingEventListener(type, callback, options, false);
+                this.addPendingEventListener(type, callback, options);
             }
         } else {
             throw new Error('the event handler needs a callback function');

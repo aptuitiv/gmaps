@@ -98,7 +98,7 @@ class Evented extends EventTarget {
         this.#pendingEventListeners[type].push({ callback, options });
 
         if (!this.#isOnLoadEventSet && setupOnLoad) {
-            loader().once('load', () => {
+            loader().once('map_loaded', () => {
                 this.setupPendingEventListeners();
             });
             this.#isOnLoadEventSet = true;
