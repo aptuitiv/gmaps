@@ -37,7 +37,7 @@ import {
     isStringWithValue,
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
-import Evented from './Evented';
+import { Evented, EventCallback, EventOptions } from './Evented';
 
 export type MapOptions = {
     // The Google Maps API key
@@ -305,6 +305,7 @@ export class Map extends Evented {
      */
     #displayMap(callback?: (map: Map) => void) {
         this.#map = new google.maps.Map(document.getElementById(this.#id) as HTMLElement, this.#getMapOptions());
+        this.setEventGoogleObject(this.#map);
         // Dispatch the event to say that the map is displayed
         this.dispatch('display');
         // Dispatch the event on the loader to say that the map is fully loaded.
@@ -434,35 +435,10 @@ export class Map extends Evented {
      *
      * @param {string} type The event type
      * @param {Function} callback The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {EventOptions} [options] The event listener options
      */
-    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
-        if (isFunction(callback)) {
-            if (checkForGoogleMaps('Map', 'Map', false)) {
-                if (isObject(this.#map) && this.#map instanceof google.maps.Map) {
-                    super.on(type, callback, options);
-                    if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                        google.maps.event.addListenerOnce(this.#map, type, (e: google.maps.MapMouseEvent) => {
-                            this.dispatch(type, e);
-                        });
-                    } else {
-                        this.#map.addListener(type, (e: google.maps.MapMouseEvent) => {
-                            this.dispatch(type, e);
-                        });
-                    }
-                } else if (type === 'display') {
-                    super.on(type, callback, options);
-                } else {
-                    this.addPendingEventListener(type, callback, options);
-                }
-            } else if (type === 'display') {
-                super.on(type, callback, options);
-            } else {
-                this.addPendingEventListener(type, callback, options);
-            }
-        } else {
-            throw new Error('the event handler needs a callback function');
-        }
+    on(type: string, callback: EventCallback, options?: EventOptions): void {
+        this.setupEventListener(type, callback, options, 'Map', 'Map');
     }
 
     /**

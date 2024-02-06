@@ -90,6 +90,7 @@
 
 /* global google */
 
+import { EventCallback, EventOptions } from './Evented';
 import { icon, Icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
@@ -100,7 +101,6 @@ import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { tooltip, TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
-    isFunction,
     isNumber,
     isNumberOrNumberString,
     isObject,
@@ -422,30 +422,11 @@ export class Marker extends Layer {
      * Add an event listener to the object
      *
      * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {EventCallback} callback The event listener function
+     * @param {EventOptions} [options] The event listener options
      */
-    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
-        if (isFunction(callback)) {
-            if (checkForGoogleMaps('Marker', 'Map', false)) {
-                super.on(type, callback, options);
-                if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                    google.maps.event.addListenerOnce(this.#marker, type, (e: google.maps.MapMouseEvent) => {
-                        e.stop();
-                        this.dispatch(type, e);
-                    });
-                } else {
-                    this.#marker.addListener(type, (e: google.maps.MapMouseEvent) => {
-                        this.dispatch(type, e);
-                    });
-                }
-            } else {
-                console.log('Event: ', type);
-                this.addPendingEventListener(type, callback, options);
-            }
-        } else {
-            throw new Error('the event handler needs a callback function');
-        }
+    on(type: string, callback: EventCallback, options?: EventOptions): void {
+        this.setupEventListener(type, callback, options, 'Marker', 'Marker');
     }
 
     /**
@@ -626,6 +607,7 @@ export class Marker extends Layer {
                 }
 
                 this.#marker = new google.maps.Marker(markerOptions);
+                this.setEventGoogleObject(this.#marker);
             }
         }
     }

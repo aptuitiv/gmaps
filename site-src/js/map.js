@@ -8,6 +8,11 @@
 const map = G.map('map1', {
     apiKey: apiKey,
     center: { lat: 36.224, lng: -81.688 },
+    zoom: 11
+});
+map.on('click', (e) => {
+    console.log('click: ', e);
+    // e.stop();
 });
 map.load().then(() => { console.log('1 loaded') });
 
@@ -15,9 +20,10 @@ console.log('map: ', map);
 console.log('isMap: ', map.isMap());
 console.log('isMarker: ', map.isMarker());
 
-map.once('click', (e) => {
-    console.log('click: ', e);
-});
+// map.on('click', (e) => {
+//     console.log('click: ', e);
+//     // e.stop();
+// });
 
 
 // const map2 = G.map('map2');

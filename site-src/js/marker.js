@@ -14,11 +14,18 @@ const marker = G.marker({
     map: map,
     title: 'My Marker',
 });
-marker.on('click', (e) => {
+const callback = (e) => {
     console.log('Marker Clicked: ', e);
-    e.detail.stop();
-});
+    e.stop();
+};
+const otherCallback = (e) => {
+    console.log('Other Marker Clicked: ', e);
+    e.stop();
+}
+marker.once('click', callback, { once: false });
 G.loader({ apiKey: apiKey }).load();
+
+marker.on('click', otherCallback);
 
 // const loader = G.loader({ apiKey: apiKey, });
 // loader.on('load', () => { console.log('loaded event'); });
@@ -49,3 +56,9 @@ G.loader({ apiKey: apiKey }).load();
 // console.log('isMap: ', map.isMap());
 // console.log('isMarker: ', map.isMarker());
 
+function removeEvents() {
+    // marker.off('click', callback);
+    // marker.off();
+    marker.offAll();
+    console.log('Events removed');
+}

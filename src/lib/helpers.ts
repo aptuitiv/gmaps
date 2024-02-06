@@ -180,3 +180,33 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
     }
     return passed;
 };
+
+/**
+ * Compare two objects to see if they are equal
+ *
+ * @param {any} a The first object to compare
+ * @param {any} b The second object to compare
+ * @returns {boolean}
+ */
+export const objectEquals = (a: any, b: any): boolean => {
+    if (a === b) {
+        return true;
+    }
+    if (a instanceof Date && b instanceof Date) {
+        return a.getTime() === b.getTime();
+    }
+    if (!a || !b || (typeof a !== 'object' && typeof b !== 'object')) {
+        return a === b;
+    }
+    if (a === null || a === undefined || b === null || b === undefined) {
+        return false;
+    }
+    if (a.prototype !== b.prototype) {
+        return false;
+    }
+    const keys = Object.keys(a);
+    if (keys.length !== Object.keys(b).length) {
+        return false;
+    }
+    return keys.every((k) => objectEquals(a[k], b[k]));
+};
