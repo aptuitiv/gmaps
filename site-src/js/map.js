@@ -44,8 +44,28 @@ const mapObject = {
         this.map.on('zoom_changed', zoomCallback2, null, null);
     }
 }
-mapObject.init();
-mapObject.setupEvents();
+// mapObject.init();
+// mapObject.setupEvents();
+
+G.loader({ apiKey: apiKey, }).load();
+
+const map1 = G.map('map1', { center: [40.7128, -74.0060] });
+map1.display();
+map1.on('click', (e) => {
+    console.log(`The event type is ${e.type}`);
+
+    if (e.latLng) {
+        console.log(`You clicked at ${e.latLng.lat}/${e.latLng.lng}`);
+    }
+
+    // Stop the event from propogating to other elements on the page.
+    if (e.stop) {
+        e.stop();
+    }
+});
+
+const map2 = G.map('map2', { center: [35.6764, 139.6500] });
+map2.display();
 
 // const map = G.map('map1', {
 //     apiKey: apiKey,
