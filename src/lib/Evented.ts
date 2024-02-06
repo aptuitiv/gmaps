@@ -7,7 +7,11 @@
     succinct interface for emitting events.
 =========================================================================== */
 
+/* global AddEventListenerOptions, EventListenerOrEventListenerObject */
+
 import { isFunction, isObject, isString } from './helpers';
+import BaseMixin from './BaseMixin';
+import { loader } from './Loader';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -17,44 +21,100 @@ type EventData = {
 };
 type Events = { [key: string]: EventData[] };
 
-// Data to pass to the event callback function
-export type EventCallbackData = { [key: string]: string | number | boolean | object };
-
 /**
  * Evented class to add syntatic sugar to handling events
  */
-export class Evented extends EventTarget {
-    /**
-     * Holds the event callback data
-     *
-     * @type {object}
-     */
-    private eventCallbackData: EventCallbackData = {};
-
+class Evented extends EventTarget {
     /**
      * Holds the event listeners
      *
-     * @type {object}
+     * @private
+     * @type {Events}
      */
-    private eventListeners: Events = {};
+    #eventListeners: Events = {};
 
     /**
-     * Gets the event callback data
-     * This is the data that will be passed to the event callback function
+     * Holds whether the onload event was set on the Loader class to
+     * set up the pending event listeners after the Google Maps API library is loaded.
      *
-     * @returns {EventCallbackData}
+     * @private
+     * @type {boolean}
      */
-    getEventCallbackData(): EventCallbackData {
-        return this.eventCallbackData;
+    #isOnLoadEventSet: boolean = false;
+
+    /**
+     * Holds the object type
+     *
+     * @private
+     * @type {string}
+     */
+    #objectType: string;
+
+    /**
+     * Holds the event listeners that are waiting to be added once the Google Maps API is loaded
+     *
+     * @private
+     * @type {Events}
+     */
+    #pendingEventListeners: Events = {};
+
+    /**
+     * Constructor
+     *
+     * @param {string} objectType The object type for the class
+     */
+    constructor(objectType: string) {
+        super();
+        this.#objectType = objectType;
     }
 
     /**
-     * Sets the event callback data
+     * Returns the object type
      *
-     * @param {EventCallbackData} data The event callback data
+     * @returns {string}
      */
-    setEventCallbackData(data: EventCallbackData): void {
-        this.eventCallbackData = data;
+    getObjectType(): string {
+        return this.#objectType;
+    }
+
+    /**
+     * Add an event listener that will be set up after the Google Maps API is loaded
+     *
+     * @param {string} [type] The event type
+     * @param {Function} [callback] The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {boolean} setupOnLoad Whether to set up the event listener after the Google Maps API is loaded. If
+     *    false then you will need to call the setupPendingEventListeners() method manually.
+     */
+    addPendingEventListener(
+        type: string,
+        callback: EventListenerOrEventListenerObject,
+        options?: AddEventListenerOptions | boolean,
+        setupOnLoad: boolean = true
+    ) {
+        if (!this.#pendingEventListeners[type]) {
+            this.#pendingEventListeners[type] = [];
+        }
+        this.#pendingEventListeners[type].push({ callback, options });
+
+        if (!this.#isOnLoadEventSet && setupOnLoad) {
+            loader().once('map_loaded', () => {
+                this.setupPendingEventListeners();
+            });
+            this.#isOnLoadEventSet = true;
+        }
+    }
+
+    /**
+     * Sets up the pending event listeners so that they run now that the Google Maps API is loaded
+     */
+    setupPendingEventListeners() {
+        Object.keys(this.#pendingEventListeners).forEach((type) => {
+            this.#pendingEventListeners[type].forEach((event) => {
+                this.on(type, event.callback, event.options);
+            });
+        });
+        this.#pendingEventListeners = {};
     }
 
     /**
@@ -65,7 +125,7 @@ export class Evented extends EventTarget {
      *      Event is created
      */
     dispatch(event: string, data?: any) {
-        let eventData = { ...this.eventCallbackData };
+        let eventData = {};
         if (isObject(data)) {
             eventData = { ...data, ...eventData };
         }
@@ -90,7 +150,7 @@ export class Evented extends EventTarget {
      *     this.offAll();
      *
      * @param {string} [type] The event type
-     * @param {function} [callback] The event listener function
+     * @param {Function} [callback] The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     off(type?: string, callback?: EventListenerOrEventListenerObject, options?: EventListenerOptions | boolean): void {
@@ -99,8 +159,8 @@ export class Evented extends EventTarget {
             this.removeEventListener(type, callback, options);
         } else if (isString(type)) {
             // Remove all listeners for the given event type
-            if (this.eventListeners[type]) {
-                this.eventListeners[type].forEach((event) => {
+            if (this.#eventListeners[type]) {
+                this.#eventListeners[type].forEach((event) => {
                     this.removeEventListener(type, event.callback, event.options);
                 });
             }
@@ -108,8 +168,8 @@ export class Evented extends EventTarget {
             this.offAll();
         }
 
-        if (this.eventListeners[type]) {
-            this.eventListeners[type] = this.eventListeners[type].filter(
+        if (this.#eventListeners[type]) {
+            this.#eventListeners[type] = this.#eventListeners[type].filter(
                 (event) => event.callback !== callback && event.options !== options
             );
         }
@@ -119,19 +179,19 @@ export class Evented extends EventTarget {
      * Removes all event listeners
      */
     offAll(): void {
-        Object.keys(this.eventListeners).forEach((type) => {
-            this.eventListeners[type].forEach((event) => {
+        Object.keys(this.#eventListeners).forEach((type) => {
+            this.#eventListeners[type].forEach((event) => {
                 this.removeEventListener(type, event.callback, event.options);
             });
         });
-        this.eventListeners = {};
+        this.#eventListeners = {};
     }
 
     /**
      * Add an event listener to the object
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
@@ -143,7 +203,7 @@ export class Evented extends EventTarget {
      * Sets up an event listener that will only be called once
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      */
     once(type: string, callback: EventListenerOrEventListenerObject | null): void {
         this.on(type, callback, { once: true });
@@ -157,7 +217,7 @@ export class Evented extends EventTarget {
      * This is also used to remove event listeners.
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {Function} callback The event listener function
      * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
     registerListener(
@@ -165,10 +225,10 @@ export class Evented extends EventTarget {
         callback: EventListenerOrEventListenerObject,
         options?: AddEventListenerOptions | boolean
     ): void {
-        if (!this.eventListeners[type]) {
-            this.eventListeners[type] = [];
+        if (!this.#eventListeners[type]) {
+            this.#eventListeners[type] = [];
         }
-        this.eventListeners[type].push({ callback, options });
+        this.#eventListeners[type].push({ callback, options });
     }
 
     /**
@@ -186,30 +246,35 @@ export class Evented extends EventTarget {
         callback?: EventListenerOrEventListenerObject,
         options?: AddEventListenerOptions | boolean
     ): boolean {
-        if (!this.eventListeners[type]) {
+        if (!this.#eventListeners[type]) {
             return false;
         }
         if (typeof callback === 'function') {
             if (options) {
                 return (
-                    this.eventListeners[type].filter(
+                    this.#eventListeners[type].filter(
                         (event) => event.callback === callback && event.options === options
                     ).length > 0
                 );
             }
-            return this.eventListeners[type].filter((event) => event.callback === callback).length > 0;
+            return this.#eventListeners[type].filter((event) => event.callback === callback).length > 0;
         }
-        return this.eventListeners[type] && this.eventListeners[type].length > 0;
+        return this.#eventListeners[type] && this.#eventListeners[type].length > 0;
     }
 
     /**
      * Include the mixin into the class
      *
-     * @link https://javascript.info/mixins
-     * @link https://www.digitalocean.com/community/tutorials/js-using-js-mixins
-     * @param mixin The mixin to include
+     * https://javascript.info/mixins
+     * https://www.digitalocean.com/community/tutorials/js-using-js-mixins
+     *
+     * @param {any} mixin The mixin to include
      */
     static include(mixin: any) {
         Object.assign(this.prototype, mixin);
     }
 }
+
+Evented.include(BaseMixin);
+
+export default Evented;

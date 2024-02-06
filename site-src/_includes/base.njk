@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="{{ '/css/main.css'|url|safe}}">
+  <script src="{{ '/map/index.js'|url|safe}}"></script>
+</head>
+<body>
+    {# Output the API key from the global variable set in eleventy.config.cjs #}
+    <script>const apiKey = '{{ apiKey }}';</script>
+    <main class="main container">
+        <ul class="Nav">
+            <li><a href="/">Main</a></li>
+            <li><a href="/loader">Loader</a></li>
+            <li><a href="/latlng">LatLng</a></li>
+            <li><a href="/latlng-bounds">LatLngBounds</a></li>
+            <li><a href="/map">Map</a></li>
+            <li><a href="/marker">Marker</a></li>
+            <li><a href="/point">Point</a></li>
+            <li><a href="/plugin">Plugin</a></li>
+            <li><a href="/size">Size</a></li>
+            <li><a href="/svgsymbol">SvgSymbol</a></li>
+        </ul>
+        {{ content | safe }}
+    </main>
+</body>
+</html>

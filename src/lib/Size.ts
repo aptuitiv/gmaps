@@ -17,7 +17,10 @@
     size(sizeClassInstance);
 =========================================================================== */
 
-import { isNumber, isNumberString, isObject } from './helpers';
+/* global google */
+
+import Base from './Base';
+import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object for the width and height
 // Example: `{width: 34, height: 6}`
@@ -32,96 +35,98 @@ export type WidthSize = number | number[] | string | string[] | SizeObject;
 /**
  * The Size class to set up and manage width and height values for an element
  */
-export class Size {
+export class Size extends Base {
     /**
      * Holds the Google maps size object
+     *
+     * @private
+     * @type {google.maps.Size}
      */
-    private sizeObject: google.maps.Size;
+    #sizeObject: google.maps.Size;
 
     /**
      * The width value
+     *
+     * @private
+     * @type {number}
      */
-    private width: number;
+    #width: number;
 
     /**
      * The height value
-     */
-    private height: number;
-
-    /**
-     * The type of object. For this class it will always be "size"
      *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'size') {}
+     * @type {number}
      */
-    objectType: string = 'size';
+    #height: number;
 
     /**
      * Constructor
      *
-     * @param {WidthSize} width The X value
+     * @param {WidthSize|Size} width The X value
      * @param {number|string} height The Y value
      */
-    constructor(width: WidthSize, height?: number | string) {
-        if (Array.isArray(width)) {
-            const [w, h] = width;
-            if ((isNumber(w) || isNumberString(w)) && (isNumber(h) || isNumberString(h))) {
-                if (isNumberString(w)) {
-                    this.width = Number(w);
-                } else {
-                    this.width = w;
-                }
-                if (isNumberString(h)) {
-                    this.height = Number(h);
-                } else {
-                    this.height = h;
-                }
-            } else {
-                throw new Error('Invalid width/height pair');
-            }
-        } else if (isObject(width)) {
-            const widthObject: SizeObject = width as unknown as SizeObject;
-            if (
-                typeof widthObject.width === 'undefined' ||
-                (!isNumber(widthObject.width) && !isNumberString(widthObject.width)) ||
-                typeof widthObject.height === 'undefined' ||
-                (!isNumber(widthObject.height) && !isNumberString(widthObject.height))
-            ) {
-                throw new Error('Invalid width/height pair');
-            }
-            if (isNumberString(widthObject.width)) {
-                this.width = Number(widthObject.width);
-            } else {
-                this.width = widthObject.width;
-            }
-            if (isNumberString(widthObject.height)) {
-                this.height = Number(widthObject.height);
-            } else {
-                this.height = widthObject.height;
-            }
-        } else {
-            if (isNumberString(width)) {
-                this.width = Number(width);
-            } else {
-                this.width = width;
-            }
-            if (isNumberString(height)) {
-                this.height = Number(height);
-            } else {
-                this.height = height;
-            }
-        }
-        this.sizeObject = new google.maps.Size(this.width, this.height);
+    constructor(width: WidthSize | Size, height?: number | string) {
+        super('size');
+        this.set(width, height);
     }
 
     /**
-     * Returns the size object
+     * Get the height value
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
-     * @returns {google.maps.Size}
+     * @returns {number}
      */
-    get(): google.maps.Size {
-        return this.sizeObject;
+    get height(): number {
+        return this.#height;
+    }
+
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     */
+    set height(height: number | string) {
+        if (isNumberString(height)) {
+            this.#height = Number(height);
+        } else if (isNumber(height)) {
+            this.#height = height;
+        }
+        if (isObject(this.#sizeObject)) {
+            this.#sizeObject.height = this.#height;
+        }
+    }
+
+    /**
+     * Get the width value
+     *
+     * @returns {number}
+     */
+    get width(): number {
+        return this.#width;
+    }
+
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     */
+    set width(width: number | string) {
+        if (isNumberString(width)) {
+            this.#width = Number(width);
+        } else if (isNumber(width)) {
+            this.#width = width;
+        }
+        if (isObject(this.#sizeObject)) {
+            this.#sizeObject.width = this.#width;
+        }
+    }
+
+    /**
+     * Returns a new copy of the size
+     *
+     * @returns {Size}
+     */
+    clone(): Size {
+        return new Size(this.#width, this.#height);
     }
 
     /**
@@ -130,7 +135,7 @@ export class Size {
      * @returns {number}
      */
     getHeight(): number {
-        return this.height;
+        return this.#height;
     }
 
     /**
@@ -139,7 +144,86 @@ export class Size {
      * @returns {number}
      */
     getWidth(): number {
-        return this.width;
+        return this.#width;
+    }
+
+    /**
+     * Returns whether the width/height pair are valid values
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean {
+        return isNumber(this.#width) && isNumber(this.#height);
+    }
+
+    /**
+     * Set the width/height values
+     *
+     * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
+     * @param {number|string} height The height value
+     * @returns {Size}
+     */
+    set(width: WidthSize | Size, height?: number | string): Size {
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        if (Array.isArray(width)) {
+            const [widthValue, heightValue] = width;
+            this.width = widthValue;
+            this.height = heightValue;
+        } else if (isObject(width)) {
+            const widthObject: SizeObject = width as unknown as SizeObject;
+            if (typeof widthObject.width !== 'undefined') {
+                this.width = widthObject.width;
+            }
+            if (typeof widthObject.height !== 'undefined') {
+                this.height = widthObject.height;
+            }
+        } else if ((width as any) instanceof Size) {
+            return (width as any).clone();
+        } else {
+            this.width = width;
+            this.height = height;
+        }
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+        return this;
+    }
+
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setHeight(height: number | string): Size {
+        this.height = height;
+        return this;
+    }
+
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setWidth(width: number | string): Size {
+        this.width = width;
+        return this;
+    }
+
+    /**
+     * Returns the Google maps size object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+     *
+     * @returns {google.maps.Size|null}
+     */
+    toGoogle(): google.maps.Size | null {
+        if (checkForGoogleMaps('Size', 'Size')) {
+            if (!isObject(this.#sizeObject)) {
+                this.#sizeObject = new google.maps.Size(this.#width, this.#height);
+            }
+            return this.#sizeObject;
+        }
+        return null;
     }
 }
 
@@ -153,9 +237,4 @@ export type SizeValue = Size | number | number[] | string | string[] | SizeObjec
  * @param {number|string }height The height value
  * @returns {Size}
  */
-export const size = (width: SizeValue, height?: number | string): Size => {
-    if (width instanceof Size) {
-        return width;
-    }
-    return new Size(width, height);
-};
+export const size = (width: SizeValue, height?: number | string): Size => new Size(width, height);

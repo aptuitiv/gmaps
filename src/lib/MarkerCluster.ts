@@ -31,6 +31,7 @@ import { Marker } from './Marker';
 import { getNumber, isNumber, isNumberString, isObject } from './helpers';
 import { ClusterColors, DefaultRenderer } from './MarkerCluster/DefaultRender';
 import { ClusterImages, ClusterImageValue, ImageRenderer } from './MarkerCluster/ImageRenderer';
+import Base from './Base';
 
 // Options for the default renderer
 type DefaultRenderOptions = {
@@ -99,7 +100,8 @@ type MarkerClusterOptions = {
      * An algorithm to cluster markers. This determines how many markers are clustered together.
      * Default is SuperClusterAlgorithm. Must provide a `calculate` method accepting AlgorithmInput and returning
      * an array of Cluster.
-     * @link https://googlemaps.github.io/js-markerclusterer/classes/GridAlgorithm.html
+     *
+     * https://googlemaps.github.io/js-markerclusterer/classes/GridAlgorithm.html
      */
     algorithmClass?: Algorithm;
     /**
@@ -109,9 +111,9 @@ type MarkerClusterOptions = {
      * - maxZoom
      * - minPoints
      *
-     * @link https://googlemaps.github.io/js-markerclusterer/interfaces/AlgorithmOptions.html
-     * @link https://googlemaps.github.io/js-markerclusterer/interfaces/GridOptions.html
-     * @link https://www.npmjs.com/package/supercluster - This is what the SueprClusterAlgorithm uses
+     * https://googlemaps.github.io/js-markerclusterer/interfaces/AlgorithmOptions.html
+     * https://googlemaps.github.io/js-markerclusterer/interfaces/GridOptions.html
+     * https://www.npmjs.com/package/supercluster - This is what the SueprClusterAlgorithm uses
      */
     algorithmOptions?: SuperClusterOptions;
     /**
@@ -144,8 +146,9 @@ type MarkerClusterOptions = {
      * An object that converts a cluster into a `google.maps.Marker`.
      * Default is DefaultRenderer.
      * It must provide a `render` method accepting Cluster, ClusterStatus, and `google.maps.Map` and returning a `google.maps.Marker`.
-     * @link https://github.com/googlemaps/js-markerclusterer/blob/main/src/renderer.ts
-     * @link https://googlemaps.github.io/js-markerclusterer/classes/DefaultRenderer.html
+     *
+     * https://github.com/googlemaps/js-markerclusterer/blob/main/src/renderer.ts
+     * https://googlemaps.github.io/js-markerclusterer/classes/DefaultRenderer.html
      */
     renderer?: Renderer;
 };
@@ -153,19 +156,14 @@ type MarkerClusterOptions = {
 /**
  * The MarkerCluster class to handle clusting of markers on a map
  */
-export class MarkerCluster {
+export class MarkerCluster extends Base {
     /**
      * The MarkerClusterer object
-     */
-    private clusterer: MarkerClusterer;
-
-    /**
-     * The type of object. For this class it will always be "markercluster"
      *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'markercluster') {}
+     * @private
+     * @type {MarkerClusterer}
      */
-    objectType: string = 'markercluster';
+    #clusterer: MarkerClusterer;
 
     /**
      * The constructor for the MarkerCluster class
@@ -175,8 +173,9 @@ export class MarkerCluster {
      * @param {MarkerClusterOptions} [options] Options for the marker clusterer
      */
     constructor(map: Map, markers?: Marker[] | MarkerClusterOptions, options?: MarkerClusterOptions) {
+        super('markercluster');
         const clusterOptions: MarkerClustererOptions = {
-            map: map.get(),
+            map: map.toGoogle(),
         };
 
         // Set the options
@@ -306,13 +305,13 @@ export class MarkerCluster {
         }
 
         // Set the marker cluster object
-        this.clusterer = new MarkerClusterer(clusterOptions);
+        this.#clusterer = new MarkerClusterer(clusterOptions);
 
         // Set the markers if they were passed in
         if (Array.isArray(markers)) {
             markers.forEach((marker) => {
                 if (marker instanceof Marker) {
-                    this.clusterer.addMarker(marker.get(), true);
+                    this.#clusterer.addMarker(marker.toGoogle(), true);
                 }
             });
         }
@@ -326,7 +325,7 @@ export class MarkerCluster {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     addMarker(marker: Marker, draw: boolean = true) {
-        this.clusterer.addMarker(marker.get(), !draw);
+        this.#clusterer.addMarker(marker.toGoogle(), !draw);
     }
 
     /**
@@ -340,20 +339,20 @@ export class MarkerCluster {
         const markersToAdd: MarkerClustererMarker[] = [];
         markers.forEach((marker) => {
             if (marker instanceof Marker) {
-                markersToAdd.push(marker.get());
+                markersToAdd.push(marker.toGoogle());
             }
         });
-        this.clusterer.addMarkers(markersToAdd, !draw);
+        this.#clusterer.addMarkers(markersToAdd, !draw);
     }
 
     /**
      *
-     * @param marker The marker to remove
+     * @param {Marker} marker The marker to remove
      * @param {boolean} draw Whether to redraw the clusters after removing the marker.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     removeMarker(marker: Marker, draw: boolean = false) {
-        this.clusterer.removeMarker(marker.get(), !draw);
+        this.#clusterer.removeMarker(marker.toGoogle(), !draw);
     }
 
     /**
@@ -363,14 +362,14 @@ export class MarkerCluster {
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
      */
     clearMarkers(draw: boolean = true) {
-        this.clusterer.clearMarkers(!draw);
+        this.#clusterer.clearMarkers(!draw);
     }
 
     /**
      * Force a recalculation and redraw of all the marker clusters.
      */
     render() {
-        this.clusterer.render();
+        this.#clusterer.render();
     }
 }
 

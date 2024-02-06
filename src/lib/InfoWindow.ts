@@ -2,9 +2,18 @@
     Helps to set up the built-in Google InfoWindow
 =========================================================================== */
 
+/* global google, Element, Text */
 /* eslint-disable no-use-before-define */
 
-import { isNumber, isNumberString, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
+import {
+    checkForGoogleMaps,
+    isNumber,
+    isNumberString,
+    isObject,
+    isObjectWithValues,
+    isString,
+    isStringWithValue,
+} from './helpers';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
@@ -31,6 +40,8 @@ export type InfoWindowOptions = {
     // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
     // Defaults to [0, -4]
     pixelOffset?: SizeValue;
+    // Whether or not clicking the thing that triggered the info window to open should also close the info window.
+    toggleDisplay?: boolean;
     // The zIndex of the InfoWindow.
     zIndex?: number;
 };
@@ -42,23 +53,42 @@ export class InfoWindow extends Layer {
     /**
      * Whether to automatically close other open InfoWindows when opening this one
      *
+     * @private
      * @type {boolean}
      */
-    private autoClose: boolean = true;
+    #autoClose: boolean = true;
 
     /**
      * Whether focus should be moved to the InfoWindow when it is opened
      *
+     * @private
      * @type {boolean}
      */
-    private focus: boolean = false;
+    #focus: boolean = false;
+
+    /**
+     * Holds if the InfoWindow is open or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isOpen: boolean = false;
+
+    /**
+     * Whether clicking the thing that triggered the info window to open should also close the info window
+     *
+     * @private
+     * @type {boolean}
+     */
+    #toggleDisplay: boolean = true;
 
     /**
      * Holds the Google maps InfoWindow object
      *
+     * @private
      * @type {google.maps.InfoWindow}
      */
-    private infoWindow: google.maps.InfoWindow;
+    #infoWindow: google.maps.InfoWindow;
 
     /**
      * Constructor
@@ -66,10 +96,28 @@ export class InfoWindow extends Layer {
      * @param {InfoWindowOptions} [options] The InfoWindow options
      */
     constructor(options?: InfoWindowOptions) {
-        super();
-        this.infoWindow = new google.maps.InfoWindow();
-        this.infoWindow.addListener('closeclick', () => {
+        super('infowindow');
+        // Make sure that the Google maps library is ready
+        checkForGoogleMaps('InfoWindow', 'InfoWindow');
+
+        // Create the InfoWindow object
+        this.#infoWindow = new google.maps.InfoWindow();
+        // Handle when the close button is clicked
+        this.#infoWindow.addListener('closeclick', () => {
             InfoWindowCollection.getInstance().remove(this);
+        });
+        // Handle when the map changes.
+        // This is used to handle when the InfoWindow is closed programatically by another
+        // Google InfoWindow. This can happen if one of our windows is open and then the
+        // user clicks on a map location ang Google shows their own info window.
+        // Without doing this, we can't track that our window was closed.
+        this.#infoWindow.addListener('map_changed', () => {
+            // The getMap() function technically works, but it's not part of the public API
+            // so we don't use it. get('map') seems to work the same.
+            if (this.#infoWindow.get('map') === null) {
+                this.#isOpen = false;
+                InfoWindowCollection.getInstance().remove(this);
+            }
         });
 
         if (isObject(options)) {
@@ -80,11 +128,11 @@ export class InfoWindow extends Layer {
     /**
      * Set the InfoWindow options
      *
-     * @param options The InfoWindow options
+     * @param {InfoWindowOptions} options The InfoWindow options
      */
     setOptions(options: InfoWindowOptions) {
         const iwOptions: google.maps.InfoWindowOptions = {
-            pixelOffset: size(0, -4).get(),
+            pixelOffset: size(0, -4).toGoogle(),
         };
         if (isStringWithValue(options.ariaLabel)) {
             iwOptions.ariaLabel = options.ariaLabel;
@@ -106,54 +154,50 @@ export class InfoWindow extends Layer {
             iwOptions.minWidth = Number(options.minWidth);
         }
         if (options.pixelOffset) {
-            iwOptions.pixelOffset = size(options.pixelOffset).get();
+            iwOptions.pixelOffset = size(options.pixelOffset).toGoogle();
         }
         if (options.zIndex) {
             this.setZIndex(options.zIndex);
         }
 
-        this.infoWindow.setOptions(iwOptions);
+        this.#infoWindow.setOptions(iwOptions);
 
         // Other options
         if (typeof options.autoClose === 'boolean') {
-            this.autoClose = options.autoClose;
+            this.#autoClose = options.autoClose;
         }
         if (typeof options.focus === 'boolean') {
-            this.focus = options.focus;
+            this.#focus = options.focus;
+        }
+        if (typeof options.toggleDisplay === 'boolean') {
+            this.#toggleDisplay = options.toggleDisplay;
         }
     }
 
     /**
      * Set the InfoWindow content
-     * @param content The InfoWindow content
+     *
+     * @param {string | Element | Text} content The InfoWindow content
      */
     setContent(content: string | Element | Text) {
         if (isStringWithValue(content) || content instanceof Element || content instanceof Text) {
-            this.infoWindow.setContent(content);
+            this.#infoWindow.setContent(content);
         }
     }
 
     /**
      * Sets the zIndex value for the InfoWindow
-     * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
+     *
      * @param {number|string} zIndex The zindex value
      */
     setZIndex(zIndex: number | string) {
         if (isNumber(zIndex)) {
-            this.infoWindow.setZIndex(zIndex);
+            this.#infoWindow.setZIndex(zIndex);
         } else if (isNumberString(zIndex)) {
-            this.infoWindow.setZIndex(Number(zIndex));
+            this.#infoWindow.setZIndex(Number(zIndex));
         }
-    }
-
-    /**
-     * Get the Google maps InfoWindow object
-     *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
-     * @returns {google.maps.InfoWindow}
-     */
-    get(): google.maps.InfoWindow {
-        return this.infoWindow;
     }
 
     /**
@@ -163,50 +207,59 @@ export class InfoWindow extends Layer {
      * If an anchor object is passed in then the info window will be displayed at the anchor's position.
      * If a map object is passed in then the info window will be displayed at the position of the info window.
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
-     * @param {Map | Marker | google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | google.maps.MaP} anchorOrMap The anchor object or map object.
-     *      This should ideally be the Map or Marker object and not the Google maps object.
-     *      If this is used internally then the Google maps object can be used.
+     * @param {Map | Marker} anchorOrMap The anchor object or map object.
+     *      This should ideally be the Map or Marker object.
      */
-    open(
-        anchorOrMap: Map | Marker | google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | google.maps.Map
-    ) {
-        // Close other open InfoWindows if necessary
-        if (this.autoClose) {
-            InfoWindowCollection.getInstance().closeAll();
-        }
-
-        if (anchorOrMap instanceof Map) {
-            this.infoWindow.open({
-                map: anchorOrMap.get(),
-                shouldFocus: this.focus,
-            });
-        } else if (anchorOrMap instanceof google.maps.Map) {
-            this.infoWindow.open({
-                map: anchorOrMap,
-                shouldFocus: this.focus,
-            });
-        } else if (anchorOrMap instanceof Marker) {
-            this.infoWindow.open({
-                anchor: anchorOrMap.get(),
-                shouldFocus: this.focus,
-            });
+    open(anchorOrMap: Map | Marker) {
+        const collection = InfoWindowCollection.getInstance();
+        if (collection.has(this) && this.#isOpen) {
+            if (this.#toggleDisplay) {
+                this.close();
+            }
         } else {
-            this.infoWindow.open({
-                anchor: anchorOrMap,
-                shouldFocus: this.focus,
-            });
+            // Close other open InfoWindows if necessary
+            if (this.#autoClose) {
+                collection.closeOthers(this);
+            }
+
+            if (anchorOrMap instanceof Map) {
+                this.#infoWindow.open({
+                    map: anchorOrMap.toGoogle(),
+                    shouldFocus: this.#focus,
+                });
+                this.setMap(anchorOrMap);
+            } else if (anchorOrMap instanceof Marker) {
+                this.#infoWindow.open({
+                    anchor: anchorOrMap.toGoogle(),
+                    shouldFocus: this.#focus,
+                });
+                this.setMap(anchorOrMap.getMap());
+            }
+            this.#isOpen = true;
+            collection.add(this);
         }
-        InfoWindowCollection.getInstance().add(this);
     }
 
     /**
      * Close the info window
      */
     close() {
-        this.infoWindow.close();
+        this.#infoWindow.close();
+        this.#isOpen = false;
         InfoWindowCollection.getInstance().remove(this);
+    }
+
+    /**
+     * Get the Google maps InfoWindow object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
+     *
+     * @returns {google.maps.InfoWindow}
+     */
+    toGoogle(): google.maps.InfoWindow {
+        return this.#infoWindow;
     }
 }
 
@@ -226,11 +279,12 @@ export const infoWindow = (options?: InfoWindowValue): InfoWindow => {
 };
 
 /**
- * To avoid circilar dependencies we need to add the bindInfoWindow method to the Marker class here
+ * To avoid circilar dependencies we need to add the bindInfoWindow method to the Layer class here
  */
-Marker.include({
+Layer.include({
     /**
      * Holds the InfoWindow object
+     *
      * @type {InfoWindow}
      */
     layerInfoWindow: null,
@@ -253,7 +307,7 @@ Marker.include({
         }
         this.on('click', () => {
             if (this.layerInfoWindow) {
-                this.layerInfoWindow.open(this.get());
+                this.layerInfoWindow.open(this);
             }
         });
     },
@@ -262,9 +316,11 @@ Marker.include({
 type InfoWindowCollectionObject = {
     infoWindows: InfoWindow[];
     add(iw: InfoWindow): void;
-    remove(iw: InfoWindow): void;
     clear(): void;
     closeAll(): void;
+    closeOthers(iw: InfoWindow): void;
+    has(iw: InfoWindow): boolean;
+    remove(iw: InfoWindow): void;
 };
 
 /**
@@ -282,6 +338,7 @@ const InfoWindowCollection = (() => {
 
     /**
      * Create the object instance
+     *
      * @private
      * @returns {InfoWindowCollectionObject}
      */
@@ -293,20 +350,11 @@ const InfoWindowCollection = (() => {
             infoWindows: [],
             /**
              * Adds an InfoWindow to the collection
-             * @param iw The InfoWindow object to add
+             *
+             * @param {InfoWindow} iw The InfoWindow object to add
              */
             add(iw: InfoWindow) {
                 this.infoWindows.push(iw);
-            },
-            /**
-             * Removes an InfoWindow from the collection
-             * @param iw The InfoWindow object to remove
-             */
-            remove(iw: InfoWindow) {
-                const index = this.infoWindows.indexOf(iw);
-                if (index > -1) {
-                    this.infoWindows.splice(index, 1);
-                }
             },
             /**
              * Clears the collection
@@ -322,12 +370,45 @@ const InfoWindowCollection = (() => {
                     iw.close();
                 });
             },
+            /**
+             * Close all the InfoWindows in the collection except for the one passed in
+             *
+             * @param {InfoWindow} iw The InfoWindow object to keep open
+             */
+            closeOthers(iw: InfoWindow) {
+                this.infoWindows.forEach((infoW: InfoWindow) => {
+                    if (infoW !== iw) {
+                        infoW.close();
+                    }
+                });
+            },
+            /**
+             * Returns whether the collection has the InfoWindow object
+             *
+             * @param {InfoWindow} iw The InfoWindow object to check for
+             * @returns {boolean}
+             */
+            has(iw: InfoWindow): boolean {
+                return this.infoWindows.indexOf(iw) > -1;
+            },
+            /**
+             * Removes an InfoWindow from the collection
+             *
+             * @param {InfoWindow} iw The InfoWindow object to remove
+             */
+            remove(iw: InfoWindow) {
+                const index = this.infoWindows.indexOf(iw);
+                if (index > -1) {
+                    this.infoWindows.splice(index, 1);
+                }
+            },
         };
     }
 
     return {
         /**
          * Get the singleton instance of the object
+         *
          * @returns {InfoWindowCollectionObject}
          */
         getInstance(): InfoWindowCollectionObject {

@@ -15,6 +15,9 @@
     });
 =========================================================================== */
 
+/* global google */
+
+import Base from './Base';
 import { isObject, isStringWithValue } from './helpers';
 import { point, PointValue } from './Point';
 import { size, SizeValue } from './Size';
@@ -41,19 +44,11 @@ type IconOptions = {
 /**
  * Icon class to set up an icon options for a marker
  */
-export class Icon {
-    /**
-     * The type of object. For this class it will always be "icon"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'icon') {}
-     */
-    objectType: string = 'icon';
-
+export class Icon extends Base {
     /**
      * Holds the Google maps icon options
      */
-    private options: google.maps.Icon;
+    #options: google.maps.Icon;
 
     /**
      * Constructor
@@ -62,24 +57,16 @@ export class Icon {
      * @param {IconOptions} [options] The icon options
      */
     constructor(url?: string | IconOptions, options?: IconOptions) {
-        this.options = { url: '' };
+        super('icon');
+        this.#options = { url: '' };
         if (typeof url === 'string') {
-            this.options = {
+            this.#options = {
                 url,
             };
             this.setOptions(options);
         } else if (isObject(url)) {
             this.setOptions(url);
         }
-    }
-
-    /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Icon}
-     */
-    get(): google.maps.Icon {
-        return this.options;
     }
 
     /**
@@ -95,17 +82,17 @@ export class Icon {
             const stringValues = ['url'];
             pointValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = point(options[key]).get();
+                    this.#options[key] = point(options[key]).toGoogle();
                 }
             });
             sizeValues.forEach((key) => {
                 if (options[key]) {
-                    this.options[key] = size(options[key]).get();
+                    this.#options[key] = size(options[key]).toGoogle();
                 }
             });
             stringValues.forEach((key) => {
                 if (options[key] && isStringWithValue(options[key])) {
-                    this.options[key] = options[key];
+                    this.#options[key] = options[key];
                 }
             });
         }
@@ -132,7 +119,7 @@ export class Icon {
      * @returns {Icon}
      */
     setAnchor(anchor: PointValue): Icon {
-        this.options.anchor = point(anchor).get();
+        this.#options.anchor = point(anchor).toGoogle();
         return this;
     }
 
@@ -156,7 +143,7 @@ export class Icon {
      * @returns {Icon}
      */
     setLabelOrigin(origin: PointValue): Icon {
-        this.options.labelOrigin = point(origin).get();
+        this.#options.labelOrigin = point(origin).toGoogle();
         return this;
     }
 
@@ -178,7 +165,7 @@ export class Icon {
      * @returns {Icon}
      */
     setOrigin(origin: PointValue): Icon {
-        this.options.origin = point(origin).get();
+        this.#options.origin = point(origin).toGoogle();
         return this;
     }
 
@@ -201,7 +188,7 @@ export class Icon {
      * @returns {Icon}
      */
     setScaledSize(sizeValue: SizeValue): Icon {
-        this.options.scaledSize = size(sizeValue).get();
+        this.#options.scaledSize = size(sizeValue).toGoogle();
         return this;
     }
 
@@ -226,7 +213,7 @@ export class Icon {
      * @returns {Icon}
      */
     setSize(sizeValue: SizeValue): Icon {
-        this.options.size = size(sizeValue).get();
+        this.#options.size = size(sizeValue).toGoogle();
         return this;
     }
 
@@ -237,8 +224,17 @@ export class Icon {
      * @returns {Icon}
      */
     setUrl(url: string): Icon {
-        this.options.url = url;
+        this.#options.url = url;
         return this;
+    }
+
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Icon}
+     */
+    toGoogle(): google.maps.Icon {
+        return this.#options;
     }
 }
 

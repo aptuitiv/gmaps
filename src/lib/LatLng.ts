@@ -19,13 +19,18 @@
     latLng(latLngClassInstance);
 =========================================================================== */
 
-import { isNumber, isNumberString, isObject } from './helpers';
+/* global google */
+
+import Base from './Base';
+import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
 
 // The object literal for a latitude/longitude pair.
+// The values are optional so that this type can be used when building a lat/lng object pair.
+// In reality, both values are required.
 // Example: `{lat: 32.33, lng: -64.45}`
 export type LatLngLiteral = {
-    lat: number | string;
-    lng: number | string;
+    lat?: number | string;
+    lng?: number | string;
 };
 
 // The object literal for a latitude/longitude pair with expanded property names.
@@ -41,119 +46,183 @@ export type Latitude = number | number[] | string | string[] | LatLngLiteral | L
 /**
  * The LatLng class to set up and manage latitude/longitude pairs
  */
-export class LatLng {
+export class LatLng extends Base {
     /**
      * Holds the Google maps LatLng object
+     *
+     * @private
      * @type {google.maps.LatLng}
      */
-    latLngObject: google.maps.LatLng;
+    #latLngObject: google.maps.LatLng;
 
     /**
      * Holds the latitude
+     *
+     * @private
      * @type {number}
      */
-    latitude: number;
+    #latitude: number;
 
     /**
      * Holds the longitude
+     *
+     * @private
      * @type {number}
      */
-    longitude: number;
+    #longitude: number;
 
     /**
-     * The type of object. For this class it will always be "latlng"
+     * Whether the latitude/longitude pair values have changed since the last time they were set
      *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'latlng') {}
+     * @type {boolean}
      */
-    objectType: string = 'latlng';
+    #valuesChanged: boolean = false;
 
     /**
      * Constructor
      *
-     * @param {Latitude} latitude The latitude value or the latitude/longitude pair
+     * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
      * @param {number|string} [longitude] The longitude value
      */
-    constructor(latitude: Latitude, longitude?: number | string) {
+    constructor(latitude?: Latitude | LatLng, longitude?: number | string) {
+        super('latlng');
+        this.set(latitude, longitude);
+    }
+
+    /**
+     * Get the latitude value
+     *
+     * @returns {number}
+     */
+    get latitude(): number {
+        return this.#latitude ?? 0;
+    }
+
+    /**
+     * Set the latitude value
+     *
+     * @param {number|string} latitude The latitude value. Ideally it's a number but it could be a number string
+     */
+    set latitude(latitude: number | string) {
+        if (isNumberString(latitude)) {
+            this.#latitude = Number(latitude);
+        } else if (isNumber(latitude)) {
+            this.#latitude = latitude;
+        }
+        this.#valuesChanged = true;
+    }
+
+    /**
+     * Get the latitude value (shortened version of the latitude property)
+     *
+     * @returns {number}
+     */
+    get lat(): number {
+        return this.#latitude ?? 0;
+    }
+
+    /**
+     * Set the latitude value
+     *
+     * @param {number|string} latitude The latitude value. Ideally it's a number but it could be a number string
+     */
+    set lat(latitude: number | string) {
+        this.latitude = latitude;
+    }
+
+    /**
+     * Get the longitude value
+     *
+     * @returns {number}
+     */
+    get longitude(): number {
+        return this.#longitude ?? 0;
+    }
+
+    /**
+     * Set the longitude value
+     *
+     * @param {number|string} longitude The longitude value. Ideally it's a number but it could be a number string
+     */
+    set longitude(longitude: number | string) {
+        if (isNumberString(longitude)) {
+            this.#longitude = Number(longitude);
+        } else if (isNumber(longitude)) {
+            this.#longitude = longitude;
+        }
+        this.#valuesChanged = true;
+    }
+
+    /**
+     * Get the longitude value (shortened version of the longitude property)
+     *
+     * @returns {number}
+     */
+    get lng(): number {
+        return this.#longitude ?? 0;
+    }
+
+    /**
+     * Set the longitude value
+     *
+     * @param {number|string} longitude The longitude value. Ideally it's a number but it could be a number string
+     */
+    set lng(longitude: number | string) {
+        this.longitude = longitude;
+    }
+
+    /**
+     * Returns a new copy of the latitude/longitude pair
+     *
+     * @returns {LatLng}
+     */
+    clone(): LatLng {
+        return new LatLng(this.#latitude, this.#longitude);
+    }
+
+    /**
+     * Set the latitude/longitude pair
+     *
+     * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
+     * @param {number|string} longitude The longitude value
+     * @returns {LatLng}
+     */
+    set(latitude: Latitude | LatLng, longitude?: number | string): LatLng {
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(latitude)) {
             const [lat, lng] = latitude;
-            if ((isNumber(lat) || isNumberString(lat)) && (isNumber(lng) || isNumberString(lng))) {
-                if (isNumberString(lat)) {
-                    this.latitude = Number(lat);
-                } else {
-                    this.latitude = lat;
-                }
-                if (isNumberString(lng)) {
-                    this.longitude = Number(lng);
-                } else {
-                    this.longitude = lng;
-                }
-            } else {
-                throw new Error('Invalid latitude/longitude pair');
-            }
+            this.latitude = lat;
+            this.longitude = lng;
         } else if (isObject(latitude)) {
-            if (
-                typeof (latitude as LatLngLiteral).lat !== 'undefined' &&
-                typeof (latitude as LatLngLiteral).lng !== 'undefined'
-            ) {
-                const latObject: LatLngLiteral = latitude as unknown as LatLngLiteral;
-                if (
-                    !isNumber(latObject.lat) &&
-                    !isNumberString(latObject.lat) &&
-                    !isNumber(latObject.lng) &&
-                    !isNumberString(latObject.lng)
-                ) {
-                    throw new Error('Invalid latitude/longitude pair');
-                }
-                if (isNumberString(latObject.lat)) {
-                    this.latitude = Number(latObject.lat);
-                } else {
-                    this.latitude = latObject.lat;
-                }
-                if (isNumberString(latObject.lng)) {
-                    this.longitude = Number(latObject.lng);
-                } else {
-                    this.longitude = latObject.lng;
-                }
-            } else if (
-                typeof (latitude as LatLngLiteralExpanded).latitude !== 'undefined' &&
-                typeof (latitude as LatLngLiteralExpanded).longitude !== 'undefined'
-            ) {
-                const latObject: LatLngLiteralExpanded = latitude as unknown as LatLngLiteralExpanded;
-                if (
-                    !isNumber(latObject.latitude) ||
-                    !isNumberString(latObject.latitude) ||
-                    !isNumber(latObject.longitude) ||
-                    !isNumberString(latObject.longitude)
-                ) {
-                    throw new Error('Invalid latitude/longitude pair');
-                }
-                if (isNumberString(latObject.latitude)) {
-                    this.latitude = Number(latObject.latitude);
-                } else {
-                    this.latitude = latObject.latitude;
-                }
-                if (isNumberString(latObject.longitude)) {
-                    this.longitude = Number(latObject.longitude);
-                } else {
-                    this.longitude = latObject.longitude;
-                }
-            } else {
-                throw new Error('Invalid latitude/longitude object pair');
+            if (typeof (latitude as LatLngLiteral).lat !== 'undefined') {
+                this.latitude = (latitude as LatLngLiteral).lat;
+            } else if (typeof (latitude as LatLngLiteralExpanded).latitude !== 'undefined') {
+                this.latitude = (latitude as LatLngLiteralExpanded).latitude;
             }
+            if (typeof (latitude as LatLngLiteral).lng !== 'undefined') {
+                this.longitude = (latitude as LatLngLiteral).lng;
+            } else if (typeof (latitude as LatLngLiteralExpanded).longitude !== 'undefined') {
+                this.longitude = (latitude as LatLngLiteralExpanded).longitude;
+            }
+        } else if ((latitude as any) instanceof LatLng) {
+            return (latitude as any).clone();
         } else {
-            if (isNumberString(latitude)) {
-                this.latitude = Number(latitude);
-            } else {
-                this.latitude = latitude;
-            }
-            if (isNumberString(longitude)) {
-                this.longitude = Number(longitude);
-            } else {
-                this.longitude = longitude;
-            }
+            this.latitude = latitude;
+            this.longitude = longitude;
         }
-        this.latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+        return this;
+    }
+
+    /**
+     * Sets the latitude value
+     *
+     * @param {number|string} lat The latitude value. Ideally it's a number, but it could be a number string
+     * @returns {LatLng}
+     */
+    setLat(lat: number | string): LatLng {
+        this.latitude = lat;
+        return this;
     }
 
     /**
@@ -163,6 +232,17 @@ export class LatLng {
      */
     getLat(): number {
         return this.latitude;
+    }
+
+    /**
+     * Sets the longitude value
+     *
+     * @param {number|string} lng The longitude value. Ideally it's a number, but it could be a number string
+     * @returns {LatLng}
+     */
+    setLng(lng: number | string): LatLng {
+        this.longitude = lng;
+        return this;
     }
 
     /**
@@ -177,11 +257,33 @@ export class LatLng {
     /**
      * Get the Google maps LatLng object
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
-     * @returns {google.maps.LatLng}
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
+     *
+     * @returns {google.maps.LatLng|null}
      */
-    get(): google.maps.LatLng {
-        return this.latLngObject;
+    toGoogle(): google.maps.LatLng | null {
+        if (!this.isValid()) {
+            throw new Error(
+                `Invalid latitude/longitude pair. One or both values are missing. Latitude: ${this.latitude}, Longitude: ${this.longitude}`
+            );
+        }
+        if (checkForGoogleMaps('LatLng', 'LatLng')) {
+            if (!isObject(this.#latLngObject) || this.#valuesChanged) {
+                this.#latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
+                this.#valuesChanged = false;
+            }
+            return this.#latLngObject;
+        }
+        return null;
+    }
+
+    /**
+     * Returns whether the latitude/longitude pair are valid values
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean {
+        return isNumber(this.#latitude) && isNumber(this.#longitude);
     }
 
     /**
@@ -203,13 +305,18 @@ export type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExp
 /**
  * Helper function to set up a new LatLng object value
  *
- * @param {LatLngValue} latitude The latitude value or the latitude/longitude pair
+ * @param {LatLngValue} [latitude] The latitude value or the latitude/longitude pair
  * @param {number|string} [longitude] The longitude value
  * @returns {LatLng}
  */
-export const latLng = (latitude: LatLngValue | string | number, longitude?: number | string): LatLng => {
-    if (latitude instanceof LatLng) {
-        return latitude;
-    }
-    return new LatLng(latitude, longitude);
-};
+export const latLng = (latitude?: LatLngValue | string | number, longitude?: number | string): LatLng =>
+    new LatLng(latitude, longitude);
+
+/**
+ * Converts the Google maps LatLng object to a LatLng object
+ *
+ * @param {google.maps.LatLng} googleLatLng The Google maps LatLng object
+ * @returns {LatLng}
+ */
+export const latLngConvert = (googleLatLng: google.maps.LatLng): LatLng =>
+    new LatLng(googleLatLng.lat(), googleLatLng.lng());

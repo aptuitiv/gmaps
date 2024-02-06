@@ -4,11 +4,13 @@
     https://developers.google.com/maps/documentation/javascript/customoverlays
 =========================================================================== */
 
+/* global google, HTMLElement, OverlayView */
 /* eslint-disable max-classes-per-file */
 
-import { isObject } from './helpers';
+import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
+import { checkForGoogleMaps } from './helpers';
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -16,11 +18,14 @@ import { Point, point, PointValue } from './Point';
  * The methods are purposely left blank so you can override them in your own class.
  * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
  */
-export class Overlay {
+export class Overlay extends Layer {
     /**
      * Holds the offset for the overlay
+     *
+     * @private
+     * @type {Point}
      */
-    private offset: Point;
+    #offset: Point;
 
     /**
      * Holds the overlay HTML element. This is the container element that the
@@ -40,8 +45,11 @@ export class Overlay {
 
     /**
      * Constructor
+     *
+     * @param {string} objectType The object type for the class
      */
-    constructor() {
+    constructor(objectType: string) {
+        super(objectType);
         // Get the overlay view class
         // eslint-disable-next-line no-use-before-define
         this.overlayView = getOverlayViewClass(this);
@@ -55,15 +63,17 @@ export class Overlay {
         google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.overlay);
 
         // Set the default offset
-        this.offset = point(0, 0);
+        this.#offset = point(0, 0);
     }
 
     /**
      * Hide the overlay
-     * @internal Intended to be called only by internal classes
+     *
+     * @internal
      */
     hide() {
         this.overlayView.setMap(null);
+        this.removeMap();
     }
 
     /**
@@ -71,7 +81,7 @@ export class Overlay {
      *
      * If you need multiple class names then separate them with a space.
      *
-     * @param className The class name(s) to add to the tooltip.
+     * @param {string} className The class name(s) to add to the tooltip.
      *    This can be a space separated list of class names.
      */
     setClassName(className: string) {
@@ -84,7 +94,7 @@ export class Overlay {
     /**
      * Removes a class name from the overlay element
      *
-     * @param className The class name to remove from the overlay element
+     * @param {string} className The class name to remove from the overlay element
      */
     removeClassName(className: string) {
         const classes = className.split(' ');
@@ -96,13 +106,12 @@ export class Overlay {
     /**
      * Set the map object to display the overlay in
      *
-     * @param {Map | google.maps.Map} map The Google maps map object or the Map object
+     * @param {Map} map The Map object
      */
-    setMap(map: Map | google.maps.Map) {
+    setMap(map: Map) {
         if (map instanceof Map) {
-            this.overlayView.setMap(map.get());
-        } else if (map instanceof google.maps.Map) {
-            this.overlayView.setMap(map);
+            this.overlayView.setMap(map.toGoogle());
+            super.setMap(map);
         }
     }
 
@@ -112,7 +121,7 @@ export class Overlay {
      * @returns {Point}
      */
     getOffset(): Point {
-        return this.offset;
+        return this.#offset;
     }
 
     /**
@@ -120,23 +129,23 @@ export class Overlay {
      *
      * This lets you have the offset show a certain number of pixels from it's lat/lng position.
      *
-     * @param offset The offset value
+     * @param {PointValue} offset The offset value
      */
     setOffset(offset: PointValue) {
-        this.offset = point(offset);
+        this.#offset = point(offset);
     }
 
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
-     * @param panes The Google maps panes object
+     * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {} // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
-     * @param projection The Google maps projection object
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {} // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 
@@ -158,15 +167,11 @@ export class Overlay {
  * We can't simply extend the google.maps.OverlayView class because it may not exist
  * when this code is loaded. This ensures that it exists.
  *
- * @param classObject The overlay class object
+ * @param {Overlay} classObject The overlay class object
  * @returns {OverlayView}
  */
 export const getOverlayViewClass = (classObject: Overlay) => {
-    if (!isObject(google) || !isObject(google.maps)) {
-        throw new Error(
-            'Google maps not loaded. You must wait to run the overlay code until the Google map library is loaded.'
-        );
-    }
+    checkForGoogleMaps('Overlay', 'OverlayView');
     /**
      * Basic overlay class to handle displaying the overlay
      */
@@ -181,7 +186,7 @@ export const getOverlayViewClass = (classObject: Overlay) => {
         /**
          * Constructor
          *
-         * @param overlay The overlay class instance
+         * @param {Overlay} overlay The overlay class instance
          */
         constructor(overlay: Overlay) {
             super();

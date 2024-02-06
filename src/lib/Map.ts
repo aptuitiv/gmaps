@@ -4,6 +4,12 @@
     https://developers.google.com/maps/documentation/javascript/reference/map
     https://developers.google.com/maps/documentation/javascript/load-maps-js-api
 
+    If we want to use google.maps.marker.AdvancedMarkerElementOptions, we need to load the "marker" library.
+    When we add support for Advanced Markers, make sure that "marker" in included in the libraries array.
+    If there are code examples that use await google.maps.importLibrary(), the library that is loaded
+    should be included in the libraries array to properly load.
+    https://developers.google.com/maps/documentation/javascript/places
+
     Example usage:
     const map = G.map('map', {
         apiKey: 'myMapApiKey',
@@ -16,23 +22,39 @@
     });
 =========================================================================== */
 
-import { Loader, Libraries } from '@googlemaps/js-api-loader';
+/* global google */
+
+import { Libraries } from '@googlemaps/js-api-loader';
+import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
-import { isFunction, isObject } from './helpers';
-import { LatLng, latLng } from './LatLng';
-import { Evented } from './Evented';
+import {
+    checkForGoogleMaps,
+    isFunction,
+    isNumber,
+    isNumberOrNumberString,
+    isNumberString,
+    isObject,
+    isStringWithValue,
+} from './helpers';
+import { LatLng, latLng, LatLngValue } from './LatLng';
+import Evented from './Evented';
 
 export type MapOptions = {
     // The Google Maps API key
     apiKey: string;
+    // The position for the marker.
+    // This is an alternate to setting the latitude and longitude separately.
+    center?: LatLngValue;
     // The latitude for the center point of the map
-    latitude: number;
+    lat: number | string;
+    latitude: number | string;
     // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
     // The "places" library is a common one to load. https://developers.google.com/maps/documentation/javascript/places
     // https://developers.google.com/maps/documentation/javascript/libraries
     libraries?: Libraries;
     // The longitude for the center point of the map
-    longitude: number;
+    lng: number | string;
+    longitude: number | string;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
@@ -84,86 +106,135 @@ type LocationOnSuccess = (position: LocationPosition) => void;
  */
 export class Map extends Evented {
     /**
-     * Holds the Google Maps API key
+     * Holds the center point for the map
+     *
+     * @private
+     * @type {LatLng}
      */
-    private apiKey: string;
+    #center: LatLng;
 
     /**
      * Holds the id of the element that the map will be rendered in
+     *
+     * @private
+     * @type {string}
      */
-    private id: string;
-
-    /**
-     * Holds the libraries to load with Google maps
-     */
-    private libraries: Libraries;
+    #id: string;
 
     /**
      * Holds the Google map object
-     */
-    private map: google.maps.Map;
-
-    /**
-     * Holds the options object for the Google maps object
-     */
-    private mapOptions: google.maps.MapOptions;
-
-    /**
-     * The type of object. For this class it will always be "map"
      *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'map') {}
+     * @private
+     * @type {google.maps.Map}
      */
-    objectType: string = 'map';
-
-    /**
-     * Holds the version of the Google Maps API to load
-     */
-    private version: string;
+    #map: google.maps.Map;
 
     /**
      * Holds the watchId for the watchPosition() function
+     *
+     * @private
+     * @type {number}
      */
-    private watchId: number;
+    #watchId: number;
+
+    /**
+     * Holds the map zoom value
+     *
+     * @private
+     * @type {number}
+     */
+    #zoom: number = 6;
 
     /**
      * Class constructor
      *
      * @param {string} id The id of the element that the map will be rendered in
-     * @param {MapOptions} options The options object for the map
+     * @param {MapOptions} [options] The options object for the map
      */
-    constructor(id: string, options: MapOptions) {
-        super();
-        if (!isObject(options) || typeof options.apiKey !== 'string') {
-            throw new Error('Invalid map options');
+    constructor(id: string, options?: MapOptions) {
+        super('map');
+
+        // Set some default values
+        this.#center = latLng(0, 0);
+
+        this.#id = id;
+        if (isObject(options)) {
+            this.setOptions(options);
         }
-        this.id = id;
-        this.apiKey = options.apiKey;
-        // If we want to use google.maps.marker.AdvancedMarkerElementOptions, we need to load the "marker" library.
-        // When we add support for Advanced Markers, make sure that "marker" in included in the libraries array.
-        // If there are code examples that use await google.maps.importLibrary(), the library that is loaded
-        // should be included in the libraries array to properly load.
-        // https://developers.google.com/maps/documentation/javascript/places
-        this.libraries = options.libraries ?? [];
-        this.version = options.version ?? 'weekly';
+    }
 
-        // Default map options
-        const defaultConfig = {
-            zoom: 8,
-        };
-        const config = { ...defaultConfig, ...options };
-        delete config.apiKey;
-        delete config.libraries;
-        delete config.version;
+    /**
+     * Set the map options
+     *
+     * @param {MapOptions} options The map options
+     * @returns {Map}
+     */
+    setOptions(options: MapOptions): Map {
+        if (isObject(options)) {
+            // Set the loader options if necessary
+            if (options.apiKey || options.libraries || options.version) {
+                loader(options);
+            }
 
-        this.mapOptions = {
-            center: {
-                lat: config.latitude,
-                lng: config.longitude,
-            },
-            rotateControl: true,
-            zoom: config.zoom,
+            // Set the center point for the map
+            let center = latLng();
+            if (options.center) {
+                center = latLng(options.center);
+            } else {
+                if (isNumberOrNumberString(options.lat)) {
+                    center.setLat(options.lat);
+                } else if (isNumberOrNumberString(options.latitude)) {
+                    center.setLat(options.latitude);
+                }
+                if (isNumberOrNumberString(options.lng)) {
+                    center.setLng(options.lng);
+                } else if (isNumberOrNumberString(options.longitude)) {
+                    center.setLng(options.longitude);
+                }
+            }
+            if (center.isValid()) {
+                this.#center = center;
+            }
+
+            // Set the zoom level for the map
+            if (isNumber(options.zoom)) {
+                this.#zoom = options.zoom;
+            } else if (isNumberString(options.zoom)) {
+                this.#zoom = Number(options.zoom);
+            }
+        } else {
+            throw new Error('Invalid map options. You must pass an object of options');
+        }
+        return this;
+    }
+
+    /**
+     * Set the API key
+     *
+     * @param {string} key The API key
+     * @returns {Map}
+     */
+    setApiKey(key: string): Map {
+        if (isStringWithValue(key)) {
+            loader().apiKey = key;
+        } else {
+            throw new Error('You must pass a valid API key');
+        }
+        return this;
+    }
+
+    /**
+     * Get the map options for displaying the map
+     *
+     * @private
+     * @returns {google.maps.MapOptions}
+     */
+    #getMapOptions(): google.maps.MapOptions {
+        const options: google.maps.MapOptions = {
+            center: this.#center.toJson(),
+            zoom: this.#zoom,
         };
+        return options;
     }
 
     /**
@@ -174,51 +245,77 @@ export class Map extends Evented {
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'load' event
-     *   map.on('load', () => {
+     * 2. Listen for the 'display' event
+     *   map.on('display', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'load' event only once. The event
+     * 2a. Use the once() function to listen for the 'display' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('load', () => {
+     *   map.once('display', () => {
      *     // Do something after the map loads
      *   });
      *
-     * @param {function} callback The callback function to call after the map loads
+     * @param {Function} callback The callback function to call after the map loads
      */
-    load(callback?: () => void) {
-        // Set up the Google maps loader
-        // https://www.npmjs.com/package/@googlemaps/js-api-loader
-        const loader = new Loader({
-            apiKey: this.apiKey,
-            libraries: this.libraries,
-            version: this.version,
+    load(callback?: (map: Map) => void) {
+        return new Promise((resolve, reject) => {
+            loader()
+                .load()
+                .then(() => {
+                    this.#displayMap(callback);
+                    resolve(this);
+                })
+                .catch((err) => {
+                    reject(err);
+                });
         });
-
-        loader
-            .importLibrary('maps')
-            .then((google) => {
-                this.map = new google.Map(document.getElementById(this.id) as HTMLElement, this.mapOptions);
-                this.dispatch('load');
-
-                // Call the callback function if necessary
-                if (typeof callback === 'function') {
-                    callback();
-                }
-            })
-            .catch((err) => {
-                // eslint-disable-next-line no-console
-                console.error(err);
-            });
     }
 
     /**
-     * Returns the Google map object
+     * Display the map
      *
-     * @returns {google.maps.Map}
+     * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<Map>}
      */
-    get(): google.maps.Map {
-        return this.map;
+    display(callback?: (map: Map) => void): Promise<Map> {
+        return new Promise((resolve) => {
+            if (checkForGoogleMaps('Map', 'Map', false)) {
+                // The map library is loaded and this can be displayed
+                this.#displayMap(callback);
+                resolve(this);
+            } else {
+                // Wait for the loader to dispatch it's "load" event
+                loader().once('load', () => {
+                    this.#displayMap(callback);
+                    resolve(this);
+                });
+            }
+        });
+    }
+
+    /**
+     * Display the map
+     *
+     * This also dispatches the "display" and "map_loaded" events,
+     * and calls the callback function.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     */
+    #displayMap(callback?: (map: Map) => void) {
+        this.#map = new google.maps.Map(document.getElementById(this.#id) as HTMLElement, this.#getMapOptions());
+        // Dispatch the event to say that the map is displayed
+        this.dispatch('display');
+        // Dispatch the event on the loader to say that the map is fully loaded.
+        // This is done because the map is loaded after the loader's "load" event is dispatched
+        // and some objects depend on the map being loaded before they can be set up.
+        loader().dispatch('map_loaded');
+
+        // Call the callback function if necessary
+        if (isFunction(callback)) {
+            callback(this);
+        }
     }
 
     /**
@@ -238,15 +335,14 @@ export class Map extends Evented {
      * Usage:
      * Add marks to the map.
      * Then call map.fitBounds() to set the viewport to contain the markers.
-     *
      * @param {LatLngBoundsValue} bounds The bounds to fit
-     * @return {Map}
+     * @returns {Map}
      */
     fitBounds(bounds: LatLngBoundsValue): Map {
         if (bounds instanceof LatLngBounds) {
-            this.map.fitBounds(bounds.get());
+            this.#map.fitBounds(bounds.toGoogle());
         }
-        this.map.fitBounds(latLngBounds(bounds).get());
+        this.#map.fitBounds(latLngBounds(bounds).toGoogle());
         return this;
     }
 
@@ -266,8 +362,7 @@ export class Map extends Evented {
      *  });
      *
      * @param {LocateOptions|LocationOnSuccess} [options] The options for the locate() function. Or the callback function.
-     * @param {function} [onSuccess] The callback function for when the user's location is found.
-     *
+     * @param {Function} [onSuccess] The callback function for when the user's location is found.
      * @returns {Map}
      */
     locate(options?: LocateOptions | LocationOnSuccess, onSuccess?: LocationOnSuccess): Map {
@@ -311,7 +406,7 @@ export class Map extends Evented {
                 console.error(err);
             };
             if (config.watch) {
-                this.watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
+                this.#watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
             } else {
                 navigator.geolocation.getCurrentPosition(success, error, positionOptions);
             }
@@ -329,9 +424,54 @@ export class Map extends Evented {
      */
     stopLocate(): Map {
         if (navigator.geolocation) {
-            navigator.geolocation.clearWatch(this.watchId);
+            navigator.geolocation.clearWatch(this.#watchId);
         }
         return this;
+    }
+
+    /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     */
+    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
+        if (isFunction(callback)) {
+            if (checkForGoogleMaps('Map', 'Map', false)) {
+                if (isObject(this.#map) && this.#map instanceof google.maps.Map) {
+                    super.on(type, callback, options);
+                    if (isObject(options) && typeof options.once === 'boolean' && options.once) {
+                        google.maps.event.addListenerOnce(this.#map, type, (e: google.maps.MapMouseEvent) => {
+                            this.dispatch(type, e);
+                        });
+                    } else {
+                        this.#map.addListener(type, (e: google.maps.MapMouseEvent) => {
+                            this.dispatch(type, e);
+                        });
+                    }
+                } else if (type === 'display') {
+                    super.on(type, callback, options);
+                } else {
+                    this.addPendingEventListener(type, callback, options);
+                }
+            } else if (type === 'display') {
+                super.on(type, callback, options);
+            } else {
+                this.addPendingEventListener(type, callback, options);
+            }
+        } else {
+            throw new Error('the event handler needs a callback function');
+        }
+    }
+
+    /**
+     * Returns the Google map object
+     *
+     * @returns {google.maps.Map}
+     */
+    toGoogle(): google.maps.Map {
+        return this.#map;
     }
 }
 
@@ -339,7 +479,7 @@ export class Map extends Evented {
  * Helper function to set up the map object
  *
  * @param {string} id The id of the element that the map will be rendered in
- * @param {MapOptions} config The map options
+ * @param {MapOptions} [config] The map options
  * @returns {Map}
  */
-export const map = (id: string, config: MapOptions): Map => new Map(id, config);
+export const map = (id: string, config?: MapOptions): Map => new Map(id, config);

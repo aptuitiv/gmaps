@@ -1,47 +1,55 @@
-# google-map-display
+# Google Map Display library
 
 Library to help with displaying a Google map with markers, overlays, and custom buttons.
 
 Inspired by [Leaflet](https://leafletjs.com/).
 
-## Testing while developing local
+## Install
 
-In the `google-maps-display` library path use `npm link` to add the project to the local npm registry.
-
-```bash
-cd ./route-to-library
-npm link
-```
-
-In the project's folder that you want to use this library, use `npm link @aptuitiv/google-maps-display` to install the package locally.
-
-If you need to update the rets-client library do the following.
-
-### Unlink the project
-
-You should unlink the local project for any of these situations:
-
-- You are switching branches.
-- You are adding or removing node modules in this project. (This doesn't apply if you're adding or removing node modules in the project that uses this library.)
-- You want to use the live version of this package from NPM.
-
-First, in the project that uses this library:
+Download from NPM.
 
 ```bash
-npm unlink @aptuitiv/google-maps-display --no-save
+npm install @aptuitiv/google-maps-display
 ```
 
-The `--no-save` flag keeps the original live version of this package from NPM.
+You will find a copy of the files in `node_modules/@aptuitiv/google-maps-display/dist`.
 
-Then, in this package:
+The minified Javascript file is at `node_modules/@aptuitiv/google-maps-display/dist/index.js`;
 
-```bash
-npm unlink
+## Documentation
+
+[View the documentation](https://aptuitiv.github.io/google-maps-display-docs/).
+
+## Quick start
+
+Add the script tag to load the library.
+
+```html
+<script src="/google-map-display/index.js">
 ```
 
-### Resources
+Or you can bundle it with your other Javascript code using Gulp, Webpack or some other build process. Add the script tag to load your code.
 
-- [NPM Linking and Unlinking](https://dev.to/erinbush/npm-linking-and-unlinking-2h1g).
-- [Understanding npm-link](https://medium.com/dailyjs/how-to-use-npm-link-7375b6219557).
-- [How to Test a Node (npm) Package Locally](https://javascript.plainenglish.io/how-to-test-a-node-package-locally-8dde33e642df).
-- Other option wth tarballs [Use npm pack to test your packages locally](https://dev.to/scooperdev/use-npm-pack-to-test-your-packages-locally-486e).
+```html
+<script src="/my-bundled-code.js">
+```
+
+Add a div to hold the map. You can use any id value, we're using a value of "map".
+
+```html
+<!-- The map will be displayed here -->
+<div id="map" style="aspect-ratio: 3/2"></div>
+```
+
+Display the map
+
+```html
+<script>
+G.loader({ apiKey: 'Your-Api-Key', }).load().then(() => {
+    const map = G.map('map', { center: { latitude: 48.864716, longitude: 2.3522 } });
+    map.display();
+});
+</script>
+```
+
+[See the documentation for more information](https://aptuitiv.github.io/google-maps-display-docs).

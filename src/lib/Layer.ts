@@ -2,37 +2,47 @@
     Base class to help with drawing stuff on the map.
 =========================================================================== */
 
-import { Evented } from './Evented';
+import Evented from './Evented';
 import { Map } from './Map';
 import {} from './helpers';
 
+/**
+ * Base class to help with drawing stuff on the map.
+ *
+ * Other classes, like InfoWindow add functionality to this class with the include() method.
+ */
 class Layer extends Evented {
     /**
      * Holds the Map object that the layer is added to
      *
-     * @type {Map}
+     * @private
+     * @type {Map|null}
      */
-    private map: Map;
+    #map: Map | null = null;
 
     /**
-     * Get the Google maps object that this layer represents.
+     * Return the Map object or null if the Map object is not set
      *
-     * The classes that extend the layer should override this method and return the appropriate Google maps object.
-     * For example, the Marker class should return a google.maps.Marker object.
-     *
-     * @returns {google.maps.MVCObject}
+     * @returns {Map|null}
      */
-    // eslint-disable-next-line class-methods-use-this
-    get(): google.maps.MVCObject {
-        return new google.maps.MVCObject();
+    getMap(): Map | null {
+        return this.#map;
+    }
+
+    /**
+     * Clears the map object that the layer is added to
+     */
+    removeMap(): void {
+        this.#map = null;
     }
 
     /**
      * Sets the map object that the layer is added to
+     *
      * @param {Map} map The map object to add the layer to
      */
-    setMap(map: Map) {
-        this.map = map;
+    setMap(map: Map | null) {
+        this.#map = map;
     }
 }
 

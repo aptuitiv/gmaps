@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 (February 6, 2024)
+
+- Added separate Loader object to load the map library.
+- Improved event handling when the map library isn't loaded yet.
+- Added support for on-time events on the Map and Marker objects.
+- Lots of code refactoring.
+- Added local site to for testing.
+- Expanded LatLng and LatLngBounds functionality.
+
 ## 0.2.0 (January 30, 2024)
 
 - Added support for InfoWindow.

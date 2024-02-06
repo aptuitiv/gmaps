@@ -36,66 +36,178 @@
     });
     marker.addTo(map);
     const bounds = G.latLngBounds();
-    bounds.extend(marker.getLatLng());
+    bounds.extend(marker.getPosition());
     map.fitBounds(bounds);
 =========================================================================== */
 
-import { latLng, LatLng, LatLngValue } from './LatLng';
+/* global google */
+
+import Base from './Base';
+import { checkForGoogleMaps } from './helpers';
+import { latLng, latLngConvert, LatLng, LatLngValue } from './LatLng';
 
 /**
  * The LatLngBounds class to set up and manage latitude/longitude bounds
  */
-export class LatLngBounds {
+export class LatLngBounds extends Base {
     /**
      * Holds the Google maps LatLngBounds object
      */
-    private bounds: google.maps.LatLngBounds;
-
-    /**
-     * The type of object. For this class it will always be "latlngbounds"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'latlngbounds') {}
-     */
-    objectType: string = 'latlngbounds';
+    #bounds: google.maps.LatLngBounds;
 
     /**
      * Constructor
      *
-     * @param {LatLngValue} [latLngValue] The latitude/longitude value. If not set then add points with the extend method.
+     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
      *      See comments on the extended method for the types of values that latLngValue can be.
      */
-    constructor(latLngValue?: LatLngValue) {
-        this.bounds = new google.maps.LatLngBounds();
+    constructor(latLngValue?: LatLngValue | LatLngValue[]) {
+        super('latlngbounds');
+        checkForGoogleMaps('LatLngBounds', 'LatLngBounds');
+        this.#bounds = new google.maps.LatLngBounds();
         if (latLngValue) {
             this.extend(latLngValue);
         }
     }
 
     /**
+     * Returns whether the the given LatLng value is within this bounds
+     *
+     * @param {LatLngValue} latLngValue The LatLng value to test
+     * @returns {boolean}
+     */
+    contains(latLngValue: LatLngValue): boolean {
+        const latLngObject = latLng(latLngValue);
+        if (!latLngObject.isValid()) {
+            throw new Error(
+                `Invalid latitude/longitude data passed to LatLngBounds.contains. You passed: ${JSON.stringify(
+                    latLngValue
+                )}`
+            );
+        }
+        return this.#bounds.contains(latLng(latLngValue).toGoogle());
+    }
+
+    /**
+     * Returns whether this bounds approximately equals the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {boolean}
+     */
+    equals(other: LatLngBounds): boolean {
+        if (other instanceof LatLngBounds) {
+            return this.#bounds.equals(other.toGoogle());
+        }
+        return false;
+    }
+
+    /**
      * Extends this bounds to contain the given point
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
      *
      * The latLngValue parameter can be:
-     * - a LatLngBounds object
      * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
      * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
      * - an array of LatLng objects: [LatLng, LatLng, ...]
-     * - a LatLng object
      * - a [lat, lng] pair
      * - a {lat, lng} object (LatLngLiteral)
      *
-     * @param {LatLngValue} latLngValue The latitude/longitude value
+     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
+     * @returns {LatLngBounds}
      */
-    extend(latLngValue: LatLngValue): void {
-        if (latLngValue instanceof LatLng) {
-            this.bounds.extend(latLngValue.get());
-        } else if (Array.isArray(latLngValue) && latLngValue.length === 2) {
-            this.bounds.extend(latLng(latLngValue).get());
+    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds {
+        if (Array.isArray(latLngValue)) {
+            // Don't throw an error if the array is empty
+            if (latLngValue.length > 0) {
+                if (Array.isArray(latLngValue[0])) {
+                    // The value is likely an array of LatLngValues.
+                    const value = latLngValue as LatLngValue[];
+                    value.forEach((latLngVal: LatLngValue) => {
+                        this.extend(latLngVal);
+                    });
+                } else {
+                    // This is likely the array version of a LatLngValue.
+                    const latLngObject = latLng(latLngValue as LatLngValue);
+                    if (latLngObject.isValid()) {
+                        this.#bounds.extend(latLngObject.toGoogle());
+                    } else {
+                        throw new Error(
+                            `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(
+                                latLngValue
+                            )}`
+                        );
+                    }
+                }
+            } else {
+                // eslint-disable-next-line no-console
+                console.warn('The array passed to LatLngBounds.extend is empty. Nothing to extend.');
+            }
         } else {
-            throw new Error('Invalid latitude/longitude pair');
+            // This is likely a LatLngValue.
+            const latLngObject = latLng(latLngValue);
+            if (latLngObject.isValid()) {
+                this.#bounds.extend(latLngObject.toGoogle());
+            } else {
+                throw new Error(
+                    `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(latLngValue)}`
+                );
+            }
         }
+
+        return this;
+    }
+
+    /**
+     * Get the center of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getCenter(): LatLng {
+        // Convert the center to a LatLngValue
+        return latLngConvert(this.#bounds.getCenter());
+    }
+
+    /**
+     * Get the north-east corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getNorthEast(): LatLng {
+        return latLngConvert(this.#bounds.getNorthEast());
+    }
+
+    /**
+     * Get the south-west corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getSouthWest(): LatLng {
+        return latLngConvert(this.#bounds.getSouthWest());
+    }
+
+    /**
+     * Returns whether this bounds shares any points with the other bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {boolean}
+     */
+    intersects(other: LatLngBounds): boolean {
+        if (!(other instanceof LatLngBounds)) {
+            throw new Error(
+                `Invalid LatLngBounds object passed to LatLngBounds.intersects. You passed: ${JSON.stringify(other)}`
+            );
+        }
+        return this.#bounds.intersects(other.toGoogle());
+    }
+
+    /**
+     * Returns whether this bounds is empty
+     *
+     * @returns {boolean}
+     */
+    isEmpty(): boolean {
+        return this.#bounds.isEmpty();
     }
 
     /**
@@ -103,8 +215,56 @@ export class LatLngBounds {
      *
      * @returns {google.maps.LatLngBounds}
      */
-    get(): google.maps.LatLngBounds {
-        return this.bounds;
+    toGoogle(): google.maps.LatLngBounds {
+        return this.#bounds;
+    }
+
+    /**
+     * Converts the LatLngBounds object to a JSON object
+     *
+     * @returns {google.maps.LatLngBoundsLiteral}
+     */
+    toJson(): google.maps.LatLngBoundsLiteral {
+        return this.#bounds.toJSON();
+    }
+
+    /**
+     * Converts the LatLngBounds object to a lat/lng span
+     *
+     * @returns {LatLng}
+     */
+    toSpan(): LatLng {
+        return latLngConvert(this.#bounds.toSpan());
+    }
+
+    /**
+     * Converts the LatLngBounds object to a string
+     *
+     * @returns {string}
+     */
+    toString(): string {
+        return this.#bounds.toString();
+    }
+
+    /**
+     * Returns the LatLngBounds object as a string that can be used in a URL
+     *
+     * @param {number} [precision] The number of decimal places to round the lat/lng values to
+     * @returns {string}
+     */
+    toUrlValue(precision?: number): string {
+        return this.#bounds.toUrlValue(precision);
+    }
+
+    /**
+     * Extends this bounds to contain the union of this and the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to join with
+     * @returns {LatLngBounds}
+     */
+    union(other: LatLngBounds): LatLngBounds {
+        this.#bounds.union(other.toGoogle());
+        return this;
     }
 }
 
@@ -122,17 +282,6 @@ export type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
 export const latLngBounds = (latLngValue?: LatLngBoundsValue): LatLngBounds => {
     if (latLngValue instanceof LatLngBounds) {
         return latLngValue;
-    }
-    if (Array.isArray(latLngValue) && Array.isArray(latLngValue[0]) && latLngValue[0].length === 2) {
-        // The value is an array of LatLngValue values.
-        // This could be an array of [lat, lng] pairs, an aray of {lat, lng} objects,
-        // or an array of LatLng objects.
-        const bounds = new LatLngBounds();
-        const value = latLngValue as LatLngValue[];
-        value.forEach((latLngVal: LatLngValue) => {
-            bounds.extend(latLngVal);
-        });
-        return bounds;
     }
     return new LatLngBounds(latLngValue as LatLngValue);
 };

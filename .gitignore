@@ -7,6 +7,9 @@
 # https://dev.to/gajus/stop-using-package-lock-json-or-yarn-lock-3ddi
 # https://dev.to/saurabhdaware/but-what-the-hell-is-package-lock-json-b04
 
+# Files to ignore
+.env
+
 # Folders to ignore
 .DS_Store
 .idea
@@ -35,3 +38,6 @@ ts-out
 # Error logs
 npm-debug.log
 yarn-error.log
+
+# static site output
+site-dist

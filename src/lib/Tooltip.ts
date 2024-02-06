@@ -30,7 +30,11 @@
     });
 =========================================================================== */
 
+/* global google */
+
 import { isObject, isString, isStringWithValue } from './helpers';
+import { LatLng } from './LatLng';
+import { Map } from './Map';
 import { Overlay } from './Overlay';
 import { PointValue } from './Point';
 
@@ -43,28 +47,23 @@ type TooltipOptions = {
 /**
  * Tooltip class
  */
-class Tooltip extends Overlay {
+export class Tooltip extends Overlay {
     /**
      * Holds the tooltip content.
      * This can be a simple string of text, or string of HTML code.
      *
+     * @private
      * @type {string}
      */
-    private content: string;
+    #content: string;
 
     /**
      * Holds the position of the tooltip
      *
-     * @type {google.maps.LatLng}
+     * @private
+     * @type {LatLng}
      */
-    private position: google.maps.LatLng;
-
-    /**
-     * Holds the tooltip HTML element
-     *
-     * @type {HTMLElement}
-     */
-    private tooltip: HTMLElement;
+    #position: LatLng;
 
     /**
      * Constructor
@@ -72,7 +71,7 @@ class Tooltip extends Overlay {
      * @param {TooltipOptions} [options] Tooltip options
      */
     constructor(options?: TooltipOptions) {
-        super();
+        super('tooltip');
 
         if (isObject(options)) {
             this.setOptions(options);
@@ -105,35 +104,37 @@ class Tooltip extends Overlay {
      * @returns {boolean}
      */
     hasContent(): boolean {
-        return isStringWithValue(this.content);
+        return isStringWithValue(this.#content);
     }
 
     /**
      * Set the content for the tooltip
      *
-     * @param content The content for the tooltip
+     * @param {string} content The content for the tooltip
      */
     setContent(content: string) {
-        this.content = content;
-        this.overlay.innerHTML = content;
+        if (isStringWithValue(content)) {
+            this.#content = content;
+            this.overlay.innerHTML = content;
+        }
     }
 
     /**
      * Show the tooltip at the specified position
      *
-     * @internal Intended to be called only by internal classes
-     * @param map The Google map object
-     * @param position The Google maps lat/lng position of where the tooltip should show
+     * @internal
+     * @param {Map} map The Google map object
+     * @param {LatLng} position The Google maps lat/lng position of where the tooltip should show
      */
-    show(map: google.maps.Map, position: google.maps.LatLng) {
-        this.position = position;
+    show(map: Map, position: LatLng) {
+        this.#position = position;
         this.setMap(map);
     }
 
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
-     * @param panes The Google maps panes object
+     * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
         panes.floatPane.appendChild(this.overlay);
@@ -142,10 +143,10 @@ class Tooltip extends Overlay {
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
-     * @param projection The Google maps projection object
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position)!;
+        const divPosition = projection.fromLatLngToDivPixel(this.#position.toGoogle())!;
 
         // Hide the tooltip when it is far out of view.
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
