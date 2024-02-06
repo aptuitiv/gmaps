@@ -150,8 +150,6 @@ export class Loader extends EventTarget {
             if (isString(options.version)) {
                 this.version = options.version;
             }
-        } else {
-            throw new Error('The Load.setOptions() options parameter is required and must be an object');
         }
         return this;
     }
@@ -286,6 +284,8 @@ let loaderInstance: Loader;
 export const loader = (config?: LoaderOptions): Loader => {
     if (!loaderInstance) {
         loaderInstance = new Loader(config);
+    } else {
+        loaderInstance.setOptions(config);
     }
     return loaderInstance;
 };
