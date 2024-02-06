@@ -442,12 +442,11 @@ export class Map extends Evented {
                 if (isObject(this.#map) && this.#map instanceof google.maps.Map) {
                     super.on(type, callback, options);
                     if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                        google.maps.event.addListenerOnce(this.#map, type, () => {
-                            this.dispatch(type);
-                            this.off(type, callback);
+                        google.maps.event.addListenerOnce(this.#map, type, (e: google.maps.MapMouseEvent) => {
+                            this.dispatch(type, e);
                         });
                     } else {
-                        this.#map.addListener(type, (e) => {
+                        this.#map.addListener(type, (e: google.maps.MapMouseEvent) => {
                             this.dispatch(type, e);
                         });
                     }
