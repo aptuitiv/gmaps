@@ -16,8 +16,6 @@ const marker = G.marker({
     latitude: 40.730610,
     longitude: -73.935242,
     title: 'My Marker',
-    tooltipContainer: '#map',
-    tooltipClass: 'my-tooltip'
 });
 
 marker.pluginTest();
