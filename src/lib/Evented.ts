@@ -42,6 +42,7 @@ export type EventOptions = {
 // The data to hold for each event listener
 type EventData = {
     callback: EventCallback;
+    context?: object;
     options: EventOptions;
 };
 
@@ -121,24 +122,26 @@ export class Evented extends Base {
             this.#testLibrary = testObject;
         }
     }
+
     /**
      * Add an event listener that will be set up after the Google Maps API is loaded
      *
      * @param {string} [event] The event type
      * @param {EventCallback} [callback] The event listener function
      * @param {EventOptions} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {object} [context] The context to bind the callback function to
      */
-    addPendingEventListener(event: string, callback: EventCallback, options?: EventOptions) {
+    addPendingEventListener(event: string, callback: EventCallback, options?: EventOptions, context?: object) {
         if (!this.#pendingEventListeners[event]) {
             this.#pendingEventListeners[event] = [];
         }
-        this.#pendingEventListeners[event].push({ callback, options });
+        this.#pendingEventListeners[event].push({ callback, options, context });
 
         if (!this.#isOnLoadEventSet) {
             loader().once('map_loaded', () => {
                 Object.keys(this.#pendingEventListeners).forEach((type) => {
                     this.#pendingEventListeners[type].forEach((evt) => {
-                        this.on(type, evt.callback, evt.options);
+                        this.on(type, evt.callback, evt.options, evt.context);
                     });
                 });
                 this.#pendingEventListeners = {};
@@ -191,7 +194,8 @@ export class Evented extends Base {
             const listenersToRemove: EventData[] = [];
             // Call the callback functions
             listeners.forEach((listener) => {
-                listener.callback.call(this, eventData);
+                listener.callback.call(listener.context || this, eventData);
+                // If the event listener is set to be called once then add it to the list of listeners to remove
                 if (
                     typeof listener.options !== 'undefined' &&
                     isObject(listener.options) &&
@@ -293,9 +297,10 @@ export class Evented extends Base {
      * @param {string} type The event type
      * @param {Function} callback The event listener callback function
      * @param {EventOptions} [options] The options object
+     * @param {object} [context] The context to bind the callback function to
      */
-    on(type: string, callback: EventCallback, options?: EventOptions): void {
-        this.#on(type, callback, options);
+    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
+        this.#on(type, callback, options, context);
     }
 
     /**
@@ -304,12 +309,18 @@ export class Evented extends Base {
      * @param {string} type The event type
      * @param {Function} callback The event listener callback function
      * @param {EventOptions} [options] The options object
+     * @param {object} [context] The context to bind the callback function to
      */
-    #on(type: string, callback: EventCallback, options?: EventOptions): void {
+    #on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
         if (!this.#eventListeners[type]) {
             this.#eventListeners[type] = [];
         }
-        this.#eventListeners[type].push({ callback, options });
+        let callbackContext = context;
+        if (callbackContext === this) {
+            // If the context is the same as the object then set it to undefined to reduce memory footprint.
+            callbackContext = undefined;
+        }
+        this.#eventListeners[type].push({ callback, context: callbackContext, options });
     }
 
     /**
@@ -317,9 +328,10 @@ export class Evented extends Base {
      *
      * @param {string} type The event type
      * @param {EventCallback} [callback] The event listener callback function
+     * @param {object} [context] The context to bind the callback function to
      */
-    once(type: string, callback?: EventCallback): void {
-        this.on(type, callback, { once: true });
+    once(type: string, callback?: EventCallback, context?: object): void {
+        this.on(type, callback, { once: true }, context);
     }
 
     /**

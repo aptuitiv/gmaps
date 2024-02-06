@@ -436,9 +436,12 @@ export class Map extends Evented {
      * @param {string} type The event type
      * @param {Function} callback The event listener function
      * @param {EventOptions} [options] The event listener options
+     * @param {object} [context] The context to bind the callback function to
      */
-    on(type: string, callback: EventCallback, options?: EventOptions): void {
-        this.setupEventListener(type, callback, options, 'Map', 'Map');
+    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
+        this.setupEventListener(type, callback, options, context);
+    }
+
     }
 
     /**
