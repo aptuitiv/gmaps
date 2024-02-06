@@ -427,16 +427,21 @@ export class Marker extends Layer {
      */
     on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
         if (isFunction(callback)) {
-            super.on(type, callback, options);
-            if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                google.maps.event.addListenerOnce(this.#marker, type, () => {
-                    this.dispatch(type);
-                    this.off(type, callback);
-                });
+            if (checkForGoogleMaps('Marker', 'Map', false)) {
+                super.on(type, callback, options);
+                if (isObject(options) && typeof options.once === 'boolean' && options.once) {
+                    google.maps.event.addListenerOnce(this.#marker, type, (e: google.maps.MapMouseEvent) => {
+                        e.stop();
+                        this.dispatch(type, e);
+                    });
+                } else {
+                    this.#marker.addListener(type, (e: google.maps.MapMouseEvent) => {
+                        this.dispatch(type, e);
+                    });
+                }
             } else {
-                this.#marker.addListener(type, () => {
-                    this.dispatch(type);
-                });
+                console.log('Event: ', type);
+                this.addPendingEventListener(type, callback, options);
             }
         } else {
             throw new Error('the event handler needs a callback function');
