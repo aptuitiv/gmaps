@@ -5,20 +5,63 @@
 
 /* global G */
 
-const map = G.map('map1', {
+const mapObject = {
     apiKey: apiKey,
-    center: { lat: 36.224, lng: -81.688 },
-    zoom: 11
-});
-map.on('click', (e) => {
-    console.log('click: ', e);
-    // e.stop();
-});
-map.load().then(() => { console.log('1 loaded') });
+    center: { latitude: 48.864716, longitude: 2.3522 },
+    zoom: 11,
+    mapContainer: 'map1',
+    init: function () {
+        this.map = G.map(this.mapContainer, { center: this.center, zoom: this.zoom, apiKey: this.apiKey });
+        this.map.load();
+    },
+    setupEvents: function () {
+        // A regular function is used here to test setting the context of the event handler
+        this.map.on('click', function (e) {
+            console.log('click: ', e);
+            console.log('regular function this: ', this);
+            // e.stop();
+        }, null, this);
 
-console.log('map: ', map);
-console.log('isMap: ', map.isMap());
-console.log('isMarker: ', map.isMarker());
+        // An arrow function is used here to test setting the context of the event handler
+        this.map.on('click', (e) => {
+            console.log('Another click: ', e);
+            console.log('arrow function this: ', this);
+            // e.stop();
+        });
+
+        // Set up a named arrow function to test event context
+        const zoomCallback = (e) => {
+            console.log('Zoom: ', e);
+            console.log('named arrow function this: ', this);
+        }
+        this.map.on('zoom_changed', zoomCallback);
+
+        function zoomCallback2(e) {
+            console.log('Zoom 2: ', e);
+            console.log('regular named function this: ', this);
+            this.setCenter({ latitude: 36.224, longitude: 2.3522 });
+        }
+        this.map.on('zoom_changed', zoomCallback2, null, null);
+    }
+}
+mapObject.init();
+mapObject.setupEvents();
+
+// const map = G.map('map1', {
+//     apiKey: apiKey,
+//     center: { lat: 36.224, lng: -81.688 },
+//     zoom: 11
+// });
+// map.on('click', (e) => {
+//     console.log('click: ', e);
+//     console.log('this: ', this);
+//     // e.stop();
+// });
+// map.load().then(() => { console.log('1 loaded') });
+
+// console.log('map: ', map);
+// console.log('isMap: ', map.isMap());
+// console.log('isMarker: ', map.isMarker());
 
 // map.on('click', (e) => {
 //     console.log('click: ', e);
