@@ -4,7 +4,6 @@
 
 import { Loader as GoogleLoader, Libraries } from '@googlemaps/js-api-loader';
 import { isFunction, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
-import { Evented } from './Evented';
 
 // Loader Options
 export type LoaderOptions = {
@@ -24,7 +23,7 @@ export type LoaderOptions = {
  *
  * This should be a singleton object and prevent multiple loader objects on the page.
  */
-export class Loader extends Evented {
+export class Loader extends EventTarget {
     /**
      * Holds the Google Maps API key
      *
@@ -63,7 +62,7 @@ export class Loader extends Evented {
      * @param {LoaderOptions} [options] The loader options object
      */
     constructor(options?: LoaderOptions) {
-        super('load');
+        super();
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -229,23 +228,42 @@ export class Loader extends Evented {
     }
 
     /**
-     * Add an event listener to the object
+     * Dispatch an event
+     *
+     * @param {string} event The event to dispatch
+     */
+    dispatch(event: string) {
+        super.dispatchEvent(new CustomEvent(event));
+    }
+
+    /**
+     * Add an event listener to the object.
+     *
+     * All events on the loader object are set up as "once" events because the
+     * load event is only dispatched one time when the Google maps API is loaded.
      *
      * @param {string} type The event type
      * @param {Function} callback The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
      */
-    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
+    on(type: string, callback: EventListenerOrEventListenerObject): void {
         if (isFunction(callback)) {
-            console.log('is loaded: ', this.#isLoaded);
-            super.on(type, callback, options);
+            this.addEventListener(type, callback, { once: true });
             if (this.#isLoaded) {
-                console.log('Map is loaded is loaded');
                 this.dispatch('load');
             }
         } else {
             throw new Error('the event handler needs a callback function');
         }
+    }
+
+    /**
+     * Sets up an event listener that will only be called once
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     */
+    once(type: string, callback: EventListenerOrEventListenerObject | null): void {
+        this.on(type, callback);
     }
 }
 
