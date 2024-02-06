@@ -193,7 +193,7 @@ export class Marker extends Layer {
      * @param {MarkerOptions} [options] The marker options
      */
     constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
-        super('marker');
+        super('marker', 'Marker');
 
         // Set a default position
         this.#options.position = latLng([0, 0]);

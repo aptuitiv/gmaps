@@ -47,9 +47,11 @@ export class Overlay extends Layer {
      * Constructor
      *
      * @param {string} objectType The object type for the class
+     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
+     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
      */
-    constructor(objectType: string) {
-        super(objectType);
+    constructor(objectType: string, testObject: string, testLibrary?: string) {
+        super(objectType, testObject, testLibrary || 'OverlayView');
         // Get the overlay view class
         // eslint-disable-next-line no-use-before-define
         this.overlayView = getOverlayViewClass(this);

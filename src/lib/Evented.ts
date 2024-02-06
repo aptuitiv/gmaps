@@ -60,6 +60,12 @@ export class Evented extends Base {
      */
     #eventListeners: Events = {};
 
+    /**
+     * Holds the Google maps object that events are set up on
+     *
+     * @private
+     * @type {google.maps.MVCObject}
+     */
     #googleObject: google.maps.MVCObject;
 
     /**
@@ -79,6 +85,42 @@ export class Evented extends Base {
      */
     #pendingEventListeners: Events = {};
 
+    /**
+     * The object that needs Google maps. This should be the name of the object that extends this class.
+     *
+     * This is used with checkForGoogleMaps() to check if the Google Maps library is loaded.
+     *
+     * @private
+     * @type {string}
+     */
+    #testObject: string;
+
+    /**
+     * An optional Google maps library class to check for. This needs to be part of the google.maps object.
+     *
+     * This is used with checkForGoogleMaps() to check if the Google Maps library is loaded.
+     *
+     * @private
+     * @type {string}
+     */
+    #testLibrary: string;
+
+    /**
+     * Constructor
+     *
+     * @param {string} objectType The object type for the class
+     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
+     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
+     */
+    constructor(objectType: string, testObject: string, testLibrary?: string) {
+        super(objectType);
+        this.#testObject = testObject;
+        if (isString(testLibrary)) {
+            this.#testLibrary = testLibrary;
+        } else {
+            this.#testLibrary = testObject;
+        }
+    }
     /**
      * Add an event listener that will be set up after the Google Maps API is loaded
      *
@@ -292,20 +334,13 @@ export class Evented extends Base {
      * @param {string} type The event type
      * @param {EventCallback} callback The event listener callback function
      * @param {EventOptions} options The options for the event listener
-     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
-     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
+     * @param {object} context The context to bind the callback function to
      */
-    setupEventListener(
-        type: string,
-        callback: EventCallback,
-        options: EventOptions,
-        testObject: string,
-        testLibrary?: string
-    ): void {
+    setupEventListener(type: string, callback: EventCallback, options: EventOptions, context: object): void {
         if (isFunction(callback)) {
-            if (checkForGoogleMaps(testObject, testLibrary, false)) {
+            if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                 const hasEvent = Array.isArray(this.#eventListeners[type]);
-                this.#on(type, callback, options);
+                this.#on(type, callback, options, context);
                 if (!hasEvent && this.#googleObject instanceof google.maps.MVCObject) {
                     // The Google maps object is set and the event listener is not already set up on it.
                     this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
@@ -313,7 +348,7 @@ export class Evented extends Base {
                     });
                 }
             } else {
-                this.addPendingEventListener(type, callback, options);
+                this.addPendingEventListener(type, callback, options, context);
             }
         } else {
             throw new Error(`The "${type}" event handler needs a callback function`);

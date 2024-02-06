@@ -152,7 +152,7 @@ export class Map extends Evented {
      * @param {MapOptions} [options] The options object for the map
      */
     constructor(id: string, options?: MapOptions) {
-        super('map');
+        super('map', 'Map');
 
         // Set some default values
         this.#center = latLng(0, 0);
