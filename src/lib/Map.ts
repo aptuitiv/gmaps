@@ -442,6 +442,21 @@ export class Map extends Evented {
         this.setupEventListener(type, callback, options, context);
     }
 
+    /**
+     * Set the center point for the map
+     *
+     * @param {LatLngValue} latLngValue The latitude/longitude value
+     * @returns {Map}
+     */
+    setCenter(latLngValue: LatLngValue): Map {
+        const ll = latLng(latLngValue);
+        if (ll.isValid()) {
+            this.#center = ll;
+            if (isObject(this.#map)) {
+                this.#map.setCenter(this.#center.toGoogle());
+            }
+        }
+        return this;
     }
 
     /**
