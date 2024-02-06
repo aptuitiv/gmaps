@@ -14,9 +14,10 @@ const marker = G.marker({
     map: map,
     title: 'My Marker',
 });
-// marker.on('click', (e) => {
-//     console.log('Marker Clicked: ', e);
-// });
+marker.on('click', (e) => {
+    console.log('Marker Clicked: ', e);
+    e.detail.stop();
+});
 G.loader({ apiKey: apiKey }).load();
 
 // const loader = G.loader({ apiKey: apiKey, });

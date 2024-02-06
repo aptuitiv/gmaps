@@ -15,7 +15,7 @@ console.log('map: ', map);
 console.log('isMap: ', map.isMap());
 console.log('isMarker: ', map.isMarker());
 
-map.on('click', (e) => {
+map.once('click', (e) => {
     console.log('click: ', e);
 });
 
