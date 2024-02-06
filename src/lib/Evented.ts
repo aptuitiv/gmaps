@@ -131,7 +131,7 @@ export class Evented extends Base {
      * @param {EventOptions} [options] The options object or a boolean to indicate if the event should be captured
      * @param {object} [context] The context to bind the callback function to
      */
-    addPendingEventListener(event: string, callback: EventCallback, options?: EventOptions, context?: object) {
+    #addPendingEventListener(event: string, callback: EventCallback, options?: EventOptions, context?: object) {
         if (!this.#pendingEventListeners[event]) {
             this.#pendingEventListeners[event] = [];
         }
@@ -360,7 +360,7 @@ export class Evented extends Base {
                     });
                 }
             } else {
-                this.addPendingEventListener(type, callback, options, context);
+                this.#addPendingEventListener(type, callback, options, context);
             }
         } else {
             throw new Error(`The "${type}" event handler needs a callback function`);
