@@ -35,3 +35,29 @@ G.MyPlugin = class {
 
 const myPlugin = new G.MyPlugin({ test: 'test' });
 myPlugin.test();
+
+
+// Create a class that extends a library class
+
+class MyMarker extends G.Marker {
+    constructor(options) {
+        super(options);
+    }
+
+    test() {
+        this.dispatch('my_event', { test: 'test' });
+        console.log('MyMarker test');
+    }
+}
+
+G.MyMarker = MyMarker;
+
+const myMarker = new G.MyMarker({
+    latitude: 40.730610,
+    longitude: -73.935242,
+    title: 'My Marker',
+});
+myMarker.on('my_event', (e) => {
+    console.log('my_event: ', e);
+});
+myMarker.test();
