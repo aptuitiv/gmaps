@@ -328,8 +328,22 @@ export class Marker extends Layer {
             // Set the map
             this.#options.map = value;
             super.setMap(value);
+            this.#setupGoogleMarker();
             if (this.#marker) {
                 this.#marker.setMap(value.toGoogle());
+            } else {
+                // The Google maps object isn't available yet. Wait for it to load.
+                // The developer may have set the map on the marker before the Google maps object was available.
+                loader().once('map_loaded', () => {
+                    this.#setupGoogleMarker();
+                    // Make sure that the map is still set.
+                    // It's unlikely, but possible, that the developer could have removed the map
+                    // from the marker before the Google maps object was available.
+                    const map = this.getMap();
+                    if (this.#marker && map) {
+                        this.#marker.setMap(map.toGoogle());
+                    }
+                });
             }
         } else if (value === null) {
             // Remove the marker from the map
@@ -578,7 +592,7 @@ export class Marker extends Layer {
      */
     #setupGoogleMarker() {
         if (!isObject(this.#marker)) {
-            if (checkForGoogleMaps('Marker', 'Marker')) {
+            if (checkForGoogleMaps('Marker', 'Marker', false)) {
                 const markerOptions: google.maps.MarkerOptions = {};
                 // Options that can be set on the marker without any modification
                 const optionsToSet = ['cursor', 'title'];
