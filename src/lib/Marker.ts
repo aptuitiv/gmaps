@@ -194,9 +194,6 @@ export class Marker extends Layer {
      */
     constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
         super('marker');
-        loader().on('load', () => {
-            console.log('GM loaded');
-        });
 
         // Set a default position
         this.#options.position = latLng([0, 0]);
