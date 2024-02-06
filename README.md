@@ -4,16 +4,6 @@ Library to help with displaying a Google map with markers, overlays, and custom 
 
 Inspired by [Leaflet](https://leafletjs.com/).
 
-- [Google Map Display library](#google-map-display-library)
-  - [Install](#install)
-  - [Documentation](#documentation)
-    - [Map](#map)
-      - [Example Usage](#example-usage)
-  - [Testing while developing local](#testing-while-developing-local)
-  - [Testing locally with another project](#testing-locally-with-another-project)
-    - [Unlink the project](#unlink-the-project)
-    - [Resources](#resources)
-
 ## Install
 
 Download from NPM.
@@ -28,100 +18,38 @@ The minified Javascript file is at `node_modules/@aptuitiv/google-maps-display/d
 
 ## Documentation
 
-The different objects in the library are available under the global `G` variable.
+[View the documentation](https://aptuitiv.github.io/google-maps-display-docs/).
 
-You use one of the following functions to set up the object that you need.
+## Quick start
 
-- Icon:  `G.icon()`
-- InfoWindow: `G.infoWindow()`
-- Latitude/Longitude: `G.latLng()`
-- Latitude/Longitude Bounds: `G.latLngBounds()`
-- [Map](#map): `G.map()`
-- Marker: `G.marker()`
-- Marker Cluster: `G.markerCluster()`
-- Point: `G.point()`
-- Popup: `G.popup()`
-- Size: `G.size()`
-- Svg Symbol: `G.svgSymbol()`
-- Tooltip: `G.tooltip()`
+Add the script tag to load the library.
 
-### Map
+```html
+<script src="/google-map-display/index.js">
+```
 
-This is the primary object that you'll create. It's used to create and display the Google map on the page. It also loads the Google Map API library.
+Or you can bundle it with your other Javascript code using Gulp, Webpack or some other build process. Add the script tag to load your code.
 
-**You must load the map before setting up other objects for the map (i.e load the map before setting up a map marker).** Some of the other objects depend on the Google maps library being available.
+```html
+<script src="/my-bundled-code.js">
+```
 
-#### Example Usage
+Add a div to hold the map. You can use any id value, we're using a value of "map".
 
-```javascript
-// Set up the map object
-const map = G.map('map', {
-    apiKey: 'myMapApiKey',
-    latitude: 40.730610
-    longitude: -73.935242,
-    zoom: 8
+```html
+<!-- The map will be displayed here -->
+<div id="map" style="aspect-ratio: 3/2"></div>
+```
+
+Display the map
+
+```html
+<script>
+G.loader({ apiKey: 'Your-Api-Key', }).load().then(() => {
+    const map = G.map('map', { center: { latitude: 48.864716, longitude: 2.3522 } });
+    map.display();
 });
-// Load the map
-map.load(() => {
-    // Do something after the map loads.
-    // For example, set up your map markers.
-});
+</script>
 ```
 
-You must call the `load()` function on the map object before doing anything else. That function is what actually loads the Google Maps library and sets up the map.
-
-## Testing while developing local
-
-We've included [11ty](https://www.11ty.dev/) to build a local static site that you can use for testing.
-
-The files ae in the `site-src` directory.
-
-You will need to create a `.env` file that contains the `GOOGLE_MAPS_API_KEY` variable. Assign your Google maps API key to that variable.
-
-```env
-GOOGLE_MAPS_API_KEY=my-api-key-here
-```
-
-You can then edit `site-src/index.njk` and `site-src/js/index.js` for your testing.
-
-## Testing locally with another project
-
-In the `google-maps-display` library path use `npm link` to add the project to the local npm registry.
-
-```bash
-cd ./route-to-library
-npm link
-```
-
-In the project's folder that you want to use this library, use `npm link @aptuitiv/google-maps-display` to install the package locally.
-
-If you need to update the rets-client library do the following.
-
-### Unlink the project
-
-You should unlink the local project for any of these situations:
-
-- You are switching branches.
-- You are adding or removing node modules in this project. (This doesn't apply if you're adding or removing node modules in the project that uses this library.)
-- You want to use the live version of this package from NPM.
-
-First, in the project that uses this library:
-
-```bash
-npm unlink @aptuitiv/google-maps-display --no-save
-```
-
-The `--no-save` flag keeps the original live version of this package from NPM.
-
-Then, in this package:
-
-```bash
-npm unlink
-```
-
-### Resources
-
-- [NPM Linking and Unlinking](https://dev.to/erinbush/npm-linking-and-unlinking-2h1g).
-- [Understanding npm-link](https://medium.com/dailyjs/how-to-use-npm-link-7375b6219557).
-- [How to Test a Node (npm) Package Locally](https://javascript.plainenglish.io/how-to-test-a-node-package-locally-8dde33e642df).
-- Other option wth tarballs [Use npm pack to test your packages locally](https://dev.to/scooperdev/use-npm-pack-to-test-your-packages-locally-486e).
+[See the documentation for more information](https://aptuitiv.github.io/google-maps-display-docs).
