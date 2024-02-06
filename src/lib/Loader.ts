@@ -284,10 +284,8 @@ let loaderInstance: Loader;
  * @returns {Loader}
  */
 export const loader = (config?: LoaderOptions): Loader => {
-    console.log('loaderInstance 1', loaderInstance);
     if (!loaderInstance) {
         loaderInstance = new Loader(config);
     }
-    console.log('loaderInstance 2', loaderInstance);
     return loaderInstance;
 };
