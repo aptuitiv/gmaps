@@ -262,18 +262,7 @@ export class Map extends Evented {
             loader()
                 .load()
                 .then(() => {
-                    this.#map = new google.maps.Map(
-                        document.getElementById(this.#id) as HTMLElement,
-                        this.#getMapOptions()
-                    );
-                    this.dispatch('display');
-
-                    this.setupPendingEventListeners();
-
-                    // Call the callback function if necessary
-                    if (isFunction(callback)) {
-                        callback(this);
-                    }
+                    this.#displayMap(callback);
                     resolve(this);
                 })
                 .catch((err) => {
@@ -285,48 +274,50 @@ export class Map extends Evented {
     /**
      * Display the map
      *
-     * This assumes that the Google Maps API has already been loaded.
-     * If the google.maps.Map class is not available yet, but the google object is, then
-     * this will try to display the map up to 10 times.
+     * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
      *
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<Map>}
      */
     display(callback?: (map: Map) => void): Promise<Map> {
-        return new Promise((resolve, reject) => {
-            let attempts = 0;
-
-            // Internal function to display the map
-            const displayMap = () => {
-                attempts += 1;
-
-                if (checkForGoogleMaps('Map', 'Map', false)) {
-                    // The Google maps library has successfully loaded
-                    this.#map = new google.maps.Map(
-                        document.getElementById(this.#id) as HTMLElement,
-                        this.#getMapOptions()
-                    );
-                    // Call the callback function if necessary
-                    if (isFunction(callback)) {
-                        callback(this);
-                    }
-                    this.dispatch('display');
+        return new Promise((resolve) => {
+            if (checkForGoogleMaps('Map', 'Map', false)) {
+                // The map library is loaded and this can be displayed
+                this.#displayMap(callback);
+                resolve(this);
+            } else {
+                // Wait for the loader to dispatch it's "load" event
+                loader().once('load', () => {
+                    this.#displayMap(callback);
                     resolve(this);
-                } else if (typeof google !== 'undefined' && attempts <= 10) {
-                    // It's possible that the Google maps library is loaded but the Map class is not available yet.
-                    // Try again in a few milliseconds
-                    setTimeout(displayMap, 200);
-                } else {
-                    reject(
-                        new Error(
-                            'Failed to display the map. The Google Maps API library must be fully loaded before the map can be displayed.'
-                        )
-                    );
-                }
-            };
-
-            displayMap();
+                });
+            }
         });
+    }
+
+    /**
+     * Display the map
+     *
+     * This also dispatches the "display" and "map_loaded" events,
+     * calls the callback function, and sets up any pending event listeners.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     */
+    #displayMap(callback?: (map: Map) => void) {
+        this.#map = new google.maps.Map(document.getElementById(this.#id) as HTMLElement, this.#getMapOptions());
+        // Dispatch the event to say that the map is displayed
+        this.dispatch('display');
+        // Dispatch the event on the loader to say that the map is fully loaded.
+        // This is done because the map is loaded after the loader's "load" event is dispatched
+        // and some objects depend on the map being loaded before they can be set up.
+        loader().dispatch('map_loaded');
+
+        this.setupPendingEventListeners();
+
+        // Call the callback function if necessary
+        if (isFunction(callback)) {
+            callback(this);
+        }
     }
 
     /**
@@ -458,19 +449,19 @@ export class Map extends Evented {
                             this.off(type, callback);
                         });
                     } else {
-                        this.#map.addListener(type, () => {
-                            this.dispatch(type);
+                        this.#map.addListener(type, (e) => {
+                            this.dispatch(type, e);
                         });
                     }
                 } else if (type === 'display') {
                     super.on(type, callback, options);
                 } else {
-                    this.addPendingEventListener(type, callback, options);
+                    this.addPendingEventListener(type, callback, options, false);
                 }
             } else if (type === 'display') {
                 super.on(type, callback, options);
             } else {
-                this.addPendingEventListener(type, callback, options);
+                this.addPendingEventListener(type, callback, options, false);
             }
         } else {
             throw new Error('the event handler needs a callback function');
