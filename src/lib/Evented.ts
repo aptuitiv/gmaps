@@ -23,7 +23,7 @@ type Events = { [key: string]: EventData[] };
 /**
  * Evented class to add syntatic sugar to handling events
  */
-export class Evented extends EventTarget {
+class Evented extends EventTarget {
     /**
      * Holds the event listeners
      *
@@ -256,3 +256,5 @@ export class Evented extends EventTarget {
 }
 
 Evented.include(BaseMixin);
+
+export default Evented;

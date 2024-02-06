@@ -37,7 +37,7 @@ import {
     isStringWithValue,
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
-import { Evented } from './Evented';
+import Evented from './Evented';
 
 export type MapOptions = {
     // The Google Maps API key
