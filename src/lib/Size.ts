@@ -178,7 +178,8 @@ export class Size extends Base {
                 this.height = widthObject.height;
             }
         } else if ((width as any) instanceof Size) {
-            return (width as any).clone();
+            this.width = (width as any).getWidth();
+            this.height = (width as any).getHeight();
         } else {
             this.width = width;
             this.height = height;

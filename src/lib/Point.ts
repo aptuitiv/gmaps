@@ -285,7 +285,8 @@ export class Point extends Base {
                 this.y = xObject.y;
             }
         } else if ((x as any) instanceof Point) {
-            return (x as any).clone();
+            this.x = (x as any).x;
+            this.y = (x as any).y;
         } else {
             this.x = x;
             this.y = y;

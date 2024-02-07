@@ -205,7 +205,8 @@ export class LatLng extends Base {
                 this.longitude = (latitude as LatLngLiteralExpanded).longitude;
             }
         } else if ((latitude as any) instanceof LatLng) {
-            return (latitude as any).clone();
+            this.latitude = (latitude as any).getLat();
+            this.longitude = (latitude as any).getLng();
         } else {
             this.latitude = latitude;
             this.longitude = longitude;
