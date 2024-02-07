@@ -10,7 +10,7 @@
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
-import { checkForGoogleMaps } from './helpers';
+import { checkForGoogleMaps, isObject } from './helpers';
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -55,17 +55,10 @@ class Overlay extends Layer {
      */
     constructor(objectType: string, testObject: string, testLibrary?: string) {
         super(objectType, testObject, testLibrary || 'OverlayView');
-        // Get the overlay view class
-        // eslint-disable-next-line no-use-before-define
-        this.#overlayView = getOverlayViewClass(this);
 
         // Initialize the overlay element
         this.#overlay = document.createElement('div');
         this.#overlay.style.position = 'absolute';
-
-        // Stops click, tap, drag, and wheel events on the element from bubbling up to the map.
-        // This prevents map dragging and zooming, as well as map "click" events.
-        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
 
         // Set the default offset
         this.#offset = point(0, 0);
@@ -86,8 +79,10 @@ class Overlay extends Layer {
      * @internal
      */
     hide() {
-        this.#overlayView.setMap(null);
-        this.removeMap();
+        if (this.#overlayView) {
+            this.#overlayView.setMap(null);
+            this.removeMap();
+        }
     }
 
     /**
@@ -124,7 +119,10 @@ class Overlay extends Layer {
      */
     setMap(map: Map) {
         if (map instanceof Map) {
-            this.#overlayView.setMap(map.toGoogle());
+            this.#setupGoogleOverlay();
+            if (this.#overlayView) {
+                this.#overlayView.setMap(map.toGoogle());
+            }
             super.setMap(map);
         }
     }
@@ -158,6 +156,25 @@ class Overlay extends Layer {
      */
     setOffset(offset: PointValue) {
         this.#offset = point(offset);
+    }
+
+    /**
+     * Set up the Google maps overlay object if necessary
+     *
+     * @private
+     */
+    #setupGoogleOverlay() {
+        if (!isObject(this.#overlayView)) {
+            if (checkForGoogleMaps('Overlay', 'OverlayView', false)) {
+                // Get the overlay view class
+                // eslint-disable-next-line no-use-before-define
+                this.#overlayView = getOverlayViewClass(this);
+
+                // Stops click, tap, drag, and wheel events on the element from bubbling up to the map.
+                // This prevents map dragging and zooming, as well as map "click" events.
+                google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+            }
+        }
     }
 
     /**
@@ -206,7 +223,6 @@ class Overlay extends Layer {
  * @returns {OverlayView}
  */
 const getOverlayViewClass = (classObject: Overlay) => {
-    checkForGoogleMaps('Overlay', 'OverlayView');
     /**
      * Basic overlay class to handle displaying the overlay
      */
