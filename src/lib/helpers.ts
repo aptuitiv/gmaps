@@ -10,6 +10,14 @@
 export const isFunction = (thing: any): thing is Function => typeof thing === 'function';
 
 /**
+ * Returns if the value is null.
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+export const isNull = (thing: any): thing is null => thing === null;
+
+/**
  * Returns if the value is a valid number
  *
  * @param {any} thing The value to test
@@ -62,6 +70,22 @@ export const isStringWithValue = (thing: any): thing is string => isString(thing
  */
 export const isStringOrNumber = (thing: unknown): thing is string | number =>
     isStringWithValue(thing) || isNumber(thing);
+
+/**
+ * Returns if the value is undefined
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+export const isUndefined = (thing: any): thing is undefined => thing === undefined || typeof thing === 'undefined';
+
+/**
+ * Returns if the value is null or undefined
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+export const isNullOrUndefined = (thing: any): thing is null | undefined => isNull(thing) || isUndefined(thing);
 
 /**
  * Get the number value for the given thing
