@@ -34,8 +34,7 @@
 
 import { isObject, isString, isStringWithValue } from './helpers';
 import { LatLng } from './LatLng';
-import { Map } from './Map';
-import { Overlay } from './Overlay';
+import Overlay from './Overlay';
 import { PointValue } from './Point';
 
 type TooltipOptions = {

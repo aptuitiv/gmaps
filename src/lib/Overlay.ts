@@ -18,7 +18,7 @@ import { checkForGoogleMaps } from './helpers';
  * The methods are purposely left blank so you can override them in your own class.
  * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
  */
-export class Overlay extends Layer {
+class Overlay extends Layer {
     /**
      * Holds the offset for the overlay
      *
@@ -205,7 +205,7 @@ export class Overlay extends Layer {
  * @param {Overlay} classObject The overlay class object
  * @returns {OverlayView}
  */
-export const getOverlayViewClass = (classObject: Overlay) => {
+const getOverlayViewClass = (classObject: Overlay) => {
     checkForGoogleMaps('Overlay', 'OverlayView');
     /**
      * Basic overlay class to handle displaying the overlay
@@ -257,3 +257,5 @@ export const getOverlayViewClass = (classObject: Overlay) => {
     }
     return new OverlayView(classObject);
 };
+
+export default Overlay;

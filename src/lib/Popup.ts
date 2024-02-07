@@ -16,7 +16,7 @@ import { LatLng } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
-import { Overlay } from './Overlay';
+import Overlay from './Overlay';
 import { point, Point, PointValue } from './Point';
 import { isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 
