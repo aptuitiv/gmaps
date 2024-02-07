@@ -556,12 +556,27 @@ export class Marker extends Layer {
             tt.setContent(title);
         }
         if (tt.hasContent()) {
-            this.#marker.addListener('mouseover', () => {
-                tt.setPosition(this.#options.position).show(this.getMap());
-            });
-            this.#marker.addListener('mouseout', () => {
-                tt.hide();
-            });
+            this.#setupGoogleMarker();
+            if (this.#marker) {
+                this.#marker.addListener('mouseover', () => {
+                    tt.setPosition(this.#options.position).show(this.getMap());
+                });
+                this.#marker.addListener('mouseout', () => {
+                    tt.hide();
+                });
+            } else {
+                loader().once('map_loaded', () => {
+                    this.#setupGoogleMarker();
+                    if (this.#marker) {
+                        this.#marker.addListener('mouseover', () => {
+                            tt.setPosition(this.#options.position).show(this.getMap());
+                        });
+                        this.#marker.addListener('mouseout', () => {
+                            tt.hide();
+                        });
+                    }
+                });
+            }
         }
         // Clear the marker title
         this.title = undefined;
