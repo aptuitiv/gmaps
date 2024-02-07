@@ -28,7 +28,7 @@
     const marker = G.marker({
         position: G.latLng(0, 0),
     });
-    marker.addTo(map);
+    marker.show(map);
     cluster.addMarker(marker);
 
     If you're only setting a single image, you can do this:

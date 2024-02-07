@@ -34,7 +34,7 @@
         latitude: 40.712,
         longitude: -74.227
     });
-    marker.addTo(map);
+    marker.show(map);
     const bounds = G.latLngBounds();
     bounds.extend(marker.getPosition());
     map.fitBounds(bounds);

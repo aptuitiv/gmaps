@@ -120,15 +120,14 @@ export class Tooltip extends Overlay {
     }
 
     /**
-     * Show the tooltip at the specified position
+     * Set the position of the tooltip
      *
-     * @internal
-     * @param {Map} map The Google map object
      * @param {LatLng} position The Google maps lat/lng position of where the tooltip should show
+     * @returns {Tooltip}
      */
-    show(map: Map, position: LatLng) {
+    setPosition(position: LatLng): Tooltip {
         this.#position = position;
-        this.setMap(map);
+        return this;
     }
 
     /**

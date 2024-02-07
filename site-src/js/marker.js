@@ -74,13 +74,13 @@ marker.on('click', otherCallback);
 //     tooltipContainer: '#map',
 //     tooltipClass: 'my-tooltip'
 // });
-// marker.addTo(map);
+// marker.show(map);
 // // marker.on('click', (e) => {
 // //     console.log('Marker Clicked: ', e);
 // // });
 // map.display().then(() => {
 //     console.log('1 loaded')
-//     // marker.addTo(map);
+//     // marker.show(map);
 // });
 
 // console.log('map: ', map);

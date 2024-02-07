@@ -76,7 +76,7 @@ export declare class Marker extends Evented {
      *
      * @param {Map|google.maps.Map} map The map object
      */
-    addTo(map: Map | google.maps.Map): void;
+    show(map: Map | google.maps.Map): void;
     /**
      * Get the LatLng object
      *
