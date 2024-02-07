@@ -216,6 +216,10 @@ export class Marker extends Layer {
         const anchor = point(value);
         if (anchor.isValid()) {
             this.#options.anchorPoint = anchor;
+            this.#setupGoogleMarker();
+            if (this.#marker) {
+                this.#marker.setOptions({ anchorPoint: this.#options.anchorPoint.toGoogle() });
+            }
         }
     }
 
@@ -236,6 +240,10 @@ export class Marker extends Layer {
     set cursor(value: string) {
         if (isStringWithValue(value)) {
             this.#options.cursor = value;
+            this.#setupGoogleMarker();
+            if (this.#marker) {
+                this.#marker.setCursor(this.#options.cursor);
+            }
         }
     }
 
@@ -256,6 +264,14 @@ export class Marker extends Layer {
     set icon(value: Icon | SvgSymbol | string) {
         if (isString(value) || value instanceof Icon || value instanceof SvgSymbol) {
             this.#options.icon = value;
+            this.#setupGoogleMarker();
+            if (this.#marker) {
+                if (isString(this.#options.icon)) {
+                    this.#marker.setIcon(this.#options.icon);
+                } else {
+                    this.#marker.setIcon(this.#options.icon.toGoogle());
+                }
+            }
         }
     }
 
