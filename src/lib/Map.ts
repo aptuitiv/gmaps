@@ -305,7 +305,7 @@ export class Map extends Evented {
     }
 
     /**
-     * Try to locate the user usin gthe GeoLocation API
+     * Try to locate the user using the GeoLocation API
      *
      * There are two ways to handle when the user's location is found:
      * 1. Pass a callback function to the locate() function
@@ -417,13 +417,14 @@ export class Map extends Evented {
     /**
      * Set the center point for the map
      *
-     * @param {LatLngValue} latLngValue The latitude/longitude value
+     * @param {number|LatLngValue} latitude The latitude value or the latitude/longitude pair
+     * @param {number} [longitude] The longitude value
      * @returns {Map}
      */
-    setCenter(latLngValue: LatLngValue): Map {
-        const ll = latLng(latLngValue);
-        if (ll.isValid()) {
-            this.#center = ll;
+    setCenter(latitude: number | LatLngValue, longitude?: number): Map {
+        const center = latLng(latitude, longitude);
+        if (center.isValid()) {
+            this.#center = center;
             if (isObject(this.#map)) {
                 this.#map.setCenter(this.#center.toGoogle());
             }
