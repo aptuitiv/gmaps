@@ -154,8 +154,7 @@ export class Evented extends Base {
      * Dispatch an event
      *
      * @param {string} event The event to dispatch
-     * @param {Event} [data] The details to pass to the event. If set then a CustomEvent is created, otherwise a regular
-     *      Event is created
+     * @param {Event} [data] The data to pass to the event listener callback function.
      * @returns {Evented}
      */
     dispatch(event: string, data?: any): Evented {
@@ -219,7 +218,7 @@ export class Evented extends Base {
      *
      * Optionally you can test if there are any listeners for the given event type and callback
      *
-     * @param {string} type The event type to test form
+     * @param {string} type The event type to test for
      * @param {EventCallback} callback Optional callback function to include in the test
      * @returns {boolean}
      */
@@ -247,8 +246,8 @@ export class Evented extends Base {
      *     this.offAll();
      *
      * @param {string} [type] The event type
-     * @param {EventCallback} [callback] The event listener function
-     * @param {EventOptions} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {EventCallback} [callback] The callback function to include when finding the event to remove
+     * @param {EventOptions} [options] The options to use when finding the event to remove
      */
     off(type?: string, callback?: EventCallback, options?: EventOptions): void {
         if (isString(type)) {
