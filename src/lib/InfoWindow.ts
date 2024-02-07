@@ -14,6 +14,7 @@ import {
     isString,
     isStringWithValue,
 } from './helpers';
+import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
@@ -36,6 +37,8 @@ type GMInfoWindowOptions = {
     // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
     // Defaults to [0, -4]
     pixelOffset?: Size;
+    // The position for the InfoWindow.
+    position?: LatLng;
     // The zIndex of the InfoWindow.
     zIndex?: number;
 };
@@ -49,6 +52,9 @@ export type InfoWindowOptions = GMInfoWindowOptions & {
     // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
     // Defaults to [0, -4]
     pixelOffset?: SizeValue;
+    // The position for the InfoWindow.
+    // You don't need to do this if you're binding the InfoWindow to a Marker object.
+    position?: LatLngValue;
     // Whether or not clicking the thing that triggered the info window to open should also close the info window.
     toggleDisplay?: boolean;
 };
@@ -275,6 +281,31 @@ export class InfoWindow extends Layer {
     }
 
     /**
+     * Get the position option for the InfoWindow
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng {
+        return this.#options.position;
+    }
+
+    /**
+     * Set the position option for the InfoWindow
+     *
+     * @param {LatLngValue} position The position option for the InfoWindow
+     */
+    set position(position: LatLngValue) {
+        const latLngValue = latLng(position);
+        if (latLngValue.isValid()) {
+            this.#setupGoogleInfoWindow();
+            this.#options.position = latLngValue;
+            if (this.#infoWindow) {
+                this.#infoWindow.setPosition(this.#options.position.toGoogle());
+            }
+        }
+    }
+
+    /**
      * Get the zIndex option for the InfoWindow
      *
      * @returns {number}
@@ -334,9 +365,11 @@ export class InfoWindow extends Layer {
         if (options.minWidth) {
             this.minWidth = options.minWidth;
         }
-
         if (options.pixelOffset) {
             this.pixelOffset = options.pixelOffset;
+        }
+        if (options.position) {
+            this.position = options.position;
         }
         if (options.zIndex) {
             this.zIndex = options.zIndex;
@@ -363,6 +396,17 @@ export class InfoWindow extends Layer {
      */
     setContent(content: string | Element | Text): InfoWindow {
         this.content = content;
+        return this;
+    }
+
+    /**
+     * Set the InfoWindow position
+     *
+     * @param {LatLngValue} position The position for the InfoWindow
+     * @returns {InfoWindow}
+     */
+    setPosition(position: LatLngValue): InfoWindow {
+        this.position = position;
         return this;
     }
 
@@ -467,6 +511,9 @@ export class InfoWindow extends Layer {
                 // Options that have to be converted to Google maps objects
                 if (this.#options.pixelOffset) {
                     infoWindowOptions.pixelOffset = this.#options.pixelOffset.toGoogle();
+                }
+                if (this.#options.position) {
+                    infoWindowOptions.position = this.#options.position.toGoogle();
                 }
 
                 this.#infoWindow = new google.maps.InfoWindow(infoWindowOptions);
