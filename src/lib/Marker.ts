@@ -120,7 +120,7 @@ type GMMarkerOptions = {
     // The icon value for the marker
     icon?: Icon | SvgSymbol | string;
     // The label value for the marker
-    label?: string | number | MarkerLabel;
+    label?: string | MarkerLabel;
     // The map to add the marker to.
     map?: Map;
     // The position for the marker.
@@ -293,6 +293,10 @@ export class Marker extends Layer {
                 }
             }
         }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setLabel(this.#options.label);
+        }
     }
 
     /**
@@ -360,6 +364,10 @@ export class Marker extends Layer {
         if (position.isValid()) {
             this.#options.position = position;
         }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setPosition(this.#options.position.toGoogle());
+        }
     }
 
     /**
@@ -379,6 +387,10 @@ export class Marker extends Layer {
     set title(value: string) {
         if (isStringWithValue(value)) {
             this.#options.title = value;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setTitle(this.#options.title);
         }
     }
 
@@ -465,11 +477,6 @@ export class Marker extends Layer {
             this.label = options.label;
         }
 
-        // Set the map
-        if (options.map) {
-            this.map = options.map;
-        }
-
         // Set up the position
         if (
             isNumberOrNumberString(options.lat) ||
@@ -508,6 +515,11 @@ export class Marker extends Layer {
                 this.#options[key] = options[key];
             }
         });
+
+        // // Set the map. This must come last so that the opther options are set.
+        if (options.map) {
+            this.map = options.map;
+        }
 
         return this;
     }
