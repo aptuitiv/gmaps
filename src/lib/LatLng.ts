@@ -181,6 +181,21 @@ export class LatLng extends Base {
     }
 
     /**
+     * Tests to see if the given latitude/longitude pair is equal to this latitude/longitude pair
+     *
+     * @param {number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng} other The latitude/longitude pair to compare to
+     * @returns {boolean}
+     */
+    equals(other: number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng): boolean {
+        let isEqual = false;
+        const otherLatLng = new LatLng(other);
+        if (otherLatLng.isValid()) {
+            isEqual = this.latitude === otherLatLng.latitude && this.longitude === otherLatLng.longitude;
+        }
+        return isEqual;
+    }
+
+    /**
      * Set the latitude/longitude pair
      *
      * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
