@@ -165,6 +165,39 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the zoom level for the map
+     *
+     * @returns {number}
+     */
+    get zoom(): number {
+        let { zoom } = this.#options;
+        if (this.#map) {
+            zoom = this.#map.getZoom();
+        }
+        if (isNumber(zoom) && zoom !== this.#options.zoom) {
+            this.#options.zoom = zoom;
+        }
+        return this.#options.zoom;
+    }
+
+    /**
+     * Set the zoom level for the map
+     *
+     * @param {number|string} value The zoom level
+     */
+    set zoom(value: number) {
+        if (isNumber(value)) {
+            this.#options.zoom = value;
+        } else if (isNumberString(value)) {
+            this.#options.zoom = Number(value);
+        }
+
+        if (this.#map) {
+            this.#map.setZoom(value);
+        }
+    }
+
+    /**
      * Display the map
      *
      * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
@@ -275,6 +308,15 @@ export class Map extends Evented {
         mapOptions.center = this.#options.center.toGoogle();
 
         return mapOptions;
+    }
+
+    /**
+     * Get the zoom level
+     *
+     * @returns {number}
+     */
+    getZoom(): number {
+        return this.zoom;
     }
 
     /**
@@ -474,16 +516,25 @@ export class Map extends Evented {
             }
 
             // Set the zoom level for the map
-            if (isNumber(options.zoom)) {
-                this.#options.zoom = options.zoom;
-            } else if (isNumberString(options.zoom)) {
-                this.#options.zoom = Number(options.zoom);
+            if (options.zoom) {
+                this.zoom = options.zoom;
             }
 
             if (this.#map) {
                 this.#map.setOptions(this.#getMapOptions());
             }
         }
+        return this;
+    }
+
+    /**
+     * Set the zoom value
+     *
+     * @param {number} zoom The zoom value
+     * @returns {Map}
+     */
+    setZoom(zoom: number): Map {
+        this.zoom = zoom;
         return this;
     }
 
