@@ -39,9 +39,10 @@ export class Overlay extends Layer {
     /**
      * Holds the overlay view class instance
      *
+     * @private
      * @type {google.maps.OverlayView}
      */
-    overlayView: google.maps.OverlayView;
+    #overlayView: google.maps.OverlayView;
 
     /**
      * Constructor
@@ -54,7 +55,7 @@ export class Overlay extends Layer {
         super(objectType, testObject, testLibrary || 'OverlayView');
         // Get the overlay view class
         // eslint-disable-next-line no-use-before-define
-        this.overlayView = getOverlayViewClass(this);
+        this.#overlayView = getOverlayViewClass(this);
 
         // Initialize the overlay element
         this.overlay = document.createElement('div');
@@ -74,7 +75,7 @@ export class Overlay extends Layer {
      * @internal
      */
     hide() {
-        this.overlayView.setMap(null);
+        this.#overlayView.setMap(null);
         this.removeMap();
     }
 
@@ -112,7 +113,7 @@ export class Overlay extends Layer {
      */
     setMap(map: Map) {
         if (map instanceof Map) {
-            this.overlayView.setMap(map.toGoogle());
+            this.#overlayView.setMap(map.toGoogle());
             super.setMap(map);
         }
     }
