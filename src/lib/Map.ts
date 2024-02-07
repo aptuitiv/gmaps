@@ -42,7 +42,7 @@ import { Evented, EventCallback, EventOptions } from './Evented';
 export type MapOptions = {
     // The Google Maps API key
     apiKey: string;
-    // The position for the marker.
+    // The center point for the map.
     // This is an alternate to setting the latitude and longitude separately.
     center?: LatLngValue;
     // The latitude for the center point of the map
