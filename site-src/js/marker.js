@@ -49,7 +49,9 @@ marker.on('custom', (e) => {
 });
 
 
-G.loader({ apiKey: apiKey }).load(() => { });
+G.loader({ apiKey: apiKey }).load(() => {
+    marker.label = 'New label';
+});
 
 marker.on('click', otherCallback);
 
