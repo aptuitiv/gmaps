@@ -116,14 +116,14 @@ export class Popup extends Overlay {
      */
     setContent(content: string | HTMLElement | Element | Text) {
         if (isStringWithValue(content)) {
-            this.overlay.innerHTML = content;
+            this.getOverlayElement().innerHTML = content;
         } else if (content instanceof Element || content instanceof HTMLElement || content instanceof Text) {
             // First clear all existing children and their events
-            while (this.overlay.firstChild) {
-                this.overlay.removeChild(this.overlay.firstChild);
+            while (this.getOverlayElement().firstChild) {
+                this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
             }
             // Append the content as the first child
-            this.overlay.appendChild(content);
+            this.getOverlayElement().appendChild(content);
         }
     }
 
@@ -182,7 +182,7 @@ export class Popup extends Overlay {
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
-        panes.floatPane.appendChild(this.overlay);
+        panes.floatPane.appendChild(this.getOverlayElement());
     }
 
     /**
@@ -197,12 +197,12 @@ export class Popup extends Overlay {
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
         if (display === 'block') {
-            this.overlay.style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
-            this.overlay.style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
+            this.getOverlayElement().style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
+            this.getOverlayElement().style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
         }
 
-        if (this.overlay.style.display !== display) {
-            this.overlay.style.display = display;
+        if (this.getOverlayElement().style.display !== display) {
+            this.getOverlayElement().style.display = display;
         }
     }
 

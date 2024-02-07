@@ -115,7 +115,7 @@ export class Tooltip extends Overlay {
     setContent(content: string) {
         if (isStringWithValue(content)) {
             this.#content = content;
-            this.overlay.innerHTML = content;
+            this.getOverlayElement().innerHTML = content;
         }
     }
 
@@ -137,7 +137,7 @@ export class Tooltip extends Overlay {
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
-        panes.floatPane.appendChild(this.overlay);
+        panes.floatPane.appendChild(this.getOverlayElement());
     }
 
     /**
@@ -153,12 +153,12 @@ export class Tooltip extends Overlay {
 
         if (display === 'block') {
             const offset = this.getOffset();
-            this.overlay.style.left = `${divPosition.x + offset.getX()}px`;
-            this.overlay.style.top = `${divPosition.y + offset.getY()}px`;
+            this.getOverlayElement().style.left = `${divPosition.x + offset.getX()}px`;
+            this.getOverlayElement().style.top = `${divPosition.y + offset.getY()}px`;
         }
 
-        if (this.overlay.style.display !== display) {
-            this.overlay.style.display = display;
+        if (this.getOverlayElement().style.display !== display) {
+            this.getOverlayElement().style.display = display;
         }
     }
 }

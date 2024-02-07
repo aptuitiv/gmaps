@@ -32,9 +32,11 @@ export class Overlay extends Layer {
      * content for the overlay will get displayed in.
      * That could be a tooltip, a custom info window, or a map overlay.
      *
+     * private
+     *
      * @type {HTMLElement}
      */
-    overlay: HTMLElement;
+    #overlay: HTMLElement;
 
     /**
      * Holds the overlay view class instance
@@ -58,15 +60,24 @@ export class Overlay extends Layer {
         this.#overlayView = getOverlayViewClass(this);
 
         // Initialize the overlay element
-        this.overlay = document.createElement('div');
-        this.overlay.style.position = 'absolute';
+        this.#overlay = document.createElement('div');
+        this.#overlay.style.position = 'absolute';
 
         // Stops click, tap, drag, and wheel events on the element from bubbling up to the map.
         // This prevents map dragging and zooming, as well as map "click" events.
-        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.overlay);
+        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
 
         // Set the default offset
         this.#offset = point(0, 0);
+    }
+
+    /**
+     * Get the overlay HTML element
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement {
+        return this.#overlay;
     }
 
     /**
@@ -90,7 +101,7 @@ export class Overlay extends Layer {
     setClassName(className: string) {
         const classes = className.split(' ');
         classes.forEach((cn) => {
-            this.overlay.classList.add(cn.trim());
+            this.#overlay.classList.add(cn.trim());
         });
     }
 
@@ -102,7 +113,7 @@ export class Overlay extends Layer {
     removeClassName(className: string) {
         const classes = className.split(' ');
         classes.forEach((cn) => {
-            this.overlay.classList.remove(cn.trim());
+            this.#overlay.classList.remove(cn.trim());
         });
     }
 
@@ -157,8 +168,8 @@ export class Overlay extends Layer {
      * This method is called once following a call to setMap(null).
      */
     remove() {
-        if (this.overlay.parentElement) {
-            this.overlay.parentElement.removeChild(this.overlay);
+        if (this.#overlay.parentElement) {
+            this.#overlay.parentElement.removeChild(this.#overlay);
         }
     }
 }
@@ -182,9 +193,10 @@ export const getOverlayViewClass = (classObject: Overlay) => {
         /**
          * Holds the class instance for this overlay
          *
+         * @private
          * @type {Overlay}
          */
-        overlay: Overlay;
+        #overlay: Overlay;
 
         /**
          * Constructor
@@ -193,7 +205,7 @@ export const getOverlayViewClass = (classObject: Overlay) => {
          */
         constructor(overlay: Overlay) {
             super();
-            this.overlay = overlay;
+            this.#overlay = overlay;
         }
 
         /**
@@ -203,7 +215,7 @@ export const getOverlayViewClass = (classObject: Overlay) => {
          * called on change of zoom or center.
          */
         draw() {
-            this.overlay.draw(this.getProjection());
+            this.#overlay.draw(this.getProjection());
         }
 
         /**
@@ -211,7 +223,7 @@ export const getOverlayViewClass = (classObject: Overlay) => {
          * panes and projection will have been initialized. Used to initialize the overlay DOM elements.
          */
         onAdd() {
-            this.overlay.add(this.getPanes()!);
+            this.#overlay.add(this.getPanes()!);
         }
 
         /**
@@ -219,7 +231,7 @@ export const getOverlayViewClass = (classObject: Overlay) => {
          * Used to remove the overlay from the map.
          */
         onRemove() {
-            this.overlay.remove();
+            this.#overlay.remove();
         }
     }
     return new OverlayView(classObject);
