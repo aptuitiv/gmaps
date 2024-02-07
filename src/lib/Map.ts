@@ -299,7 +299,7 @@ export class Map extends Evented {
         // Options that can be set on the marker without any modification
         const optionsToSet = ['zoom'];
         optionsToSet.forEach((key) => {
-            if (this.#options[key]) {
+            if (typeof this.#options[key] !== 'undefined') {
                 mapOptions[key] = this.#options[key];
             }
         });

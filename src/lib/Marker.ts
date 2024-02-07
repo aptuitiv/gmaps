@@ -571,7 +571,7 @@ export class Marker extends Layer {
     }
 
     /**
-     * Set up the Google maps marker object if necessary and return it.
+     * Set up the Google maps marker object if necessary
      *
      * @private
      */
@@ -582,7 +582,7 @@ export class Marker extends Layer {
                 // Options that can be set on the marker without any modification
                 const optionsToSet = ['cursor', 'title'];
                 optionsToSet.forEach((key) => {
-                    if (this.#options[key]) {
+                    if (typeof this.#options[key] !== 'undefined') {
                         markerOptions[key] = this.#options[key];
                     }
                 });
