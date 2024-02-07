@@ -165,114 +165,6 @@ export class Map extends Evented {
     }
 
     /**
-     * Set the map options
-     *
-     * @param {MapOptions} options The map options
-     * @returns {Map}
-     */
-    setOptions(options: MapOptions): Map {
-        if (isObject(options)) {
-            // Set the loader options if necessary
-            if (options.apiKey || options.libraries || options.version) {
-                loader(options);
-            }
-
-            // Set the center point for the map
-            let center = latLng();
-            if (options.center) {
-                center = latLng(options.center);
-            } else {
-                if (isNumberOrNumberString(options.lat)) {
-                    center.setLat(options.lat);
-                } else if (isNumberOrNumberString(options.latitude)) {
-                    center.setLat(options.latitude);
-                }
-                if (isNumberOrNumberString(options.lng)) {
-                    center.setLng(options.lng);
-                } else if (isNumberOrNumberString(options.longitude)) {
-                    center.setLng(options.longitude);
-                }
-            }
-            if (center.isValid()) {
-                this.#center = center;
-            }
-
-            // Set the zoom level for the map
-            if (isNumber(options.zoom)) {
-                this.#zoom = options.zoom;
-            } else if (isNumberString(options.zoom)) {
-                this.#zoom = Number(options.zoom);
-            }
-        } else {
-            throw new Error('Invalid map options. You must pass an object of options');
-        }
-        return this;
-    }
-
-    /**
-     * Set the API key
-     *
-     * @param {string} key The API key
-     * @returns {Map}
-     */
-    setApiKey(key: string): Map {
-        if (isStringWithValue(key)) {
-            loader().apiKey = key;
-        } else {
-            throw new Error('You must pass a valid API key');
-        }
-        return this;
-    }
-
-    /**
-     * Get the map options for displaying the map
-     *
-     * @private
-     * @returns {google.maps.MapOptions}
-     */
-    #getMapOptions(): google.maps.MapOptions {
-        const options: google.maps.MapOptions = {
-            center: this.#center.toJson(),
-            zoom: this.#zoom,
-        };
-        return options;
-    }
-
-    /**
-     * Load and display the map
-     *
-     * There are two ways to respond when the map loads:
-     * 1. Pass a callback function to the load() function
-     *   map.load(() => {
-     *     // Do something after the map loads
-     *   });
-     * 2. Listen for the 'display' event
-     *   map.on('display', () => {
-     *      // Do something after the map loads
-     *   });
-     * 2a. Use the once() function to listen for the 'display' event only once. The event
-     *     listener will be removed after the event is dispatched.
-     *   map.once('display', () => {
-     *     // Do something after the map loads
-     *   });
-     *
-     * @param {Function} callback The callback function to call after the map loads
-     */
-    load(callback?: (map: Map) => void) {
-        return new Promise((resolve, reject) => {
-            loader()
-                .load()
-                .then(() => {
-                    this.#displayMap(callback);
-                    resolve(this);
-                })
-                .catch((err) => {
-                    reject(err);
-                });
-        });
-    }
-
-    /**
      * Display the map
      *
      * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
@@ -361,6 +253,54 @@ export class Map extends Evented {
         }
         this.#map.fitBounds(latLngBounds(bounds).toGoogle());
         return this;
+    }
+
+    /**
+     * Get the map options for displaying the map
+     *
+     * @private
+     * @returns {google.maps.MapOptions}
+     */
+    #getMapOptions(): google.maps.MapOptions {
+        const options: google.maps.MapOptions = {
+            center: this.#center.toJson(),
+            zoom: this.#zoom,
+        };
+        return options;
+    }
+
+    /**
+     * Load and display the map
+     *
+     * There are two ways to respond when the map loads:
+     * 1. Pass a callback function to the load() function
+     *   map.load(() => {
+     *     // Do something after the map loads
+     *   });
+     * 2. Listen for the 'display' event
+     *   map.on('display', () => {
+     *      // Do something after the map loads
+     *   });
+     * 2a. Use the once() function to listen for the 'display' event only once. The event
+     *     listener will be removed after the event is dispatched.
+     *   map.once('display', () => {
+     *     // Do something after the map loads
+     *   });
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     */
+    load(callback?: (map: Map) => void) {
+        return new Promise((resolve, reject) => {
+            loader()
+                .load()
+                .then(() => {
+                    this.#displayMap(callback);
+                    resolve(this);
+                })
+                .catch((err) => {
+                    reject(err);
+                });
+        });
     }
 
     /**
@@ -459,6 +399,21 @@ export class Map extends Evented {
     }
 
     /**
+     * Set the API key
+     *
+     * @param {string} key The API key
+     * @returns {Map}
+     */
+    setApiKey(key: string): Map {
+        if (isStringWithValue(key)) {
+            loader().apiKey = key;
+        } else {
+            throw new Error('You must pass a valid API key');
+        }
+        return this;
+    }
+
+    /**
      * Set the center point for the map
      *
      * @param {LatLngValue} latLngValue The latitude/longitude value
@@ -471,6 +426,51 @@ export class Map extends Evented {
             if (isObject(this.#map)) {
                 this.#map.setCenter(this.#center.toGoogle());
             }
+        }
+        return this;
+    }
+
+    /**
+     * Set the map options
+     *
+     * @param {MapOptions} options The map options
+     * @returns {Map}
+     */
+    setOptions(options: MapOptions): Map {
+        if (isObject(options)) {
+            // Set the loader options if necessary
+            if (options.apiKey || options.libraries || options.version) {
+                loader(options);
+            }
+
+            // Set the center point for the map
+            let center = latLng();
+            if (options.center) {
+                center = latLng(options.center);
+            } else {
+                if (isNumberOrNumberString(options.lat)) {
+                    center.setLat(options.lat);
+                } else if (isNumberOrNumberString(options.latitude)) {
+                    center.setLat(options.latitude);
+                }
+                if (isNumberOrNumberString(options.lng)) {
+                    center.setLng(options.lng);
+                } else if (isNumberOrNumberString(options.longitude)) {
+                    center.setLng(options.longitude);
+                }
+            }
+            if (center.isValid()) {
+                this.#center = center;
+            }
+
+            // Set the zoom level for the map
+            if (isNumber(options.zoom)) {
+                this.#zoom = options.zoom;
+            } else if (isNumberString(options.zoom)) {
+                this.#zoom = Number(options.zoom);
+            }
+        } else {
+            throw new Error('Invalid map options. You must pass an object of options');
         }
         return this;
     }
