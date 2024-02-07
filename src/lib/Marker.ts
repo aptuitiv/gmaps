@@ -101,6 +101,7 @@ import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { tooltip, TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
+    isNullOrUndefined,
     isNumber,
     isNumberOrNumberString,
     isObject,
@@ -216,10 +217,12 @@ export class Marker extends Layer {
         const anchor = point(value);
         if (anchor.isValid()) {
             this.#options.anchorPoint = anchor;
-            this.#setupGoogleMarker();
-            if (this.#marker) {
-                this.#marker.setOptions({ anchorPoint: this.#options.anchorPoint.toGoogle() });
-            }
+        } else {
+            this.#options.anchorPoint = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setOptions({ anchorPoint: this.#options.anchorPoint.toGoogle() });
         }
     }
 
@@ -240,10 +243,12 @@ export class Marker extends Layer {
     set cursor(value: string) {
         if (isStringWithValue(value)) {
             this.#options.cursor = value;
-            this.#setupGoogleMarker();
-            if (this.#marker) {
-                this.#marker.setCursor(this.#options.cursor);
-            }
+        } else if (isNullOrUndefined(value)) {
+            this.#options.cursor = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setCursor(this.#options.cursor);
         }
     }
 
@@ -264,13 +269,15 @@ export class Marker extends Layer {
     set icon(value: Icon | SvgSymbol | string) {
         if (isString(value) || value instanceof Icon || value instanceof SvgSymbol) {
             this.#options.icon = value;
-            this.#setupGoogleMarker();
-            if (this.#marker) {
-                if (isString(this.#options.icon)) {
-                    this.#marker.setIcon(this.#options.icon);
-                } else {
-                    this.#marker.setIcon(this.#options.icon.toGoogle());
-                }
+        } else if (isNullOrUndefined(value)) {
+            this.#options.icon = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            if (isString(this.#options.icon)) {
+                this.#marker.setIcon(this.#options.icon);
+            } else {
+                this.#marker.setIcon(this.#options.icon.toGoogle());
             }
         }
     }
@@ -308,6 +315,8 @@ export class Marker extends Layer {
                     this.#options.label.fontSize = value.fontSize.toString();
                 }
             }
+        } else if (isNullOrUndefined(value)) {
+            this.#options.label = undefined;
         }
         this.#setupGoogleMarker();
         if (this.#marker) {
@@ -351,7 +360,7 @@ export class Marker extends Layer {
                     }
                 });
             }
-        } else if (value === null) {
+        } else if (isNullOrUndefined(value)) {
             // Remove the marker from the map
             this.#options.map = null;
             super.setMap(null);
@@ -379,10 +388,12 @@ export class Marker extends Layer {
         const position = latLng(value);
         if (position.isValid()) {
             this.#options.position = position;
-        }
-        this.#setupGoogleMarker();
-        if (this.#marker) {
-            this.#marker.setPosition(this.#options.position.toGoogle());
+            // Only update the position if the position value is valid.
+            // This is different from the other options because the position is required.
+            this.#setupGoogleMarker();
+            if (this.#marker) {
+                this.#marker.setPosition(this.#options.position.toGoogle());
+            }
         }
     }
 
@@ -401,8 +412,10 @@ export class Marker extends Layer {
      * @param {string} value The title for the marker
      */
     set title(value: string) {
-        if (isStringWithValue(value)) {
-            this.#options.title = value;
+        if (isStringOrNumber(value)) {
+            this.#options.title = value.toString();
+        } else if (isNullOrUndefined(value)) {
+            this.#options.title = undefined;
         }
         this.#setupGoogleMarker();
         if (this.#marker) {
