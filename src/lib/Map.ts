@@ -170,19 +170,19 @@ export class Map extends Evented {
      * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
      *
      * @param {Function} callback The callback function to call after the map loads
-     * @returns {Promise<Map>}
+     * @returns {Promise<void>}
      */
-    display(callback?: (map: Map) => void): Promise<Map> {
+    display(callback?: () => void): Promise<void> {
         return new Promise((resolve) => {
             if (checkForGoogleMaps('Map', 'Map', false)) {
                 // The map library is loaded and this can be displayed
                 this.#displayMap(callback);
-                resolve(this);
+                resolve();
             } else {
                 // Wait for the loader to dispatch it's "load" event
                 loader().once('load', () => {
                     this.#displayMap(callback);
-                    resolve(this);
+                    resolve();
                 });
             }
         });
@@ -196,7 +196,7 @@ export class Map extends Evented {
      *
      * @param {Function} callback The callback function to call after the map loads
      */
-    #displayMap(callback?: (map: Map) => void) {
+    #displayMap(callback?: () => void) {
         let element: HTMLElement = null;
         if (typeof this.#selector === 'string') {
             if (this.#selector.startsWith('.')) {
@@ -223,7 +223,7 @@ export class Map extends Evented {
 
         // Call the callback function if necessary
         if (isFunction(callback)) {
-            callback(this);
+            callback();
         }
     }
 
@@ -288,14 +288,15 @@ export class Map extends Evented {
      *   });
      *
      * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
      */
-    load(callback?: (map: Map) => void) {
+    load(callback?: () => void): Promise<void> {
         return new Promise((resolve, reject) => {
             loader()
                 .load()
                 .then(() => {
                     this.#displayMap(callback);
-                    resolve(this);
+                    resolve();
                 })
                 .catch((err) => {
                     reject(err);
