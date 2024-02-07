@@ -311,6 +311,23 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the center point for the map
+     *
+     * @returns {LatLng}
+     */
+    getCenter(): LatLng {
+        let { center } = this.#options;
+        if (this.#map) {
+            const mapCenter = this.#map.getCenter();
+            center = latLng(mapCenter.lat(), mapCenter.lng());
+        }
+        if (!center.equals(this.#options.center)) {
+            this.#options.center = center;
+        }
+        return this.#options.center;
+    }
+
+    /**
      * Get the zoom level
      *
      * @returns {number}
