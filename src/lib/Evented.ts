@@ -380,4 +380,17 @@ export class Evented extends Base {
     setEventGoogleObject(googleObject: google.maps.MVCObject): void {
         this.#googleObject = googleObject;
     }
+
+    /**
+     * Triggers an event
+     *
+     * Alias to dispatch()
+     *
+     * @param {string} event The event to dispatch
+     * @param {Event} [data] The data to pass to the event listener callback function.
+     * @returns {Evented}
+     */
+    trigger(event: string, data?: any): Evented {
+        return this.dispatch(event, data);
+    }
 }
