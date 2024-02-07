@@ -488,8 +488,9 @@ export class Map extends Evented {
 /**
  * Helper function to set up the map object
  *
- * @param {string} id The id of the element that the map will be rendered in
+ * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
+ *      The selector can be a class name, an id, or an HTML element. If you need something beyond an id or class name as the selector then pass the element itself.
  * @param {MapOptions} [config] The map options
  * @returns {Map}
  */
-export const map = (id: string, config?: MapOptions): Map => new Map(id, config);
+export const map = (selector: string | HTMLElement, config?: MapOptions): Map => new Map(selector, config);
