@@ -14,6 +14,7 @@ import {
     isString,
     isStringWithValue,
 } from './helpers';
+import { Event } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
@@ -555,10 +556,7 @@ export const infoWindow = (options?: InfoWindowValue): InfoWindow => {
     return new InfoWindow(options);
 };
 
-/**
- * To avoid circilar dependencies we need to add the bindInfoWindow method to the Layer class here
- */
-Layer.include({
+const infoWindowMixin = {
     /**
      * Holds the InfoWindow object
      *
@@ -584,13 +582,28 @@ Layer.include({
         if (isObjectWithValues(options)) {
             this.layerInfoWindow.setOptions(options);
         }
-        this.on('click', () => {
+        this.on('click', (e: Event) => {
             if (this.layerInfoWindow) {
+                // If the element that has the event is a Map then the InfoWindow needs to be
+                // positioned where the click took place.
+                if (this.isMap() && e.latLng) {
+                    this.layerInfoWindow.position = e.latLng;
+                    // To allow an already open InfoWindow to be repositioned
+                    // it needs to be closed first.
+                    if (this.layerInfoWindow.isOpen()) {
+                        this.layerInfoWindow.close();
+                    }
+                }
                 this.layerInfoWindow.open(this);
             }
         });
     },
-});
+};
+/**
+ * To avoid circilar dependencies we need to add the bindInfoWindow method to the Layer class here
+ */
+Layer.include(infoWindowMixin);
+Map.include(infoWindowMixin);
 
 type InfoWindowCollectionObject = {
     infoWindows: InfoWindow[];
