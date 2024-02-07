@@ -72,6 +72,17 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Add the overlay to the map.
+     *
+     * Alias for setMap()
+     *
+     * @param {Map} map The Map object
+     */
+    addTo(map: Map) {
+        this.setMap(map);
+    }
+
+    /**
      * Get the overlay HTML element
      *
      * @returns {HTMLElement}
