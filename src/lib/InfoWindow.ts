@@ -17,21 +17,17 @@ import {
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
-import { size, SizeValue } from './Size';
+import { size, Size, SizeValue } from './Size';
 
-export type InfoWindowOptions = {
+type GMInfoWindowOptions = {
     // The aria label for the info window
     ariaLabel?: string;
-    // Whether to automatically close other open InfoWindows when opening this one
-    autoClose?: boolean;
     // The content to display in the InfoWindow. This can be an HTML element, a plain-text string, or a string containing HTML.
     // The InfoWindow will be sized according to the content. To set an explicit size for the content, set content to be a HTML element with that size,
     // or use maxWidth.
     content?: string | Element | Text;
     // Disable panning the map to make the InfoWindow fully visible when it opens.
     disableAutoPan?: boolean;
-    // Whether focus should be set on the info window when it is opened. Defaults to false.
-    focus?: boolean;
     // Maximum width of the InfoWindow, regardless of content's width.
     maxWidth?: number;
     // Minimum width of the InfoWindow, regardless of the content's width.
@@ -39,11 +35,22 @@ export type InfoWindowOptions = {
     // The offset, in pixels, of the tip of the info window from the point on the map at whose geographical coordinates the info window is anchored.
     // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
     // Defaults to [0, -4]
+    pixelOffset?: Size;
+    // The zIndex of the InfoWindow.
+    zIndex?: number;
+};
+
+export type InfoWindowOptions = GMInfoWindowOptions & {
+    // Whether to automatically close other open InfoWindows when opening this one
+    autoClose?: boolean;
+    // Whether focus should be set on the info window when it is opened. Defaults to false.
+    focus?: boolean;
+    // The offset, in pixels, of the tip of the info window from the point on the map at whose geographical coordinates the info window is anchored.
+    // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
+    // Defaults to [0, -4]
     pixelOffset?: SizeValue;
     // Whether or not clicking the thing that triggered the info window to open should also close the info window.
     toggleDisplay?: boolean;
-    // The zIndex of the InfoWindow.
-    zIndex?: number;
 };
 
 /**
@@ -75,6 +82,14 @@ export class InfoWindow extends Layer {
     #isOpen: boolean = false;
 
     /**
+     * Holds the InfoWindow options
+     *
+     * @private
+     * @type {InfoWindowOptions}
+     */
+    #options: InfoWindowOptions = {};
+
+    /**
      * Whether clicking the thing that triggered the info window to open should also close the info window
      *
      * @private
@@ -97,28 +112,9 @@ export class InfoWindow extends Layer {
      */
     constructor(options?: InfoWindowOptions) {
         super('infowindow', 'InfoWindow');
-        // Make sure that the Google maps library is ready
-        checkForGoogleMaps('InfoWindow', 'InfoWindow');
 
-        // Create the InfoWindow object
-        this.#infoWindow = new google.maps.InfoWindow();
-        // Handle when the close button is clicked
-        this.#infoWindow.addListener('closeclick', () => {
-            InfoWindowCollection.getInstance().remove(this);
-        });
-        // Handle when the map changes.
-        // This is used to handle when the InfoWindow is closed programatically by another
-        // Google InfoWindow. This can happen if one of our windows is open and then the
-        // user clicks on a map location ang Google shows their own info window.
-        // Without doing this, we can't track that our window was closed.
-        this.#infoWindow.addListener('map_changed', () => {
-            // The getMap() function technically works, but it's not part of the public API
-            // so we don't use it. get('map') seems to work the same.
-            if (this.#infoWindow.get('map') === null) {
-                this.#isOpen = false;
-                InfoWindowCollection.getInstance().remove(this);
-            }
-        });
+        // Set the default pixel offset so that the info window is positioned a little off the element that opened it.
+        this.#options.pixelOffset = size(0, -4);
 
         if (isObject(options)) {
             this.setOptions(options);
@@ -126,41 +122,216 @@ export class InfoWindow extends Layer {
     }
 
     /**
+     * Get the aria label for the InfoWindow
+     *
+     * @returns {string}
+     */
+    get ariaLabel(): string {
+        return this.#options.ariaLabel;
+    }
+
+    /**
+     * Set the aria label for the InfoWindow
+     *
+     * @param {string|number} ariaLabel The aria label for the InfoWindow
+     */
+    set ariaLabel(ariaLabel: string | number) {
+        if (isStringWithValue(ariaLabel) || isNumber(ariaLabel)) {
+            this.#options.ariaLabel = ariaLabel.toString();
+            this.#setupGoogleInfoWindow();
+            if (this.#infoWindow) {
+                this.#infoWindow.setOptions({ ariaLabel: this.#options.ariaLabel });
+            }
+        }
+    }
+
+    /**
+     * Get the content for the InfoWindow
+     *
+     * @returns {string|Element|Text}
+     */
+    get content(): string | Element | Text {
+        return this.#options.content;
+    }
+
+    /**
+     * Set the content for the InfoWindow
+     *
+     * @param {string|Element|Text} content The content for the InfoWindow
+     */
+    set content(content: string | Element | Text) {
+        if (isStringWithValue(content) || content instanceof Element || content instanceof Text) {
+            this.#options.content = content;
+            this.#setupGoogleInfoWindow();
+            if (this.#infoWindow) {
+                this.#infoWindow.setContent(content);
+            }
+        }
+    }
+
+    /**
+     * Get the disableAutoPan option for the InfoWindow
+     *
+     * @returns {boolean}
+     */
+    get disableAutoPan(): boolean {
+        return typeof this.#options.disableAutoPan === 'boolean' && this.#options.disableAutoPan === true;
+    }
+
+    /**
+     * Set the disableAutoPan option for the InfoWindow
+     *
+     * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
+     */
+    set disableAutoPan(disableAutoPan: boolean) {
+        if (typeof disableAutoPan !== 'boolean') {
+            this.#options.disableAutoPan = disableAutoPan;
+            this.#setupGoogleInfoWindow();
+            if (this.#infoWindow) {
+                this.#infoWindow.setOptions({ disableAutoPan: this.#options.disableAutoPan });
+            }
+        }
+    }
+
+    /**
+     * Get the maxWidth option for the InfoWindow
+     *
+     * @returns {number}
+     */
+    get maxWidth(): number {
+        return this.#options.maxWidth;
+    }
+
+    /**
+     * Set the maxWidth option for the InfoWindow
+     *
+     * @param {number|string} maxWidth The maxWidth option for the InfoWindow
+     */
+    set maxWidth(maxWidth: number | string) {
+        if (isNumber(maxWidth) || isNumberString(maxWidth)) {
+            let width = maxWidth;
+            if (isNumberString(width)) {
+                width = Number(width);
+            }
+            this.#options.maxWidth = width;
+            this.#setupGoogleInfoWindow();
+            if (this.#infoWindow) {
+                this.#infoWindow.setOptions({ maxWidth: this.#options.maxWidth });
+            }
+        }
+    }
+
+    /**
+     * Get the minWidth option for the InfoWindow
+     *
+     * @returns {number}
+     */
+    get minWidth(): number {
+        return this.#options.minWidth;
+    }
+
+    /**
+     * Set the minWidth option for the InfoWindow
+     *
+     * @param {number|string} minWidth The minWidth option for the InfoWindow
+     */
+    set minWidth(minWidth: number | string) {
+        if (isNumber(minWidth) || isNumberString(minWidth)) {
+            let width = minWidth;
+            if (isNumberString(width)) {
+                width = Number(width);
+            }
+            this.#options.minWidth = width;
+            this.#setupGoogleInfoWindow();
+            if (this.#infoWindow) {
+                this.#infoWindow.setOptions({ minWidth: this.#options.minWidth });
+            }
+        }
+    }
+
+    /**
+     * Get the pixelOffset option for the InfoWindow
+     *
+     * @returns {Size}
+     */
+    get pixelOffset(): Size {
+        return this.#options.pixelOffset;
+    }
+
+    /**
+     * Set the pixelOffset option for the InfoWindow
+     *
+     * @param {SizeValue} pixelOffset The pixelOffset option for the InfoWindow
+     */
+    set pixelOffset(pixelOffset: SizeValue) {
+        const sizeValue = size(pixelOffset);
+        if (sizeValue.isValid()) {
+            this.#setupGoogleInfoWindow();
+            this.#options.pixelOffset = sizeValue;
+            if (this.#infoWindow) {
+                this.#infoWindow.setOptions({ pixelOffset: this.#options.pixelOffset.toGoogle() });
+            }
+        }
+    }
+
+    /**
+     * Get the zIndex option for the InfoWindow
+     *
+     * @returns {number}
+     */
+    get zIndex(): number {
+        return this.#options.zIndex;
+    }
+
+    /**
+     * Set the zIndex option for the InfoWindow
+     *
+     * @param {number|string} zIndex The zIndex option for the InfoWindow
+     */
+    set zIndex(zIndex: number | string) {
+        if (isNumber(zIndex) || isNumberString(zIndex)) {
+            let zIndexValue = zIndex;
+            if (isNumberString(zIndexValue)) {
+                zIndexValue = Number(zIndexValue);
+            }
+            this.#options.zIndex = zIndexValue;
+            this.#setupGoogleInfoWindow();
+            if (this.#infoWindow) {
+                this.#infoWindow.setOptions({ zIndex: this.#options.zIndex });
+            }
+        }
+    }
+
+    /**
      * Set the InfoWindow options
      *
      * @param {InfoWindowOptions} options The InfoWindow options
+     * @returns {InfoWindow}
      */
-    setOptions(options: InfoWindowOptions) {
-        const iwOptions: google.maps.InfoWindowOptions = {
-            pixelOffset: size(0, -4).toGoogle(),
-        };
-        if (isStringWithValue(options.ariaLabel)) {
-            iwOptions.ariaLabel = options.ariaLabel;
+    setOptions(options: InfoWindowOptions): InfoWindow {
+        // InfoWindow options
+        if (options.ariaLabel) {
+            this.ariaLabel = options.ariaLabel;
         }
         if (options.content) {
-            this.setContent(options.content);
+            this.content = options.content;
         }
-        if (typeof options.disableAutoPan === 'boolean') {
-            iwOptions.disableAutoPan = options.disableAutoPan;
+        if (options.disableAutoPan) {
+            this.disableAutoPan = options.disableAutoPan;
         }
-        if (isNumber(options.maxWidth)) {
-            iwOptions.maxWidth = options.maxWidth;
-        } else if (isNumberString(options.maxWidth)) {
-            iwOptions.maxWidth = Number(options.maxWidth);
+        if (options.maxWidth) {
+            this.maxWidth = options.maxWidth;
         }
-        if (isNumber(options.minWidth)) {
-            iwOptions.minWidth = options.minWidth;
-        } else if (isNumberString(options.minWidth)) {
-            iwOptions.minWidth = Number(options.minWidth);
-        }
-        if (options.pixelOffset) {
-            iwOptions.pixelOffset = size(options.pixelOffset).toGoogle();
-        }
-        if (options.zIndex) {
-            this.setZIndex(options.zIndex);
+        if (options.minWidth) {
+            this.minWidth = options.minWidth;
         }
 
-        this.#infoWindow.setOptions(iwOptions);
+        if (options.pixelOffset) {
+            this.pixelOffset = options.pixelOffset;
+        }
+        if (options.zIndex) {
+            this.zIndex = options.zIndex;
+        }
 
         // Other options
         if (typeof options.autoClose === 'boolean') {
@@ -172,17 +343,18 @@ export class InfoWindow extends Layer {
         if (typeof options.toggleDisplay === 'boolean') {
             this.#toggleDisplay = options.toggleDisplay;
         }
+        return this;
     }
 
     /**
      * Set the InfoWindow content
      *
      * @param {string | Element | Text} content The InfoWindow content
+     * @returns {InfoWindow}
      */
-    setContent(content: string | Element | Text) {
-        if (isStringWithValue(content) || content instanceof Element || content instanceof Text) {
-            this.#infoWindow.setContent(content);
-        }
+    setContent(content: string | Element | Text): InfoWindow {
+        this.content = content;
+        return this;
     }
 
     /**
@@ -191,13 +363,11 @@ export class InfoWindow extends Layer {
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
      *
      * @param {number|string} zIndex The zindex value
+     * @returns {InfoWindow}
      */
-    setZIndex(zIndex: number | string) {
-        if (isNumber(zIndex)) {
-            this.#infoWindow.setZIndex(zIndex);
-        } else if (isNumberString(zIndex)) {
-            this.#infoWindow.setZIndex(Number(zIndex));
-        }
+    setZIndex(zIndex: number | string): InfoWindow {
+        this.zIndex = zIndex;
+        return this;
     }
 
     /**
@@ -211,8 +381,10 @@ export class InfoWindow extends Layer {
      *
      * @param {Map | Marker} anchorOrMap The anchor object or map object.
      *      This should ideally be the Map or Marker object.
+     * @returns {InfoWindow}
      */
-    open(anchorOrMap: Map | Marker) {
+    open(anchorOrMap: Map | Marker): InfoWindow {
+        this.#setupGoogleInfoWindow();
         const collection = InfoWindowCollection.getInstance();
         if (collection.has(this) && this.#isOpen) {
             if (this.#toggleDisplay) {
@@ -240,13 +412,16 @@ export class InfoWindow extends Layer {
             this.#isOpen = true;
             collection.add(this);
         }
+        return this;
     }
 
     /**
      * Close the info window
      */
     close() {
-        this.#infoWindow.close();
+        if (this.#infoWindow) {
+            this.#infoWindow.close();
+        }
         this.#isOpen = false;
         InfoWindowCollection.getInstance().remove(this);
     }
@@ -259,7 +434,53 @@ export class InfoWindow extends Layer {
      * @returns {google.maps.InfoWindow}
      */
     toGoogle(): google.maps.InfoWindow {
+        this.#setupGoogleInfoWindow();
         return this.#infoWindow;
+    }
+
+    /**
+     * Set up the Google maps InfoWindow object if necessary
+     *
+     * @private
+     */
+    #setupGoogleInfoWindow() {
+        if (!isObject(this.#infoWindow)) {
+            if (checkForGoogleMaps('InfoWindow', 'InfoWindow', false)) {
+                const infoWindowOptions: google.maps.InfoWindowOptions = {};
+                // Options that can be set on the InfoWindow without any modification
+                const optionsToSet = ['ariaLabel', 'content', 'disableAutoPan', 'maxWidth', 'minWidth', 'zIndex'];
+                optionsToSet.forEach((key) => {
+                    if (typeof this.#options[key] !== 'undefined') {
+                        infoWindowOptions[key] = this.#options[key];
+                    }
+                });
+
+                // Options that have to be converted to Google maps objects
+                if (this.#options.pixelOffset) {
+                    infoWindowOptions.pixelOffset = this.#options.pixelOffset.toGoogle();
+                }
+
+                this.#infoWindow = new google.maps.InfoWindow(infoWindowOptions);
+
+                // Handle when the close button is clicked
+                this.#infoWindow.addListener('closeclick', () => {
+                    InfoWindowCollection.getInstance().remove(this);
+                });
+                // Handle when the map changes.
+                // This is used to handle when the InfoWindow is closed programatically by another
+                // Google InfoWindow. This can happen if one of our windows is open and then the
+                // user clicks on a map location ang Google shows their own info window.
+                // Without doing this, we can't track that our window was closed.
+                this.#infoWindow.addListener('map_changed', () => {
+                    // The getMap() function technically works, but it's not part of the public API
+                    // so we don't use it. get('map') seems to work the same.
+                    if (this.#infoWindow.get('map') === null) {
+                        this.#isOpen = false;
+                        InfoWindowCollection.getInstance().remove(this);
+                    }
+                });
+            }
+        }
     }
 }
 
@@ -288,7 +509,9 @@ Layer.include({
      * @type {InfoWindow}
      */
     layerInfoWindow: null,
+
     /**
+     * Bind an InfoWindow to the layer
      *
      * @param {string | Element | Text | InfoWindowValue} content The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
      * @param {InfoWindowOptions} [options] The InfoWindow options object
