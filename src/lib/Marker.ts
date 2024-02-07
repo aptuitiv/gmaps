@@ -459,12 +459,13 @@ export class Marker extends Layer {
     /**
      * Adds the marker to the map object
      *
-     * Alternate of addTo()
+     * Alternate of show()
      *
      * @param {Map} map The map object
+     * @returns {Marker}
      */
-    setMap(map: Map): void {
-        this.map = map;
+    setMap(map: Map): Marker {
+        return this.show(map);
     }
 
     /**
