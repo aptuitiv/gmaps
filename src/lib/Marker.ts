@@ -543,7 +543,7 @@ export class Marker extends Layer {
         }
         if (tt.hasContent()) {
             this.#marker.addListener('mouseover', () => {
-                tt.show(this.getMap(), this.#options.position);
+                tt.setPosition(this.#options.position).show(this.getMap());
             });
             this.#marker.addListener('mouseout', () => {
                 tt.hide();
