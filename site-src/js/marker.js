@@ -5,9 +5,28 @@
 
 /* global G */
 
+/* TEST 1  */
+// G.loader().setApiKey(apiKey).load();
 
+// const map = G.map('map1', {
+//     latitude: 40.730610,
+//     longitude: -73.935242,
+//     zoom: 8
+// });
+// map.display();
+// const marker = G.marker({
+//     latitude: 40.730610,
+//     longitude: -73.935242,
+//     map: map,
+//     title: 'My Marker'
+// });
+
+/* TEST 2 */
 const map = G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } });
-map.display();
+map.display().then(() => {
+    // Dispatch a custom event
+    marker.dispatch('custom', { data: 'test' });
+});
 const marker = G.marker({
     latitude: 48.9,
     longitude: 2.4,
@@ -23,9 +42,19 @@ const otherCallback = (e) => {
     e.stop();
 }
 marker.once('click', callback, { once: false });
-G.loader({ apiKey: apiKey }).load();
+
+// Set up a custom event listener
+marker.on('custom', (e) => {
+    console.log('custom event: ', e);
+});
+
+
+G.loader({ apiKey: apiKey }).load(() => { });
 
 marker.on('click', otherCallback);
+
+
+/* TEST 3 */
 
 // const loader = G.loader({ apiKey: apiKey, });
 // loader.on('load', () => { console.log('loaded event'); });
