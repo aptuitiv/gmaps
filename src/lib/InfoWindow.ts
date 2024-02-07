@@ -590,9 +590,7 @@ const infoWindowMixin = {
                     this.layerInfoWindow.position = e.latLng;
                     // To allow an already open InfoWindow to be repositioned
                     // it needs to be closed first.
-                    if (this.layerInfoWindow.isOpen()) {
-                        this.layerInfoWindow.close();
-                    }
+                    this.layerInfoWindow.close();
                 }
                 this.layerInfoWindow.open(this);
             }
