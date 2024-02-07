@@ -562,6 +562,8 @@ export class Marker extends Layer {
                 tt.hide();
             });
         }
+        // Clear the marker title
+        this.title = undefined;
         return this;
     }
 
