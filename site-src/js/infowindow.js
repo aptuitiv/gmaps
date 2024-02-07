@@ -39,7 +39,12 @@ const mapInfoWindow = G.infoWindow({
     minWidth: 300
 });
 map.bindInfoWindow(mapInfoWindow);
+
 // map.on('click', (e) => {
 //     console.log('clicking: ', e);
+//     mapInfoWindow.position = e.latLng;
+//     // if (mapInfoWindow.isOpen) {
+//     mapInfoWindow.close();
+//     // }
 //     mapInfoWindow.open(map);
 // });
