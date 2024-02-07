@@ -109,21 +109,7 @@ import {
     isStringWithValue,
 } from './helpers';
 
-export type MarkerLabel = {
-    // A CSS class name to be added to the label element
-    className?: string;
-    // The color of the label text. Default color is black.
-    color?: string;
-    // The font family of the label text (equivalent to the CSS font-family property).
-    fontFamily?: string;
-    // The font size of the label text (equivalent to the CSS font-size property). Default size is 14px.
-    // If it's set to a number then "px" will be added to the end of the number.
-    fontSize?: string | number;
-    // The font weight of the label text (equivalent to the CSS font-weight property).
-    fontWeight?: string;
-    // The text to be displayed in the label.
-    text: string | number;
-};
+export type MarkerLabel = google.maps.MarkerLabel;
 
 // Options that will be passed to the Google maps marker object
 type GMMarkerOptions = {
