@@ -303,6 +303,15 @@ export class InfoWindow extends Layer {
     }
 
     /**
+     * Returns whether the InfoWindow is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean {
+        return this.#isOpen;
+    }
+
+    /**
      * Set the InfoWindow options
      *
      * @param {InfoWindowOptions} options The InfoWindow options
