@@ -175,26 +175,26 @@ export class Marker extends Layer {
     /**
      * Constructor
      *
-     * @param {LatLngValue|MarkerOptions} [latLngValue] The latitude longitude pair
+     * @param {LatLngValue|MarkerOptions} [position] The latitude longitude pair
      * @param {MarkerOptions} [options] The marker options
      */
-    constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
+    constructor(position?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
         super('marker', 'Marker');
 
         // Set a default position
         this.#options.position = latLng([0, 0]);
 
         // Set the marker latitude and longitude value
-        if (latLngValue instanceof LatLng || Array.isArray(latLngValue)) {
+        if (position instanceof LatLng || Array.isArray(position)) {
             // The value passed is a LatLng class object
-            this.position = latLngValue;
+            this.position = position;
             // Set up the marker options
             if (isObject(options)) {
                 this.setOptions(options);
             }
-        } else if (isObject(latLngValue)) {
+        } else if (isObject(position)) {
             // The value passed is a marker options object
-            this.setOptions(latLngValue as MarkerOptions);
+            this.setOptions(position as MarkerOptions);
         }
     }
 
@@ -634,13 +634,13 @@ export type MarkerValue = Marker | MarkerOptions | LatLngValue;
 /**
  * Helper function to set up the marker object
  *
- * @param {MarkerValue} [latLngValue] The latitude/longitude pair or the marker options
+ * @param {MarkerValue} [position] The latitude/longitude pair or the marker options
  * @param {MarkerOptions} [options] The marker options
  * @returns {Marker}
  */
-export const marker = (latLngValue?: MarkerValue, options?: MarkerOptions): Marker => {
-    if (latLngValue instanceof Marker) {
-        return latLngValue;
+export const marker = (position?: MarkerValue, options?: MarkerOptions): Marker => {
+    if (position instanceof Marker) {
+        return position;
     }
-    return new Marker(latLngValue, options);
+    return new Marker(position, options);
 };
