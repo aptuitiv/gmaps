@@ -76,6 +76,16 @@ const map4Element = document.getElementById('map4');
 const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
 map4.display();
 
+function changeMapOptions() {
+    map1.setOptions({ center: [36.224, -81.688], zoom: 8 });
+}
+
+function getMapData() {
+    console.log('Map 1 zoom: ', map1.zoom);
+    console.log('Map 1 getZoom(): ', map1.getZoom());
+    console.log('Map 1 center: ', map1.getCenter());
+}
+
 // const map = G.map('map1', {
 //     apiKey: apiKey,
 //     center: { lat: 36.224, lng: -81.688 },
