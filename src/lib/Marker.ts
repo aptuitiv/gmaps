@@ -10,7 +10,7 @@
         longitude: -73.935242,
         title: 'My Marker'
     });
-    marker.addTo(map);
+    marker.show(map);
 
     // Or, with a custom tooltip
     const marker = G.marker({
@@ -20,7 +20,7 @@
         tooltipContainer: '#map',
         tooltipClass: 'my-tooltip'
     });
-    marker.addTo(map);
+    marker.show(map);
 
     There are a few ways to set an icon for the marker.
     1. Pass the URL for the icon to the "icon" option.
@@ -411,17 +411,6 @@ export class Marker extends Layer {
     }
 
     /**
-     * Adds the marker to the map object
-     *
-     * Alternate to setMap()
-     *
-     * @param {Map} map The map object
-     */
-    addTo(map: Map): void {
-        this.map = map;
-    }
-
-    /**
      * Get the marker position (i.e. the LatLng object)
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
@@ -571,6 +560,19 @@ export class Marker extends Layer {
      */
     setPosition(value: LatLngValue): Marker {
         this.position = value;
+        return this;
+    }
+
+    /**
+     * Adds the marker to the map object
+     *
+     * Alternate of setMap()
+     *
+     * @param {Map} map The map object
+     * @returns {Marker}
+     */
+    show(map: Map): Marker {
+        this.map = map;
         return this;
     }
 
