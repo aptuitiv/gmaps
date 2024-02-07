@@ -64,8 +64,15 @@ map1.on('click', (e) => {
     }
 });
 
-const map2 = G.map('map2', { center: [35.6764, 139.6500] });
+const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
 map2.display();
+
+const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
+map3.display();
+
+const map4Element = document.getElementById('map4');
+const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
+map4.display();
 
 // const map = G.map('map1', {
 //     apiKey: apiKey,

@@ -22,7 +22,7 @@
     });
 =========================================================================== */
 
-/* global google */
+/* global google, HTMLElement */
 
 import { Libraries } from '@googlemaps/js-api-loader';
 import { loader } from './Loader';
@@ -114,12 +114,12 @@ export class Map extends Evented {
     #center: LatLng;
 
     /**
-     * Holds the id of the element that the map will be rendered in
+     * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
      * @private
-     * @type {string}
+     * @type {string|HTMLElement}
      */
-    #id: string;
+    #selector: string | HTMLElement;
 
     /**
      * Holds the Google map object
@@ -148,16 +148,17 @@ export class Map extends Evented {
     /**
      * Class constructor
      *
-     * @param {string} id The id of the element that the map will be rendered in
+     * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
+     *      The selector can be a class name, an id, or an HTML element. If you need something beyond an id or class name as the selector then pass the element itself.
      * @param {MapOptions} [options] The options object for the map
      */
-    constructor(id: string, options?: MapOptions) {
+    constructor(selector: string | HTMLElement, options?: MapOptions) {
         super('map', 'Map');
 
         // Set some default values
         this.#center = latLng(0, 0);
 
-        this.#id = id;
+        this.#selector = selector;
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -304,7 +305,22 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      */
     #displayMap(callback?: (map: Map) => void) {
-        this.#map = new google.maps.Map(document.getElementById(this.#id) as HTMLElement, this.#getMapOptions());
+        let element: HTMLElement = null;
+        if (typeof this.#selector === 'string') {
+            if (this.#selector.startsWith('.')) {
+                element = document.querySelector(this.#selector);
+            } else {
+                element = document.getElementById(this.#selector.replace('#', ''));
+            }
+        } else if (this.#selector instanceof HTMLElement) {
+            element = this.#selector;
+        }
+        if (element === null) {
+            throw new Error(
+                'The map element could not be found. Make sure the map selector is correct and the element exists.'
+            );
+        }
+        this.#map = new google.maps.Map(element, this.#getMapOptions());
         this.setEventGoogleObject(this.#map);
         // Dispatch the event to say that the map is displayed
         this.dispatch('display');
