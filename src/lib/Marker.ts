@@ -435,6 +435,16 @@ export class Marker extends Layer {
     }
 
     /**
+     * Hide the marker
+     *
+     * @returns {Marker}
+     */
+    hide(): Marker {
+        this.map = null;
+        return this;
+    }
+
+    /**
      * Add an event listener to the object
      *
      * @param {string} type The event type
@@ -444,16 +454,6 @@ export class Marker extends Layer {
      */
     on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
         this.setupEventListener(type, callback, options, context);
-    }
-
-    /**
-     * Remove the marker from the map
-     *
-     * @returns {Marker}
-     */
-    remove(): Marker {
-        this.map = null;
-        return this;
     }
 
     /**
