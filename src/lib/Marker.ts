@@ -146,9 +146,9 @@ export type MarkerOptions = GMMarkerOptions & {
     // This is an alternate to setting the latitude and longitude separately.
     position?: LatLngValue;
     // The SVG icon value for the marker
-    // If it's a string then it's the XML code for the SVG icon.
+    // If it's a string then it's the path code for the SVG icon.
     svgIcon?: SvgSymbolValue | string;
-    // The tooltip for the marker. This will show when hovering over the tooltip.
+    // The tooltip for the marker. This will show when hovering over the marker.
     tooltip?: TooltipValue;
 };
 
