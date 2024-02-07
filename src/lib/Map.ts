@@ -39,7 +39,14 @@ import {
 import { LatLng, latLng, LatLngValue } from './LatLng';
 import { Evented, EventCallback, EventOptions } from './Evented';
 
-export type MapOptions = {
+// The options that will be passed to the Google Maps map object
+type GMMapOptions = {
+    center?: LatLng;
+    zoom?: number;
+};
+
+// The options that are passed to map() and setOptions()
+export type MapOptions = GMMapOptions & {
     // The Google Maps API key
     apiKey: string;
     // The center point for the map.
@@ -106,12 +113,20 @@ type LocationOnSuccess = (position: LocationPosition) => void;
  */
 export class Map extends Evented {
     /**
-     * Holds the center point for the map
+     * Holds the Google map object
      *
      * @private
-     * @type {LatLng}
+     * @type {google.maps.Map}
      */
-    #center: LatLng;
+    #map: google.maps.Map;
+
+    /**
+     * Holds the map options
+     *
+     * @private
+     * @type {GMMapOptions}
+     */
+    #options: GMMapOptions = {};
 
     /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
@@ -122,28 +137,12 @@ export class Map extends Evented {
     #selector: string | HTMLElement;
 
     /**
-     * Holds the Google map object
-     *
-     * @private
-     * @type {google.maps.Map}
-     */
-    #map: google.maps.Map;
-
-    /**
      * Holds the watchId for the watchPosition() function
      *
      * @private
      * @type {number}
      */
     #watchId: number;
-
-    /**
-     * Holds the map zoom value
-     *
-     * @private
-     * @type {number}
-     */
-    #zoom: number = 6;
 
     /**
      * Class constructor
@@ -156,7 +155,8 @@ export class Map extends Evented {
         super('map', 'Map');
 
         // Set some default values
-        this.#center = latLng(0, 0);
+        this.#options.center = latLng(0, 0);
+        this.#options.zoom = 6;
 
         this.#selector = selector;
         if (isObject(options)) {
@@ -262,11 +262,19 @@ export class Map extends Evented {
      * @returns {google.maps.MapOptions}
      */
     #getMapOptions(): google.maps.MapOptions {
-        const options: google.maps.MapOptions = {
-            center: this.#center.toJson(),
-            zoom: this.#zoom,
-        };
-        return options;
+        const mapOptions: google.maps.MapOptions = {};
+        // Options that can be set on the marker without any modification
+        const optionsToSet = ['zoom'];
+        optionsToSet.forEach((key) => {
+            if (this.#options[key]) {
+                mapOptions[key] = this.#options[key];
+            }
+        });
+
+        // Options that have to be converted to Google Maps objects
+        mapOptions.center = this.#options.center.toGoogle();
+
+        return mapOptions;
     }
 
     /**
@@ -424,9 +432,9 @@ export class Map extends Evented {
     setCenter(latitude: number | LatLngValue, longitude?: number): Map {
         const center = latLng(latitude, longitude);
         if (center.isValid()) {
-            this.#center = center;
+            this.#options.center = center;
             if (isObject(this.#map)) {
-                this.#map.setCenter(this.#center.toGoogle());
+                this.#map.setCenter(this.#options.center.toGoogle());
             }
         }
         return this;
@@ -462,17 +470,19 @@ export class Map extends Evented {
                 }
             }
             if (center.isValid()) {
-                this.#center = center;
+                this.#options.center = center;
             }
 
             // Set the zoom level for the map
             if (isNumber(options.zoom)) {
-                this.#zoom = options.zoom;
+                this.#options.zoom = options.zoom;
             } else if (isNumberString(options.zoom)) {
-                this.#zoom = Number(options.zoom);
+                this.#options.zoom = Number(options.zoom);
             }
-        } else {
-            throw new Error('Invalid map options. You must pass an object of options');
+
+            if (this.#map) {
+                this.#map.setOptions(this.#getMapOptions());
+            }
         }
         return this;
     }
