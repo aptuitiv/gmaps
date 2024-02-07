@@ -163,6 +163,9 @@ export class Overlay extends Layer {
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {} // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
@@ -170,6 +173,9 @@ export class Overlay extends Layer {
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {} // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
@@ -177,6 +183,10 @@ export class Overlay extends Layer {
     /**
      * Remove the overlay from the map.
      * This method is called once following a call to setMap(null).
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
      */
     remove() {
         if (this.#overlay.parentElement) {
