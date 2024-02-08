@@ -8,6 +8,7 @@
 /* eslint-disable max-classes-per-file */
 
 import Layer from './Layer';
+import { loader } from './Loader';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
 import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './helpers';
@@ -149,6 +150,14 @@ class Overlay extends Layer {
             this.#setupGoogleOverlay();
             if (this.#overlayView) {
                 this.#overlayView.setMap(map.toGoogle());
+            } else {
+                // The Google maps library isn't loaded yet. Wait for it to load.
+                loader().once('map_loaded', () => {
+                    this.#setupGoogleOverlay();
+                    if (this.#overlayView) {
+                        this.#overlayView.setMap(map.toGoogle());
+                    }
+                });
             }
             super.setMap(map);
         }
