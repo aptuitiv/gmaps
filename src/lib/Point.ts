@@ -62,7 +62,7 @@ export class Point extends Base {
      */
     constructor(x?: XPoint | Point, y?: number | string) {
         super('point');
-        if (x) {
+        if (typeof x !== 'undefined') {
             this.set(x, y);
         }
     }
