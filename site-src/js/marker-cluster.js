@@ -5,91 +5,88 @@
 
 /* global G */
 
-/* TEST 1  */
-// G.loader().setApiKey(apiKey).load();
 
-// const map = G.map('map1', {
-//     latitude: 40.730610,
-//     longitude: -73.935242,
-//     zoom: 8
-// });
-// map.display();
-// const marker = G.marker({
-//     latitude: 40.730610,
-//     longitude: -73.935242,
-//     map: map,
-//     title: 'My Marker'
-// });
 
-/* TEST 2 */
-const map = G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } });
-map.display().then(() => {
-    // Dispatch a custom event
-    marker.dispatch('custom', { data: 'test' });
-});
-const marker = G.marker({
-    latitude: 48.9,
-    longitude: 2.4,
-    map: map,
-    title: 'My Marker',
-});
-const callback = (e) => {
-    console.log('Marker Clicked: ', e);
-    e.stop();
+const map = G.map('map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 } });
+map.load();
+
+let clusterOptions = undefined;
+
+// Default renderer options
+clusterOptions = {
+    defaultRenderOptions: {
+        colorRangeTop: '#d62828', // Red
+        // colorRangeBottom: '#14213d', // Blue
+        colorRangeBottom: {
+            bgColor: '#E5E5E5',
+            textColor: '#000000',
+        },
+        // colors: {
+        //     5: '#75A15D', // green
+        //     10: '#00859E', // blue/green
+        //     20: '#D97E31', // orange
+        //     30: '#FF006E' // rose
+        // },
+        // colors: {
+        //     0: '#75A15D', // green
+        //     5: '#D97E31', // orange
+        //     10: {
+        //         bgColor: '#E5E5E5',
+        //         textColor: '#000000',
+        //     },
+        // },
+        centerOpacity: 0.7,
+        middleOpacity: 0.4,
+        outerOpacity: 0.2,
+        labelFontFamily: 'roboto,arial,sans-serif',
+        labelFontSize: '12px',
+        // showNumber: true,
+    },
+    // onClusterClick: (event, cluster, map) => {
+    //     console.log('Cluster clicked', event);
+    //     console.log('Cluster clicked', cluster);
+    // }
+}
+
+
+// Image renderer options
+clusterOptions = {
+    imageRendererOptions: {
+        images: {
+            5: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m1.png',
+            10: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m2.png',
+            25: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m3.png',
+            50: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m4.png',
+            100: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m5.png',
+        }
+    }
 };
-const otherCallback = (e) => {
-    console.log('Other Marker Clicked: ', e);
-    e.stop();
+
+// Create the cluster object
+const cluster = G.markerCluster(map, clusterOptions);
+
+// Marker positions
+const markerPositions = [];
+
+const latRange = [48, 50];
+const lngRanage = [2, 10];
+for (let i = 0; i < 300; i += 1) {
+    markerPositions.push({
+        latitude: latRange[0] + Math.random() * (latRange[1] - latRange[0]),
+        longitude: lngRanage[0] + Math.random() * (lngRanage[1] - lngRanage[0]),
+    });
 }
-marker.once('click', callback, { once: false });
 
-// Set up a custom event listener
-marker.on('custom', (e) => {
-    console.log('custom event: ', e);
+
+const markers = [];
+markerPositions.forEach((position) => {
+    const marker = G.marker({
+        latitude: position.latitude,
+        longitude: position.longitude,
+        map: map,
+    });
+    marker.show(map);
+    markers.push(marker);
+    // cluster.addMarker(marker);
 });
-
-
-G.loader({ apiKey: apiKey }).load(() => {
-    marker.label = 'New label';
-});
-
-marker.on('click', otherCallback);
-
-
-/* TEST 3 */
-
-// const loader = G.loader({ apiKey: apiKey, });
-// loader.on('load', () => { console.log('loaded event'); });
-// loader.on('map_loaded', () => { console.log('map loaded event'); });
-// loader.load();
-// const map = G.map('map1', {
-//     apiKey: apiKey,
-//     center: { lat: 36.224, lng: -81.688 },
-// });
-
-// const marker = G.marker({
-//     latitude: 36.224,
-//     longitude: -81.688,
-//     title: 'My Marker',
-//     tooltipContainer: '#map',
-//     tooltipClass: 'my-tooltip'
-// });
-// marker.show(map);
-// // marker.on('click', (e) => {
-// //     console.log('Marker Clicked: ', e);
-// // });
-// map.display().then(() => {
-//     console.log('1 loaded')
-//     // marker.show(map);
-// });
-
-// console.log('map: ', map);
-// console.log('isMap: ', map.isMap());
-// console.log('isMarker: ', map.isMarker());
-
-function removeEvents() {
-    // marker.off('click', callback);
-    // marker.off();
-    marker.offAll();
-    console.log('Events removed');
-}
+cluster.addMarkers(markers);
