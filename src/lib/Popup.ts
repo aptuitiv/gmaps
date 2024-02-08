@@ -12,7 +12,6 @@
 /* global google, HTMLElement, Element, Text */
 /* eslint-disable no-use-before-define */
 
-import { LatLng } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
