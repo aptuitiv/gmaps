@@ -101,6 +101,35 @@ export class Tooltip extends Overlay {
     }
 
     /**
+     * Attach the tooltip to a map or marker
+     *
+     * The tooltip will be shown when hovering over the map or marker.
+     *
+     * @param {Map | Marker} element The element to attach the tooltip to
+     * @returns {Tooltip}
+     */
+    attachTo(element: Map | Marker): Tooltip {
+        if (element instanceof Map) {
+            // Show the tooltip when hovering over the map
+            element.on('mouseover', (e) => {
+                this.setPosition(e.latLng);
+                this.show(element);
+            });
+            element.on('mousemove', (e) => {
+                this.setPosition(e.latLng);
+                this.show(element);
+            });
+            element.on('mouseout', () => {
+                this.hide();
+            });
+        } else if (element instanceof Marker) {
+            // Show the tooltip when hovering over the marker
+            element.setTooltip(this);
+        }
+        return this;
+    }
+
+    /**
      * Sets the options for the tooltip
      *
      * @param {TooltipOptions} options Tooltip options
