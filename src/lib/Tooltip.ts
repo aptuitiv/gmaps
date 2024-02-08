@@ -32,15 +32,16 @@
 
 /* global google */
 
-import { isObject, isString, isStringWithValue } from './helpers';
-import { LatLng } from './LatLng';
+import { isNullOrUndefined, isObject, isString, isStringWithValue } from './helpers';
+import { latLng, LatLng, LatLngValue } from './LatLng';
 import Overlay from './Overlay';
 import { PointValue } from './Point';
 
 type TooltipOptions = {
     className?: string;
-    content?: string;
+    content?: string | HTMLElement;
     offset?: PointValue;
+    position?: LatLngValue;
 };
 
 /**
@@ -49,12 +50,12 @@ type TooltipOptions = {
 export class Tooltip extends Overlay {
     /**
      * Holds the tooltip content.
-     * This can be a simple string of text, or string of HTML code.
+     * This can be a simple string of text, string of HTML code, or an HTMLElement.
      *
      * @private
-     * @type {string}
+     * @type {string|HTMLElement}
      */
-    #content: string;
+    #content: string | HTMLElement;
 
     /**
      * Holds the position of the tooltip
@@ -76,6 +77,31 @@ export class Tooltip extends Overlay {
             this.setOptions(options);
         } else {
             this.setClassName('tooltip');
+        }
+    }
+
+    /**
+     * Returns the content for the tooltip
+     *
+     * @returns {string|HTMLElement}
+     */
+    get content(): string | HTMLElement {
+        return this.#content;
+    }
+
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement} content The content for the tooltip
+     */
+    set content(content: string | HTMLElement) {
+        if (isStringWithValue(content)) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = content;
+        } else if (content instanceof HTMLElement) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = '';
+            this.getOverlayElement().appendChild(content);
         }
     }
 
@@ -108,8 +134,8 @@ export class Tooltip extends Overlay {
      * @param {TooltipOptions} options Tooltip options
      */
     setOptions(options: TooltipOptions) {
-        if (isString(options.content)) {
-            this.setContent(options.content);
+        if (options.content) {
+            this.content = options.content;
         }
         if (isString(options.className)) {
             this.removeClassName('tooltip');
@@ -135,13 +161,12 @@ export class Tooltip extends Overlay {
     /**
      * Set the content for the tooltip
      *
-     * @param {string} content The content for the tooltip
+     * @param {string|HTMLElement} content The content for the tooltip
+     * @returns {Tooltip}
      */
-    setContent(content: string) {
-        if (isStringWithValue(content)) {
-            this.#content = content;
-            this.getOverlayElement().innerHTML = content;
-        }
+    setContent(content: string | HTMLElement): Tooltip {
+        this.content = content;
+        return this;
     }
 
     /**
