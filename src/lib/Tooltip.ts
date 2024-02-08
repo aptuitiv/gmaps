@@ -158,6 +158,7 @@ export class Tooltip extends Overlay {
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
+     * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
@@ -167,6 +168,7 @@ export class Tooltip extends Overlay {
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
+     * @internal
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
