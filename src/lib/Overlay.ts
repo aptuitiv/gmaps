@@ -116,7 +116,7 @@ class Overlay extends Layer {
      *
      * This lets you have the offset show a certain number of pixels from it's lat/lng position.
      *
-     * @param {PointValue} offset The offset value
+     * @param {PointValue} value The offset value
      */
     set offset(value: PointValue) {
         const pointValue = point(value);
