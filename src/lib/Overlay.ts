@@ -7,8 +7,9 @@
 /* global google, HTMLElement, OverlayView */
 /* eslint-disable max-classes-per-file */
 
-import Layer from './Layer';
 import { loader } from './Loader';
+import { latLng, LatLng, LatLngValue } from './LatLng';
+import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
 import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './helpers';
@@ -31,7 +32,7 @@ class Overlay extends Layer {
     /**
      * Holds the overlay HTML element. This is the container element that the
      * content for the overlay will get displayed in.
-     * That could be a tooltip, a custom info window, or a map overlay.
+     * That could be a tooltip, a custom info window (popup), or a map overlay.
      *
      * private
      *
@@ -46,6 +47,14 @@ class Overlay extends Layer {
      * @type {google.maps.OverlayView}
      */
     #overlayView: google.maps.OverlayView;
+
+    /**
+     * Holds the position of the overlay
+     *
+     * @private
+     * @type {LatLng}
+     */
+    #position: LatLng;
 
     /**
      * Constructor
@@ -79,7 +88,7 @@ class Overlay extends Layer {
      *
      * If you need multiple class names then separate them with a space.
      *
-     * @param {string} className The class name(s) to add to the tooltip.
+     * @param {string} className The class name(s) to add to the overlay.
      *    This can be a space separated list of class names.
      */
     set className(className: string) {
@@ -94,6 +103,38 @@ class Overlay extends Layer {
     }
 
     /**
+     * Returns the position of the overlay
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng {
+        return this.#position;
+    }
+
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue} value The position of the overlay
+     */
+    set position(value: LatLngValue) {
+        const position = latLng(value);
+        if (position.isValid()) {
+            this.#position = position;
+        } else if (isNullOrUndefined(value)) {
+            this.#position = undefined;
+        }
+    }
+
+    /**
+     * Get the offset value
+     *
+     * @returns {Point}
+     */
+    getOffset(): Point {
+        return this.#offset;
+    }
+
+    /**
      * Get the overlay HTML element
      *
      * @returns {HTMLElement}
@@ -103,15 +144,39 @@ class Overlay extends Layer {
     }
 
     /**
+     * Get the position of the overlay
+     *
+     * @returns {LatLng}
+     */
+    getPosition(): LatLng {
+        return this.position;
+    }
+
+    /**
      * Hide the overlay
      *
-     * @internal
+     * @returns {Overlay}
      */
-    hide() {
+    hide(): Overlay {
         if (this.#overlayView) {
             this.#overlayView.setMap(null);
             this.removeMap();
         }
+        return this;
+    }
+
+    /**
+     * Removes a class name from the overlay element
+     *
+     * @param {string} className The class name to remove from the overlay element
+     * @returns {Overlay}
+     */
+    removeClassName(className: string): Overlay {
+        const classes = className.split(' ');
+        classes.forEach((cn) => {
+            this.#overlay.classList.remove(cn.trim());
+        });
+        return this;
     }
 
     /**
@@ -119,7 +184,7 @@ class Overlay extends Layer {
      *
      * If you need multiple class names then separate them with a space.
      *
-     * @param {string} className The class name(s) to add to the tooltip.
+     * @param {string} className The class name(s) to add to the overlay.
      *    This can be a space separated list of class names.
      * @returns {Overlay}
      */
@@ -129,23 +194,12 @@ class Overlay extends Layer {
     }
 
     /**
-     * Removes a class name from the overlay element
-     *
-     * @param {string} className The class name to remove from the overlay element
-     */
-    removeClassName(className: string) {
-        const classes = className.split(' ');
-        classes.forEach((cn) => {
-            this.#overlay.classList.remove(cn.trim());
-        });
-    }
-
-    /**
      * Set the map object to display the overlay in
      *
      * @param {Map} map The Map object
+     * @returns {Overlay}
      */
-    setMap(map: Map) {
+    setMap(map: Map): Overlay {
         if (map instanceof Map) {
             this.#setupGoogleOverlay();
             if (this.#overlayView) {
@@ -161,26 +215,7 @@ class Overlay extends Layer {
             }
             super.setMap(map);
         }
-    }
-
-    /**
-     * Add the overlay to the map.
-     *
-     * Alias for setMap()
-     *
-     * @param {Map} map The Map object
-     */
-    show(map: Map) {
-        this.setMap(map);
-    }
-
-    /**
-     * Get the offset value
-     *
-     * @returns {Point}
-     */
-    getOffset(): Point {
-        return this.#offset;
+        return this;
     }
 
     /**
@@ -192,6 +227,29 @@ class Overlay extends Layer {
      */
     setOffset(offset: PointValue) {
         this.#offset = point(offset);
+    }
+
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @returns {Overlay}
+     */
+    setPosition(position: LatLngValue): Overlay {
+        this.position = position;
+        return this;
+    }
+
+    /**
+     * Add the overlay to the map.
+     *
+     * Alias for setMap()
+     *
+     * @param {Map} map The Map object
+     * @returns {Overlay}
+     */
+    show(map: Map): Overlay {
+        return this.setMap(map);
     }
 
     /**

@@ -32,8 +32,10 @@
 
 /* global google */
 
-import { isNullOrUndefined, isObject, isString, isStringWithValue } from './helpers';
-import { latLng, LatLng, LatLngValue } from './LatLng';
+import { isObject, isString, isStringWithValue } from './helpers';
+import { LatLngValue } from './LatLng';
+import { Map } from './Map';
+import { Marker } from './Marker';
 import Overlay from './Overlay';
 import { PointValue } from './Point';
 
@@ -56,14 +58,6 @@ export class Tooltip extends Overlay {
      * @type {string|HTMLElement}
      */
     #content: string | HTMLElement;
-
-    /**
-     * Holds the position of the tooltip
-     *
-     * @private
-     * @type {LatLng}
-     */
-    #position: LatLng;
 
     /**
      * Constructor
@@ -102,29 +96,6 @@ export class Tooltip extends Overlay {
             this.#content = content;
             this.getOverlayElement().innerHTML = '';
             this.getOverlayElement().appendChild(content);
-        }
-    }
-
-    /**
-     * Returns the position of the tooltip
-     *
-     * @returns {LatLng}
-     */
-    get position(): LatLng {
-        return this.#position;
-    }
-
-    /**
-     * Set the position of the tooltip
-     *
-     * @param {LatLngValue} value The position of the tooltip
-     */
-    set position(value: LatLngValue) {
-        const position = latLng(value);
-        if (position.isValid()) {
-            this.#position = position;
-        } else if (isNullOrUndefined(value)) {
-            this.#position = undefined;
         }
     }
 
@@ -170,17 +141,6 @@ export class Tooltip extends Overlay {
     }
 
     /**
-     * Set the position of the tooltip
-     *
-     * @param {LatLngValue} position The latitude/longitude position of where the tooltip should show
-     * @returns {Tooltip}
-     */
-    setPosition(position: LatLngValue): Tooltip {
-        this.position = position;
-        return this;
-    }
-
-    /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
      * @internal
@@ -197,7 +157,7 @@ export class Tooltip extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.#position.toGoogle())!;
+        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
         // Hide the tooltip when it is far out of view.
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
