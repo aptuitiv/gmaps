@@ -31,13 +31,17 @@ class Layer extends Evented {
 
     /**
      * Clears the map object that the layer is added to
+     *
+     * Note, this does not remove the layer from the map, it just clears the map object from the layer.
      */
-    removeMap(): void {
+    removeMap() {
         this.#map = null;
     }
 
     /**
      * Sets the map object that the layer is added to
+     *
+     * This does not display the layer on the map, it only sets the map object for the layer.
      *
      * @param {Map} map The map object to add the layer to
      */
