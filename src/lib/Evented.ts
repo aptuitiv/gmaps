@@ -14,6 +14,7 @@ import { checkForGoogleMaps, isFunction, isObject, isString, objectEquals } from
 import Base from './Base';
 import { latLng, LatLng } from './LatLng';
 import { loader } from './Loader';
+import { Point } from './Point';
 
 // Base event callback data type
 export type Event = {
@@ -24,6 +25,8 @@ export type Event = {
     // The placeId of the place that was below the cursor when the event occurred.
     // This is only set when the user clicks on an icon on the map.
     placeId?: string;
+    // The pixel coordinates where the event occurred.
+    pixel?: Point;
     // Call this function to stop the event from propagating further.
     // This comes from the Google Maps event data.
     stop?: () => void;
@@ -183,6 +186,9 @@ export class Evented extends Base {
                     }
                     if (typeof (data as google.maps.IconMouseEvent).placeId !== 'undefined') {
                         eventData.placeId = (data as google.maps.IconMouseEvent).placeId;
+                    }
+                    if (typeof (data as any).pixel !== 'undefined') {
+                        eventData.pixel = new Point((data as any).pixel.x, (data as any).pixel.y);
                     }
                 } else {
                     // Merge the data with the event data
