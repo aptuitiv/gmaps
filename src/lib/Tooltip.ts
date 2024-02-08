@@ -30,7 +30,7 @@
     });
 =========================================================================== */
 
-/* global google */
+/* global google, HTMLElement */
 
 import { isObject, isString, isStringWithValue } from './helpers';
 import { LatLngValue } from './LatLng';
