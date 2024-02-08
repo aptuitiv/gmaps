@@ -161,19 +161,21 @@ export class Tooltip extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
+        if (this.hasPosition()) {
+            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
-        // Hide the tooltip when it is far out of view.
-        const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
+            // Hide the tooltip when it is far out of view.
+            const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
-        if (display === 'block') {
-            const offset = this.getOffset();
-            this.getOverlayElement().style.left = `${divPosition.x + offset.getX()}px`;
-            this.getOverlayElement().style.top = `${divPosition.y + offset.getY()}px`;
-        }
+            if (display === 'block') {
+                const offset = this.getOffset();
+                this.getOverlayElement().style.left = `${divPosition.x + offset.getX()}px`;
+                this.getOverlayElement().style.top = `${divPosition.y + offset.getY()}px`;
+            }
 
-        if (this.getOverlayElement().style.display !== display) {
-            this.getOverlayElement().style.display = display;
+            if (this.getOverlayElement().style.display !== display) {
+                this.getOverlayElement().style.display = display;
+            }
         }
     }
 }
