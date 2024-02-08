@@ -484,7 +484,7 @@ export type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
  * @param {SvgSymbolOptions} [options] The options for the icon
  * @returns {SvgSymbol}
  */
-export const svgSymbol = (path: SvgSymbolValue, options?: SvgSymbolOptions): SvgSymbol => {
+export const svgSymbol = (path?: SvgSymbolValue, options?: SvgSymbolOptions): SvgSymbol => {
     if (path instanceof SvgSymbol) {
         return path;
     }
