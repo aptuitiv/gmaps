@@ -10,7 +10,7 @@
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
-import { checkForGoogleMaps, isObject } from './helpers';
+import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './helpers';
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -65,6 +65,34 @@ class Overlay extends Layer {
     }
 
     /**
+     * Get the class name for the overlay element
+     *
+     * @returns {string}
+     */
+    get className(): string {
+        return this.#overlay.className;
+    }
+
+    /**
+     * Set the class name(s) for the overlay element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the tooltip.
+     *    This can be a space separated list of class names.
+     */
+    set className(className: string) {
+        if (isString(className)) {
+            const classes = className.split(' ');
+            classes.forEach((cn) => {
+                this.#overlay.classList.add(cn.trim());
+            });
+        } else if (isNullOrUndefined(className)) {
+            this.#overlay.className = '';
+        }
+    }
+
+    /**
      * Get the overlay HTML element
      *
      * @returns {HTMLElement}
@@ -92,12 +120,11 @@ class Overlay extends Layer {
      *
      * @param {string} className The class name(s) to add to the tooltip.
      *    This can be a space separated list of class names.
+     * @returns {Overlay}
      */
-    setClassName(className: string) {
-        const classes = className.split(' ');
-        classes.forEach((cn) => {
-            this.#overlay.classList.add(cn.trim());
-        });
+    setClassName(className: string): Overlay {
+        this.className = className;
+        return this;
     }
 
     /**
