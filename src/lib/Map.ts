@@ -328,6 +328,20 @@ export class Map extends Evented {
     }
 
     /**
+     * Gets the current projection for the map.
+     *
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {google.maps.Projection|undefined}
+     */
+    getProjection(): google.maps.Projection | undefined {
+        if (this.#map) {
+            return this.#map.getProjection();
+        }
+        return undefined;
+    }
+
+    /**
      * Get the zoom level
      *
      * @returns {number}
