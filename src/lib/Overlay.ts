@@ -153,6 +153,15 @@ class Overlay extends Layer {
     }
 
     /**
+     * Returns whether the overlay has a position
+     *
+     * @returns {boolean}
+     */
+    hasPosition(): boolean {
+        return this.#position instanceof LatLng;
+    }
+
+    /**
      * Hide the overlay
      *
      * @returns {Overlay}
