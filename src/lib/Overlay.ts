@@ -103,6 +103,29 @@ class Overlay extends Layer {
     }
 
     /**
+     * Returns the offset value
+     *
+     * @returns {Point}
+     */
+    get offset(): Point {
+        return this.getOffset();
+    }
+
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param {PointValue} offset The offset value
+     */
+    set offset(value: PointValue) {
+        const pointValue = point(value);
+        if (pointValue.isValid()) {
+            this.#offset = pointValue;
+        }
+    }
+
+    /**
      * Returns the position of the overlay
      *
      * @returns {LatLng}
@@ -233,9 +256,11 @@ class Overlay extends Layer {
      * This lets you have the offset show a certain number of pixels from it's lat/lng position.
      *
      * @param {PointValue} offset The offset value
+     * @returns {Overlay}
      */
-    setOffset(offset: PointValue) {
-        this.#offset = point(offset);
+    setOffset(offset: PointValue): Overlay {
+        this.offset = offset;
+        return this;
     }
 
     /**
