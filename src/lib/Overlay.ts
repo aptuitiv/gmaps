@@ -71,7 +71,7 @@ class Overlay extends Layer {
         this.#overlay.style.position = 'absolute';
 
         // Set the default offset
-        this.#offset = point(0, 0);
+        this.setOffset([0, 0]);
     }
 
     /**
