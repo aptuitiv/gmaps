@@ -80,6 +80,29 @@ export class Tooltip extends Overlay {
     }
 
     /**
+     * Returns the position of the tooltip
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng {
+        return this.#position;
+    }
+
+    /**
+     * Set the position of the tooltip
+     *
+     * @param {LatLngValue} value The position of the tooltip
+     */
+    set position(value: LatLngValue) {
+        const position = latLng(value);
+        if (position.isValid()) {
+            this.#position = position;
+        } else if (isNullOrUndefined(value)) {
+            this.#position = undefined;
+        }
+    }
+
+    /**
      * Sets the options for the tooltip
      *
      * @param {TooltipOptions} options Tooltip options
@@ -94,6 +117,9 @@ export class Tooltip extends Overlay {
         }
         if (options.offset) {
             this.setOffset(options.offset);
+        }
+        if (options.position) {
+            this.position = options.position;
         }
     }
 
@@ -121,11 +147,11 @@ export class Tooltip extends Overlay {
     /**
      * Set the position of the tooltip
      *
-     * @param {LatLng} position The Google maps lat/lng position of where the tooltip should show
+     * @param {LatLngValue} position The latitude/longitude position of where the tooltip should show
      * @returns {Tooltip}
      */
-    setPosition(position: LatLng): Tooltip {
-        this.#position = position;
+    setPosition(position: LatLngValue): Tooltip {
+        this.position = position;
         return this;
     }
 
