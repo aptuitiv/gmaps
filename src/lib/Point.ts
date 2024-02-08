@@ -57,12 +57,14 @@ export class Point extends Base {
     /**
      * Constructor
      *
-     * @param {XPoint|Point} x The X value
-     * @param {number|string} y The Y value
+     * @param {XPoint|Point} [x] The X value
+     * @param {number|string} [y] The Y value
      */
-    constructor(x: XPoint | Point, y?: number | string) {
+    constructor(x?: XPoint | Point, y?: number | string) {
         super('point');
-        this.set(x, y);
+        if (x) {
+            this.set(x, y);
+        }
     }
 
     /**
@@ -371,8 +373,8 @@ export type PointValue = Point | number | number[] | string | string[] | PointOb
 /**
  * Helper function to set up the point object
  *
- * @param {PointValue} x The x value, or the Point object, or an array of [x, y] pairs, or a {x, y} object
+ * @param {PointValue} [x] The x value, or the Point object, or an array of [x, y] pairs, or a {x, y} object
  * @param {number|string} [y] The y value
  * @returns {Point}
  */
-export const point = (x: PointValue, y?: number | string): Point => new Point(x, y);
+export const point = (x?: PointValue, y?: number | string): Point => new Point(x, y);
