@@ -42,6 +42,7 @@ import { PointValue } from './Point';
 type TooltipOptions = {
     className?: string;
     content?: string | HTMLElement;
+    map?: Map;
     offset?: PointValue;
     position?: LatLngValue;
 };
@@ -111,6 +112,9 @@ export class Tooltip extends Overlay {
         if (isString(options.className)) {
             this.removeClassName('tooltip');
             this.setClassName(options.className);
+        }
+        if (options.map) {
+            this.setMap(options.map);
         }
         if (options.offset) {
             this.setOffset(options.offset);
