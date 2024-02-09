@@ -85,6 +85,18 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Close the popup
+     *
+     * @returns {Popup}
+     */
+    hide(): Popup {
+        super.hide();
+        this.#isOpen = false;
+        PopupCollection.getInstance().remove(this);
+        return this;
+    }
+
+    /**
      * Sets the options for the popup
      *
      * @param {PopupOptions} options Popup options
@@ -136,11 +148,11 @@ export class Popup extends Overlay {
      *      If this is used internally then the Google maps object can be used.
      * @returns {Popup}
      */
-    open(anchorOrMap: Map | Marker): Popup {
+    show(anchorOrMap: Map | Marker): Popup {
         const collection = PopupCollection.getInstance();
         if (collection.has(this) && this.#isOpen) {
             if (this.#toggleDisplay) {
-                this.close();
+                this.hide();
             }
         } else {
             // Close other open Popups if necessary
@@ -150,7 +162,7 @@ export class Popup extends Overlay {
 
             if (anchorOrMap instanceof Map) {
                 this.#popupOffset = this.getOffset().clone();
-                this.setMap(anchorOrMap);
+                super.show(anchorOrMap);
             } else if (anchorOrMap instanceof Marker) {
                 this.position = anchorOrMap.getPosition();
                 // If the anchor is a marker then add the anchor's anchorPoint to the offset.
@@ -165,7 +177,7 @@ export class Popup extends Overlay {
                     this.#popupOffset = this.getOffset().clone();
                 }
                 // Set the map value to display the popup and call the add() and draw() functions.
-                this.setMap(anchorOrMap.getMap());
+                super.show(anchorOrMap.getMap());
             }
             this.#isOpen = true;
             collection.add(this);
@@ -203,18 +215,6 @@ export class Popup extends Overlay {
         if (this.getOverlayElement().style.display !== display) {
             this.getOverlayElement().style.display = display;
         }
-    }
-
-    /**
-     * Close the popup
-     *
-     * @returns {Popup}
-     */
-    close(): Popup {
-        this.hide();
-        this.#isOpen = false;
-        PopupCollection.getInstance().remove(this);
-        return this;
     }
 }
 
@@ -262,7 +262,7 @@ Layer.include({
         }
         this.on('click', () => {
             if (this.layerPopup) {
-                this.layerPopup.open(this);
+                this.layerPopup.show(this);
             }
         });
     },
@@ -322,7 +322,7 @@ const PopupCollection = (() => {
              */
             closeAll() {
                 this.popups.forEach((p: Popup) => {
-                    p.close();
+                    p.hide();
                 });
             },
             /**
@@ -333,7 +333,7 @@ const PopupCollection = (() => {
             closeOthers(p: Popup) {
                 this.popups.forEach((infoW: Popup) => {
                     if (infoW !== p) {
-                        infoW.close();
+                        infoW.hide();
                     }
                 });
             },
