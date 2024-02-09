@@ -368,11 +368,11 @@ export class InfoWindow extends Layer {
      *
      * Alias to show()
      *
-     * @param {Map | Marker} anchorOrMap The anchor object or map object.
+     * @param {Map | Marker} element The anchor object or map object.
      * @returns {InfoWindow}
      */
-    open(anchorOrMap: Map | Marker): InfoWindow {
-        return this.show(anchorOrMap);
+    open(element: Map | Marker): InfoWindow {
+        return this.show(element);
     }
 
     /**
@@ -465,11 +465,11 @@ export class InfoWindow extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
-     * @param {Map | Marker} anchorOrMap The anchor object or map object.
+     * @param {Map | Marker} element The anchor object or map object.
      *      This should ideally be the Map or Marker object.
      * @returns {InfoWindow}
      */
-    show(anchorOrMap: Map | Marker): InfoWindow {
+    show(element: Map | Marker): InfoWindow {
         this.#setupGoogleInfoWindow();
         const collection = InfoWindowCollection.getInstance();
         if (collection.has(this) && this.#isOpen) {
@@ -482,18 +482,18 @@ export class InfoWindow extends Layer {
                 collection.hideOthers(this);
             }
 
-            if (anchorOrMap instanceof Map) {
+            if (element instanceof Map) {
                 this.#infoWindow.open({
-                    map: anchorOrMap.toGoogle(),
+                    map: element.toGoogle(),
                     shouldFocus: this.#focus,
                 });
-                this.setMap(anchorOrMap);
-            } else if (anchorOrMap instanceof Marker) {
+                this.setMap(element);
+            } else if (element instanceof Marker) {
                 this.#infoWindow.open({
-                    anchor: anchorOrMap.toGoogle(),
+                    anchor: element.toGoogle(),
                     shouldFocus: this.#focus,
                 });
-                this.setMap(anchorOrMap.getMap());
+                this.setMap(element.getMap());
             }
             this.#isOpen = true;
             collection.add(this);
