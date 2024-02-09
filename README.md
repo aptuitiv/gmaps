@@ -47,7 +47,7 @@ Display the map
 <script>
 G.loader({ apiKey: 'Your-Api-Key', }).load().then(() => {
     const map = G.map('map', { center: { latitude: 48.864716, longitude: 2.3522 } });
-    map.display();
+    map.show();
 });
 </script>
 ```

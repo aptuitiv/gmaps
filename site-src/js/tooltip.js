@@ -13,7 +13,7 @@ const map = G.map('map1', {
     longitude: -73.935242,
     zoom: 8
 });
-map.display();
+map.show();
 const marker = G.marker({
     latitude: 41.2,
     longitude: -72.2,

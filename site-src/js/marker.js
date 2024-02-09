@@ -13,7 +13,7 @@
 //     longitude: -73.935242,
 //     zoom: 8
 // });
-// map.display();
+// map.show();
 // const marker = G.marker({
 //     latitude: 40.730610,
 //     longitude: -73.935242,
@@ -23,7 +23,7 @@
 
 /* TEST 2 */
 const map = G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } });
-map.display().then(() => {
+map.show().then(() => {
     // Dispatch a custom event
     marker.dispatch('custom', { data: 'test' });
 });
@@ -78,7 +78,7 @@ marker.on('click', otherCallback);
 // // marker.on('click', (e) => {
 // //     console.log('Marker Clicked: ', e);
 // // });
-// map.display().then(() => {
+// map.show().then(() => {
 //     console.log('1 loaded')
 //     // marker.show(map);
 // });
