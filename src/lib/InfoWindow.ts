@@ -2,7 +2,7 @@
     Helps to set up the built-in Google InfoWindow
 =========================================================================== */
 
-/* global google, Element, Text */
+/* global google, HTMLElement, Text */
 /* eslint-disable no-use-before-define */
 
 import {
@@ -27,7 +27,7 @@ type GMInfoWindowOptions = {
     // The content to display in the InfoWindow. This can be an HTML element, a plain-text string, or a string containing HTML.
     // The InfoWindow will be sized according to the content. To set an explicit size for the content, set content to be a HTML element with that size,
     // or use maxWidth.
-    content?: string | Element | Text;
+    content?: string | HTMLElement | Text;
     // Disable panning the map to make the InfoWindow fully visible when it opens.
     disableAutoPan?: boolean;
     // Maximum width of the InfoWindow, regardless of content's width.
@@ -155,19 +155,19 @@ export class InfoWindow extends Layer {
     /**
      * Get the content for the InfoWindow
      *
-     * @returns {string|Element|Text}
+     * @returns {string|HTMLElement|Text}
      */
-    get content(): string | Element | Text {
+    get content(): string | HTMLElement | Text {
         return this.#options.content;
     }
 
     /**
      * Set the content for the InfoWindow
      *
-     * @param {string|Element|Text} content The content for the InfoWindow
+     * @param {string|HTMLElement|Text} content The content for the InfoWindow
      */
-    set content(content: string | Element | Text) {
-        if (isStringWithValue(content) || content instanceof Element || content instanceof Text) {
+    set content(content: string | HTMLElement | Text) {
+        if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
             this.#options.content = content;
             this.#setupGoogleInfoWindow();
             if (this.#infoWindow) {
@@ -392,10 +392,10 @@ export class InfoWindow extends Layer {
     /**
      * Set the InfoWindow content
      *
-     * @param {string | Element | Text} content The InfoWindow content
+     * @param {string | HTMLElement | Text} content The InfoWindow content
      * @returns {InfoWindow}
      */
-    setContent(content: string | Element | Text): InfoWindow {
+    setContent(content: string | HTMLElement | Text): InfoWindow {
         this.content = content;
         return this;
     }
@@ -567,13 +567,13 @@ const infoWindowMixin = {
     /**
      * Bind an InfoWindow to the layer
      *
-     * @param {string | Element | Text | InfoWindowValue} content The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
+     * @param {string | HTMLElement | Text | InfoWindowValue} content The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
      * @param {InfoWindowOptions} [options] The InfoWindow options object
      */
-    bindInfoWindow(content: string | Element | Text | InfoWindowValue, options?: InfoWindowOptions) {
+    bindInfoWindow(content: string | HTMLElement | Text | InfoWindowValue, options?: InfoWindowOptions) {
         if (content instanceof InfoWindow) {
             this.layerInfoWindow = content;
-        } else if (isString(content) || content instanceof Element || content instanceof Text) {
+        } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
             this.layerInfoWindow = infoWindow();
             this.layerInfoWindow.setContent(content);
         } else if (isObjectWithValues(content)) {

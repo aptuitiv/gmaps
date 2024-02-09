@@ -9,7 +9,7 @@
     marker.bindPopup('My Popup');
 =========================================================================== */
 
-/* global google, HTMLElement, Element, Text */
+/* global google, HTMLElement, Text */
 /* eslint-disable no-use-before-define */
 
 import Layer from './Layer';
@@ -23,7 +23,7 @@ export type PopupOptions = {
     // The popup wrapper class name
     className?: string;
     // The popup content
-    content: string | Element | Text;
+    content: string | HTMLElement | Text;
     // The amount to offset the popup from the element it is displayed at.
     // If the element is a marker, then this is added to the marker's anchorPoint value.
     // For example, if the marker is 40px tall and no anchorPoint value was set for the marker, then
@@ -103,12 +103,12 @@ export class Popup extends Overlay {
     /**
      * Set the Popup content
      *
-     * @param {string | HTMLElement | Element | Text} content The Popup content
+     * @param {string | HTMLElement | Text} content The Popup content
      */
-    setContent(content: string | HTMLElement | Element | Text) {
+    setContent(content: string | HTMLElement | Text) {
         if (isStringWithValue(content)) {
             this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof Element || content instanceof HTMLElement || content instanceof Text) {
+        } else if (content instanceof HTMLElement || content instanceof Text) {
             // First clear all existing children and their events
             while (this.getOverlayElement().firstChild) {
                 this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
@@ -234,13 +234,13 @@ Layer.include({
     layerPopup: null,
     /**
      *
-     * @param {string | Element | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
+     * @param {string | HTMLElement | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
      * @param {PopupOptions} [options] The Popup options object
      */
-    bindPopup(content: string | Element | Text | PopupValue, options?: PopupOptions) {
+    bindPopup(content: string | HTMLElement | Text | PopupValue, options?: PopupOptions) {
         if (content instanceof Popup) {
             this.layerPopup = content;
-        } else if (isString(content) || content instanceof Element || content instanceof Text) {
+        } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
             this.layerPopup = popup();
             this.layerPopup.setContent(content);
         } else if (isObjectWithValues(content)) {
