@@ -424,6 +424,18 @@ export class Marker extends Layer {
     }
 
     /**
+     * Adds the marker to the map object
+     *
+     * Alternate of show()
+     *
+     * @param {Map} map The map object
+     * @returns {Marker}
+     */
+    display(map: Map): Marker {
+        return this.show(map);
+    }
+
+    /**
      * Get the marker position (i.e. the LatLng object)
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng

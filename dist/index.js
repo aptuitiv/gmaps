@@ -2394,57 +2394,15 @@
       }
     }
     /**
-     * Display the map
+     * Show the map
      *
-     * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
+     * Alias to show()
      *
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
     display(callback) {
-      return new Promise((resolve) => {
-        if (checkForGoogleMaps("Map", "Map", false)) {
-          this.#displayMap(callback);
-          resolve();
-        } else {
-          loader().once("load", () => {
-            this.#displayMap(callback);
-            resolve();
-          });
-        }
-      });
-    }
-    /**
-     * Display the map
-     *
-     * This also dispatches the "display" and "map_loaded" events,
-     * and calls the callback function.
-     *
-     * @param {Function} callback The callback function to call after the map loads
-     */
-    #displayMap(callback) {
-      let element = null;
-      if (typeof this.#selector === "string") {
-        if (this.#selector.startsWith(".")) {
-          element = document.querySelector(this.#selector);
-        } else {
-          element = document.getElementById(this.#selector.replace("#", ""));
-        }
-      } else if (this.#selector instanceof HTMLElement) {
-        element = this.#selector;
-      }
-      if (element === null) {
-        throw new Error(
-          "The map element could not be found. Make sure the map selector is correct and the element exists."
-        );
-      }
-      this.#map = new google.maps.Map(element, this.#getMapOptions());
-      this.setEventGoogleObject(this.#map);
-      this.dispatch("display");
-      loader().dispatch("map_loaded");
-      if (isFunction(callback)) {
-        callback();
-      }
+      return this.show(callback);
     }
     /**
      * Sets the viewport to contain the given bounds.
@@ -2474,7 +2432,7 @@
       return this;
     }
     /**
-     * Get the map options for displaying the map
+     * Get the map options for showing the map
      *
      * @private
      * @returns {google.maps.MapOptions}
@@ -2528,20 +2486,20 @@
       return this.zoom;
     }
     /**
-     * Load and display the map
+     * Load and show the map
      *
      * There are two ways to respond when the map loads:
      * 1. Pass a callback function to the load() function
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'display' event
-     *   map.on('display', () => {
+     * 2. Listen for the 'visible' event
+     *   map.on('visible', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'display' event only once. The event
+     * 2a. Use the once() function to listen for the 'visible' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('display', () => {
+     *   map.once('visible', () => {
      *     // Do something after the map loads
      *   });
      *
@@ -2551,7 +2509,7 @@
     load(callback) {
       return new Promise((resolve, reject) => {
         loader().load().then(() => {
-          this.#displayMap(callback);
+          this.#showMap(callback);
           resolve();
         }).catch((err) => {
           reject(err);
@@ -2623,17 +2581,6 @@
         }
       } else {
         console.error("Geolocation is not supported by this browser.");
-      }
-      return this;
-    }
-    /**
-     * Stop watching for the user's location
-     *
-     * @returns {Map}
-     */
-    stopLocate() {
-      if (navigator.geolocation) {
-        navigator.geolocation.clearWatch(this.#watchId);
       }
       return this;
     }
@@ -2725,6 +2672,70 @@
      */
     setZoom(zoom) {
       this.zoom = zoom;
+      return this;
+    }
+    /**
+     * Show the map
+     *
+     * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
+     */
+    show(callback) {
+      return new Promise((resolve) => {
+        if (checkForGoogleMaps("Map", "Map", false)) {
+          this.#showMap(callback);
+          resolve();
+        } else {
+          loader().once("load", () => {
+            this.#showMap(callback);
+            resolve();
+          });
+        }
+      });
+    }
+    /**
+     * Show the map
+     *
+     * This also dispatches the "visible" and "map_loaded" events,
+     * and calls the callback function.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     */
+    #showMap(callback) {
+      let element = null;
+      if (typeof this.#selector === "string") {
+        if (this.#selector.startsWith(".")) {
+          element = document.querySelector(this.#selector);
+        } else {
+          element = document.getElementById(this.#selector.replace("#", ""));
+        }
+      } else if (this.#selector instanceof HTMLElement) {
+        element = this.#selector;
+      }
+      if (element === null) {
+        throw new Error(
+          "The map element could not be found. Make sure the map selector is correct and the element exists."
+        );
+      }
+      this.#map = new google.maps.Map(element, this.#getMapOptions());
+      this.setEventGoogleObject(this.#map);
+      this.dispatch("visible");
+      loader().dispatch("map_loaded");
+      if (isFunction(callback)) {
+        callback();
+      }
+    }
+    /**
+     * Stop watching for the user's location
+     *
+     * @returns {Map}
+     */
+    stopLocate() {
+      if (navigator.geolocation) {
+        navigator.geolocation.clearWatch(this.#watchId);
+      }
       return this;
     }
     /**
@@ -3245,6 +3256,17 @@
       }
     }
     /**
+     * Display the overlay on the map
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Overlay}
+     */
+    display(map2) {
+      return this.show(map2);
+    }
+    /**
      * Get the offset value
      *
      * @returns {Point}
@@ -3317,25 +3339,13 @@
     /**
      * Set the map object to display the overlay in
      *
+     * Alias to show()
+     *
      * @param {Map} map The Map object
      * @returns {Overlay}
      */
     setMap(map2) {
-      if (map2 instanceof Map) {
-        this.#setupGoogleOverlay();
-        if (this.#overlayView) {
-          this.#overlayView.setMap(map2.toGoogle());
-        } else {
-          loader().once("map_loaded", () => {
-            this.#setupGoogleOverlay();
-            if (this.#overlayView) {
-              this.#overlayView.setMap(map2.toGoogle());
-            }
-          });
-        }
-        super.setMap(map2);
-      }
-      return this;
+      return this.show(map2);
     }
     /**
      * Set the x,y offset for the overlay
@@ -3368,7 +3378,21 @@
      * @returns {Overlay}
      */
     show(map2) {
-      return this.setMap(map2);
+      if (map2 instanceof Map) {
+        this.#setupGoogleOverlay();
+        if (this.#overlayView) {
+          this.#overlayView.setMap(map2.toGoogle());
+        } else {
+          loader().once("map_loaded", () => {
+            this.#setupGoogleOverlay();
+            if (this.#overlayView) {
+              this.#overlayView.setMap(map2.toGoogle());
+            }
+          });
+        }
+        super.setMap(map2);
+      }
+      return this;
     }
     /**
      * Set up the Google maps overlay object if necessary
@@ -3850,6 +3874,17 @@
       }
     }
     /**
+     * Adds the marker to the map object
+     *
+     * Alternate of show()
+     *
+     * @param {Map} map The map object
+     * @returns {Marker}
+     */
+    display(map2) {
+      return this.show(map2);
+    }
+    /**
      * Get the marker position (i.e. the LatLng object)
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
@@ -4140,7 +4175,7 @@
     /**
      * Get the content for the InfoWindow
      *
-     * @returns {string|Element|Text}
+     * @returns {string|HTMLElement|Text}
      */
     get content() {
       return this.#options.content;
@@ -4148,10 +4183,10 @@
     /**
      * Set the content for the InfoWindow
      *
-     * @param {string|Element|Text} content The content for the InfoWindow
+     * @param {string|HTMLElement|Text} content The content for the InfoWindow
      */
     set content(content) {
-      if (isStringWithValue(content) || content instanceof Element || content instanceof Text) {
+      if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
         this.#options.content = content;
         this.#setupGoogleInfoWindow();
         if (this.#infoWindow) {
@@ -4358,7 +4393,7 @@
     /**
      * Set the InfoWindow content
      *
-     * @param {string | Element | Text} content The InfoWindow content
+     * @param {string | HTMLElement | Text} content The InfoWindow content
      * @returns {InfoWindow}
      */
     setContent(content) {
@@ -4501,13 +4536,13 @@
     /**
      * Bind an InfoWindow to the layer
      *
-     * @param {string | Element | Text | InfoWindowValue} content The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
+     * @param {string | HTMLElement | Text | InfoWindowValue} content The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
      * @param {InfoWindowOptions} [options] The InfoWindow options object
      */
     bindInfoWindow(content, options) {
       if (content instanceof InfoWindow) {
         this.layerInfoWindow = content;
-      } else if (isString(content) || content instanceof Element || content instanceof Text) {
+      } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
         this.layerInfoWindow = infoWindow();
         this.layerInfoWindow.setContent(content);
       } else if (isObjectWithValues(content)) {
@@ -6567,6 +6602,7 @@
      * Sets the options for the popup
      *
      * @param {PopupOptions} options Popup options
+     * @returns {Popup}
      */
     setOptions(options) {
       if (isString(options.className)) {
@@ -6576,21 +6612,24 @@
         this.setOffset(options.offset);
       }
       this.setContent(options.content);
+      return this;
     }
     /**
      * Set the Popup content
      *
-     * @param {string | HTMLElement | Element | Text} content The Popup content
+     * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
      */
     setContent(content) {
       if (isStringWithValue(content)) {
         this.getOverlayElement().innerHTML = content;
-      } else if (content instanceof Element || content instanceof HTMLElement || content instanceof Text) {
+      } else if (content instanceof HTMLElement || content instanceof Text) {
         while (this.getOverlayElement().firstChild) {
           this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
         }
         this.getOverlayElement().appendChild(content);
       }
+      return this;
     }
     /**
      * Open the popup
@@ -6604,6 +6643,7 @@
      * @param {Map | Marker} anchorOrMap The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
+     * @returns {Popup}
      */
     open(anchorOrMap) {
       const collection = PopupCollection.getInstance();
@@ -6632,10 +6672,12 @@
         this.#isOpen = true;
         collection.add(this);
       }
+      return this;
     }
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
+     * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes) {
@@ -6644,6 +6686,7 @@
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
+     * @internal
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection) {
@@ -6659,11 +6702,14 @@
     }
     /**
      * Close the popup
+     *
+     * @returns {Popup}
      */
     close() {
       this.hide();
       this.#isOpen = false;
       PopupCollection.getInstance().remove(this);
+      return this;
     }
   };
   var popup = (options) => {
@@ -6681,13 +6727,13 @@
     layerPopup: null,
     /**
      *
-     * @param {string | Element | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
+     * @param {string | HTMLElement | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
      * @param {PopupOptions} [options] The Popup options object
      */
     bindPopup(content, options) {
       if (content instanceof Popup) {
         this.layerPopup = content;
-      } else if (isString(content) || content instanceof Element || content instanceof Text) {
+      } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
         this.layerPopup = popup();
         this.layerPopup.setContent(content);
       } else if (isObjectWithValues(content)) {

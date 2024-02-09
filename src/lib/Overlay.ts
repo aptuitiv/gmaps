@@ -149,6 +149,18 @@ class Overlay extends Layer {
     }
 
     /**
+     * Display the overlay on the map
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Overlay}
+     */
+    display(map: Map): Overlay {
+        return this.show(map);
+    }
+
+    /**
      * Get the offset value
      *
      * @returns {Point}
@@ -228,26 +240,13 @@ class Overlay extends Layer {
     /**
      * Set the map object to display the overlay in
      *
+     * Alias to show()
+     *
      * @param {Map} map The Map object
      * @returns {Overlay}
      */
     setMap(map: Map): Overlay {
-        if (map instanceof Map) {
-            this.#setupGoogleOverlay();
-            if (this.#overlayView) {
-                this.#overlayView.setMap(map.toGoogle());
-            } else {
-                // The Google maps library isn't loaded yet. Wait for it to load.
-                loader().once('map_loaded', () => {
-                    this.#setupGoogleOverlay();
-                    if (this.#overlayView) {
-                        this.#overlayView.setMap(map.toGoogle());
-                    }
-                });
-            }
-            super.setMap(map);
-        }
-        return this;
+        return this.show(map);
     }
 
     /**
@@ -283,7 +282,22 @@ class Overlay extends Layer {
      * @returns {Overlay}
      */
     show(map: Map): Overlay {
-        return this.setMap(map);
+        if (map instanceof Map) {
+            this.#setupGoogleOverlay();
+            if (this.#overlayView) {
+                this.#overlayView.setMap(map.toGoogle());
+            } else {
+                // The Google maps library isn't loaded yet. Wait for it to load.
+                loader().once('map_loaded', () => {
+                    this.#setupGoogleOverlay();
+                    if (this.#overlayView) {
+                        this.#overlayView.setMap(map.toGoogle());
+                    }
+                });
+            }
+            super.setMap(map);
+        }
+        return this;
     }
 
     /**

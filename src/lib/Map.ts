@@ -198,6 +198,18 @@ export class Map extends Evented {
     }
 
     /**
+     * Show the map
+     *
+     * Alias to show()
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
+     */
+    display(callback?: () => void): Promise<void> {
+        return this.show(callback);
+    }
+
+    /**
      * Sets the viewport to contain the given bounds.
      *
      * The bounds parameter can be:
