@@ -116,7 +116,7 @@ export class Popup extends Overlay {
      * @returns {Popup}
      */
     open(element: Map | Marker): Popup {
-        return this.open(element);
+        return this.show(element);
     }
 
     /**
