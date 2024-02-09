@@ -159,7 +159,7 @@ export class Tooltip extends Overlay {
      * @returns {boolean}
      */
     hasContent(): boolean {
-        return isStringWithValue(this.#content);
+        return isStringWithValue(this.#content) || this.#content instanceof HTMLElement;
     }
 
     /**
