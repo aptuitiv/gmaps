@@ -87,6 +87,17 @@ export class Popup extends Overlay {
     /**
      * Close the popup
      *
+     * Alias to hide()
+     *
+     * @returns {Popup}
+     */
+    close(): Popup {
+        return this.hide();
+    }
+
+    /**
+     * Close the popup
+     *
      * @returns {Popup}
      */
     hide(): Popup {
@@ -94,6 +105,18 @@ export class Popup extends Overlay {
         this.#isOpen = false;
         PopupCollection.getInstance().remove(this);
         return this;
+    }
+
+    /**
+     * Open the popup
+     *
+     * Alias to show()
+     *
+     * @param {Map | Marker} element The anchor object or map object.
+     * @returns {Popup}
+     */
+    open(element: Map | Marker): Popup {
+        return this.open(element);
     }
 
     /**
@@ -143,12 +166,12 @@ export class Popup extends Overlay {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
      *
-     * @param {Map | Marker} anchorOrMap The anchor object or map object.
+     * @param {Map | Marker} element The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
      * @returns {Popup}
      */
-    show(anchorOrMap: Map | Marker): Popup {
+    show(element: Map | Marker): Popup {
         const collection = PopupCollection.getInstance();
         if (collection.has(this) && this.#isOpen) {
             if (this.#toggleDisplay) {
@@ -160,16 +183,16 @@ export class Popup extends Overlay {
                 collection.closeOthers(this);
             }
 
-            if (anchorOrMap instanceof Map) {
+            if (element instanceof Map) {
                 this.#popupOffset = this.getOffset().clone();
-                super.show(anchorOrMap);
-            } else if (anchorOrMap instanceof Marker) {
-                this.position = anchorOrMap.getPosition();
+                super.show(element);
+            } else if (element instanceof Marker) {
+                this.position = element.getPosition();
                 // If the anchor is a marker then add the anchor's anchorPoint to the offset.
                 // The anchorPoint for the marker contains the x/y values to add to the marker's position that
                 // an InfoWindow should be displayed at. This can also be used with our Popup.
                 // We add the offset value for the Popup to the anchorPoint value.
-                const m = anchorOrMap.toGoogle();
+                const m = element.toGoogle();
                 const anchorPoint = m.get('anchorPoint');
                 if (anchorPoint instanceof google.maps.Point) {
                     this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
@@ -177,7 +200,7 @@ export class Popup extends Overlay {
                     this.#popupOffset = this.getOffset().clone();
                 }
                 // Set the map value to display the popup and call the add() and draw() functions.
-                super.show(anchorOrMap.getMap());
+                super.show(element.getMap());
             }
             this.#isOpen = true;
             collection.add(this);
