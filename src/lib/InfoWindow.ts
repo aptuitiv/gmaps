@@ -335,6 +335,17 @@ export class InfoWindow extends Layer {
     }
 
     /**
+     * Hide the info window
+     */
+    hide() {
+        if (this.#infoWindow) {
+            this.#infoWindow.close();
+        }
+        this.#isOpen = false;
+        InfoWindowCollection.getInstance().remove(this);
+    }
+
+    /**
      * Returns whether the InfoWindow is open or not
      *
      * @returns {boolean}
@@ -425,7 +436,7 @@ export class InfoWindow extends Layer {
     }
 
     /**
-     * Open the info window
+     * Show the info window
      *
      * You need to pass in either an anchor object or a map object.
      * If an anchor object is passed in then the info window will be displayed at the anchor's position.
@@ -437,17 +448,17 @@ export class InfoWindow extends Layer {
      *      This should ideally be the Map or Marker object.
      * @returns {InfoWindow}
      */
-    open(anchorOrMap: Map | Marker): InfoWindow {
+    show(anchorOrMap: Map | Marker): InfoWindow {
         this.#setupGoogleInfoWindow();
         const collection = InfoWindowCollection.getInstance();
         if (collection.has(this) && this.#isOpen) {
             if (this.#toggleDisplay) {
-                this.close();
+                this.hide();
             }
         } else {
             // Close other open InfoWindows if necessary
             if (this.#autoClose) {
-                collection.closeOthers(this);
+                collection.hideOthers(this);
             }
 
             if (anchorOrMap instanceof Map) {
@@ -467,17 +478,6 @@ export class InfoWindow extends Layer {
             collection.add(this);
         }
         return this;
-    }
-
-    /**
-     * Close the info window
-     */
-    close() {
-        if (this.#infoWindow) {
-            this.#infoWindow.close();
-        }
-        this.#isOpen = false;
-        InfoWindowCollection.getInstance().remove(this);
     }
 
     /**
@@ -592,7 +592,7 @@ const infoWindowMixin = {
                     // it needs to be closed first.
                     this.layerInfoWindow.close();
                 }
-                this.layerInfoWindow.open(this);
+                this.layerInfoWindow.show(this);
             }
         });
     },
@@ -607,8 +607,8 @@ type InfoWindowCollectionObject = {
     infoWindows: InfoWindow[];
     add(iw: InfoWindow): void;
     clear(): void;
-    closeAll(): void;
-    closeOthers(iw: InfoWindow): void;
+    hideAll(): void;
+    hideOthers(iw: InfoWindow): void;
     has(iw: InfoWindow): boolean;
     remove(iw: InfoWindow): void;
 };
@@ -618,7 +618,7 @@ type InfoWindowCollectionObject = {
  * Usage:
  * const collection = InfoWindowCollection.getInstance();
  * collection.add(infoWindow);
- * collection.closeAll();
+ * collection.hideAll();
  */
 const InfoWindowCollection = (() => {
     /**
@@ -655,9 +655,9 @@ const InfoWindowCollection = (() => {
             /**
              * Closes all the InfoWindows in the collection
              */
-            closeAll() {
+            hideAll() {
                 this.infoWindows.forEach((iw: InfoWindow) => {
-                    iw.close();
+                    iw.hide();
                 });
             },
             /**
@@ -665,10 +665,10 @@ const InfoWindowCollection = (() => {
              *
              * @param {InfoWindow} iw The InfoWindow object to keep open
              */
-            closeOthers(iw: InfoWindow) {
+            hideOthers(iw: InfoWindow) {
                 this.infoWindows.forEach((infoW: InfoWindow) => {
                     if (infoW !== iw) {
-                        infoW.close();
+                        infoW.hide();
                     }
                 });
             },

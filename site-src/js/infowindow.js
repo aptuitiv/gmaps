@@ -30,7 +30,7 @@ const infoWindow = G.infoWindow({
     content: 'This is a test',
 });
 marker2.on('click', () => {
-    infoWindow.open(marker2);
+    infoWindow.show(marker2);
 });
 
 
@@ -44,7 +44,7 @@ map.bindInfoWindow(mapInfoWindow);
 //     console.log('clicking: ', e);
 //     mapInfoWindow.position = e.latLng;
 //     // if (mapInfoWindow.isOpen) {
-//     mapInfoWindow.close();
+//     mapInfoWindow.hide();
 //     // }
-//     mapInfoWindow.open(map);
+//     mapInfoWindow.show(map);
 // });
