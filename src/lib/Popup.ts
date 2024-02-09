@@ -88,8 +88,9 @@ export class Popup extends Overlay {
      * Sets the options for the popup
      *
      * @param {PopupOptions} options Popup options
+     * @returns {Popup}
      */
-    setOptions(options: PopupOptions) {
+    setOptions(options: PopupOptions): Popup {
         if (isString(options.className)) {
             this.setClassName(options.className);
         }
@@ -98,14 +99,16 @@ export class Popup extends Overlay {
         }
 
         this.setContent(options.content);
+        return this;
     }
 
     /**
      * Set the Popup content
      *
      * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
      */
-    setContent(content: string | HTMLElement | Text) {
+    setContent(content: string | HTMLElement | Text): Popup {
         if (isStringWithValue(content)) {
             this.getOverlayElement().innerHTML = content;
         } else if (content instanceof HTMLElement || content instanceof Text) {
@@ -116,6 +119,7 @@ export class Popup extends Overlay {
             // Append the content as the first child
             this.getOverlayElement().appendChild(content);
         }
+        return this;
     }
 
     /**
@@ -130,8 +134,9 @@ export class Popup extends Overlay {
      * @param {Map | Marker} anchorOrMap The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
+     * @returns {Popup}
      */
-    open(anchorOrMap: Map | Marker) {
+    open(anchorOrMap: Map | Marker): Popup {
         const collection = PopupCollection.getInstance();
         if (collection.has(this) && this.#isOpen) {
             if (this.#toggleDisplay) {
@@ -165,6 +170,7 @@ export class Popup extends Overlay {
             this.#isOpen = true;
             collection.add(this);
         }
+        return this;
     }
 
     /**
@@ -201,11 +207,14 @@ export class Popup extends Overlay {
 
     /**
      * Close the popup
+     *
+     * @returns {Popup}
      */
-    close() {
+    close(): Popup {
         this.hide();
         this.#isOpen = false;
         PopupCollection.getInstance().remove(this);
+        return this;
     }
 }
 
