@@ -336,6 +336,15 @@ export class InfoWindow extends Layer {
 
     /**
      * Hide the info window
+     *
+     * Alias to hide()
+     */
+    close() {
+        this.hide();
+    }
+
+    /**
+     * Hide the info window
      */
     hide() {
         if (this.#infoWindow) {
@@ -352,6 +361,18 @@ export class InfoWindow extends Layer {
      */
     isOpen(): boolean {
         return this.#isOpen;
+    }
+
+    /**
+     * Show the info window
+     *
+     * Alias to show()
+     *
+     * @param {Map | Marker} anchorOrMap The anchor object or map object.
+     * @returns {InfoWindow}
+     */
+    open(anchorOrMap: Map | Marker): InfoWindow {
+        return this.show(anchorOrMap);
     }
 
     /**
