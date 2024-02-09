@@ -38,12 +38,12 @@ export type PopupOptions = {
  */
 export class Popup extends Overlay {
     /**
-     * Whether to automatically close other open InfoWindows when opening this one
+     * Whether to automatically hide other open InfoWindows when opening this one
      *
      * @private
      * @type {boolean}
      */
-    #autoClose: boolean = true;
+    #autoHide: boolean = true;
 
     /**
      * Holds if the Popup is open or not
@@ -63,7 +63,7 @@ export class Popup extends Overlay {
     #popupOffset: Point;
 
     /**
-     * Whether clicking the thing that triggered the popup to open should also close the popup
+     * Whether clicking the thing that triggered the popup to show should also hide the popup
      *
      * @private
      * @type {boolean}
@@ -85,7 +85,7 @@ export class Popup extends Overlay {
     }
 
     /**
-     * Close the popup
+     * Hide the popup
      *
      * Alias to hide()
      *
@@ -96,7 +96,7 @@ export class Popup extends Overlay {
     }
 
     /**
-     * Close the popup
+     * Hide the popup
      *
      * @returns {Popup}
      */
@@ -178,9 +178,9 @@ export class Popup extends Overlay {
                 this.hide();
             }
         } else {
-            // Close other open Popups if necessary
-            if (this.#autoClose) {
-                collection.closeOthers(this);
+            // Hide other open Popups if necessary
+            if (this.#autoHide) {
+                collection.hideOthers(this);
             }
 
             if (element instanceof Map) {
@@ -295,8 +295,8 @@ type PopupCollectionObject = {
     popups: Popup[];
     add(p: Popup): void;
     clear(): void;
-    closeAll(): void;
-    closeOthers(p: Popup): void;
+    hideAll(): void;
+    hideOthers(p: Popup): void;
     has(p: Popup): boolean;
     remove(p: Popup): void;
 };
@@ -306,7 +306,7 @@ type PopupCollectionObject = {
  * Usage:
  * const collection = PopupCollection.getInstance();
  * collection.add(popup);
- * collection.closeAll();
+ * collection.hideAll();
  */
 const PopupCollection = (() => {
     /**
@@ -341,19 +341,19 @@ const PopupCollection = (() => {
                 this.popups = [];
             },
             /**
-             * Closes all the Popups in the collection
+             * Hides all the Popups in the collection
              */
-            closeAll() {
+            hideAll() {
                 this.popups.forEach((p: Popup) => {
                     p.hide();
                 });
             },
             /**
-             * Close all the Popups in the collection except for the one passed in
+             * Hide all the Popups in the collection except for the one passed in
              *
              * @param {Popup} p The Popup object to keep open
              */
-            closeOthers(p: Popup) {
+            hideOthers(p: Popup) {
                 this.popups.forEach((infoW: Popup) => {
                     if (infoW !== p) {
                         infoW.hide();
