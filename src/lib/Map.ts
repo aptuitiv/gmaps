@@ -198,69 +198,6 @@ export class Map extends Evented {
     }
 
     /**
-     * Show the map
-     *
-     * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
-     *
-     * @param {Function} callback The callback function to call after the map loads
-     * @returns {Promise<void>}
-     */
-    show(callback?: () => void): Promise<void> {
-        return new Promise((resolve) => {
-            if (checkForGoogleMaps('Map', 'Map', false)) {
-                // The map library is loaded and this can be shown
-                this.#showMap(callback);
-                resolve();
-            } else {
-                // Wait for the loader to dispatch it's "load" event
-                loader().once('load', () => {
-                    this.#showMap(callback);
-                    resolve();
-                });
-            }
-        });
-    }
-
-    /**
-     * Show the map
-     *
-     * This also dispatches the "visible" and "map_loaded" events,
-     * and calls the callback function.
-     *
-     * @param {Function} callback The callback function to call after the map loads
-     */
-    #showMap(callback?: () => void) {
-        let element: HTMLElement = null;
-        if (typeof this.#selector === 'string') {
-            if (this.#selector.startsWith('.')) {
-                element = document.querySelector(this.#selector);
-            } else {
-                element = document.getElementById(this.#selector.replace('#', ''));
-            }
-        } else if (this.#selector instanceof HTMLElement) {
-            element = this.#selector;
-        }
-        if (element === null) {
-            throw new Error(
-                'The map element could not be found. Make sure the map selector is correct and the element exists.'
-            );
-        }
-        this.#map = new google.maps.Map(element, this.#getMapOptions());
-        this.setEventGoogleObject(this.#map);
-        // Dispatch the event to say that the map is visible
-        this.dispatch('visible');
-        // Dispatch the event on the loader to say that the map is fully loaded.
-        // This is done because the map is loaded after the loader's "load" event is dispatched
-        // and some objects depend on the map being loaded before they can be set up.
-        loader().dispatch('map_loaded');
-
-        // Call the callback function if necessary
-        if (isFunction(callback)) {
-            callback();
-        }
-    }
-
-    /**
      * Sets the viewport to contain the given bounds.
      *
      * The bounds parameter can be:
@@ -457,18 +394,6 @@ export class Map extends Evented {
     }
 
     /**
-     * Stop watching for the user's location
-     *
-     * @returns {Map}
-     */
-    stopLocate(): Map {
-        if (navigator.geolocation) {
-            navigator.geolocation.clearWatch(this.#watchId);
-        }
-        return this;
-    }
-
-    /**
      * Add an event listener to the object
      *
      * @param {string} type The event type
@@ -566,6 +491,81 @@ export class Map extends Evented {
      */
     setZoom(zoom: number): Map {
         this.zoom = zoom;
+        return this;
+    }
+
+    /**
+     * Show the map
+     *
+     * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
+     */
+    show(callback?: () => void): Promise<void> {
+        return new Promise((resolve) => {
+            if (checkForGoogleMaps('Map', 'Map', false)) {
+                // The map library is loaded and this can be shown
+                this.#showMap(callback);
+                resolve();
+            } else {
+                // Wait for the loader to dispatch it's "load" event
+                loader().once('load', () => {
+                    this.#showMap(callback);
+                    resolve();
+                });
+            }
+        });
+    }
+
+    /**
+     * Show the map
+     *
+     * This also dispatches the "visible" and "map_loaded" events,
+     * and calls the callback function.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     */
+    #showMap(callback?: () => void) {
+        let element: HTMLElement = null;
+        if (typeof this.#selector === 'string') {
+            if (this.#selector.startsWith('.')) {
+                element = document.querySelector(this.#selector);
+            } else {
+                element = document.getElementById(this.#selector.replace('#', ''));
+            }
+        } else if (this.#selector instanceof HTMLElement) {
+            element = this.#selector;
+        }
+        if (element === null) {
+            throw new Error(
+                'The map element could not be found. Make sure the map selector is correct and the element exists.'
+            );
+        }
+        this.#map = new google.maps.Map(element, this.#getMapOptions());
+        this.setEventGoogleObject(this.#map);
+        // Dispatch the event to say that the map is visible
+        this.dispatch('visible');
+        // Dispatch the event on the loader to say that the map is fully loaded.
+        // This is done because the map is loaded after the loader's "load" event is dispatched
+        // and some objects depend on the map being loaded before they can be set up.
+        loader().dispatch('map_loaded');
+
+        // Call the callback function if necessary
+        if (isFunction(callback)) {
+            callback();
+        }
+    }
+
+    /**
+     * Stop watching for the user's location
+     *
+     * @returns {Map}
+     */
+    stopLocate(): Map {
+        if (navigator.geolocation) {
+            navigator.geolocation.clearWatch(this.#watchId);
+        }
         return this;
     }
 
