@@ -210,7 +210,6 @@ export class Tooltip extends Overlay {
      */
     setContent(content: string | HTMLElement): Tooltip {
         this.content = content;
-        console.log('this.content : ', this.content);
         return this;
     }
 
@@ -250,7 +249,6 @@ export class Tooltip extends Overlay {
             if (this.getOverlayElement().style.display !== display) {
                 this.getOverlayElement().style.display = display;
             }
-            console.log('this.getOverlayElement(): ', this.getOverlayElement());
         }
     }
 }
