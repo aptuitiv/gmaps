@@ -30,7 +30,7 @@
     });
 =========================================================================== */
 
-/* global google, HTMLElement */
+/* global google, HTMLElement, Text */
 
 import { isObject, isString, isStringWithValue } from './helpers';
 import { LatLngValue } from './LatLng';
@@ -41,7 +41,7 @@ import { PointValue } from './Point';
 
 type TooltipOptions = {
     className?: string;
-    content?: string | HTMLElement;
+    content?: string | HTMLElement | Text;
     map?: Map;
     offset?: PointValue;
     position?: LatLngValue;
@@ -58,7 +58,7 @@ export class Tooltip extends Overlay {
      * @private
      * @type {string|HTMLElement}
      */
-    #content: string | HTMLElement;
+    #content: string | HTMLElement | Text;
 
     /**
      * Constructor
@@ -78,22 +78,22 @@ export class Tooltip extends Overlay {
     /**
      * Returns the content for the tooltip
      *
-     * @returns {string|HTMLElement}
+     * @returns {string|HTMLElement|Text}
      */
-    get content(): string | HTMLElement {
+    get content(): string | HTMLElement | Text {
         return this.#content;
     }
 
     /**
      * Set the content for the tooltip
      *
-     * @param {string|HTMLElement} content The content for the tooltip
+     * @param {string|HTMLElement|Text} content The content for the tooltip
      */
-    set content(content: string | HTMLElement) {
+    set content(content: string | HTMLElement | Text) {
         if (isStringWithValue(content)) {
             this.#content = content;
             this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof HTMLElement) {
+        } else if (content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
             this.getOverlayElement().innerHTML = '';
             this.getOverlayElement().appendChild(content);
@@ -159,7 +159,9 @@ export class Tooltip extends Overlay {
      * @returns {boolean}
      */
     hasContent(): boolean {
-        return isStringWithValue(this.#content) || this.#content instanceof HTMLElement;
+        return (
+            isStringWithValue(this.#content) || this.#content instanceof HTMLElement || this.#content instanceof Text
+        );
     }
 
     /**
