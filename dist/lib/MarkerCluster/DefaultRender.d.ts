@@ -8,58 +8,19 @@ export type ClusterColors = {
     [key: number]: string | ClusterColor;
 };
 export declare class DefaultRenderer implements Renderer {
+    #private;
     /**
-     * The colors to use for the clusters.
-     */
-    private colors;
-    /**
-     * The color to use for the cluster if it has more than the average number of markers in a cluster.
-     */
-    private averageColor?;
-    /**
-     * The opacity to use for the center of the marker
+     * Set the color to use for the cluster if it has less than the average number of markers in a cluster.
      *
-     * @type {number}
+     * @param {string|ClusterColor} color The color to use if the cluster has less than the average number of markers in a cluster.
      */
-    private centerOpacity;
+    setColorRangeBottom(color: string | ClusterColor): void;
     /**
-     * The opacity to use for the middle ring of the marker
+     * Set the color to use for the cluster if it has more than the average number of markers in a cluster.
      *
-     * @type {number}
+     * @param {string|ClusterColor} color The color to use if the cluster has more than the average number of markers in a cluster.
      */
-    private middleOpacity;
-    /**
-     * The opacity to use for the outer ring of the marker
-     *
-     * @type {number}
-     */
-    private outerOpacity;
-    /**
-     * Holds the font family for the cluster marker label
-     *
-     * @type {string}
-     */
-    private labelFontFamily;
-    /**
-     * Holds the font size for the cluster marker
-     *
-     * @type {string}
-     */
-    private labelFontSize;
-    /**
-     * Holds if the number of markers in the cluster should be displayed
-     *
-     * @type {boolean}
-     */
-    private showNumber;
-    /**
-     * Set the color to use for the cluster if it has more than the average number of markers in a cluster,
-     * and the fallback color to use if it has less than the average number of markers in a cluster.
-     *
-     * @param {string} color The color to use if the cluster has more than the average number of markers in a cluster.
-     * @param {string} fallback The color to use if the cluster has less than the average number of markers in a cluster.
-     */
-    setAverageColor(color: string, fallback: string): void;
+    setColorRangeTop(color: string | ClusterColor): void;
     /**
      * Set custom colors to use for the cluster markers.
      *
@@ -103,17 +64,10 @@ export declare class DefaultRenderer implements Renderer {
      */
     setShowNumber(showNumber: boolean): void;
     /**
-     * Get the color for the cluster.
-     *
-     * @param {number} count The number of markers in the cluster.
-     * @returns {ClusterColor}
-     */
-    protected getColor(count: number, mean: number): ClusterColor;
-    /**
      * Renders the cluster marker
      *
      * @param {Cluster} cluster The cluster information
-     * @param {ClusterStatus} stats The status for all of the clusters
+     * @param {ClusterStats} stats The status for all of the clusters
      * @param {google.maps.Map} map The map object
      * @returns {google.maps.Marker | google.maps.marker.AdvancedMarkerElement}
      */

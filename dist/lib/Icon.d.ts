@@ -1,4 +1,5 @@
 /// <reference types="google.maps" />
+import Base from './Base';
 import { PointValue } from './Point';
 import { SizeValue } from './Size';
 type IconOptions = {
@@ -12,18 +13,8 @@ type IconOptions = {
 /**
  * Icon class to set up an icon options for a marker
  */
-export declare class Icon {
-    /**
-     * The type of object. For this class it will always be "icon"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'icon') {}
-     */
-    objectType: string;
-    /**
-     * Holds the Google maps icon options
-     */
-    private options;
+export declare class Icon extends Base {
+    #private;
     /**
      * Constructor
      *
@@ -31,12 +22,6 @@ export declare class Icon {
      * @param {IconOptions} [options] The icon options
      */
     constructor(url?: string | IconOptions, options?: IconOptions);
-    /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Icon}
-     */
-    get(): google.maps.Icon;
     /**
      * Set the icon options
      *
@@ -149,6 +134,12 @@ export declare class Icon {
      * @returns {Icon}
      */
     setUrl(url: string): Icon;
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Icon}
+     */
+    toGoogle(): google.maps.Icon;
 }
 export type IconValue = Icon | string | IconOptions;
 /**

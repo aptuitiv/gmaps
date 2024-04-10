@@ -1,13 +1,20 @@
 /// <reference types="google.maps" />
 import { Libraries } from '@googlemaps/js-api-loader';
 import { LatLngBoundsValue } from './LatLngBounds';
-import { LatLng } from './LatLng';
-import { Evented } from './Evented';
-export type MapOptions = {
+import { LatLng, LatLngValue } from './LatLng';
+import { Evented, EventCallback, EventOptions } from './Evented';
+type GMMapOptions = {
+    center?: LatLng;
+    zoom?: number;
+};
+export type MapOptions = GMMapOptions & {
     apiKey: string;
-    latitude: number;
+    center?: LatLngValue;
+    lat: number | string;
+    latitude: number | string;
     libraries?: Libraries;
-    longitude: number;
+    lng: number | string;
+    longitude: number | string;
     version?: string;
     zoom?: number;
 };
@@ -33,75 +40,36 @@ type LocationOnSuccess = (position: LocationPosition) => void;
  * The map class
  */
 export declare class Map extends Evented {
-    /**
-     * Holds the Google Maps API key
-     */
-    private apiKey;
-    /**
-     * Holds the id of the element that the map will be rendered in
-     */
-    private id;
-    /**
-     * Holds the libraries to load with Google maps
-     */
-    private libraries;
-    /**
-     * Holds the Google map object
-     */
-    private map;
-    /**
-     * Holds the options object for the Google maps object
-     */
-    private mapOptions;
-    /**
-     * The type of object. For this class it will always be "map"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'map') {}
-     */
-    objectType: string;
-    /**
-     * Holds the version of the Google Maps API to load
-     */
-    private version;
-    /**
-     * Holds the watchId for the watchPosition() function
-     */
-    private watchId;
+    #private;
     /**
      * Class constructor
      *
-     * @param {string} id The id of the element that the map will be rendered in
-     * @param {MapOptions} options The options object for the map
+     * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
+     *      The selector can be a class name, an id, or an HTML element. If you need something beyond an id or class name as the selector then pass the element itself.
+     * @param {MapOptions} [options] The options object for the map
      */
-    constructor(id: string, options: MapOptions);
+    constructor(selector: string | HTMLElement, options?: MapOptions);
     /**
-     * Load and display the map
+     * Get the zoom level for the map
      *
-     * There are two ways to respond when the map loads:
-     * 1. Pass a callback function to the load() function
-     *   map.load(() => {
-     *     // Do something after the map loads
-     *   });
-     * 2. Listen for the 'load' event
-     *   map.on('load', () => {
-     *      // Do something after the map loads
-     *   });
-     * 2a. Use the once() function to listen for the 'load' event only once. The event
-     *     listener will be removed after the event is dispatched.
-     *   map.once('load', () => {
-     *     // Do something after the map loads
-     *   });
-     *
-     * @param {function} callback The callback function to call after the map loads
+     * @returns {number}
      */
-    load(callback?: () => void): void;
+    get zoom(): number;
     /**
-     * Returns the Google map object
+     * Set the zoom level for the map
      *
-     * @returns {google.maps.Map}
+     * @param {number|string} value The zoom level
      */
-    get(): google.maps.Map;
+    set zoom(value: number);
+    /**
+     * Show the map
+     *
+     * Alias to show()
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
+     */
+    display(callback?: () => void): Promise<void>;
     /**
      * Sets the viewport to contain the given bounds.
      *
@@ -119,13 +87,54 @@ export declare class Map extends Evented {
      * Usage:
      * Add marks to the map.
      * Then call map.fitBounds() to set the viewport to contain the markers.
-     *
      * @param {LatLngBoundsValue} bounds The bounds to fit
-     * @return {Map}
+     * @returns {Map}
      */
     fitBounds(bounds: LatLngBoundsValue): Map;
     /**
-     * Try to locate the user usin gthe GeoLocation API
+     * Get the center point for the map
+     *
+     * @returns {LatLng}
+     */
+    getCenter(): LatLng;
+    /**
+     * Gets the current projection for the map.
+     *
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {google.maps.Projection|undefined}
+     */
+    getProjection(): google.maps.Projection | undefined;
+    /**
+     * Get the zoom level
+     *
+     * @returns {number}
+     */
+    getZoom(): number;
+    /**
+     * Load and show the map
+     *
+     * There are two ways to respond when the map loads:
+     * 1. Pass a callback function to the load() function
+     *   map.load(() => {
+     *     // Do something after the map loads
+     *   });
+     * 2. Listen for the 'visible' event
+     *   map.on('visible', () => {
+     *      // Do something after the map loads
+     *   });
+     * 2a. Use the once() function to listen for the 'visible' event only once. The event
+     *     listener will be removed after the event is dispatched.
+     *   map.once('visible', () => {
+     *     // Do something after the map loads
+     *   });
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
+     */
+    load(callback?: () => void): Promise<void>;
+    /**
+     * Try to locate the user using the GeoLocation API
      *
      * There are two ways to handle when the user's location is found:
      * 1. Pass a callback function to the locate() function
@@ -140,24 +149,77 @@ export declare class Map extends Evented {
      *  });
      *
      * @param {LocateOptions|LocationOnSuccess} [options] The options for the locate() function. Or the callback function.
-     * @param {function} [onSuccess] The callback function for when the user's location is found.
-     *
+     * @param {Function} [onSuccess] The callback function for when the user's location is found.
      * @returns {Map}
      */
     locate(options?: LocateOptions | LocationOnSuccess, onSuccess?: LocationOnSuccess): Map;
+    /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     * @param {EventOptions} [options] The event listener options
+     * @param {object} [context] The context to bind the callback function to
+     */
+    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void;
+    /**
+     * Set the API key
+     *
+     * @param {string} key The API key
+     * @returns {Map}
+     */
+    setApiKey(key: string): Map;
+    /**
+     * Set the center point for the map
+     *
+     * @param {number|LatLngValue} latitude The latitude value or the latitude/longitude pair
+     * @param {number} [longitude] The longitude value
+     * @returns {Map}
+     */
+    setCenter(latitude: number | LatLngValue, longitude?: number): Map;
+    /**
+     * Set the map options
+     *
+     * @param {MapOptions} options The map options
+     * @returns {Map}
+     */
+    setOptions(options: MapOptions): Map;
+    /**
+     * Set the zoom value
+     *
+     * @param {number} zoom The zoom value
+     * @returns {Map}
+     */
+    setZoom(zoom: number): Map;
+    /**
+     * Show the map
+     *
+     * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
+     *
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
+     */
+    show(callback?: () => void): Promise<void>;
     /**
      * Stop watching for the user's location
      *
      * @returns {Map}
      */
     stopLocate(): Map;
+    /**
+     * Returns the Google map object
+     *
+     * @returns {google.maps.Map}
+     */
+    toGoogle(): google.maps.Map;
 }
 /**
  * Helper function to set up the map object
  *
- * @param {string} id The id of the element that the map will be rendered in
- * @param {MapOptions} config The map options
+ * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
+ *      The selector can be a class name, an id, or an HTML element. If you need something beyond an id or class name as the selector then pass the element itself.
+ * @param {MapOptions} [config] The map options
  * @returns {Map}
  */
-export declare const map: (id: string, config: MapOptions) => Map;
+export declare const map: (selector: string | HTMLElement, config?: MapOptions) => Map;
 export {};

@@ -1,60 +1,170 @@
 /// <reference types="google.maps" />
-import { Evented, EventCallbackData } from './Evented';
-import { IconValue } from './Icon';
+import { EventCallback, EventOptions } from './Evented';
+import { Icon, IconValue } from './Icon';
 import { LatLng, LatLngValue } from './LatLng';
+import Layer from './Layer';
 import { Map } from './Map';
-import { SvgSymbolValue } from './SvgSymbol';
+import { Point, PointValue } from './Point';
+import { SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
-export type MarkerLabel = {
-    className?: string;
-    color?: string;
-    fontFamily?: string;
-    fontSize?: string | number;
-    fontWeight?: string;
-    text: string | number;
-};
-export type MarkerOptions = {
+export type MarkerLabel = google.maps.MarkerLabel;
+type GMMarkerOptions = {
+    anchorPoint?: Point;
     cursor?: string;
-    eventData?: EventCallbackData;
-    icon?: IconValue;
-    label?: string | number | MarkerLabel;
-    lat: number | string;
-    latitude: number | string;
-    lng: number | string;
-    longitude: number | string;
-    map?: Map | google.maps.Map;
-    svgIcon?: SvgSymbolValue;
-    svgIconXml?: string;
+    icon?: Icon | SvgSymbol | string;
+    label?: string | MarkerLabel;
+    map?: Map;
+    position?: LatLng;
     title?: string;
+};
+export type MarkerOptions = GMMarkerOptions & {
+    anchorPoint?: PointValue;
+    icon?: IconValue;
+    lat?: number | string;
+    latitude?: number | string;
+    lng?: number | string;
+    longitude?: number | string;
+    position?: LatLngValue;
+    svgIcon?: SvgSymbolValue | string;
     tooltip?: TooltipValue;
 };
 /**
  * Marker class to set up a single marker and add it to the map
  */
-export declare class Marker extends Evented {
-    /**
-     * Holds the latitude/longitude pair
-     */
-    private latLng;
-    /**
-     * Holds the Google maps marker object
-     */
-    private marker;
-    /**
-     * The type of object. For this class it will always be "marker"
-     *
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'marker') {}
-     */
-    objectType: string;
+export declare class Marker extends Layer {
+    #private;
     /**
      * Constructor
      *
-     * @param {LatLngValue|MarkerOptions} [latLngValue] The latitude longitude pair
+     * @param {LatLngValue|MarkerOptions} [position] The latitude longitude pair
      * @param {MarkerOptions} [options] The marker options
      */
-    constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions);
+    constructor(position?: LatLngValue | MarkerOptions, options?: MarkerOptions);
+    /**
+     * Get the anchor point for the marker
+     *
+     * @returns {Point}
+     */
+    get anchorPoint(): Point;
+    /**
+     * Set the anchor point for the marker
+     *
+     * @param {PointValue} value The anchor point for the marker
+     */
+    set anchorPoint(value: PointValue);
+    /**
+     * Get the cursor type to show on hover
+     *
+     * @returns {string}
+     */
+    get cursor(): string;
+    /**
+     * Set the cursor type to show on hover
+     *
+     * @param {string} value The cursor type to show on hover
+     */
+    set cursor(value: string);
+    /**
+     * Get the icon for the marker
+     *
+     * @returns {Icon | SvgSymbol | string}
+     */
+    get icon(): Icon | SvgSymbol | string;
+    /**
+     * Set the icon for the marker
+     *
+     * @param {Icon | SvgSymbol | string} value The icon value for the marker
+     */
+    set icon(value: Icon | SvgSymbol | string);
+    /**
+     * Get the label for the marker
+     *
+     * @returns {string | number | MarkerLabel}
+     */
+    get label(): string | number | MarkerLabel;
+    /**
+     * Set the label for the marker
+     *
+     * @param {string | number | MarkerLabel} value The label value for the marker
+     */
+    set label(value: string | number | MarkerLabel);
+    /**
+     * Get the map object
+     *
+     * @returns {Map}
+     */
+    get map(): Map;
+    /**
+     * Set the map object
+     *
+     * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
+     */
+    set map(value: Map | null);
+    /**
+     * Get the marker position
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng;
+    /**
+     * Set the latitude and longitude value for the marker
+     *
+     * @param {LatLngValue} value The latitude/longitude position for the marker
+     */
+    set position(value: LatLngValue);
+    /**
+     * Get the title for the marker
+     *
+     * @returns {string}
+     */
+    get title(): string;
+    /**
+     * Set the title for the marker
+     *
+     * @param {string} value The title for the marker
+     */
+    set title(value: string);
+    /**
+     * Adds the marker to the map object
+     *
+     * Alternate of show()
+     *
+     * @param {Map} map The map object
+     * @returns {Marker}
+     */
+    display(map: Map): Marker;
+    /**
+     * Get the marker position (i.e. the LatLng object)
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
+     *
+     * @returns {LatLng}
+     */
+    getPosition(): LatLng;
+    /**
+     * Hide the marker
+     *
+     * @returns {Marker}
+     */
+    hide(): Marker;
+    /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} callback The event listener function
+     * @param {EventOptions} [options] The event listener options
+     * @param {object} [context] The context to bind the callback function to
+     */
+    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void;
+    /**
+     * Adds the marker to the map object
+     *
+     * Alternate of show()
+     *
+     * @param {Map} map The map object
+     * @returns {Marker}
+     */
+    setMap(map: Map): Marker;
     /**
      * Set the marker options
      *
@@ -65,60 +175,43 @@ export declare class Marker extends Evented {
     /**
      * Set up a custom tooltip for the marker instead of relying on the default browser tooltip
      *
-     * @param {string} containerSelector The selector for the parent element that tooltips are added to.
+     * @param {TooltipValue} tooltipValue The tooltip value
      * @param {string} title The tooltip title
-     * @param {string} [tooltipClass] The class or classes for the tooltip element. If multiple classes are used then separate them with a space.
-     * @returns
-     */
-    setTooltip(tooltipValue: TooltipValue, title: string): Marker;
-    /**
-     * Adds the marker to the Google map object
-     *
-     * @param {Map|google.maps.Map} map The map object
-     */
-    show(map: Map | google.maps.Map): void;
-    /**
-     * Get the LatLng object
-     *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
-     * @returns {LatLng}
-     */
-    getLatLng(): LatLng;
-    /**
-     * Add an event listener to the object
-     *
-     * @param {string} type The event type
-     * @param {function} callback The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
-     */
-    on(type: string, callback: EventListenerOrEventListenerObject): void;
-    /**
-     * Remove the marker from the map
-     *
      * @returns {Marker}
      */
-    remove(): Marker;
+    setTooltip(tooltipValue: TooltipValue, title?: string): Marker;
     /**
      * Set the latitude and longitude value for the marker
      *
-     * @param {LatLngValue} latLngValue The latitude/longitude position for the marker
+     * @param {LatLngValue} value The latitude/longitude position for the marker
      * @returns {Marker}
      */
-    setLatLng(latLngValue: LatLngValue): Marker;
+    setPosition(value: LatLngValue): Marker;
+    /**
+     * Adds the marker to the map object
+     *
+     * Alternate of setMap()
+     *
+     * @param {Map} map The map object
+     * @returns {Marker}
+     */
+    show(map: Map): Marker;
     /**
      * Get the Google maps marker object
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/marker#Marker
+     * https://developers.google.com/maps/documentation/javascript/reference/marker#Marker
+     *
      * @returns {google.maps.Marker}
      */
-    get(): google.maps.Marker;
+    toGoogle(): google.maps.Marker;
 }
 export type MarkerValue = Marker | MarkerOptions | LatLngValue;
 /**
  * Helper function to set up the marker object
  *
- * @param {MarkerValue} [latLngValue] The latitude/longitude pair or the marker options
+ * @param {MarkerValue} [position] The latitude/longitude pair or the marker options
  * @param {MarkerOptions} [options] The marker options
  * @returns {Marker}
  */
-export declare const marker: (latLngValue?: MarkerValue, options?: MarkerOptions) => Marker;
+export declare const marker: (position?: MarkerValue, options?: MarkerOptions) => Marker;
+export {};

@@ -1,14 +1,15 @@
 import { Algorithm, onClusterClickHandler, Renderer, SuperClusterOptions } from '@googlemaps/markerclusterer';
 import { Map } from './Map';
 import { Marker } from './Marker';
-import { ClusterColors } from './MarkerCluster/DefaultRender';
+import { ClusterColor, ClusterColors } from './MarkerCluster/DefaultRender';
 import { ClusterImages, ClusterImageValue } from './MarkerCluster/ImageRenderer';
+import Base from './Base';
 type DefaultRenderOptions = {
-    averageColor?: string;
-    averageFallbackColor?: string;
+    colorRangeBottom?: string | ClusterColor;
+    colorRangeTop?: string | ClusterColor;
     /**
      * An object that holds the colors for the clusters. This is used to configure the default renderer for the clusters.
-     * Use this instead of the averageColor and averageFallbackColor options if you want more control over the colors.
+     * Use this instead of the greaterThanAverageColor and lessThanAverageColor options if you want more control over the colors.
      * The key should either be a number and the value should be a string color.
      * If the number of markers in the clsuter is greater or equal to the than the key, the color will be used.
      * The first color should have a key of 0 or 1 to handle clusters with 1 or more markers.
@@ -48,7 +49,8 @@ type MarkerClusterOptions = {
      * An algorithm to cluster markers. This determines how many markers are clustered together.
      * Default is SuperClusterAlgorithm. Must provide a `calculate` method accepting AlgorithmInput and returning
      * an array of Cluster.
-     * @link https://googlemaps.github.io/js-markerclusterer/classes/GridAlgorithm.html
+     *
+     * https://googlemaps.github.io/js-markerclusterer/classes/GridAlgorithm.html
      */
     algorithmClass?: Algorithm;
     /**
@@ -58,9 +60,9 @@ type MarkerClusterOptions = {
      * - maxZoom
      * - minPoints
      *
-     * @link https://googlemaps.github.io/js-markerclusterer/interfaces/AlgorithmOptions.html
-     * @link https://googlemaps.github.io/js-markerclusterer/interfaces/GridOptions.html
-     * @link https://www.npmjs.com/package/supercluster - This is what the SueprClusterAlgorithm uses
+     * https://googlemaps.github.io/js-markerclusterer/interfaces/AlgorithmOptions.html
+     * https://googlemaps.github.io/js-markerclusterer/interfaces/GridOptions.html
+     * https://www.npmjs.com/package/supercluster - This is what the SueprClusterAlgorithm uses
      */
     algorithmOptions?: SuperClusterOptions;
     /**
@@ -83,26 +85,17 @@ type MarkerClusterOptions = {
      * An object that converts a cluster into a `google.maps.Marker`.
      * Default is DefaultRenderer.
      * It must provide a `render` method accepting Cluster, ClusterStatus, and `google.maps.Map` and returning a `google.maps.Marker`.
-     * @link https://github.com/googlemaps/js-markerclusterer/blob/main/src/renderer.ts
-     * @link https://googlemaps.github.io/js-markerclusterer/classes/DefaultRenderer.html
+     *
+     * https://github.com/googlemaps/js-markerclusterer/blob/main/src/renderer.ts
+     * https://googlemaps.github.io/js-markerclusterer/classes/DefaultRenderer.html
      */
     renderer?: Renderer;
 };
 /**
  * The MarkerCluster class to handle clusting of markers on a map
  */
-export declare class MarkerCluster {
-    /**
-     * The MarkerClusterer object
-     */
-    private clusterer;
-    /**
-     * The type of object. For this class it will always be "markercluster"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'markercluster') {}
-     */
-    objectType: string;
+export declare class MarkerCluster extends Base {
+    #private;
     /**
      * The constructor for the MarkerCluster class
      *
@@ -117,34 +110,41 @@ export declare class MarkerCluster {
      * @param {Marker} marker The marker to add to the cluster
      * @param {boolean} draw Whether to redraw the clusters after adding the marker.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
      */
-    addMarker(marker: Marker, draw?: boolean): void;
+    addMarker(marker: Marker, draw?: boolean): MarkerCluster;
     /**
      * Add multiple markers to the cluster
      *
      * @param {Marker[]} markers The array of markers to add
      * @param {boolean} draw Whether to redraw the clusters after adding the marker.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
      */
-    addMarkers(markers: Marker[], draw?: boolean): void;
-    /**
-     *
-     * @param marker The marker to remove
-     * @param {boolean} draw Whether to redraw the clusters after removing the marker.
-     *      Default is true. Note, this is opposite of the MarkerClusterer library.
-     */
-    removeMarker(marker: Marker, draw?: boolean): void;
+    addMarkers(markers: Marker[], draw?: boolean): MarkerCluster;
     /**
      * Clears all of the markers
      *
      * @param {boolean} draw Whether to redraw the clusters after removing all the markers.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
      */
-    clearMarkers(draw?: boolean): void;
+    clearMarkers(draw?: boolean): MarkerCluster;
+    /**
+     * Removes a single marker from the cluster.
+     *
+     * @param {Marker} marker The marker to remove
+     * @param {boolean} draw Whether to redraw the clusters after removing the marker.
+     *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
+     */
+    removeMarker(marker: Marker, draw?: boolean): MarkerCluster;
     /**
      * Force a recalculation and redraw of all the marker clusters.
+     *
+     * @returns {MarkerCluster}
      */
-    render(): void;
+    render(): MarkerCluster;
 }
 /**
  * Helper function to set up the marker cluster object

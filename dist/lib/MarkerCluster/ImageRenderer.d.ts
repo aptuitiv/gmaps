@@ -1,6 +1,7 @@
 /// <reference types="google.maps" />
-import { Cluster, ClusterStats, Renderer } from '@googlemaps/markerclusterer';
+import { Cluster, Renderer } from '@googlemaps/markerclusterer';
 import { SizeValue } from '../Size';
+import { Map } from '../Map';
 type ClusterImage = {
     height?: number;
     labelClassName?: string;
@@ -23,48 +24,13 @@ export type ClusterImages = {
  * The image renderer for the marker clusterer to render an image as the marker cluster
  */
 export declare class ImageRenderer implements Renderer {
+    #private;
     /**
-     * Holds the images that can be used for the marker cluster icons
+     * Set the map object to use for the cluster marker
      *
-     * @type {ClusterImages}
+     * @param {Map} map The map object
      */
-    private images;
-    /**
-     * A CSS class name to be added to the label element
-     *
-     * @type {string}
-     */
-    private labelClassName;
-    /**
-     * The color of the label text. Default color is black.
-     *
-     * @type {string}
-     */
-    private labelColor;
-    /**
-     * Holds the font family for the cluster marker label.
-     *
-     * @type {string}
-     */
-    private labelFontFamily;
-    /**
-     * Holds the font size for the cluster marker
-     *
-     * @type {number}
-     */
-    private labelFontSize;
-    /**
-     * The font weight of the label text (equivalent to the CSS font-weight property).
-     *
-     * @type {string}
-     */
-    private labelFontWeight;
-    /**
-     * Holds if the number of markers in the cluster should be displayed
-     *
-     * @type {boolean}
-     */
-    private showNumber;
+    setMap(map: Map): void;
     /**
      * Set custom images to use for the cluster markers.
      *
@@ -127,10 +93,8 @@ export declare class ImageRenderer implements Renderer {
      * Renders the cluster marker
      *
      * @param {Cluster} cluster The cluster information
-     * @param {ClusterStatus} stats The status for all of the clusters
-     * @param {google.maps.Map} map The map object
      * @returns {google.maps.Marker}
      */
-    render(cluster: Cluster, stats: ClusterStats, map: google.maps.Map): google.maps.Marker;
+    render(cluster: Cluster): google.maps.Marker;
 }
 export {};

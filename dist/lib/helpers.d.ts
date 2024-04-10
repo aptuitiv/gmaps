@@ -2,14 +2,21 @@
 /**
  * Returns if the thing is a function
  *
- * @param {mixed} thing The thing to test
+ * @param {any} thing The thing to test
  * @returns {boolean}
  */
 export declare const isFunction: (thing: any) => thing is Function;
 /**
+ * Returns if the value is null.
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+export declare const isNull: (thing: any) => thing is null;
+/**
  * Returns if the value is a valid number
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export declare const isNumber: (thing: any) => thing is number;
@@ -17,21 +24,29 @@ export declare const isNumber: (thing: any) => thing is number;
  * Returns if the given value is a string that represents a numerical value
  *   e.g. returns true for `"34"` and false for `"text34"` and `34`
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export declare const isNumberString: (thing: any) => thing is string;
 /**
+ * Returns if the given value is a number or string that represents a numerical value
+ *   e.g. returns true for 34 or "34" and false for "text34" and "text"
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+export declare const isNumberOrNumberString: (thing: any) => thing is string | number;
+/**
  * Returns if the value is a string
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export declare const isString: (thing: any) => thing is string;
 /**
  * Returns if the value is string and has a length greater than 0
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export declare const isStringWithValue: (thing: any) => thing is string;
@@ -42,6 +57,20 @@ export declare const isStringWithValue: (thing: any) => thing is string;
  * @returns {boolean}
  */
 export declare const isStringOrNumber: (thing: unknown) => thing is string | number;
+/**
+ * Returns if the value is undefined
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+export declare const isUndefined: (thing: any) => thing is undefined;
+/**
+ * Returns if the value is null or undefined
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+export declare const isNullOrUndefined: (thing: any) => thing is null;
 /**
  * Get the number value for the given thing
  * If the thing is a number, return it
@@ -62,25 +91,25 @@ export declare const getNumber: (thing: any) => number | typeof NaN;
  * - 1 (number)
  * - '1' (string)
  *
- * @param thing The value to convert to a boolean
+ * @param {any} thing The value to convert to a boolean
  * @returns {boolean}
  */
 export declare const getBoolean: (thing: any) => boolean;
 /**
  * Returns if the value is an object
  *
- * @link https://attacomsian.com/blog/javascript-check-variable-is-object
+ * https://attacomsian.com/blog/javascript-check-variable-is-object
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export declare const isObject: <T = object>(thing: any) => thing is T;
 /**
  * Returns if the value is an object
  *
- * @link https://attacomsian.com/blog/javascript-check-variable-is-object
+ * https://attacomsian.com/blog/javascript-check-variable-is-object
  *
- * @param {mixed} thing The value to test
+ * @param {any} thing The value to test
  * @returns {boolean}
  */
 export declare const isObjectWithValues: <T = object>(thing: any) => thing is T;
@@ -92,13 +121,20 @@ export declare const isObjectWithValues: <T = object>(thing: any) => thing is T;
  * @returns {google.maps.Point}
  */
 export declare const getPixelsFromLatLng: (map: google.maps.Map, position: google.maps.LatLng) => google.maps.Point;
-export declare const keyClassKeys: (source: any) => string[];
 /**
- * Simulator for extending multiple classes, which Javascript doesn't allow.
+ * Checks to see if Google maps has been loaded
  *
- * @link https://medium.com/@thevirtuoid/extending-multiple-classes-in-javascript-2f4752574e65
- *
- * @param parts The classes to extend
- * @returns {any} The bundled class
+ * @param {string} object The object that needs Google maps
+ * @param {string} [library] An optional Google maps library class to check for. This needs to be part of the google.maps object
+ * @param {boolean} [throwError] An optional flag to throw an error if the Google maps library is not loaded
+ * @returns {boolean}
  */
-export declare const extender: (...parts: any) => any;
+export declare const checkForGoogleMaps: (object: string, library?: string, throwError?: boolean) => boolean;
+/**
+ * Compare two objects to see if they are equal
+ *
+ * @param {any} a The first object to compare
+ * @param {any} b The second object to compare
+ * @returns {boolean}
+ */
+export declare const objectEquals: (a: any, b: any) => boolean;

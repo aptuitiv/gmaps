@@ -1,43 +1,49 @@
-export type EventCallbackData = {
-    [key: string]: string | number | boolean | object;
+import Base from './Base';
+import { LatLng } from './LatLng';
+import { Point } from './Point';
+export type Event = {
+    domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event;
+    latLng?: LatLng;
+    placeId?: string;
+    pixel?: Point;
+    stop?: () => void;
+    type: string;
+};
+export type EventCallback = (event: Event) => void;
+export type EventOptions = {
+    once?: boolean;
 };
 /**
  * Evented class to add syntatic sugar to handling events
  */
-export declare class Evented extends EventTarget {
+export declare class Evented extends Base {
+    #private;
     /**
-     * Holds the event callback data
+     * Constructor
      *
-     * @type {object}
+     * @param {string} objectType The object type for the class
+     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
+     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
      */
-    private eventCallbackData;
-    /**
-     * Holds the event listeners
-     *
-     * @type {object}
-     */
-    private eventListeners;
-    /**
-     * Gets the event callback data
-     * This is the data that will be passed to the event callback function
-     *
-     * @returns {EventCallbackData}
-     */
-    getEventCallbackData(): EventCallbackData;
-    /**
-     * Sets the event callback data
-     *
-     * @param {EventCallbackData} data The event callback data
-     */
-    setEventCallbackData(data: EventCallbackData): void;
+    constructor(objectType: string, testObject: string, testLibrary?: string);
     /**
      * Dispatch an event
      *
      * @param {string} event The event to dispatch
-     * @param {any} [data] The details to pass to the event. If set then a CustomEvent is created, otherwise a regular
-     *      Event is created
+     * @param {Event} [data] The data to pass to the event listener callback function.
+     * @returns {Evented}
      */
-    dispatch(event: string, data?: any): void;
+    dispatch(event: string, data?: any): Evented;
+    /**
+     * Test if there are any listeners for the given event type
+     *
+     * Optionally you can test if there are any listeners for the given event type and callback
+     *
+     * @param {string} type The event type to test for
+     * @param {EventCallback} callback Optional callback function to include in the test
+     * @returns {boolean}
+     */
+    hasListener(type: string, callback?: EventCallback): boolean;
     /**
      * Removes the event listener
      *
@@ -52,10 +58,10 @@ export declare class Evented extends EventTarget {
      *     this.offAll();
      *
      * @param {string} [type] The event type
-     * @param {function} [callback] The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {EventCallback} [callback] The callback function to include when finding the event to remove
+     * @param {EventOptions} [options] The options to use when finding the event to remove
      */
-    off(type?: string, callback?: EventListenerOrEventListenerObject, options?: EventListenerOptions | boolean): void;
+    off(type?: string, callback?: EventCallback, options?: EventOptions): void;
     /**
      * Removes all event listeners
      */
@@ -64,38 +70,27 @@ export declare class Evented extends EventTarget {
      * Add an event listener to the object
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {Function} callback The event listener callback function
+     * @param {EventOptions} [options] The options object
+     * @param {object} [context] The context to bind the callback function to
      */
-    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void;
+    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void;
     /**
      * Sets up an event listener that will only be called once
      *
      * @param {string} type The event type
-     * @param {function} callback The event listener function
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {object} [context] The context to bind the callback function to
      */
-    once(type: string, callback: EventListenerOrEventListenerObject | null): void;
+    once(type: string, callback?: EventCallback, context?: object): void;
     /**
-     * Registers an event listener.
+     * Triggers an event
      *
-     * This is used internally to keep track of event listeners so that you can test if there are any listeners for a
-     * given event type.
-     * This is also used to remove event listeners.
+     * Alias to dispatch()
      *
-     * @param {string} type The event type
-     * @param {function} callback The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
+     * @param {string} event The event to dispatch
+     * @param {Event} [data] The data to pass to the event listener callback function.
+     * @returns {Evented}
      */
-    registerListener(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void;
-    /**
-     * Test if there are any listeners for the given event type
-     * Optionally you can test if there are any listeners for the given event type and callback
-     * Optionally you can test if there are any listeners for the given event type, callback, and options
-     *
-     * @param {string} type The event type to test form
-     * @param {EventListenerOrEventListenerObject} callback Optional callback function to include in the test
-     * @param {AddEventListenerOptions | boolean} options Option options object to include in the test
-     * @returns {boolean}
-     */
-    hasListener(type: string, callback?: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): boolean;
+    trigger(event: string, data?: any): Evented;
 }

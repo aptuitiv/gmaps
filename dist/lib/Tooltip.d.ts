@@ -1,39 +1,47 @@
-/// <reference types="google.maps" />
-import { Overlay } from './Overlay';
+import { LatLngValue } from './LatLng';
+import { Map } from './Map';
+import { Marker } from './Marker';
+import Overlay from './Overlay';
+import { PointValue } from './Point';
 type TooltipOptions = {
     className?: string;
-    container?: HTMLElement | string;
-    content?: string;
+    content?: string | HTMLElement | Text;
+    map?: Map;
+    offset?: PointValue;
+    position?: LatLngValue;
 };
 /**
  * Tooltip class
  */
-declare class Tooltip extends Overlay {
-    /**
-     * Holds the tooltip content.
-     * This can be a simple string of text, or string of HTML code.
-     *
-     * @type {string}
-     */
-    private content;
-    /**
-     * Holds the position of the tooltip
-     *
-     * @type {google.maps.LatLng}
-     */
-    private position;
-    /**
-     * Holds the tooltip HTML element
-     *
-     * @type {HTMLElement}
-     */
-    private tooltip;
+export declare class Tooltip extends Overlay {
+    #private;
     /**
      * Constructor
      *
      * @param {TooltipOptions} [options] Tooltip options
      */
     constructor(options?: TooltipOptions);
+    /**
+     * Returns the content for the tooltip
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text;
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement|Text} content The content for the tooltip
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Attach the tooltip to a map or marker
+     *
+     * The tooltip will be shown when hovering over the map or marker.
+     *
+     * @param {Map | Marker} element The element to attach the tooltip to
+     * @returns {Tooltip}
+     */
+    attachTo(element: Map | Marker): Tooltip;
     /**
      * Sets the options for the tooltip
      *
@@ -49,30 +57,10 @@ declare class Tooltip extends Overlay {
     /**
      * Set the content for the tooltip
      *
-     * @param content The content for the tooltip
+     * @param {string|HTMLElement} content The content for the tooltip
+     * @returns {Tooltip}
      */
-    setContent(content: string): void;
-    /**
-     * Hide the tooltip
-     */
-    hide(): void;
-    /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * @param panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * @param projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-    /**
-     * Remove the overlay from the map.
-     * This method is called once following a call to setMap(null).
-     */
-    remove(): void;
+    setContent(content: string | HTMLElement): Tooltip;
 }
 export type TooltipValue = Tooltip | TooltipOptions;
 /**

@@ -1,4 +1,5 @@
 /// <reference types="google.maps" />
+import Base from './Base';
 type SizeObject = {
     height: number | string;
     width: number | string;
@@ -7,40 +8,45 @@ export type WidthSize = number | number[] | string | string[] | SizeObject;
 /**
  * The Size class to set up and manage width and height values for an element
  */
-export declare class Size {
-    /**
-     * Holds the Google maps size object
-     */
-    private sizeObject;
-    /**
-     * The width value
-     */
-    private width;
-    /**
-     * The height value
-     */
-    private height;
-    /**
-     * The type of object. For this class it will always be "size"
-     *
-     * You can use this in your logic to determine what type of object you're dealing with.
-     * if (thing.objectType === 'size') {}
-     */
-    objectType: string;
+export declare class Size extends Base {
+    #private;
     /**
      * Constructor
      *
-     * @param {WidthSize} width The X value
-     * @param {number|string} height The Y value
+     * @param {WidthSize|Size} [width] The X value
+     * @param {number|string} [height] The Y value
      */
-    constructor(width: WidthSize, height?: number | string);
+    constructor(width?: WidthSize | Size, height?: number | string);
     /**
-     * Returns the size object
+     * Get the height value
      *
-     * @link https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
-     * @returns {google.maps.Size}
+     * @returns {number}
      */
-    get(): google.maps.Size;
+    get height(): number;
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     */
+    set height(height: number | string);
+    /**
+     * Get the width value
+     *
+     * @returns {number}
+     */
+    get width(): number;
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     */
+    set width(width: number | string);
+    /**
+     * Returns a new copy of the size
+     *
+     * @returns {Size}
+     */
+    clone(): Size;
     /**
      * Get the height value
      *
@@ -53,14 +59,50 @@ export declare class Size {
      * @returns {number}
      */
     getWidth(): number;
+    /**
+     * Returns whether the width/height pair are valid values
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean;
+    /**
+     * Set the width/height values
+     *
+     * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
+     * @param {number|string} height The height value
+     * @returns {Size}
+     */
+    set(width: WidthSize | Size, height?: number | string): Size;
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setHeight(height: number | string): Size;
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setWidth(width: number | string): Size;
+    /**
+     * Returns the Google maps size object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+     *
+     * @returns {google.maps.Size|null}
+     */
+    toGoogle(): google.maps.Size | null;
 }
-export type SizeValue = Size | number[] | string[] | SizeObject;
+export type SizeValue = Size | number | number[] | string | string[] | SizeObject;
 /**
  * Helper function to set up the size object
  *
- * @param {WidthSize} width The width value
- * @param {number|string }height The height value
+ * @param {WidthSize} [width] The width value
+ * @param {number|string} [height] The height value
  * @returns {Size}
  */
-export declare const size: (width: SizeValue, height?: number | string) => Size;
+export declare const size: (width?: SizeValue, height?: number | string) => Size;
 export {};
