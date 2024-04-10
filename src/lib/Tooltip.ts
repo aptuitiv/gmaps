@@ -40,10 +40,17 @@ import Overlay from './Overlay';
 import { PointValue } from './Point';
 
 type TooltipOptions = {
+    // Whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker. Defaults to true.
+    center?: boolean;
+    // A class name to add to the tooltip element
     className?: string;
+    // The content for the tooltip
     content?: string | HTMLElement | Text;
+    // The map to attach the tooltip to
     map?: Map;
+    // The offset for the tooltip. This is applied to the tooltip container.
     offset?: PointValue;
+    // The latitude/longitude position for the tooltip
     position?: LatLngValue;
 };
 
@@ -51,6 +58,14 @@ type TooltipOptions = {
  * Tooltip class
  */
 export class Tooltip extends Overlay {
+    /**
+     * Whether to center the tooltip on the element. Useful if the tooltip is on a marker.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #center: boolean = true;
+
     /**
      * Holds the tooltip content.
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
@@ -72,6 +87,26 @@ export class Tooltip extends Overlay {
             this.setOptions(options);
         } else {
             this.setClassName('tooltip');
+        }
+    }
+
+    /**
+     * Returns whether to center the tooltip horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean {
+        return this.#center;
+    }
+
+    /**
+     * Set whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker.
+     *
+     * @param {boolean} center Whether to center the tooltip on the element
+     */
+    set center(center: boolean) {
+        if (typeof center === 'boolean') {
+            this.#center = center;
         }
     }
 
@@ -135,6 +170,9 @@ export class Tooltip extends Overlay {
      * @param {TooltipOptions} options Tooltip options
      */
     setOptions(options: TooltipOptions) {
+        if (typeof options.center === 'boolean') {
+            this.center = options.center;
+        }
         if (options.content) {
             this.content = options.content;
         }
@@ -172,6 +210,7 @@ export class Tooltip extends Overlay {
      */
     setContent(content: string | HTMLElement): Tooltip {
         this.content = content;
+        console.log('this.content : ', this.content);
         return this;
     }
 
@@ -202,11 +241,16 @@ export class Tooltip extends Overlay {
                 const offset = this.getOffset();
                 this.getOverlayElement().style.left = `${divPosition.x + offset.getX()}px`;
                 this.getOverlayElement().style.top = `${divPosition.y + offset.getY()}px`;
+                if (this.center) {
+                    // Center the tooltip horizontally on the element
+                    this.getOverlayElement().style.transform = 'translate(-50%, 0)';
+                }
             }
 
             if (this.getOverlayElement().style.display !== display) {
                 this.getOverlayElement().style.display = display;
             }
+            console.log('this.getOverlayElement(): ', this.getOverlayElement());
         }
     }
 }
