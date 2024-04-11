@@ -11,9 +11,10 @@
         "css-watch": "postcss --watch ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "lint": "eslint --fix --ext .js,.ts ./src",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "watch": "tsup --watch",
         "site-build": "eleventy",
-        "site-serve": "eleventy --serve --incremental"
+        "site-serve": "eleventy --serve --incremental",
+        "watch": "tsup --watch",
+        "watch-all": "npm run watch & npm run css-watch & npm run site-serve"
     },
     "repository": {
         "type": "git",
