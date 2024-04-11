@@ -25,7 +25,7 @@ The minified Javascript file is at `node_modules/@aptuitiv/gmaps/dist/index.js`;
 Add the script tag to load the library.
 
 ```html
-<script src="/google-map-display/index.js">
+<script src="/gmaps/index.js">
 ```
 
 Or you can bundle it with your other Javascript code using Gulp, Webpack or some other build process. Add the script tag to load your code.
