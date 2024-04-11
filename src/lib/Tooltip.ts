@@ -53,7 +53,10 @@ type TooltipOptions = {
     // The latitude/longitude position for the tooltip
     position?: LatLngValue;
     // Styles that can be
-    styles?: CSSStyleDeclaration;
+    styles?: object;
+    // A build-in theme to assign to the tooltip. By default the tooltip has a default theme. Set to 'none' to remove the theme.
+    // 'default' | 'none'
+    theme?: string;
 };
 
 /**
@@ -78,6 +81,14 @@ export class Tooltip extends Overlay {
     #content: string | HTMLElement | Text;
 
     /**
+     * The theme to use for the tooltip.
+     *
+     * @private
+     * @type {string}
+     */
+    #theme: string = 'default';
+
+    /**
      * Constructor
      *
      * @param {TooltipOptions} [options] Tooltip options
@@ -85,6 +96,7 @@ export class Tooltip extends Overlay {
     constructor(options?: TooltipOptions) {
         super('tooltip', 'Tooltip');
 
+        this.setOffset([0, 4]);
         if (isObject(options)) {
             this.setOptions(options);
         } else {
@@ -135,6 +147,24 @@ export class Tooltip extends Overlay {
             this.getOverlayElement().innerHTML = '';
             this.getOverlayElement().appendChild(content);
         }
+    }
+
+    /**
+     * Returns the theme to use for the tooltip
+     *
+     * @returns {string}
+     */
+    get theme(): string {
+        return this.#theme;
+    }
+
+    /**
+     * Set the theme to use for the tooltip
+     *
+     * @param {string} theme The theme to use for the tooltip
+     */
+    set theme(theme: string) {
+        this.#theme = theme;
     }
 
     /**
@@ -243,11 +273,22 @@ export class Tooltip extends Overlay {
 
             if (display === 'block') {
                 const offset = this.getOffset();
-                this.getOverlayElement().style.left = `${divPosition.x + offset.getX()}px`;
-                this.getOverlayElement().style.top = `${divPosition.y + offset.getY()}px`;
+                this.style('left', `${divPosition.x + offset.getX()}px`);
+                this.style('top', `${divPosition.y + offset.getY()}px`);
                 if (this.center) {
                     // Center the tooltip horizontally on the element
-                    this.getOverlayElement().style.transform = 'translate(-50%, 0)';
+                    this.style('transform', 'translate(-50%, 0)');
+                }
+                if (this.#theme === 'default') {
+                    const styles = this.styles || {};
+                    const themeStyles = {
+                        backgroundColor: '#fff',
+                        color: '#333',
+                        padding: '3px 6px',
+                        borderRadius: '4px',
+                        boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+                    };
+                    this.styles = { ...styles, ...themeStyles };
                 }
             }
 

@@ -4,7 +4,7 @@
     https://developers.google.com/maps/documentation/javascript/customoverlays
 =========================================================================== */
 
-/* global google, CSSStyleDeclaration, HTMLElement, OverlayView */
+/* global google, HTMLElement, OverlayView */
 /* eslint-disable max-classes-per-file */
 
 import { loader } from './Loader';
@@ -58,8 +58,11 @@ class Overlay extends Layer {
 
     /**
      * Holds the styles for the tooltip. These are applied to the tooltip container (i.e. the overlay element).
+     *
+     * @private
+     * @type {object}
      */
-    #styles: CSSStyleDeclaration;
+    #styles: object = {};
 
     /**
      * Constructor
@@ -156,18 +159,18 @@ class Overlay extends Layer {
     /**
      * Returns the styles for the overlay element
      *
-     * @returns {CSSStyleDeclaration}
+     * @returns {object}
      */
-    get styles(): CSSStyleDeclaration {
+    get styles(): object {
         return this.#styles;
     }
 
     /**
      * Set the styles for the overlay element
      *
-     * @param {CSSStyleDeclaration} styles The styles to apply to the overlay element
+     * @param {object} styles The styles to apply to the overlay element
      */
-    set styles(styles: CSSStyleDeclaration) {
+    set styles(styles: object) {
         if (isObject(styles)) {
             this.#styles = styles;
             Object.keys(styles).forEach((key) => {
@@ -304,10 +307,10 @@ class Overlay extends Layer {
     /**
      * Set the styles for the overlay element
      *
-     * @param {CSSStyleDeclaration} styles The styles to apply to the overlay element
+     * @param {object} styles The styles to apply to the overlay element
      * @returns {Overlay}
      */
-    setStyles(styles: CSSStyleDeclaration): Overlay {
+    setStyles(styles: object): Overlay {
         this.styles = styles;
         return this;
     }
