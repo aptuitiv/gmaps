@@ -7,7 +7,6 @@
     Usage:
     const cluster = G.markerCluster(trailListMap.map, {
         defaultRendererOptions: {
-            averageColor: '#ff0000',
             colors: {
                 0: '#0000ff',
                 10: '#00ff00',
@@ -27,14 +26,14 @@
     const marker = G.marker({
         position: G.latLng(0, 0),
     });
-    marker.addTo(map);
+    marker.show(map);
     cluster.addMarker(marker);
 =========================================================================== */
 
 /* global google */
 
 import { Cluster, ClusterStats, MarkerUtils, Renderer } from '@googlemaps/markerclusterer';
-import { getBoolean, getNumber, isNumber, isObject, isString } from '../helpers';
+import { getBoolean, getNumber, isNumber, isObject, isString, isStringWithValue } from '../helpers';
 
 export type ClusterColor = {
     bgColor: string;
@@ -49,14 +48,21 @@ export class DefaultRenderer implements Renderer {
     /**
      * The colors to use for the clusters.
      */
-    #colors: ClusterColors = {
-        0: '#0000ff',
-    };
+    #colors: ClusterColors = {};
+
+    /**
+     * The color to use for the cluster if it has less than the average number of markers in a cluster.
+     *
+     * @type {string|ClusterColor}
+     */
+    #colorRangeBottom: string | ClusterColor = '#ff0000';
 
     /**
      * The color to use for the cluster if it has more than the average number of markers in a cluster.
+     *
+     * @type {string|ClusterColor}
      */
-    #averageColor?: string = '#ff0000';
+    #colorRangeTop: string | ClusterColor = '#0000ff';
 
     /**
      * The opacity to use for the center of the marker
@@ -101,15 +107,29 @@ export class DefaultRenderer implements Renderer {
     #showNumber: boolean = true;
 
     /**
-     * Set the color to use for the cluster if it has more than the average number of markers in a cluster,
-     * and the fallback color to use if it has less than the average number of markers in a cluster.
+     * Set the color to use for the cluster if it has less than the average number of markers in a cluster.
      *
-     * @param {string} color The color to use if the cluster has more than the average number of markers in a cluster.
-     * @param {string} fallback The color to use if the cluster has less than the average number of markers in a cluster.
+     * @param {string|ClusterColor} color The color to use if the cluster has less than the average number of markers in a cluster.
      */
-    setAverageColor(color: string, fallback: string): void {
-        this.#averageColor = color;
-        this.#colors = { 0: fallback };
+    setColorRangeBottom(color: string | ClusterColor): void {
+        if (isStringWithValue(color)) {
+            this.#colorRangeBottom = color;
+        } else if (isObject(color) && isStringWithValue(color.bgColor)) {
+            this.#colorRangeBottom = color;
+        }
+    }
+
+    /**
+     * Set the color to use for the cluster if it has more than the average number of markers in a cluster.
+     *
+     * @param {string|ClusterColor} color The color to use if the cluster has more than the average number of markers in a cluster.
+     */
+    setColorRangeTop(color: string | ClusterColor): void {
+        if (isStringWithValue(color)) {
+            this.#colorRangeTop = color;
+        } else if (isObject(color) && isStringWithValue(color.bgColor)) {
+            this.#colorRangeBottom = color;
+        }
     }
 
     /**
@@ -214,29 +234,37 @@ export class DefaultRenderer implements Renderer {
      * @param {number} mean The average number of markers in a cluster.
      * @returns {ClusterColor}
      */
-    protected getColor(count: number, mean: number): ClusterColor {
+    #getColor(count: number, mean: number): ClusterColor {
         const keys = Object.keys(this.#colors);
-        let color = this.#colors[keys[0]];
-        let bgColor = typeof color === 'string' ? color : color.bgColor;
-        let textColor = color.textColor ?? '#ffffff';
+        let color: string | ClusterColor = this.#colorRangeBottom;
 
-        if (typeof this.#averageColor === 'string' && count >= Math.max(parseInt(keys[keys.length - 1], 10), mean)) {
-            bgColor = this.#averageColor;
-        } else {
+        // If there are custom colors then use them
+        if (Object.keys(this.#colors).length > 0) {
+            // Find the color whose key is less than or equal to the count
             for (let i = 0; i < keys.length; i += 1) {
                 const k = keys[i];
                 if (count >= parseInt(k, 10)) {
                     color = this.#colors[k];
-                    if (typeof color === 'string') {
-                        bgColor = color;
-                    } else {
-                        bgColor = color.bgColor;
-                        if (color.textColor) {
-                            textColor = color.textColor;
-                        }
-                    }
                 } else {
                     break;
+                }
+            }
+        } else {
+            // Use the color range values
+            color = count > mean ? this.#colorRangeTop : this.#colorRangeBottom;
+        }
+
+        // Set the background and text color
+        let bgColor: string;
+        let textColor: string = '#ffffff';
+        if (typeof color === 'string') {
+            bgColor = color;
+        } else if (isObject(color)) {
+            const colorObject: ClusterColor = color;
+            if (isStringWithValue(colorObject.bgColor)) {
+                bgColor = colorObject.bgColor;
+                if (isStringWithValue(colorObject.textColor)) {
+                    textColor = colorObject.textColor;
                 }
             }
         }
@@ -262,7 +290,7 @@ export class DefaultRenderer implements Renderer {
     ): google.maps.Marker | google.maps.marker.AdvancedMarkerElement {
         const { count, position } = cluster;
         // Get the color based on the number of markers in the cluster
-        const color = this.getColor(count, stats.clusters.markers.mean);
+        const color = this.#getColor(count, stats.clusters.markers.mean);
 
         // create svg literal with fill color
         const svg = `<svg fill="${

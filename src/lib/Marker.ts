@@ -10,7 +10,7 @@
         longitude: -73.935242,
         title: 'My Marker'
     });
-    marker.addTo(map);
+    marker.show(map);
 
     // Or, with a custom tooltip
     const marker = G.marker({
@@ -20,7 +20,7 @@
         tooltipContainer: '#map',
         tooltipClass: 'my-tooltip'
     });
-    marker.addTo(map);
+    marker.show(map);
 
     There are a few ways to set an icon for the marker.
     1. Pass the URL for the icon to the "icon" option.
@@ -90,6 +90,7 @@
 
 /* global google */
 
+import { EventCallback, EventOptions } from './Evented';
 import { icon, Icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
@@ -100,7 +101,7 @@ import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { tooltip, TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
-    isFunction,
+    isNullOrUndefined,
     isNumber,
     isNumberOrNumberString,
     isObject,
@@ -109,21 +110,7 @@ import {
     isStringWithValue,
 } from './helpers';
 
-export type MarkerLabel = {
-    // A CSS class name to be added to the label element
-    className?: string;
-    // The color of the label text. Default color is black.
-    color?: string;
-    // The font family of the label text (equivalent to the CSS font-family property).
-    fontFamily?: string;
-    // The font size of the label text (equivalent to the CSS font-size property). Default size is 14px.
-    // If it's set to a number then "px" will be added to the end of the number.
-    fontSize?: string | number;
-    // The font weight of the label text (equivalent to the CSS font-weight property).
-    fontWeight?: string;
-    // The text to be displayed in the label.
-    text: string | number;
-};
+export type MarkerLabel = google.maps.MarkerLabel;
 
 // Options that will be passed to the Google maps marker object
 type GMMarkerOptions = {
@@ -134,7 +121,7 @@ type GMMarkerOptions = {
     // The icon value for the marker
     icon?: Icon | SvgSymbol | string;
     // The label value for the marker
-    label?: string | number | MarkerLabel;
+    label?: string | MarkerLabel;
     // The map to add the marker to.
     map?: Map;
     // The position for the marker.
@@ -160,9 +147,9 @@ export type MarkerOptions = GMMarkerOptions & {
     // This is an alternate to setting the latitude and longitude separately.
     position?: LatLngValue;
     // The SVG icon value for the marker
-    // If it's a string then it's the XML code for the SVG icon.
+    // If it's a string then it's the path code for the SVG icon.
     svgIcon?: SvgSymbolValue | string;
-    // The tooltip for the marker. This will show when hovering over the tooltip.
+    // The tooltip for the marker. This will show when hovering over the marker.
     tooltip?: TooltipValue;
 };
 
@@ -189,26 +176,26 @@ export class Marker extends Layer {
     /**
      * Constructor
      *
-     * @param {LatLngValue|MarkerOptions} [latLngValue] The latitude longitude pair
+     * @param {LatLngValue|MarkerOptions} [position] The latitude longitude pair
      * @param {MarkerOptions} [options] The marker options
      */
-    constructor(latLngValue?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
-        super('marker');
+    constructor(position?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
+        super('marker', 'Marker');
 
         // Set a default position
         this.#options.position = latLng([0, 0]);
 
         // Set the marker latitude and longitude value
-        if (latLngValue instanceof LatLng || Array.isArray(latLngValue)) {
+        if (position instanceof LatLng || Array.isArray(position)) {
             // The value passed is a LatLng class object
-            this.position = latLngValue;
+            this.position = position;
             // Set up the marker options
             if (isObject(options)) {
                 this.setOptions(options);
             }
-        } else if (isObject(latLngValue)) {
+        } else if (isObject(position)) {
             // The value passed is a marker options object
-            this.setOptions(latLngValue as MarkerOptions);
+            this.setOptions(position as MarkerOptions);
         }
     }
 
@@ -230,6 +217,12 @@ export class Marker extends Layer {
         const anchor = point(value);
         if (anchor.isValid()) {
             this.#options.anchorPoint = anchor;
+        } else {
+            this.#options.anchorPoint = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setOptions({ anchorPoint: this.#options.anchorPoint.toGoogle() });
         }
     }
 
@@ -250,6 +243,12 @@ export class Marker extends Layer {
     set cursor(value: string) {
         if (isStringWithValue(value)) {
             this.#options.cursor = value;
+        } else if (isNullOrUndefined(value)) {
+            this.#options.cursor = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setCursor(this.#options.cursor);
         }
     }
 
@@ -270,6 +269,16 @@ export class Marker extends Layer {
     set icon(value: Icon | SvgSymbol | string) {
         if (isString(value) || value instanceof Icon || value instanceof SvgSymbol) {
             this.#options.icon = value;
+        } else if (isNullOrUndefined(value)) {
+            this.#options.icon = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            if (isString(this.#options.icon)) {
+                this.#marker.setIcon(this.#options.icon);
+            } else {
+                this.#marker.setIcon(this.#options.icon.toGoogle());
+            }
         }
     }
 
@@ -306,6 +315,12 @@ export class Marker extends Layer {
                     this.#options.label.fontSize = value.fontSize.toString();
                 }
             }
+        } else if (isNullOrUndefined(value)) {
+            this.#options.label = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setLabel(this.#options.label);
         }
     }
 
@@ -345,7 +360,7 @@ export class Marker extends Layer {
                     }
                 });
             }
-        } else if (value === null) {
+        } else if (isNullOrUndefined(value)) {
             // Remove the marker from the map
             this.#options.map = null;
             super.setMap(null);
@@ -373,6 +388,12 @@ export class Marker extends Layer {
         const position = latLng(value);
         if (position.isValid()) {
             this.#options.position = position;
+            // Only update the position if the position value is valid.
+            // This is different from the other options because the position is required.
+            this.#setupGoogleMarker();
+            if (this.#marker) {
+                this.#marker.setPosition(this.#options.position.toGoogle());
+            }
         }
     }
 
@@ -391,20 +412,27 @@ export class Marker extends Layer {
      * @param {string} value The title for the marker
      */
     set title(value: string) {
-        if (isStringWithValue(value)) {
-            this.#options.title = value;
+        if (isStringOrNumber(value)) {
+            this.#options.title = value.toString();
+        } else if (isNullOrUndefined(value)) {
+            this.#options.title = undefined;
+        }
+        this.#setupGoogleMarker();
+        if (this.#marker) {
+            this.#marker.setTitle(this.#options.title);
         }
     }
 
     /**
      * Adds the marker to the map object
      *
-     * Alternate to setMap()
+     * Alternate of show()
      *
      * @param {Map} map The map object
+     * @returns {Marker}
      */
-    addTo(map: Map): void {
-        this.map = map;
+    display(map: Map): Marker {
+        return this.show(map);
     }
 
     /**
@@ -419,54 +447,37 @@ export class Marker extends Layer {
     }
 
     /**
-     * Add an event listener to the object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {object|boolean} [options] The options object or a boolean to indicate if the event should be captured
-     */
-    on(type: string, callback: EventListenerOrEventListenerObject, options?: AddEventListenerOptions | boolean): void {
-        if (isFunction(callback)) {
-            if (checkForGoogleMaps('Marker', 'Map', false)) {
-                super.on(type, callback, options);
-                if (isObject(options) && typeof options.once === 'boolean' && options.once) {
-                    google.maps.event.addListenerOnce(this.#marker, type, (e: google.maps.MapMouseEvent) => {
-                        e.stop();
-                        this.dispatch(type, e);
-                    });
-                } else {
-                    this.#marker.addListener(type, (e: google.maps.MapMouseEvent) => {
-                        this.dispatch(type, e);
-                    });
-                }
-            } else {
-                console.log('Event: ', type);
-                this.addPendingEventListener(type, callback, options);
-            }
-        } else {
-            throw new Error('the event handler needs a callback function');
-        }
-    }
-
-    /**
-     * Remove the marker from the map
+     * Hide the marker
      *
      * @returns {Marker}
      */
-    remove(): Marker {
+    hide(): Marker {
         this.map = null;
         return this;
     }
 
     /**
+     * Add an event listener to the object
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} callback The event listener function
+     * @param {EventOptions} [options] The event listener options
+     * @param {object} [context] The context to bind the callback function to
+     */
+    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
+        this.setupEventListener(type, callback, options, context);
+    }
+
+    /**
      * Adds the marker to the map object
      *
-     * Alternate of addTo()
+     * Alternate of show()
      *
      * @param {Map} map The map object
+     * @returns {Marker}
      */
-    setMap(map: Map): void {
-        this.map = map;
+    setMap(map: Map): Marker {
+        return this.show(map);
     }
 
     /**
@@ -495,11 +506,6 @@ export class Marker extends Layer {
         // Set the label
         if (isStringWithValue(options.label) || (isObject(options.label) && isStringOrNumber(options.label.text))) {
             this.label = options.label;
-        }
-
-        // Set the map
-        if (options.map) {
-            this.map = options.map;
         }
 
         // Set up the position
@@ -541,6 +547,11 @@ export class Marker extends Layer {
             }
         });
 
+        // // Set the map. This must come last so that the opther options are set.
+        if (options.map) {
+            this.map = options.map;
+        }
+
         return this;
     }
 
@@ -557,13 +568,30 @@ export class Marker extends Layer {
             tt.setContent(title);
         }
         if (tt.hasContent()) {
-            this.#marker.addListener('mouseover', () => {
-                tt.show(this.getMap(), this.#options.position);
-            });
-            this.#marker.addListener('mouseout', () => {
-                tt.hide();
-            });
+            this.#setupGoogleMarker();
+            if (this.#marker) {
+                this.#marker.addListener('mouseover', () => {
+                    tt.setPosition(this.#options.position).show(this.getMap());
+                });
+                this.#marker.addListener('mouseout', () => {
+                    tt.hide();
+                });
+            } else {
+                loader().once('map_loaded', () => {
+                    this.#setupGoogleMarker();
+                    if (this.#marker) {
+                        this.#marker.addListener('mouseover', () => {
+                            tt.setPosition(this.#options.position).show(this.getMap());
+                        });
+                        this.#marker.addListener('mouseout', () => {
+                            tt.hide();
+                        });
+                    }
+                });
+            }
         }
+        // Clear the marker title
+        this.title = undefined;
         return this;
     }
 
@@ -575,6 +603,19 @@ export class Marker extends Layer {
      */
     setPosition(value: LatLngValue): Marker {
         this.position = value;
+        return this;
+    }
+
+    /**
+     * Adds the marker to the map object
+     *
+     * Alternate of setMap()
+     *
+     * @param {Map} map The map object
+     * @returns {Marker}
+     */
+    show(map: Map): Marker {
+        this.map = map;
         return this;
     }
 
@@ -591,7 +632,7 @@ export class Marker extends Layer {
     }
 
     /**
-     * Set up the Google maps marker object if necessary and return it.
+     * Set up the Google maps marker object if necessary
      *
      * @private
      */
@@ -602,7 +643,7 @@ export class Marker extends Layer {
                 // Options that can be set on the marker without any modification
                 const optionsToSet = ['cursor', 'title'];
                 optionsToSet.forEach((key) => {
-                    if (this.#options[key]) {
+                    if (typeof this.#options[key] !== 'undefined') {
                         markerOptions[key] = this.#options[key];
                     }
                 });
@@ -626,6 +667,7 @@ export class Marker extends Layer {
                 }
 
                 this.#marker = new google.maps.Marker(markerOptions);
+                this.setEventGoogleObject(this.#marker);
             }
         }
     }
@@ -637,13 +679,13 @@ export type MarkerValue = Marker | MarkerOptions | LatLngValue;
 /**
  * Helper function to set up the marker object
  *
- * @param {MarkerValue} [latLngValue] The latitude/longitude pair or the marker options
+ * @param {MarkerValue} [position] The latitude/longitude pair or the marker options
  * @param {MarkerOptions} [options] The marker options
  * @returns {Marker}
  */
-export const marker = (latLngValue?: MarkerValue, options?: MarkerOptions): Marker => {
-    if (latLngValue instanceof Marker) {
-        return latLngValue;
+export const marker = (position?: MarkerValue, options?: MarkerOptions): Marker => {
+    if (position instanceof Marker) {
+        return position;
     }
-    return new Marker(latLngValue, options);
+    return new Marker(position, options);
 };

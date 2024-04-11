@@ -86,7 +86,9 @@ export class LatLng extends Base {
      */
     constructor(latitude?: Latitude | LatLng, longitude?: number | string) {
         super('latlng');
-        this.set(latitude, longitude);
+        if (latitude) {
+            this.set(latitude, longitude);
+        }
     }
 
     /**
@@ -181,6 +183,21 @@ export class LatLng extends Base {
     }
 
     /**
+     * Tests to see if the given latitude/longitude pair is equal to this latitude/longitude pair
+     *
+     * @param {number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng} other The latitude/longitude pair to compare to
+     * @returns {boolean}
+     */
+    equals(other: number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng): boolean {
+        let isEqual = false;
+        const otherLatLng = new LatLng(other);
+        if (otherLatLng.isValid()) {
+            isEqual = this.latitude === otherLatLng.latitude && this.longitude === otherLatLng.longitude;
+        }
+        return isEqual;
+    }
+
+    /**
      * Set the latitude/longitude pair
      *
      * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
@@ -205,7 +222,8 @@ export class LatLng extends Base {
                 this.longitude = (latitude as LatLngLiteralExpanded).longitude;
             }
         } else if ((latitude as any) instanceof LatLng) {
-            return (latitude as any).clone();
+            this.latitude = (latitude as any).getLat();
+            this.longitude = (latitude as any).getLng();
         } else {
             this.latitude = latitude;
             this.longitude = longitude;

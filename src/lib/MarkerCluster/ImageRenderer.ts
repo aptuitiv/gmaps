@@ -28,7 +28,7 @@
     const marker = G.marker({
         position: G.latLng(0, 0),
     });
-    marker.addTo(map);
+    marker.show(map);
     cluster.addMarker(marker);
 
     If you're only setting a single image, you can do this:
@@ -41,11 +41,12 @@
 
 /* global google */
 
-import { Cluster, ClusterStats, Renderer } from '@googlemaps/markerclusterer';
+import { Cluster, Renderer } from '@googlemaps/markerclusterer';
 import { getBoolean, isObject, isStringOrNumber } from '../helpers';
 import { marker, MarkerLabel } from '../Marker';
 import { icon } from '../Icon';
 import { SizeValue } from '../Size';
+import { Map } from '../Map';
 
 // The image object data
 type ClusterImage = {
@@ -57,7 +58,7 @@ type ClusterImage = {
     labelColor?: string;
     // The font family of the label text (equivalent to the CSS font-family property).
     labelFontFamily?: string;
-    // The font size of the label text (equivalent to the CSS font-size property). Default size is 14px.
+    // The font size of the label text (equivalent to the CSS font-size property). Default size is 12px.
     // If it's set to a number then "px" will be added to the end of the number.
     labelFontSize?: string | number;
     // The font weight of the label text (equivalent to the CSS font-weight property).
@@ -129,7 +130,7 @@ export class ImageRenderer implements Renderer {
      * @private
      * @type {number}
      */
-    #labelFontSize: number | string;
+    #labelFontSize: number | string = '12px';
 
     /**
      * The font weight of the label text (equivalent to the CSS font-weight property).
@@ -140,12 +141,29 @@ export class ImageRenderer implements Renderer {
     #labelFontWeight: string;
 
     /**
+     * The map object
+     *
+     * @private
+     * @type {Map}
+     */
+    #map: Map;
+
+    /**
      * Holds if the number of markers in the cluster should be displayed
      *
      * @private
      * @type {boolean}
      */
     #showNumber: boolean = true;
+
+    /**
+     * Set the map object to use for the cluster marker
+     *
+     * @param {Map} map The map object
+     */
+    setMap(map: Map): void {
+        this.#map = map;
+    }
 
     /**
      * Set custom images to use for the cluster markers.
@@ -271,11 +289,9 @@ export class ImageRenderer implements Renderer {
      * Renders the cluster marker
      *
      * @param {Cluster} cluster The cluster information
-     * @param {ClusterStats} stats The status for all of the clusters
-     * @param {google.maps.Map} map The map object
      * @returns {google.maps.Marker}
      */
-    public render(cluster: Cluster, stats: ClusterStats, map: google.maps.Map): google.maps.Marker {
+    public render(cluster: Cluster): google.maps.Marker {
         const { count, position } = cluster;
         // Get the image based on the number of markers in the cluster
         const image = this.getImage(count);
@@ -313,7 +329,7 @@ export class ImageRenderer implements Renderer {
         if (this.#labelFontSize) {
             label.fontSize = this.#labelFontSize.toString();
         } else if (image.labelFontSize) {
-            label.fontSize = image.labelFontSize;
+            label.fontSize = image.labelFontSize as string;
         }
         if (this.#labelFontWeight) {
             label.fontWeight = this.#labelFontWeight;
@@ -326,7 +342,7 @@ export class ImageRenderer implements Renderer {
             lat: position.lat(),
             lng: position.lng(),
             icon: markerImage,
-            map,
+            map: this.#map,
             label: this.#showNumber ? label : undefined,
         });
         return clusterMarker.toGoogle();

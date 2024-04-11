@@ -23,11 +23,11 @@ load.on('load', () => { console.log('loaded event'); });
 
 // load.load(() => {
 //     console.log('Loaded in callback');
-//     map.display();
+//     map.show();
 // });
 
 // await load.load();
-// map.display();
+// map.show();
 // map.load().then(() => {
 //     console.log('Map Loaded');
 // });
@@ -55,7 +55,7 @@ load.on('load', () => { console.log('loaded event'); });
 //     const map2 = G.map('map2', {
 //         // apiKey: apiKey,
 //         // center: { lat: 10, lng: 0 },
-//     }).display(() => {
+//     }).show(() => {
 //         console.log('Displayd xs 2')
 //     });
 // });

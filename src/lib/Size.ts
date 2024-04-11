@@ -62,12 +62,14 @@ export class Size extends Base {
     /**
      * Constructor
      *
-     * @param {WidthSize|Size} width The X value
-     * @param {number|string} height The Y value
+     * @param {WidthSize|Size} [width] The X value
+     * @param {number|string} [height] The Y value
      */
-    constructor(width: WidthSize | Size, height?: number | string) {
+    constructor(width?: WidthSize | Size, height?: number | string) {
         super('size');
-        this.set(width, height);
+        if (typeof width !== 'undefined') {
+            this.set(width, height);
+        }
     }
 
     /**
@@ -178,7 +180,8 @@ export class Size extends Base {
                 this.height = widthObject.height;
             }
         } else if ((width as any) instanceof Size) {
-            return (width as any).clone();
+            this.width = (width as any).getWidth();
+            this.height = (width as any).getHeight();
         } else {
             this.width = width;
             this.height = height;
@@ -233,8 +236,8 @@ export type SizeValue = Size | number | number[] | string | string[] | SizeObjec
 /**
  * Helper function to set up the size object
  *
- * @param {WidthSize} width The width value
- * @param {number|string }height The height value
+ * @param {WidthSize} [width] The width value
+ * @param {number|string} [height] The height value
  * @returns {Size}
  */
-export const size = (width: SizeValue, height?: number | string): Size => new Size(width, height);
+export const size = (width?: SizeValue, height?: number | string): Size => new Size(width, height);

@@ -15,8 +15,8 @@ module.exports = function (eleventyConfig) {
     eleventyConfig.addWatchTarget("./site-src/js/");
 
     // Support the map JS file
-    eleventyConfig.addWatchTarget("./dist/index.js");
-    eleventyConfig.addPassthroughCopy({ './dist/index.js': 'map/index.js' });
+    eleventyConfig.addWatchTarget("./dist/browser.js");
+    eleventyConfig.addPassthroughCopy({ './dist/browser.js': 'map/browser.js' });
 
     eleventyConfig.setServerOptions({
         // Whether DOM diffing updates are applied where possible instead of page reloads

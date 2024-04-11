@@ -10,7 +10,7 @@
     const marker = G.marker({
         position: G.latLng(0, 0),
     });
-    marker.addTo(map);
+    marker.show(map);
     cluster.addMarker(marker);
 =========================================================================== */
 
@@ -28,20 +28,21 @@ import {
 } from '@googlemaps/markerclusterer';
 import { Map } from './Map';
 import { Marker } from './Marker';
-import { getNumber, isNumber, isNumberString, isObject } from './helpers';
-import { ClusterColors, DefaultRenderer } from './MarkerCluster/DefaultRender';
+import { checkForGoogleMaps, getNumber, isFunction, isNumber, isNumberString, isObject } from './helpers';
+import { ClusterColor, ClusterColors, DefaultRenderer } from './MarkerCluster/DefaultRender';
 import { ClusterImages, ClusterImageValue, ImageRenderer } from './MarkerCluster/ImageRenderer';
 import Base from './Base';
+import { loader } from './Loader';
 
 // Options for the default renderer
 type DefaultRenderOptions = {
-    // The color to use for the cluster if it has more than the average number of markers in a cluster.
-    averageColor?: string;
     // The color to use for the cluster if it has less than the average number of markers in a cluster.
-    averageFallbackColor?: string;
+    colorRangeBottom?: string | ClusterColor;
+    // The color to use for the cluster if it has more than the average number of markers in a cluster.
+    colorRangeTop?: string | ClusterColor;
     /**
      * An object that holds the colors for the clusters. This is used to configure the default renderer for the clusters.
-     * Use this instead of the averageColor and averageFallbackColor options if you want more control over the colors.
+     * Use this instead of the greaterThanAverageColor and lessThanAverageColor options if you want more control over the colors.
      * The key should either be a number and the value should be a string color.
      * If the number of markers in the clsuter is greater or equal to the than the key, the color will be used.
      * The first color should have a key of 0 or 1 to handle clusters with 1 or more markers.
@@ -49,7 +50,7 @@ type DefaultRenderOptions = {
     colors?: ClusterColors;
     // The font family of the label text (equivalent to the CSS font-family property).
     labelFontFamily?: string;
-    // The font size of the label text (equivalent to the CSS font-size property). Default size is 14px.
+    // The font size of the label text (equivalent to the CSS font-size property). Default size is 12px.
     // If it's set to a number then "px" will be added to the end of the number.
     labelFontSize?: string | number;
     // The opacity to use for the center of the marker
@@ -166,6 +167,14 @@ export class MarkerCluster extends Base {
     #clusterer: MarkerClusterer;
 
     /**
+     * Holds any markers to add to the cluster once the map is loaded
+     *
+     * @private
+     * @type {Marker[]}
+     */
+    #pendingMarkers: Marker[] = [];
+
+    /**
      * The constructor for the MarkerCluster class
      *
      * @param {Map} map The map object
@@ -174,6 +183,26 @@ export class MarkerCluster extends Base {
      */
     constructor(map: Map, markers?: Marker[] | MarkerClusterOptions, options?: MarkerClusterOptions) {
         super('markercluster');
+        if (!(map instanceof Map)) {
+            throw new Error('You must pass a valid map object to the MarkerCluster object.');
+        }
+        if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
+            this.#setupCluster(map, markers, options);
+        } else {
+            loader().on('map_loaded', () => {
+                this.#setupCluster(map, markers, options);
+            });
+        }
+    }
+
+    /**
+     * Set up the marker cluster
+     *
+     * @param {Map} map The map object
+     * @param {Marker[]|MarkerClusterOptions} [markers] Markers to cluster. You can also use addMarker() instead of adding the markers here.
+     * @param {MarkerClusterOptions} [options] Options for the marker clusterer
+     */
+    #setupCluster(map: Map, markers?: Marker[] | MarkerClusterOptions, options?: MarkerClusterOptions) {
         const clusterOptions: MarkerClustererOptions = {
             map: map.toGoogle(),
         };
@@ -232,7 +261,7 @@ export class MarkerCluster extends Base {
             if (Object.keys(algorithmOptions).length > 0) {
                 clusterOptions.algorithmOptions = algorithmOptions;
             }
-            if (Object.keys(algorithmOptions).length > 0) {
+            if (isFunction(optionsToUse.onClusterClick)) {
                 clusterOptions.onClusterClick = optionsToUse.onClusterClick;
             }
             // Set the renderer
@@ -246,12 +275,14 @@ export class MarkerCluster extends Base {
                 // The default renderer is being used. Set it up.
                 if (isObject(renderOptions.colors)) {
                     renderer.setColors(renderOptions.colors);
-                } else if (
-                    typeof renderOptions.averageColor === 'string' &&
-                    typeof renderOptions.averageFallbackColor === 'string'
-                ) {
-                    renderer.setAverageColor(renderOptions.averageColor, renderOptions.averageFallbackColor);
                 }
+                if (renderOptions.colorRangeTop) {
+                    renderer.setColorRangeTop(renderOptions.colorRangeTop);
+                }
+                if (renderOptions.colorRangeBottom) {
+                    renderer.setColorRangeBottom(renderOptions.colorRangeBottom);
+                }
+
                 if (typeof renderOptions.labelFontFamily === 'string') {
                     renderer.setFontFamily(renderOptions.labelFontFamily);
                 }
@@ -273,6 +304,7 @@ export class MarkerCluster extends Base {
                 clusterOptions.renderer = renderer;
             } else if (isObject(optionsToUse.imageRendererOptions)) {
                 const renderer = new ImageRenderer();
+                renderer.setMap(map);
                 const renderOptions: ImageRendererOptions = optionsToUse.imageRendererOptions;
                 if (typeof renderOptions.images !== 'undefined') {
                     renderer.setImages(renderOptions.images);
@@ -323,9 +355,21 @@ export class MarkerCluster extends Base {
      * @param {Marker} marker The marker to add to the cluster
      * @param {boolean} draw Whether to redraw the clusters after adding the marker.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
      */
-    addMarker(marker: Marker, draw: boolean = true) {
-        this.#clusterer.addMarker(marker.toGoogle(), !draw);
+    addMarker(marker: Marker, draw: boolean = true): MarkerCluster {
+        // Check to see if the Google Maps library is loaded.
+        // If it is, add the marker. If not, delay adding the marker.
+        if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
+            this.#clusterer.addMarker(marker.toGoogle(), !draw);
+        } else {
+            this.#pendingMarkers.push(marker);
+            loader().on('map_loaded', () => {
+                this.addMarkers(this.#pendingMarkers, draw);
+                this.#pendingMarkers = [];
+            });
+        }
+        return this;
     }
 
     /**
@@ -334,25 +378,34 @@ export class MarkerCluster extends Base {
      * @param {Marker[]} markers The array of markers to add
      * @param {boolean} draw Whether to redraw the clusters after adding the marker.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
      */
-    addMarkers(markers: Marker[], draw: boolean = true) {
-        const markersToAdd: MarkerClustererMarker[] = [];
-        markers.forEach((marker) => {
-            if (marker instanceof Marker) {
-                markersToAdd.push(marker.toGoogle());
-            }
-        });
-        this.#clusterer.addMarkers(markersToAdd, !draw);
-    }
+    addMarkers(markers: Marker[], draw: boolean = true): MarkerCluster {
+        // Inline function to add the markers
+        const add = (mks: Marker[], drw: boolean = true) => {
+            const markersToAdd: MarkerClustererMarker[] = [];
+            mks.forEach((marker) => {
+                if (marker instanceof Marker) {
+                    markersToAdd.push(marker.toGoogle());
+                }
+            });
+            this.#clusterer.addMarkers(markersToAdd, !drw);
+        };
 
-    /**
-     *
-     * @param {Marker} marker The marker to remove
-     * @param {boolean} draw Whether to redraw the clusters after removing the marker.
-     *      Default is true. Note, this is opposite of the MarkerClusterer library.
-     */
-    removeMarker(marker: Marker, draw: boolean = false) {
-        this.#clusterer.removeMarker(marker.toGoogle(), !draw);
+        // Check to see if the Google Maps library is loaded.
+        // If it is, add the markers. If not, delay adding the markers.
+        if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
+            add(markers, draw);
+        } else {
+            markers.forEach((marker) => {
+                this.#pendingMarkers.push(marker);
+            });
+            loader().on('map_loaded', () => {
+                add(this.#pendingMarkers, draw);
+                this.#pendingMarkers = [];
+            });
+        }
+        return this;
     }
 
     /**
@@ -360,16 +413,34 @@ export class MarkerCluster extends Base {
      *
      * @param {boolean} draw Whether to redraw the clusters after removing all the markers.
      *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
      */
-    clearMarkers(draw: boolean = true) {
+    clearMarkers(draw: boolean = true): MarkerCluster {
         this.#clusterer.clearMarkers(!draw);
+        return this;
+    }
+
+    /**
+     * Removes a single marker from the cluster.
+     *
+     * @param {Marker} marker The marker to remove
+     * @param {boolean} draw Whether to redraw the clusters after removing the marker.
+     *      Default is true. Note, this is opposite of the MarkerClusterer library.
+     * @returns {MarkerCluster}
+     */
+    removeMarker(marker: Marker, draw: boolean = false): MarkerCluster {
+        this.#clusterer.removeMarker(marker.toGoogle(), !draw);
+        return this;
     }
 
     /**
      * Force a recalculation and redraw of all the marker clusters.
+     *
+     * @returns {MarkerCluster}
      */
-    render() {
+    render(): MarkerCluster {
         this.#clusterer.render();
+        return this;
     }
 }
 

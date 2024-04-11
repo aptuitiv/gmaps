@@ -1,33 +1,36 @@
 {
-    "name": "@aptuitiv/google-maps-display",
-    "version": "0.3.0",
+    "name": "@aptuitiv/gmaps",
+    "version": "0.4.0",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
-    "source": "src/index.ts",
-    "main": "dist/index.js",
+    "exports": {
+        "import": "./dist/index.esm.js",
+        "require": "./dist/index.cjs.js"
+    },
     "type": "module",
+    "engines": {
+        "node": ">=17.0.0"
+    },
     "scripts": {
-        "build": "node scripts/build.js",
-        "build:types": "tsc --emitDeclarationOnly --declaration --stripInternal",
+        "build": "tsup",
         "css": "postcss ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "css-watch": "postcss --watch ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "lint": "eslint --fix --ext .js,.ts ./src",
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "ts-build": "tsc",
-        "ts-dev": "tsc -w",
-        "watch": "node scripts/watch.js",
         "site-build": "eleventy",
-        "site-serve": "eleventy --serve --incremental"
+        "site-serve": "eleventy --serve --incremental",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "watch": "tsup --watch",
+        "watch-all": "npm run watch & npm run css-watch & npm run site-serve"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/aptuitiv/google-map-display.git"
+        "url": "git+https://github.com/aptuitiv/gmaps.git"
     },
-    "author": "Aptuitiv",
+    "author": "Aptuitiv, Inc",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/aptuitiv/google-map-display/issues"
+        "url": "https://github.com/aptuitiv/gmaps/issues"
     },
-    "homepage": "https://github.com/aptuitiv/google-map-display#readme",
+    "homepage": "https://github.com/aptuitiv/gmaps#readme",
     "devDependencies": {
         "@11ty/eleventy": "^2.0.1",
         "@types/google.maps": "^3.54.10",
@@ -38,8 +41,7 @@
         "chalk": "^5.3.0",
         "cssnano": "^6.0.3",
         "dotenv": "^16.4.1",
-        "esbuild": "^0.19.11",
-        "esbuild-plugin-eslint": "^0.3.7",
+        "esbuild-plugin-eslint": "^0.3.12",
         "eslint": "^8.56.0",
         "eslint-config-airbnb-base": "^15.0.0",
         "eslint-config-prettier": "^9.1.0",
@@ -50,6 +52,7 @@
         "postcss-custom-media": "^10.0.2",
         "postcss-import": "^16.0.0",
         "ts-node": "^10.9.2",
+        "tsup": "^8.0.2",
         "typescript": "^5.3.3"
     },
     "dependencies": {

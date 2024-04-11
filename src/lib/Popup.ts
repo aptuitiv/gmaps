@@ -9,22 +9,23 @@
     marker.bindPopup('My Popup');
 =========================================================================== */
 
-/* global google, HTMLElement, Element, Text */
+/* global google, HTMLElement, Text */
 /* eslint-disable no-use-before-define */
 
-import { LatLng } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
-import { Overlay } from './Overlay';
+import Overlay from './Overlay';
 import { point, Point, PointValue } from './Point';
 import { isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
+    // Whether to automatically hide other open InfoWindows when opening this one
+    autoHide?: boolean;
     // The popup wrapper class name
     className?: string;
     // The popup content
-    content: string | Element | Text;
+    content: string | HTMLElement | Text;
     // The amount to offset the popup from the element it is displayed at.
     // If the element is a marker, then this is added to the marker's anchorPoint value.
     // For example, if the marker is 40px tall and no anchorPoint value was set for the marker, then
@@ -39,12 +40,21 @@ export type PopupOptions = {
  */
 export class Popup extends Overlay {
     /**
-     * Whether to automatically close other open InfoWindows when opening this one
+     * Whether to automatically hide other open InfoWindows when opening this one
      *
      * @private
      * @type {boolean}
      */
-    #autoClose: boolean = true;
+    #autoHide: boolean = true;
+
+    /**
+     * Holds the tooltip content.
+     * This can be a simple string of text, string of HTML code, or an HTMLElement.
+     *
+     * @private
+     * @type {string|HTMLElement}
+     */
+    #content: string | HTMLElement | Text;
 
     /**
      * Holds if the Popup is open or not
@@ -64,15 +74,7 @@ export class Popup extends Overlay {
     #popupOffset: Point;
 
     /**
-     * Holds the position of the tooltip
-     *
-     * @private
-     * @type {LatLng}
-     */
-    #position: LatLng;
-
-    /**
-     * Whether clicking the thing that triggered the popup to open should also close the popup
+     * Whether clicking the thing that triggered the popup to show should also hide the popup
      *
      * @private
      * @type {boolean}
@@ -85,7 +87,7 @@ export class Popup extends Overlay {
      * @param {PopupOptions} [options] The Popup options
      */
     constructor(options: PopupOptions) {
-        super('popup');
+        super('popup', 'Popup');
 
         this.#popupOffset = point(0, 0);
         if (isObject(options)) {
@@ -94,11 +96,95 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Get the autoHide value
+     *
+     * @returns {boolean}
+     */
+    get autoHide(): boolean {
+        return this.#autoHide;
+    }
+
+    /**
+     * Set the autoHide value
+     *
+     * @param {boolean} autoHide Whether to automatically hide other open InfoWindows when opening this one
+     */
+    set autoHide(autoHide: boolean) {
+        if (typeof autoHide === 'boolean') {
+            this.#autoHide = autoHide;
+        }
+    }
+
+    /**
+     * Returns the content for the tooltip
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text {
+        return this.#content;
+    }
+
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement} content The content for the tooltip
+     */
+    set content(content: string | HTMLElement) {
+        if (isStringWithValue(content)) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = content;
+        } else if (content instanceof HTMLElement) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = '';
+            this.getOverlayElement().appendChild(content);
+        }
+    }
+
+    /**
+     * Hide the popup
+     *
+     * Alias to hide()
+     *
+     * @returns {Popup}
+     */
+    close(): Popup {
+        return this.hide();
+    }
+
+    /**
+     * Hide the popup
+     *
+     * @returns {Popup}
+     */
+    hide(): Popup {
+        super.hide();
+        this.#isOpen = false;
+        PopupCollection.getInstance().remove(this);
+        return this;
+    }
+
+    /**
+     * Open the popup
+     *
+     * Alias to show()
+     *
+     * @param {Map | Marker} element The anchor object or map object.
+     * @returns {Popup}
+     */
+    open(element: Map | Marker): Popup {
+        return this.show(element);
+    }
+
+    /**
      * Sets the options for the popup
      *
      * @param {PopupOptions} options Popup options
+     * @returns {Popup}
      */
-    setOptions(options: PopupOptions) {
+    setOptions(options: PopupOptions): Popup {
+        if (typeof options.autoHide === 'boolean') {
+            this.autoHide = options.autoHide;
+        }
         if (isString(options.className)) {
             this.setClassName(options.className);
         }
@@ -107,24 +193,27 @@ export class Popup extends Overlay {
         }
 
         this.setContent(options.content);
+        return this;
     }
 
     /**
      * Set the Popup content
      *
-     * @param {string | HTMLElement | Element | Text} content The Popup content
+     * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
      */
-    setContent(content: string | HTMLElement | Element | Text) {
+    setContent(content: string | HTMLElement | Text): Popup {
         if (isStringWithValue(content)) {
-            this.overlay.innerHTML = content;
-        } else if (content instanceof Element || content instanceof HTMLElement || content instanceof Text) {
+            this.getOverlayElement().innerHTML = content;
+        } else if (content instanceof HTMLElement || content instanceof Text) {
             // First clear all existing children and their events
-            while (this.overlay.firstChild) {
-                this.overlay.removeChild(this.overlay.firstChild);
+            while (this.getOverlayElement().firstChild) {
+                this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
             }
             // Append the content as the first child
-            this.overlay.appendChild(content);
+            this.getOverlayElement().appendChild(content);
         }
+        return this;
     }
 
     /**
@@ -136,32 +225,33 @@ export class Popup extends Overlay {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
      *
-     * @param {Map | Marker} anchorOrMap The anchor object or map object.
+     * @param {Map | Marker} element The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
+     * @returns {Popup}
      */
-    open(anchorOrMap: Map | Marker) {
+    show(element: Map | Marker): Popup {
         const collection = PopupCollection.getInstance();
         if (collection.has(this) && this.#isOpen) {
             if (this.#toggleDisplay) {
-                this.close();
+                this.hide();
             }
         } else {
-            // Close other open Popups if necessary
-            if (this.#autoClose) {
-                collection.closeOthers(this);
+            // Hide other open Popups if necessary
+            if (this.#autoHide) {
+                collection.hideOthers(this);
             }
 
-            if (anchorOrMap instanceof Map) {
+            if (element instanceof Map) {
                 this.#popupOffset = this.getOffset().clone();
-                this.setMap(anchorOrMap);
-            } else if (anchorOrMap instanceof Marker) {
-                this.#position = anchorOrMap.getPosition();
+                super.show(element);
+            } else if (element instanceof Marker) {
+                this.position = element.getPosition();
                 // If the anchor is a marker then add the anchor's anchorPoint to the offset.
                 // The anchorPoint for the marker contains the x/y values to add to the marker's position that
                 // an InfoWindow should be displayed at. This can also be used with our Popup.
                 // We add the offset value for the Popup to the anchorPoint value.
-                const m = anchorOrMap.toGoogle();
+                const m = element.toGoogle();
                 const anchorPoint = m.get('anchorPoint');
                 if (anchorPoint instanceof google.maps.Point) {
                     this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
@@ -169,50 +259,44 @@ export class Popup extends Overlay {
                     this.#popupOffset = this.getOffset().clone();
                 }
                 // Set the map value to display the popup and call the add() and draw() functions.
-                this.setMap(anchorOrMap.getMap());
+                super.show(element.getMap());
             }
             this.#isOpen = true;
             collection.add(this);
         }
+        return this;
     }
 
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
+     * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
-        panes.floatPane.appendChild(this.overlay);
+        panes.floatPane.appendChild(this.getOverlayElement());
     }
 
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
+     * @internal
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.#position.toGoogle())!;
+        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
         // Hide the tooltip when it is far out of view.
         const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
         if (display === 'block') {
-            this.overlay.style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
-            this.overlay.style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
+            this.getOverlayElement().style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
+            this.getOverlayElement().style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
         }
 
-        if (this.overlay.style.display !== display) {
-            this.overlay.style.display = display;
+        if (this.getOverlayElement().style.display !== display) {
+            this.getOverlayElement().style.display = display;
         }
-    }
-
-    /**
-     * Close the popup
-     */
-    close() {
-        this.hide();
-        this.#isOpen = false;
-        PopupCollection.getInstance().remove(this);
     }
 }
 
@@ -243,13 +327,13 @@ Layer.include({
     layerPopup: null,
     /**
      *
-     * @param {string | Element | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
+     * @param {string | HTMLElement | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
      * @param {PopupOptions} [options] The Popup options object
      */
-    bindPopup(content: string | Element | Text | PopupValue, options?: PopupOptions) {
+    bindPopup(content: string | HTMLElement | Text | PopupValue, options?: PopupOptions) {
         if (content instanceof Popup) {
             this.layerPopup = content;
-        } else if (isString(content) || content instanceof Element || content instanceof Text) {
+        } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
             this.layerPopup = popup();
             this.layerPopup.setContent(content);
         } else if (isObjectWithValues(content)) {
@@ -260,7 +344,7 @@ Layer.include({
         }
         this.on('click', () => {
             if (this.layerPopup) {
-                this.layerPopup.open(this);
+                this.layerPopup.show(this);
             }
         });
     },
@@ -270,8 +354,8 @@ type PopupCollectionObject = {
     popups: Popup[];
     add(p: Popup): void;
     clear(): void;
-    closeAll(): void;
-    closeOthers(p: Popup): void;
+    hideAll(): void;
+    hideOthers(p: Popup): void;
     has(p: Popup): boolean;
     remove(p: Popup): void;
 };
@@ -281,7 +365,7 @@ type PopupCollectionObject = {
  * Usage:
  * const collection = PopupCollection.getInstance();
  * collection.add(popup);
- * collection.closeAll();
+ * collection.hideAll();
  */
 const PopupCollection = (() => {
     /**
@@ -316,22 +400,22 @@ const PopupCollection = (() => {
                 this.popups = [];
             },
             /**
-             * Closes all the Popups in the collection
+             * Hides all the Popups in the collection
              */
-            closeAll() {
+            hideAll() {
                 this.popups.forEach((p: Popup) => {
-                    p.close();
+                    p.hide();
                 });
             },
             /**
-             * Close all the Popups in the collection except for the one passed in
+             * Hide all the Popups in the collection except for the one passed in
              *
              * @param {Popup} p The Popup object to keep open
              */
-            closeOthers(p: Popup) {
+            hideOthers(p: Popup) {
                 this.popups.forEach((infoW: Popup) => {
                     if (infoW !== p) {
-                        infoW.close();
+                        infoW.hide();
                     }
                 });
             },

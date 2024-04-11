@@ -30,18 +30,33 @@
     });
 =========================================================================== */
 
-/* global google */
+/* global google, HTMLElement, Text */
 
 import { isObject, isString, isStringWithValue } from './helpers';
-import { LatLng } from './LatLng';
+import { LatLngValue } from './LatLng';
 import { Map } from './Map';
-import { Overlay } from './Overlay';
+import { Marker } from './Marker';
+import Overlay from './Overlay';
 import { PointValue } from './Point';
 
 type TooltipOptions = {
+    // Whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker. Defaults to true.
+    center?: boolean;
+    // A class name to add to the tooltip element
     className?: string;
-    content?: string;
+    // The content for the tooltip
+    content?: string | HTMLElement | Text;
+    // The map to attach the tooltip to
+    map?: Map;
+    // The offset for the tooltip. This is applied to the tooltip container.
     offset?: PointValue;
+    // The latitude/longitude position for the tooltip
+    position?: LatLngValue;
+    // Styles that can be
+    styles?: object;
+    // A build-in theme to assign to the tooltip. By default the tooltip has a default theme. Set to 'none' to remove the theme.
+    // 'default' | 'none'
+    theme?: string;
 };
 
 /**
@@ -49,21 +64,29 @@ type TooltipOptions = {
  */
 export class Tooltip extends Overlay {
     /**
+     * Whether to center the tooltip on the element. Useful if the tooltip is on a marker.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #center: boolean = true;
+
+    /**
      * Holds the tooltip content.
-     * This can be a simple string of text, or string of HTML code.
+     * This can be a simple string of text, string of HTML code, or an HTMLElement.
+     *
+     * @private
+     * @type {string|HTMLElement}
+     */
+    #content: string | HTMLElement | Text;
+
+    /**
+     * The theme to use for the tooltip.
      *
      * @private
      * @type {string}
      */
-    #content: string;
-
-    /**
-     * Holds the position of the tooltip
-     *
-     * @private
-     * @type {LatLng}
-     */
-    #position: LatLng;
+    #theme: string = 'default';
 
     /**
      * Constructor
@@ -71,8 +94,9 @@ export class Tooltip extends Overlay {
      * @param {TooltipOptions} [options] Tooltip options
      */
     constructor(options?: TooltipOptions) {
-        super('tooltip');
+        super('tooltip', 'Tooltip');
 
+        this.setOffset([0, 4]);
         if (isObject(options)) {
             this.setOptions(options);
         } else {
@@ -81,20 +105,127 @@ export class Tooltip extends Overlay {
     }
 
     /**
+     * Returns whether to center the tooltip horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean {
+        return this.#center;
+    }
+
+    /**
+     * Set whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker.
+     *
+     * @param {boolean} center Whether to center the tooltip on the element
+     */
+    set center(center: boolean) {
+        if (typeof center === 'boolean') {
+            this.#center = center;
+        }
+    }
+
+    /**
+     * Returns the content for the tooltip
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text {
+        return this.#content;
+    }
+
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement|Text} content The content for the tooltip
+     */
+    set content(content: string | HTMLElement | Text) {
+        if (isStringWithValue(content)) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = content;
+        } else if (content instanceof HTMLElement || content instanceof Text) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = '';
+            this.getOverlayElement().appendChild(content);
+        }
+    }
+
+    /**
+     * Returns the theme to use for the tooltip
+     *
+     * @returns {string}
+     */
+    get theme(): string {
+        return this.#theme;
+    }
+
+    /**
+     * Set the theme to use for the tooltip
+     *
+     * @param {string} theme The theme to use for the tooltip
+     */
+    set theme(theme: string) {
+        this.#theme = theme;
+    }
+
+    /**
+     * Attach the tooltip to a map or marker
+     *
+     * The tooltip will be shown when hovering over the map or marker.
+     *
+     * @param {Map | Marker} element The element to attach the tooltip to
+     * @returns {Tooltip}
+     */
+    attachTo(element: Map | Marker): Tooltip {
+        if (element instanceof Map) {
+            // Show the tooltip when hovering over the map
+            element.on('mouseover', (e) => {
+                this.setPosition(e.latLng);
+                this.show(element);
+            });
+            element.on('mousemove', (e) => {
+                this.setPosition(e.latLng);
+                this.show(element);
+            });
+            element.on('mouseout', () => {
+                this.hide();
+            });
+        } else if (element instanceof Marker) {
+            // Show the tooltip when hovering over the marker
+            element.setTooltip(this);
+        }
+        return this;
+    }
+
+    /**
      * Sets the options for the tooltip
      *
      * @param {TooltipOptions} options Tooltip options
      */
     setOptions(options: TooltipOptions) {
-        if (isString(options.content)) {
-            this.setContent(options.content);
+        if (typeof options.center === 'boolean') {
+            this.center = options.center;
+        }
+        if (options.content) {
+            this.content = options.content;
         }
         if (isString(options.className)) {
             this.removeClassName('tooltip');
             this.setClassName(options.className);
         }
+        if (options.map) {
+            this.setMap(options.map);
+        }
         if (options.offset) {
             this.setOffset(options.offset);
+        }
+        if (options.position) {
+            this.position = options.position;
+        }
+        if (options.styles) {
+            this.styles = options.styles;
+        }
+        if (options.theme) {
+            this.theme = options.theme;
         }
     }
 
@@ -104,61 +235,69 @@ export class Tooltip extends Overlay {
      * @returns {boolean}
      */
     hasContent(): boolean {
-        return isStringWithValue(this.#content);
+        return (
+            isStringWithValue(this.#content) || this.#content instanceof HTMLElement || this.#content instanceof Text
+        );
     }
 
     /**
      * Set the content for the tooltip
      *
-     * @param {string} content The content for the tooltip
+     * @param {string|HTMLElement} content The content for the tooltip
+     * @returns {Tooltip}
      */
-    setContent(content: string) {
-        if (isStringWithValue(content)) {
-            this.#content = content;
-            this.overlay.innerHTML = content;
-        }
-    }
-
-    /**
-     * Show the tooltip at the specified position
-     *
-     * @internal
-     * @param {Map} map The Google map object
-     * @param {LatLng} position The Google maps lat/lng position of where the tooltip should show
-     */
-    show(map: Map, position: LatLng) {
-        this.#position = position;
-        this.setMap(map);
+    setContent(content: string | HTMLElement): Tooltip {
+        this.content = content;
+        return this;
     }
 
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
+     * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
-        panes.floatPane.appendChild(this.overlay);
+        panes.floatPane.appendChild(this.getOverlayElement());
     }
 
     /**
      * Draw the overlay. Called when the overlay is being drawn or updated.
      *
+     * @internal
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.#position.toGoogle())!;
+        if (this.hasPosition()) {
+            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
-        // Hide the tooltip when it is far out of view.
-        const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
+            // Hide the tooltip when it is far out of view.
+            const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
-        if (display === 'block') {
-            const offset = this.getOffset();
-            this.overlay.style.left = `${divPosition.x + offset.getX()}px`;
-            this.overlay.style.top = `${divPosition.y + offset.getY()}px`;
-        }
+            if (display === 'block') {
+                const offset = this.getOffset();
+                this.style('left', `${divPosition.x + offset.getX()}px`);
+                this.style('top', `${divPosition.y + offset.getY()}px`);
+                if (this.center) {
+                    // Center the tooltip horizontally on the element
+                    this.style('transform', 'translate(-50%, 0)');
+                }
+                if (this.#theme === 'default') {
+                    const styles = this.styles || {};
+                    const themeStyles = {
+                        backgroundColor: '#fff',
+                        color: '#333',
+                        padding: '3px 6px',
+                        borderRadius: '4px',
+                        boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+                    };
+                    this.styles = { ...styles, ...themeStyles };
+                }
+            }
 
-        if (this.overlay.style.display !== display) {
-            this.overlay.style.display = display;
+            if (this.getOverlayElement().style.display !== display) {
+                this.getOverlayElement().style.display = display;
+            }
         }
     }
 }

@@ -10,6 +10,14 @@
 export const isFunction = (thing: any): thing is Function => typeof thing === 'function';
 
 /**
+ * Returns if the value is null.
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+export const isNull = (thing: any): thing is null => thing === null;
+
+/**
  * Returns if the value is a valid number
  *
  * @param {any} thing The value to test
@@ -62,6 +70,22 @@ export const isStringWithValue = (thing: any): thing is string => isString(thing
  */
 export const isStringOrNumber = (thing: unknown): thing is string | number =>
     isStringWithValue(thing) || isNumber(thing);
+
+/**
+ * Returns if the value is undefined
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+export const isUndefined = (thing: any): thing is undefined => thing === undefined || typeof thing === 'undefined';
+
+/**
+ * Returns if the value is null or undefined
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+export const isNullOrUndefined = (thing: any): thing is null | undefined => isNull(thing) || isUndefined(thing);
 
 /**
  * Get the number value for the given thing
@@ -179,4 +203,34 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
         }
     }
     return passed;
+};
+
+/**
+ * Compare two objects to see if they are equal
+ *
+ * @param {any} a The first object to compare
+ * @param {any} b The second object to compare
+ * @returns {boolean}
+ */
+export const objectEquals = (a: any, b: any): boolean => {
+    if (a === b) {
+        return true;
+    }
+    if (a instanceof Date && b instanceof Date) {
+        return a.getTime() === b.getTime();
+    }
+    if (!a || !b || (typeof a !== 'object' && typeof b !== 'object')) {
+        return a === b;
+    }
+    if (a === null || a === undefined || b === null || b === undefined) {
+        return false;
+    }
+    if (a.prototype !== b.prototype) {
+        return false;
+    }
+    const keys = Object.keys(a);
+    if (keys.length !== Object.keys(b).length) {
+        return false;
+    }
+    return keys.every((k) => objectEquals(a[k], b[k]));
 };
