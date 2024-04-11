@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 (April 11, 2024)
+
+- Updated build process to build a separate browser Javascript file from the node Javascript files.
+- Lots of other updates.
+
 ## 0.3.0 (February 6, 2024)
 
 - Added separate Loader object to load the map library.
