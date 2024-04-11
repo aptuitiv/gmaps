@@ -224,6 +224,9 @@ export class Tooltip extends Overlay {
         if (options.styles) {
             this.styles = options.styles;
         }
+        if (options.theme) {
+            this.theme = options.theme;
+        }
     }
 
     /**
