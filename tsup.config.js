@@ -3,35 +3,49 @@
     https://tsup.egoist.dev/#using-custom-configuration
 =========================================================================== */
 
-
 import { defineConfig } from 'tsup'
 import eslint from 'esbuild-plugin-eslint';
 
 // Most of these options are pushed to esbuild.
-export default defineConfig({
-    // Clean the output directory before building
-    clean: true,
-    // Enable dts generation
-    dts: true,
-    // Entry point file to build
-    entry: ['src/index.ts'],
-    // Esbuild plugins to include
-    esbuildPlugins: [
-        eslint({
-            fix: true
-        })
-    ],
-    // Output format. We chose ESM so that it's easier to import in other projects and can be used in the browser.
-    format: ['esm'],
-    // Minify the output
-    minify: true,
-    // Mark matching packages as "not external" so that they are included in the bundle.
-    // This is necessary for using the output in the browser.
-    noExternal: [
-        /@googlemaps\/*/
-    ],
-    // Set the platform to browser
-    platform: 'browser',
-    // Disable code splitting
-    splitting: false,
-})
+export default defineConfig([
+    // Browser build for using in the browser as a standalone script
+    {
+        entry: ['src/browser.ts'],
+        esbuildPlugins: [
+            eslint({
+                fix: true
+            })
+        ],
+        format: ['cjs'], // CJS output works in the browser
+        legacyOutput: true, // Force the cjs output to us ".js" instead of ".cjs" as the file extension
+        minify: true,
+        outDir: 'dist',
+        // Mark matching packages as "not external" so that they are included in the bundle.
+        // This is necessary for using the output in the browser.
+        noExternal: [
+            /@googlemaps\/*/
+        ],
+        platform: 'browser',
+        splitting: false,
+    },
+    // ESM build for importing in other projects
+    {
+        dts: true, // Enable Typescript dts generation
+        entry: ['src/index.ts'],
+        esbuildPlugins: [
+            eslint({
+                fix: true
+            })
+        ],
+        format: ['cjs', 'esm'],
+        minify: true,
+        outDir: 'dist',
+        outExtension({ format }) {
+            return {
+                js: `.${format}.js`,
+            }
+        },
+        platform: 'node',
+        splitting: false,
+    }
+])

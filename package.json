@@ -2,17 +2,22 @@
     "name": "@aptuitiv/google-maps-display",
     "version": "0.3.0",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
-    "source": "src/index.ts",
-    "main": "dist/index.cjs",
+    "exports": {
+        "import": "./dist/index.esm.js",
+        "require": "./dist/index.cjs.js"
+    },
     "type": "module",
+    "engines": {
+        "node": ">=17.0.0"
+    },
     "scripts": {
         "build": "tsup",
         "css": "postcss ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "css-watch": "postcss --watch ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "lint": "eslint --fix --ext .js,.ts ./src",
-        "test": "echo \"Error: no test specified\" && exit 1",
         "site-build": "eleventy",
         "site-serve": "eleventy --serve --incremental",
+        "test": "echo \"Error: no test specified\" && exit 1",
         "watch": "tsup --watch",
         "watch-all": "npm run watch & npm run css-watch & npm run site-serve"
     },
