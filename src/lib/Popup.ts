@@ -20,6 +20,8 @@ import { point, Point, PointValue } from './Point';
 import { isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
+    // Whether to automatically hide other open InfoWindows when opening this one
+    autoHide?: boolean;
     // The popup wrapper class name
     className?: string;
     // The popup content
@@ -44,6 +46,15 @@ export class Popup extends Overlay {
      * @type {boolean}
      */
     #autoHide: boolean = true;
+
+    /**
+     * Holds the tooltip content.
+     * This can be a simple string of text, string of HTML code, or an HTMLElement.
+     *
+     * @private
+     * @type {string|HTMLElement}
+     */
+    #content: string | HTMLElement | Text;
 
     /**
      * Holds if the Popup is open or not
@@ -81,6 +92,51 @@ export class Popup extends Overlay {
         this.#popupOffset = point(0, 0);
         if (isObject(options)) {
             this.setOptions(options);
+        }
+    }
+
+    /**
+     * Get the autoHide value
+     *
+     * @returns {boolean}
+     */
+    get autoHide(): boolean {
+        return this.#autoHide;
+    }
+
+    /**
+     * Set the autoHide value
+     *
+     * @param {boolean} autoHide Whether to automatically hide other open InfoWindows when opening this one
+     */
+    set autoHide(autoHide: boolean) {
+        if (typeof autoHide === 'boolean') {
+            this.#autoHide = autoHide;
+        }
+    }
+
+    /**
+     * Returns the content for the tooltip
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text {
+        return this.#content;
+    }
+
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement} content The content for the tooltip
+     */
+    set content(content: string | HTMLElement) {
+        if (isStringWithValue(content)) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = content;
+        } else if (content instanceof HTMLElement) {
+            this.#content = content;
+            this.getOverlayElement().innerHTML = '';
+            this.getOverlayElement().appendChild(content);
         }
     }
 
@@ -126,6 +182,9 @@ export class Popup extends Overlay {
      * @returns {Popup}
      */
     setOptions(options: PopupOptions): Popup {
+        if (typeof options.autoHide === 'boolean') {
+            this.autoHide = options.autoHide;
+        }
         if (isString(options.className)) {
             this.setClassName(options.className);
         }
