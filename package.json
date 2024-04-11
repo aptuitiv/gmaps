@@ -20,7 +20,7 @@
         "type": "git",
         "url": "git+https://github.com/aptuitiv/google-map-display.git"
     },
-    "author": "Aptuitiv",
+    "author": "Aptuitiv, Inc",
     "license": "MIT",
     "bugs": {
         "url": "https://github.com/aptuitiv/google-map-display/issues"
