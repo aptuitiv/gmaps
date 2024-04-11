@@ -1,4 +1,4 @@
-# Google Maps Display library
+# @aptuitiv/gmaps library
 
 Library to help with displaying a Google map with markers, overlays, and custom buttons.
 
@@ -9,16 +9,16 @@ Inspired by [Leaflet](https://leafletjs.com/).
 Download from NPM.
 
 ```bash
-npm install @aptuitiv/google-maps-display
+npm install @aptuitiv/gmaps
 ```
 
-You will find a copy of the files in `node_modules/@aptuitiv/google-maps-display/dist`.
+You will find a copy of the files in `node_modules/@aptuitiv/gmaps/dist`.
 
-The minified Javascript file is at `node_modules/@aptuitiv/google-maps-display/dist/index.js`;
+The minified Javascript file is at `node_modules/@aptuitiv/gmaps/dist/index.js`;
 
 ## Documentation
 
-[View the documentation](https://aptuitiv.github.io/google-maps-display-docs/).
+[View the documentation](https://aptuitiv.github.io/gmaps-docs/).
 
 ## Quick start
 
@@ -52,4 +52,4 @@ G.loader({ apiKey: 'Your-Api-Key', }).load().then(() => {
 </script>
 ```
 
-[See the documentation for more information](https://aptuitiv.github.io/google-maps-display-docs).
+[See the documentation for more information](https://aptuitiv.github.io/gmaps-docs).
