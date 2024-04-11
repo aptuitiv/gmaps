@@ -19,11 +19,11 @@ const marker = G.marker({
     longitude: -72.2,
     map: map,
     title: 'My Marker',
-    // tooltip: { className: 'MapTooltip' }
+    tooltip: { content: 'Custom tooltip', className: 'MapTooltip' }
     // tooltip: { className: 'MapTooltip', offset: [0, 15] }
 });
 
-marker.setTooltip({ content: 'This is a tooltip on a marker2', offset: [0, 15], styles: { background: '#fff', color: '#555', padding: '10px' } });
+// marker.setTooltip({ content: 'This is a tooltip on a marker2' });
 
 // const ttContent = document.createElement('div');
 // ttContent.style.background = '#fff';
