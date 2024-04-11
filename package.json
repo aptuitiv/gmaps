@@ -1,6 +1,6 @@
 {
     "name": "@aptuitiv/gmaps",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
     "exports": {
         "import": "./dist/index.esm.js",
@@ -23,14 +23,14 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/aptuitiv/google-map-display.git"
+        "url": "git+https://github.com/aptuitiv/gmaps.git"
     },
     "author": "Aptuitiv, Inc",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/aptuitiv/google-map-display/issues"
+        "url": "https://github.com/aptuitiv/gmaps/issues"
     },
-    "homepage": "https://github.com/aptuitiv/google-map-display#readme",
+    "homepage": "https://github.com/aptuitiv/gmaps#readme",
     "devDependencies": {
         "@11ty/eleventy": "^2.0.1",
         "@types/google.maps": "^3.54.10",
