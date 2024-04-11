@@ -1,4 +1,4 @@
-# Google Map Display library
+# Google Maps Display library
 
 Library to help with displaying a Google map with markers, overlays, and custom buttons.
 
