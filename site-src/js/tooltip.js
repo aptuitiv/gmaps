@@ -23,24 +23,26 @@ const marker = G.marker({
     // tooltip: { className: 'MapTooltip', offset: [0, 15] }
 });
 
-const ttContent = document.createElement('div');
-ttContent.style.background = '#fff';
-ttContent.style.color = '#555';
-ttContent.style.padding = '1px';
-ttContent.style.transform = 'translate(-50%, 0)';
-ttContent.innerHTML = 'This is a tooltip on a map';
+marker.setTooltip({ content: 'This is a tooltip on a marker2', offset: [0, 15], styles: { background: '#fff', color: '#555', padding: '10px' } });
 
-const tooltip = G.tooltip({
-    className: 'my-tooltip',
-    // content: 'This is a tooltip',
-    content: ttContent,
-    // position: { lat: 42.7, lng: -72.9 },
-    // map
-});
-// tooltip.show(map);
-// console.log('Tooltip: ', tooltip);
-// tooltip.attachTo(map);
-tooltip.attachTo(marker);
+// const ttContent = document.createElement('div');
+// ttContent.style.background = '#fff';
+// ttContent.style.color = '#555';
+// ttContent.style.padding = '1px';
+// ttContent.style.transform = 'translate(-50%, 0)';
+// ttContent.innerHTML = 'This is a tooltip on a map';
+
+// const tooltip = G.tooltip({
+//     className: 'my-tooltip',
+//     // content: 'This is a tooltip',
+//     content: ttContent,
+//     // position: { lat: 42.7, lng: -72.9 },
+//     // map
+// });
+// // tooltip.show(map);
+// // console.log('Tooltip: ', tooltip);
+// // tooltip.attachTo(map);
+// tooltip.attachTo(marker);
 
 map.on('click', (e) => {
     tooltip.position = e.latLng;

@@ -52,6 +52,8 @@ type TooltipOptions = {
     offset?: PointValue;
     // The latitude/longitude position for the tooltip
     position?: LatLngValue;
+    // Styles that can be
+    styles?: CSSStyleDeclaration;
 };
 
 /**
@@ -188,6 +190,9 @@ export class Tooltip extends Overlay {
         }
         if (options.position) {
             this.position = options.position;
+        }
+        if (options.styles) {
+            this.styles = options.styles;
         }
     }
 

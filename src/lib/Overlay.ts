@@ -4,7 +4,7 @@
     https://developers.google.com/maps/documentation/javascript/customoverlays
 =========================================================================== */
 
-/* global google, HTMLElement, OverlayView */
+/* global google, CSSStyleDeclaration, HTMLElement, OverlayView */
 /* eslint-disable max-classes-per-file */
 
 import { loader } from './Loader';
@@ -55,6 +55,11 @@ class Overlay extends Layer {
      * @type {LatLng}
      */
     #position: LatLng;
+
+    /**
+     * Holds the styles for the tooltip. These are applied to the tooltip container (i.e. the overlay element).
+     */
+    #styles: CSSStyleDeclaration;
 
     /**
      * Constructor
@@ -145,6 +150,29 @@ class Overlay extends Layer {
             this.#position = position;
         } else if (isNullOrUndefined(value)) {
             this.#position = undefined;
+        }
+    }
+
+    /**
+     * Returns the styles for the overlay element
+     *
+     * @returns {CSSStyleDeclaration}
+     */
+    get styles(): CSSStyleDeclaration {
+        return this.#styles;
+    }
+
+    /**
+     * Set the styles for the overlay element
+     *
+     * @param {CSSStyleDeclaration} styles The styles to apply to the overlay element
+     */
+    set styles(styles: CSSStyleDeclaration) {
+        if (isObject(styles)) {
+            this.#styles = styles;
+            Object.keys(styles).forEach((key) => {
+                this.#overlay.style[key] = styles[key];
+            });
         }
     }
 
@@ -274,6 +302,17 @@ class Overlay extends Layer {
     }
 
     /**
+     * Set the styles for the overlay element
+     *
+     * @param {CSSStyleDeclaration} styles The styles to apply to the overlay element
+     * @returns {Overlay}
+     */
+    setStyles(styles: CSSStyleDeclaration): Overlay {
+        this.styles = styles;
+        return this;
+    }
+
+    /**
      * Add the overlay to the map.
      *
      * Alias for setMap()
@@ -296,6 +335,21 @@ class Overlay extends Layer {
                 });
             }
             super.setMap(map);
+        }
+        return this;
+    }
+
+    /**
+     * Set a single style on the overlay element
+     *
+     * @param {string} key The style key
+     * @param {string} value The style value
+     * @returns {Overlay}
+     */
+    style(key: string, value: string): Overlay {
+        if (isString(key) && isString(value)) {
+            this.#styles[key] = value;
+            this.#overlay.style[key] = value;
         }
         return this;
     }
