@@ -23,6 +23,8 @@ module.exports = function (eleventyConfig) {
         // Disabling this because it caused weird issues with inline Javascript variables
         // and errors getting thrown because the variable already exists.
         domDiff: false,
+        // Change the port so that this doesn't interfere with other local development
+        port: 9090
     });
 
     // Add the Google Maps API key to the global data
