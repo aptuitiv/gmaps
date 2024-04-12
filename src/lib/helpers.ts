@@ -234,3 +234,15 @@ export const objectEquals = (a: any, b: any): boolean => {
     }
     return keys.every((k) => objectEquals(a[k], b[k]));
 };
+
+/**
+ * Call the callback function if it is a function
+ *
+ * @param {Function|undefined} callback The callback function to call
+ * @param {any[]} args The arguments to pass to the callback function
+ */
+export const callCallback = (callback: Function | undefined, ...args: any[]): void => {
+    if (isFunction(callback)) {
+        callback(...args);
+    }
+};
