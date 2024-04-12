@@ -6,7 +6,7 @@
         latitude: 40.730610,
         longitude: -73.935242,
     });
-    marker.bindPopup('My Popup');
+    marker.attachPopup('My Popup');
 =========================================================================== */
 
 /* global google, HTMLElement, Text */
@@ -316,7 +316,7 @@ export const popup = (options?: PopupValue): Popup => {
 };
 
 /**
- * To avoid circilar dependencies we need to add the bindPopup method to the Layer class here
+ * To avoid circular dependencies we need to add the attachPopup method to the Layer class here
  */
 Layer.include({
     /**
@@ -330,7 +330,7 @@ Layer.include({
      * @param {string | HTMLElement | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
      * @param {PopupOptions} [options] The Popup options object
      */
-    bindPopup(content: string | HTMLElement | Text | PopupValue, options?: PopupOptions) {
+    attachPopup(content: string | HTMLElement | Text | PopupValue, options?: PopupOptions) {
         if (content instanceof Popup) {
             this.layerPopup = content;
         } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {

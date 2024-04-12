@@ -14,4 +14,4 @@ const marker = G.marker({
     map: map,
     title: 'My Marker',
 });
-marker.bindPopup('My Popup');
+marker.attachPopup('My Popup');
