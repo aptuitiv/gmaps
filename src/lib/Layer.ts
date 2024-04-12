@@ -13,12 +13,51 @@ import {} from './helpers';
  */
 class Layer extends Evented {
     /**
+     * This is an index signature so that Typescript does't complain about adding properties
+     * to the class via mixins.
+     *
+     * For example, this lets us use attachTooltip() in the Marker class even though attachTooltip()
+     * is applied to the layer via the Tooltip mixin.
+     */
+    [x: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    /**
+     * Holds if the layer is visible or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isVisible: boolean = false;
+
+    /**
      * Holds the Map object that the layer is added to
      *
      * @private
      * @type {Map|null}
      */
     #map: Map | null = null;
+
+    /**
+     * Get if the layer is visible or not
+     *
+     * @returns {boolean}
+     */
+    get isVisible(): boolean {
+        return this.#isVisible;
+    }
+
+    /**
+     * Set if the layer is visible or not
+     *
+     * @param {boolean} value Whether the layer is visible or not
+     */
+    set isVisible(value: boolean) {
+        if (typeof value === 'boolean') {
+            this.#isVisible = value;
+        } else {
+            throw new Error('isVisible must be a boolean');
+        }
+    }
 
     /**
      * Return the Map object or null if the Map object is not set

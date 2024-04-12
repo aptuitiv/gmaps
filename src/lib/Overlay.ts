@@ -236,6 +236,7 @@ class Overlay extends Layer {
         if (this.#overlayView) {
             this.#overlayView.setMap(null);
             this.removeMap();
+            this.isVisible = false;
         }
         return this;
     }
@@ -328,12 +329,14 @@ class Overlay extends Layer {
             this.#setupGoogleOverlay();
             if (this.#overlayView) {
                 this.#overlayView.setMap(map.toGoogle());
+                this.isVisible = true;
             } else {
                 // The Google maps library isn't loaded yet. Wait for it to load.
                 loader().once('map_loaded', () => {
                     this.#setupGoogleOverlay();
                     if (this.#overlayView) {
                         this.#overlayView.setMap(map.toGoogle());
+                        this.isVisible = true;
                     }
                 });
             }
@@ -353,6 +356,21 @@ class Overlay extends Layer {
         if (isString(key) && isString(value)) {
             this.#styles[key] = value;
             this.#overlay.style[key] = value;
+        }
+        return this;
+    }
+
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map} map The map object
+     * @returns {Overlay}
+     */
+    toggle(map: Map): Overlay {
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show(map);
         }
         return this;
     }
