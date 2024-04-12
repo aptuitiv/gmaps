@@ -54,7 +54,7 @@ export type InfoWindowOptions = GMInfoWindowOptions & {
     // Defaults to [0, -4]
     pixelOffset?: SizeValue;
     // The position for the InfoWindow.
-    // You don't need to do this if you're binding the InfoWindow to a Marker object.
+    // You don't need to do this if you're attaching the InfoWindow to a Marker object.
     position?: LatLngValue;
     // Whether or not clicking the thing that triggered the info window to open should also close the info window.
     toggleDisplay?: boolean;
@@ -586,12 +586,12 @@ const infoWindowMixin = {
     layerInfoWindow: null,
 
     /**
-     * Bind an InfoWindow to the layer
+     * Attach an InfoWindow to the layer
      *
      * @param {string | HTMLElement | Text | InfoWindowValue} content The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
      * @param {InfoWindowOptions} [options] The InfoWindow options object
      */
-    bindInfoWindow(content: string | HTMLElement | Text | InfoWindowValue, options?: InfoWindowOptions) {
+    attachInfoWindow(content: string | HTMLElement | Text | InfoWindowValue, options?: InfoWindowOptions) {
         if (content instanceof InfoWindow) {
             this.layerInfoWindow = content;
         } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
@@ -619,7 +619,7 @@ const infoWindowMixin = {
     },
 };
 /**
- * To avoid circilar dependencies we need to add the bindInfoWindow method to the Layer class here
+ * To avoid circular dependencies we need to add the attachInfoWindow method to the Layer and Map classes here
  */
 Layer.include(infoWindowMixin);
 Map.include(infoWindowMixin);
