@@ -174,31 +174,54 @@ export class Tooltip extends Overlay {
     }
 
     /**
-     * Attach the tooltip to a map or marker
+     * Attach the tooltip to a element
      *
-     * The tooltip will be shown when hovering over the map or marker.
+     * The tooltip will be shown when hovering over the element.
      *
-     * @param {Map | Marker} element The element to attach the tooltip to
+     * @param {Map | Layer} element The element to attach the tooltip to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'
+     *   - 'click' - Toggle the display of the tooltip when clicking on the element
+     *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
      * @returns {Tooltip}
      */
-    attachTo(element: Map | Marker): Tooltip {
-        if (element instanceof Map) {
+    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'hover'): Promise<Tooltip> {
+        await element.init().then(() => {
+            let map: Map;
+            if (element instanceof Map) {
+                map = element;
+            } else {
+                map = element.getMap();
+            }
             // Show the tooltip when hovering over the map
-            element.on('mouseover', (e) => {
-                this.setPosition(e.latLng);
-                this.show(element);
-            });
-            element.on('mousemove', (e) => {
-                this.setPosition(e.latLng);
-                this.show(element);
-            });
-            element.on('mouseout', () => {
-                this.hide();
-            });
-        } else if (element instanceof Marker) {
-            // Show the tooltip when hovering over the marker
-            element.setTooltip(this);
-        }
+            if (event === 'click') {
+                // Show the tooltip when clicking on the map
+                element.on('click', (e) => {
+                    this.setPosition(e.latLng);
+                    this.toggle(map);
+                });
+            } else if (event === 'clickon') {
+                // Show the tooltip when clicking on the map
+                element.on('click', (e) => {
+                    this.setPosition(e.latLng);
+                    this.show(map);
+                });
+            } else {
+                // Default to hover
+                element.on('mouseover', (e) => {
+                    this.setPosition(e.latLng);
+                    this.show(map);
+                });
+                element.on('mousemove', (e) => {
+                    this.setPosition(e.latLng);
+                    this.show(map);
+                });
+                element.on('mouseout', () => {
+                    this.hide();
+                });
+            }
+        });
+
         return this;
     }
 
