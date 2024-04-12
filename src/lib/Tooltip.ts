@@ -34,8 +34,8 @@
 
 import { isObject, isString, isStringWithValue } from './helpers';
 import { LatLngValue } from './LatLng';
+import Layer from './Layer';
 import { Map } from './Map';
-import { Marker } from './Marker';
 import Overlay from './Overlay';
 import { PointValue } from './Point';
 
@@ -346,3 +346,26 @@ export const tooltip = (options?: TooltipValue): Tooltip => {
     }
     return new Tooltip(options);
 };
+
+/**
+ * Mixin to add the attachTooltip method to the Marker and Map classes
+ */
+const tooltipMixin = {
+    /**
+     * Attach an Tooltip to the layer
+     *
+     * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
+     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+     * @returns {this}
+     */
+    attachTooltip(tooltipValue: TooltipValue, event: 'click' | 'clickon' | 'hover' = 'hover') {
+        tooltip(tooltipValue).attachTo(this, event);
+        return this;
+    },
+};
+
+/**
+ * To avoid circular dependencies we need to add the attachTooltip method to the Layer and Map classes here
+ */
+Layer.include(tooltipMixin);
+Map.include(tooltipMixin);
