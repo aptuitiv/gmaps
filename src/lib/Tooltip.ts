@@ -91,15 +91,21 @@ export class Tooltip extends Overlay {
     /**
      * Constructor
      *
-     * @param {TooltipOptions} [options] Tooltip options
+     * @param {TooltipOptions | string | HTMLElement | Text} [options] Tooltip options
      */
-    constructor(options?: TooltipOptions) {
+    constructor(options?: TooltipOptions | string | HTMLElement | Text) {
         super('tooltip', 'Tooltip');
 
         this.setOffset([0, 4]);
         if (isObject(options)) {
-            this.setOptions(options);
+            if (options instanceof HTMLElement || options instanceof Text) {
+                this.content = options;
+            } else {
+                this.setOptions(options);
+            }
         } else {
+            // The tooltip contents were passed
+            this.content = options;
             this.setClassName('tooltip');
         }
     }
@@ -303,12 +309,12 @@ export class Tooltip extends Overlay {
 }
 
 // The possible values for the options parameter
-export type TooltipValue = Tooltip | TooltipOptions;
+export type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
 
 /**
  * Helper function to set up the tooltip object
  *
- * @param {TooltipOptions} [options] The tooltip options or the tooltip class
+ * @param {TooltipValue} [options] The tooltip options or the tooltip class
  * @returns {Tooltip}
  */
 export const tooltip = (options?: TooltipValue): Tooltip => {
