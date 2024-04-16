@@ -203,8 +203,9 @@ export class Tooltip extends Overlay {
      * Sets the options for the tooltip
      *
      * @param {TooltipOptions} options Tooltip options
+     * @returns {Tooltip}
      */
-    setOptions(options: TooltipOptions) {
+    setOptions(options: TooltipOptions): Tooltip {
         if (typeof options.center === 'boolean') {
             this.center = options.center;
         }
@@ -230,6 +231,7 @@ export class Tooltip extends Overlay {
         if (options.theme) {
             this.theme = options.theme;
         }
+        return this;
     }
 
     /**
