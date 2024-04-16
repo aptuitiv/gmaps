@@ -200,6 +200,28 @@ export class Tooltip extends Overlay {
     }
 
     /**
+     * Returns whether the tooltip already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean {
+        return (
+            isStringWithValue(this.#content) || this.#content instanceof HTMLElement || this.#content instanceof Text
+        );
+    }
+
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement} content The content for the tooltip
+     * @returns {Tooltip}
+     */
+    setContent(content: string | HTMLElement): Tooltip {
+        this.content = content;
+        return this;
+    }
+
+    /**
      * Sets the options for the tooltip
      *
      * @param {TooltipOptions} options Tooltip options
@@ -231,28 +253,6 @@ export class Tooltip extends Overlay {
         if (options.theme) {
             this.theme = options.theme;
         }
-        return this;
-    }
-
-    /**
-     * Returns whether the tooltip already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean {
-        return (
-            isStringWithValue(this.#content) || this.#content instanceof HTMLElement || this.#content instanceof Text
-        );
-    }
-
-    /**
-     * Set the content for the tooltip
-     *
-     * @param {string|HTMLElement} content The content for the tooltip
-     * @returns {Tooltip}
-     */
-    setContent(content: string | HTMLElement): Tooltip {
-        this.content = content;
         return this;
     }
 
