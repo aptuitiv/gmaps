@@ -98,7 +98,7 @@ import { loader } from './Loader';
 import { Map } from './Map';
 import { point, Point, PointValue } from './Point';
 import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
-import { tooltip, TooltipValue } from './Tooltip';
+import { TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
     isNullOrUndefined,
@@ -357,6 +357,25 @@ export class Marker extends Layer {
     hide(): Marker {
         this.map = null;
         return this;
+    }
+
+    /**
+     * Initialize the marker
+     *
+     * This is used when another element (like a tooltip) needs to be attached to the marker,
+     * but needs to make sure that the marker exists first.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void> {
+        return new Promise((resolve) => {
+            this.#setupGoogleMarker().then(() => {
+                resolve();
+            });
+        });
     }
 
     /**
@@ -660,9 +679,13 @@ export class Marker extends Layer {
         }
 
         // Set the title and tooltip
-        if (options.title && options.tooltip) {
-            // The title will be a custom tooltip that is added to the map container
-            this.setTooltip(options.tooltip, options.title);
+        if (options.tooltip) {
+            let { tooltip } = options;
+            if (options.title && isObject(tooltip) && !(tooltip instanceof HTMLElement || tooltip instanceof Text)) {
+                // The title will be a custom tooltip that is added to the map container if the tooltip content isn't already set
+                tooltip = { ...{ content: options.title }, ...tooltip };
+            }
+            this.attachTooltip(tooltip);
         } else if (options.title) {
             this.title = options.title;
         }
@@ -684,11 +707,8 @@ export class Marker extends Layer {
     }
 
     /**
-     * Set up a custom tooltip for the marker instead of relying on the default browser tooltip
      * Set the latitude and longitude value for the marker
      *
-     * @param {TooltipValue} tooltipValue The tooltip value
-     * @param {string} title The tooltip title
      * @param {LatLngValue} value The latitude/longitude position for the marker
      * @returns {Promise<Marker>}
      */
@@ -708,36 +728,6 @@ export class Marker extends Layer {
      * @param {LatLngValue} value The latitude/longitude position for the marker
      * @returns {Marker}
      */
-    setTooltip(tooltipValue: TooltipValue, title?: string): Marker {
-        const tt = tooltip(tooltipValue);
-        if (!tt.hasContent()) {
-            tt.setContent(title);
-        }
-        if (tt.hasContent()) {
-            this.#setupGoogleMarker();
-            if (this.#marker) {
-                this.#marker.addListener('mouseover', () => {
-                    tt.setPosition(this.#options.position).show(this.getMap());
-                });
-                this.#marker.addListener('mouseout', () => {
-                    tt.hide();
-                });
-            } else {
-                loader().once('map_loaded', () => {
-                    this.#setupGoogleMarker();
-                    if (this.#marker) {
-                        this.#marker.addListener('mouseover', () => {
-                            tt.setPosition(this.#options.position).show(this.getMap());
-                        });
-                        this.#marker.addListener('mouseout', () => {
-                            tt.hide();
-                        });
-                    }
-                });
-            }
-        }
-        // Clear the marker title
-        this.title = undefined;
     setPositionSync(value: LatLngValue): Marker {
         this.#setupGoogleMarkerSync();
         this.#setPosition(value);
