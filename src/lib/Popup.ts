@@ -159,6 +159,15 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns whether the popup is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean {
+        return this.#isOpen;
+    }
+
+    /**
      * Open the popup
      *
      * Alias to show()
