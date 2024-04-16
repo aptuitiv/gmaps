@@ -356,14 +356,14 @@ class Overlay extends Layer {
     /**
      * Set a single style on the overlay element
      *
-     * @param {string} key The style key
+     * @param {string} name The style name
      * @param {string} value The style value
      * @returns {Overlay}
      */
-    style(key: string, value: string): Overlay {
-        if (isString(key) && isString(value)) {
-            this.#styles[key] = value;
-            this.#overlay.style[key] = value;
+    style(name: string, value: string): Overlay {
+        if (isString(name) && isString(value)) {
+            this.#styles[name] = value;
+            this.#overlay.style[name] = value;
         }
         return this;
     }
