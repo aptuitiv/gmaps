@@ -2,6 +2,8 @@
     Base class that all other classes extend.
     This provides support for incorporating mixins into the class, as well
     as testing the object type.
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/base-classes/base
+    for documentation.
 =========================================================================== */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

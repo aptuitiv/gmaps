@@ -3,41 +3,7 @@
     including one that crosses the 180 degrees longitudinal meridian.
     https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
 
-    Example usage:
-    const bounds = G.latLngBounds({
-        latitude: 40.712,
-        longitude: -74.227
-    });
-    bounds.extend([40.712, -74.227]);
-    map.fitBounds(bounds);
-
-    Or, you can call map fitBounds directly:
-    map.fitBounds([
-        [40.712, -74.227],
-        [40.774, -74.125]
-    ]);
-
-    Or:
-    map.fitBounds([
-        {lat: 40.712, lng: -74.227},
-        {lat: 40.774, lng: -74.125}
-    ]);
-
-    Or:
-    map.fitBounds([
-        G.latLng(40.712, -74.227),
-        G.latLng(40.774, -74.125)
-    ]);
-
-    Or you can get the bounds from a marker:
-    const marker = G.marker({
-        latitude: 40.712,
-        longitude: -74.227
-    });
-    marker.show(map);
-    const bounds = G.latLngBounds();
-    bounds.extend(marker.getPosition());
-    map.fitBounds(bounds);
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/latlng-bounds for documentation.
 =========================================================================== */
 
 /* global google */

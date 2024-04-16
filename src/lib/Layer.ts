@@ -1,5 +1,8 @@
 /* ===========================================================================
     Base class to help with drawing stuff on the map.
+
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/base-classes/layer
+    for documentation.
 =========================================================================== */
 
 import { Evented } from './Evented';

@@ -5,13 +5,7 @@
     https://developers.google.com/maps/documentation/javascript/marker-clustering
     https://www.npmjs.com/package/@googlemaps/markerclusterer
 
-    Usage:
-    const cluster = G.markerCluster(trailListMap.map);
-    const marker = G.marker({
-        position: G.latLng(0, 0),
-    });
-    marker.show(map);
-    cluster.addMarker(marker);
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/marker-cluster for documentation.
 =========================================================================== */
 
 import {

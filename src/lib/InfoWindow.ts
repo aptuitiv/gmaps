@@ -1,5 +1,7 @@
 /* ===========================================================================
     Helps to set up the built-in Google InfoWindow
+
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/infowindow for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, Text */

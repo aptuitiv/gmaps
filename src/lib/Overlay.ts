@@ -2,6 +2,8 @@
     Base class to help with drawing overlays on the map.
 
     https://developers.google.com/maps/documentation/javascript/customoverlays
+
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/base-classes/overlay for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, OverlayView */

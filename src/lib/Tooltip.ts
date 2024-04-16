@@ -1,33 +1,7 @@
 /* ===========================================================================
     Aids id setting up a tooltip for markers and other elements.
 
-    Usage:
-    const tooltip = G.tooltip({
-        className: 'MapTooltip',
-    });
-    const marker = G.marker({
-        latitude: 40.730610,
-        longitude: -73.935242,
-        title: 'My Marker',
-        tooltip
-    });
-
-    Alternately, you can pass an object containing the tooltip options instead of the tooltip object.
-    G.marker({
-        latitude: 40.730610,
-        longitude: -73.935242,
-        title: 'My Marker',
-        tooltip: {
-            className: 'MapTooltip',
-        }
-    });
-
-    By default, the component title will be used for the to tooltip. (i.e. the marker tooltip).
-    But, you can also set custom content. This could be useful if the component doesn't have a title (like polylines).
-    const tooltip = G.tooltip({
-        className: 'MapTooltip',
-        content: 'Some tooltip content here'
-    });
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/tooltip for documentation
 =========================================================================== */
 
 /* global google, HTMLElement, Text */

@@ -1,12 +1,7 @@
 /* ===========================================================================
     Display a custom popup on the map
 
-    Usage:
-    marker = G.marker({
-        latitude: 40.730610,
-        longitude: -73.935242,
-    });
-    marker.attachPopup('My Popup');
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/popup for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, Text */

@@ -5,6 +5,9 @@
 
     This is a wrapper around the EventTarget class to provide a more
     succinct interface for emitting events.
+
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/base-classes/evented
+    for documentation.
 =========================================================================== */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

@@ -10,16 +10,7 @@
     should be included in the libraries array to properly load.
     https://developers.google.com/maps/documentation/javascript/places
 
-    Example usage:
-    const map = G.map('map', {
-        apiKey: 'myMapApiKey',
-        latitude: 40.730610
-        longitude: -73.935242,
-        zoom: 8
-    });
-    map.load(() => {
-        // Do something after the map loads
-    });
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/map for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement */

@@ -3,16 +3,7 @@
 
     See: https://developers.google.com/maps/documentation/javascript/reference/marker#Icon
 
-    Example usage:
-    const icon = G.icon({
-        url: 'https://mywebsite.com/images/marker.png',
-        size: [20, 32]
-    });
-    const marker = G.marker({
-        latitude: 40.730610,
-        longitude: -73.935242,
-        icon
-    });
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/icon for documentation.
 =========================================================================== */
 
 /* global google */
