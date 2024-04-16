@@ -15,8 +15,8 @@ import { point, Point, PointValue } from './Point';
 import { isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
-    // Whether to automatically hide other open InfoWindows when opening this one
-    autoHide?: boolean;
+    // Whether to automatically hide other open popups when opening this one
+    autoClose?: boolean;
     // The popup wrapper class name
     className?: string;
     // The popup content
@@ -35,12 +35,12 @@ export type PopupOptions = {
  */
 export class Popup extends Overlay {
     /**
-     * Whether to automatically hide other open InfoWindows when opening this one
+     * Whether to automatically close other open popups when opening this one
      *
      * @private
      * @type {boolean}
      */
-    #autoHide: boolean = true;
+    #autoClose: boolean = true;
 
     /**
      * Holds the tooltip content.
@@ -91,22 +91,22 @@ export class Popup extends Overlay {
     }
 
     /**
-     * Get the autoHide value
+     * Get the autoClose value
      *
      * @returns {boolean}
      */
-    get autoHide(): boolean {
-        return this.#autoHide;
+    get autoClose(): boolean {
+        return this.#autoClose;
     }
 
     /**
-     * Set the autoHide value
+     * Set the autoClose value
      *
-     * @param {boolean} autoHide Whether to automatically hide other open InfoWindows when opening this one
+     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
      */
-    set autoHide(autoHide: boolean) {
-        if (typeof autoHide === 'boolean') {
-            this.#autoHide = autoHide;
+    set autoClose(autoClose: boolean) {
+        if (typeof autoClose === 'boolean') {
+            this.#autoClose = autoClose;
         }
     }
 
@@ -177,8 +177,8 @@ export class Popup extends Overlay {
      * @returns {Popup}
      */
     setOptions(options: PopupOptions): Popup {
-        if (typeof options.autoHide === 'boolean') {
-            this.autoHide = options.autoHide;
+        if (typeof options.autoClose === 'boolean') {
+            this.autoClose = options.autoClose;
         }
         if (isString(options.className)) {
             this.setClassName(options.className);
@@ -235,7 +235,7 @@ export class Popup extends Overlay {
                 resolve(this);
             } else {
                 // Hide other open Popups if necessary
-                if (this.#autoHide) {
+                if (this.#autoClose) {
                     collection.hideOthers(this);
                 }
 
