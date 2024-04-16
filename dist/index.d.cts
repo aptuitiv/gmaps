@@ -1107,11 +1107,11 @@ declare class Overlay extends Layer {
     /**
      * Set a single style on the overlay element
      *
-     * @param {string} key The style key
+     * @param {string} name The style name
      * @param {string} value The style value
      * @returns {Overlay}
      */
-    style(key: string, value: string): Overlay;
+    style(name: string, value: string): Overlay;
     /**
      * Toggle the display of the overlay on the map
      *
@@ -1219,12 +1219,6 @@ declare class Tooltip extends Overlay {
      */
     attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Tooltip>;
     /**
-     * Sets the options for the tooltip
-     *
-     * @param {TooltipOptions} options Tooltip options
-     */
-    setOptions(options: TooltipOptions): void;
-    /**
      * Returns whether the tooltip already has content
      *
      * @returns {boolean}
@@ -1237,6 +1231,13 @@ declare class Tooltip extends Overlay {
      * @returns {Tooltip}
      */
     setContent(content: string | HTMLElement): Tooltip;
+    /**
+     * Sets the options for the tooltip
+     *
+     * @param {TooltipOptions} options Tooltip options
+     * @returns {Tooltip}
+     */
+    setOptions(options: TooltipOptions): Tooltip;
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -1955,10 +1956,10 @@ declare class Marker extends Layer {
     /**
      * Set the label value for the marker
      *
-     * @param {string | number | MarkerLabel} label The label for the marker
+     * @param {string | number | MarkerLabel} value The label for the marker
      * @returns {Marker}
      */
-    setLabel(label: string | number | MarkerLabel): Promise<Marker>;
+    setLabel(value: string | number | MarkerLabel): Promise<Marker>;
     /**
      * Set the label value for the marker syncronously.
      *
@@ -1966,10 +1967,10 @@ declare class Marker extends Layer {
      * syncronously. If you don't have to set up the marker syncronously, then use setLabel() instead or pass the
      * label to the constructor or setOptions().
      *
-     * @param {string | number | MarkerLabel} label The label for the marker
+     * @param {string | number | MarkerLabel} value The label for the marker
      * @returns {Marker}
      */
-    setLabelSync(label: string | number | MarkerLabel): Marker;
+    setLabelSync(value: string | number | MarkerLabel): Marker;
     /**
      * Adds the marker to the map object
      *
@@ -1981,6 +1982,10 @@ declare class Marker extends Layer {
     setMap(map: Map | null): Promise<Marker>;
     /**
      * Set the map object
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setMap() instead or pass the
+     * map to the constructor or setOptions().
      *
      * @param {Map|null} map The map object. Set to null if you want to remove the marker from the map.
      * @returns {Marker}
@@ -2035,9 +2040,9 @@ declare class Marker extends Layer {
      * Alternate of setMap()
      *
      * @param {Map} map The map object
-     * @returns {Marker}
+     * @returns {Promise<Marker>}
      */
-    show(map: Map): Marker;
+    show(map: Map): Promise<Marker>;
     /**
      * Get the Google maps marker object
      *
@@ -2046,6 +2051,17 @@ declare class Marker extends Layer {
      * @returns {Promise<google.maps.Marker>}
      */
     toGoogle(): Promise<google.maps.Marker>;
+    /**
+     * Get the Google maps marker object synchronously. Throw an error if the Google Maps library is not available.
+     *
+     * This is different from toGoogle() because it will throw an error if the Google Maps library is not available,
+     * whereas toGoogle() will wait for the Google Maps library to load.
+     *
+     * Only use this when you have to get the Google Maps object synchronously and you know that the Google Maps library is already loaded.
+     * If you don't have to get the Google Maps object synchronously, then use toGoogle() instead.
+     *
+     * @returns {google.maps.Marker}
+     */
     toGoogleSync(): google.maps.Marker;
 }
 type MarkerValue = Marker | MarkerOptions | LatLngValue;
@@ -2435,12 +2451,16 @@ declare class InfoWindow extends Layer {
      * Hide the info window
      *
      * Alias to hide()
+     *
+     * @returns {InfoWindow}
      */
-    close(): void;
+    close(): InfoWindow;
     /**
      * Hide the info window
+     *
+     * @returns {InfoWindow}
      */
-    hide(): void;
+    hide(): InfoWindow;
     /**
      * Returns whether the InfoWindow is open or not
      *
