@@ -340,20 +340,25 @@ export class InfoWindow extends Layer {
      * Hide the info window
      *
      * Alias to hide()
+     *
+     * @returns {InfoWindow}
      */
-    close() {
-        this.hide();
+    close(): InfoWindow {
+        return this.hide();
     }
 
     /**
      * Hide the info window
+     *
+     * @returns {InfoWindow}
      */
-    hide() {
+    hide(): InfoWindow {
         if (this.#infoWindow) {
             this.#infoWindow.close();
         }
         this.#isOpen = false;
         InfoWindowCollection.getInstance().remove(this);
+        return this;
     }
 
     /**
