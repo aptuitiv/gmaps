@@ -169,9 +169,9 @@ export class Popup extends Overlay {
      * Alias to show()
      *
      * @param {Map | Marker} element The anchor object or map object.
-     * @returns {Popup}
+     * @returns {Promise<Popup>}
      */
-    open(element: Map | Marker): Popup {
+    open(element: Map | Marker): Promise<Popup> {
         return this.show(element);
     }
 
@@ -228,43 +228,51 @@ export class Popup extends Overlay {
      * @param {Map | Marker} element The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
-     * @returns {Popup}
+     * @returns {Promise<Popup>}
      */
-    show(element: Map | Marker): Popup {
-        const collection = PopupCollection.getInstance();
-        if (collection.has(this) && this.#isOpen) {
-            if (this.#toggleDisplay) {
-                this.hide();
-            }
-        } else {
-            // Hide other open Popups if necessary
-            if (this.#autoHide) {
-                collection.hideOthers(this);
-            }
-
-            if (element instanceof Map) {
-                this.#popupOffset = this.getOffset().clone();
-                super.show(element);
-            } else if (element instanceof Marker) {
-                this.position = element.getPosition();
-                // If the anchor is a marker then add the anchor's anchorPoint to the offset.
-                // The anchorPoint for the marker contains the x/y values to add to the marker's position that
-                // an InfoWindow should be displayed at. This can also be used with our Popup.
-                // We add the offset value for the Popup to the anchorPoint value.
-                const m = element.toGoogle();
-                const anchorPoint = m.get('anchorPoint');
-                if (anchorPoint instanceof google.maps.Point) {
-                    this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
-                } else {
-                    this.#popupOffset = this.getOffset().clone();
+    show(element: Map | Marker): Promise<Popup> {
+        return new Promise((resolve) => {
+            const collection = PopupCollection.getInstance();
+            if (collection.has(this) && this.#isOpen) {
+                if (this.#toggleDisplay) {
+                    this.hide();
                 }
-                // Set the map value to display the popup and call the add() and draw() functions.
-                super.show(element.getMap());
+                resolve(this);
+            } else {
+                // Hide other open Popups if necessary
+                if (this.#autoHide) {
+                    collection.hideOthers(this);
+                }
+
+                this.#isOpen = true;
+                collection.add(this);
+
+                if (element instanceof Map) {
+                    this.#popupOffset = this.getOffset().clone();
+                    super.show(element).then(() => {
+                        resolve(this);
+                    });
+                } else if (element instanceof Marker) {
+                    this.position = element.getPosition();
+                    // If the anchor is a marker then add the anchor's anchorPoint to the offset.
+                    // The anchorPoint for the marker contains the x/y values to add to the marker's position that
+                    // an InfoWindow should be displayed at. This can also be used with our Popup.
+                    // We add the offset value for the Popup to the anchorPoint value.
+                    element.toGoogle().then((marker) => {
+                        const anchorPoint = marker.get('anchorPoint');
+                        if (anchorPoint instanceof google.maps.Point) {
+                            this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
+                        } else {
+                            this.#popupOffset = this.getOffset().clone();
+                        }
+                        // Set the map value to display the popup and call the add() and draw() functions.
+                        super.show(element.getMap()).then(() => {
+                            resolve(this);
+                        });
+                    });
+                }
             }
-            this.#isOpen = true;
-            collection.add(this);
-        }
-        return this;
+        });
     }
 
     /**

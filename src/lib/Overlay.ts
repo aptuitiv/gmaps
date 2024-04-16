@@ -185,9 +185,9 @@ class Overlay extends Layer {
      * Alias to show()
      *
      * @param {Map} map The Map object
-     * @returns {Overlay}
+     * @returns {Promise<Overlay>}
      */
-    display(map: Map): Overlay {
+    display(map: Map): Promise<Overlay> {
         return this.show(map);
     }
 
@@ -275,9 +275,9 @@ class Overlay extends Layer {
      * Alias to show()
      *
      * @param {Map} map The Map object
-     * @returns {Overlay}
+     * @returns {Promise<Overlay>}
      */
-    setMap(map: Map): Overlay {
+    setMap(map: Map): Promise<Overlay> {
         return this.show(map);
     }
 
@@ -322,27 +322,33 @@ class Overlay extends Layer {
      * Alias for setMap()
      *
      * @param {Map} map The Map object
-     * @returns {Overlay}
+     * @returns {Promise<Overlay>}
      */
-    show(map: Map): Overlay {
-        if (map instanceof Map) {
-            this.#setupGoogleOverlay();
-            if (this.#overlayView) {
-                this.#overlayView.setMap(map.toGoogle());
-                this.isVisible = true;
+    show(map: Map): Promise<Overlay> {
+        return new Promise((resolve) => {
+            if (map instanceof Map) {
+                this.#setupGoogleOverlay();
+                if (this.#overlayView) {
+                    this.#overlayView.setMap(map.toGoogle());
+                    this.isVisible = true;
+                    super.setMap(map);
+                    resolve(this);
+                } else {
+                    // The Google maps library isn't loaded yet. Wait for it to load.
+                    loader().once('map_loaded', () => {
+                        this.#setupGoogleOverlay();
+                        if (this.#overlayView) {
+                            this.#overlayView.setMap(map.toGoogle());
+                            this.isVisible = true;
+                        }
+                        super.setMap(map);
+                        resolve(this);
+                    });
+                }
             } else {
-                // The Google maps library isn't loaded yet. Wait for it to load.
-                loader().once('map_loaded', () => {
-                    this.#setupGoogleOverlay();
-                    if (this.#overlayView) {
-                        this.#overlayView.setMap(map.toGoogle());
-                        this.isVisible = true;
-                    }
-                });
+                resolve(this);
             }
-            super.setMap(map);
-        }
-        return this;
+        });
     }
 
     /**

@@ -69,6 +69,23 @@ class Layer extends Evented {
     }
 
     /**
+     * Initialize the layer
+     *
+     * This is intended to be overridden by subclasses to perform any initialization that is needed.
+     * This is not intended to be called outside of this library.
+     *
+     * This is called by other objects that depend on the element being initialized before doing their thing.
+     * For example, attaching a tooltip to a marker will wait for the marker to be initialized before attaching the tooltip.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
+    init(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    /**
      * Clears the map object that the layer is added to
      *
      * Note, this does not remove the layer from the map, it just clears the map object from the layer.

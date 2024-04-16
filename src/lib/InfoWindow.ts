@@ -369,9 +369,9 @@ export class InfoWindow extends Layer {
      * Alias to show()
      *
      * @param {Map | Marker} element The anchor object or map object.
-     * @returns {InfoWindow}
+     * @returns {Promise<InfoWindow>}
      */
-    open(element: Map | Marker): InfoWindow {
+    open(element: Map | Marker): Promise<InfoWindow> {
         return this.show(element);
     }
 
@@ -467,38 +467,45 @@ export class InfoWindow extends Layer {
      *
      * @param {Map | Marker} element The anchor object or map object.
      *      This should ideally be the Map or Marker object.
-     * @returns {InfoWindow}
+     * @returns {Promise<InfoWindow>}
      */
-    show(element: Map | Marker): InfoWindow {
-        this.#setupGoogleInfoWindow();
-        const collection = InfoWindowCollection.getInstance();
-        if (collection.has(this) && this.#isOpen) {
-            if (this.#toggleDisplay) {
-                this.hide();
-            }
-        } else {
-            // Close other open InfoWindows if necessary
-            if (this.#autoClose) {
-                collection.hideOthers(this);
-            }
+    show(element: Map | Marker): Promise<InfoWindow> {
+        return new Promise((resolve) => {
+            this.#setupGoogleInfoWindow();
+            const collection = InfoWindowCollection.getInstance();
+            if (collection.has(this) && this.#isOpen) {
+                if (this.#toggleDisplay) {
+                    this.hide();
+                }
+                resolve(this);
+            } else {
+                // Close other open InfoWindows if necessary
+                if (this.#autoClose) {
+                    collection.hideOthers(this);
+                }
 
-            if (element instanceof Map) {
-                this.#infoWindow.open({
-                    map: element.toGoogle(),
-                    shouldFocus: this.#focus,
-                });
-                this.setMap(element);
-            } else if (element instanceof Marker) {
-                this.#infoWindow.open({
-                    anchor: element.toGoogle(),
-                    shouldFocus: this.#focus,
-                });
-                this.setMap(element.getMap());
+                this.#isOpen = true;
+                collection.add(this);
+
+                if (element instanceof Map) {
+                    this.#infoWindow.open({
+                        map: element.toGoogle(),
+                        shouldFocus: this.#focus,
+                    });
+                    this.setMap(element);
+                    resolve(this);
+                } else if (element instanceof Marker) {
+                    element.toGoogle().then((marker) => {
+                        this.#infoWindow.open({
+                            anchor: marker,
+                            shouldFocus: this.#focus,
+                        });
+                        this.setMap(element.getMap());
+                        resolve(this);
+                    });
+                }
             }
-            this.#isOpen = true;
-            collection.add(this);
-        }
-        return this;
+        });
     }
 
     /**
