@@ -338,13 +338,10 @@ export class ImageRenderer implements Renderer {
         }
 
         // Create the marker
-        const clusterMarker = marker({
-            lat: position.lat(),
-            lng: position.lng(),
-            icon: markerImage,
-            map: this.#map,
-            label: this.#showNumber ? label : undefined,
-        });
-        return clusterMarker.toGoogle();
+        const clusterMarker = marker();
+        clusterMarker.setPositionSync({ lat: position.lat(), lng: position.lng() });
+        clusterMarker.setIconSync(markerImage);
+        clusterMarker.setLabelSync(this.#showNumber ? label : undefined);
+        return clusterMarker.toGoogleSync();
     }
 }

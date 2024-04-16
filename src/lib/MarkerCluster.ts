@@ -343,7 +343,7 @@ export class MarkerCluster extends Base {
         if (Array.isArray(markers)) {
             markers.forEach((marker) => {
                 if (marker instanceof Marker) {
-                    this.#clusterer.addMarker(marker.toGoogle(), true);
+                    this.#clusterer.addMarker(marker.toGoogleSync(), true);
                 }
             });
         }
@@ -361,7 +361,7 @@ export class MarkerCluster extends Base {
         // Check to see if the Google Maps library is loaded.
         // If it is, add the marker. If not, delay adding the marker.
         if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
-            this.#clusterer.addMarker(marker.toGoogle(), !draw);
+            this.#clusterer.addMarker(marker.toGoogleSync(), !draw);
         } else {
             this.#pendingMarkers.push(marker);
             loader().on('map_loaded', () => {
@@ -386,7 +386,7 @@ export class MarkerCluster extends Base {
             const markersToAdd: MarkerClustererMarker[] = [];
             mks.forEach((marker) => {
                 if (marker instanceof Marker) {
-                    markersToAdd.push(marker.toGoogle());
+                    markersToAdd.push(marker.toGoogleSync());
                 }
             });
             this.#clusterer.addMarkers(markersToAdd, !drw);
@@ -429,7 +429,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     removeMarker(marker: Marker, draw: boolean = false): MarkerCluster {
-        this.#clusterer.removeMarker(marker.toGoogle(), !draw);
+        this.#clusterer.removeMarker(marker.toGoogleSync(), !draw);
         return this;
     }
 
