@@ -444,12 +444,12 @@ export class Marker extends Layer {
     /**
      * Set the label value for the marker
      *
-     * @param {string | number | MarkerLabel} label The label for the marker
+     * @param {string | number | MarkerLabel} value The label for the marker
      * @returns {Marker}
      */
-    async setLabel(label: string | number | MarkerLabel): Promise<Marker> {
+    async setLabel(value: string | number | MarkerLabel): Promise<Marker> {
         await this.#setupGoogleMarker();
-        this.#setLabel(label);
+        this.#setLabel(value);
         return this;
     }
 
@@ -460,12 +460,12 @@ export class Marker extends Layer {
      * syncronously. If you don't have to set up the marker syncronously, then use setLabel() instead or pass the
      * label to the constructor or setOptions().
      *
-     * @param {string | number | MarkerLabel} label The label for the marker
+     * @param {string | number | MarkerLabel} value The label for the marker
      * @returns {Marker}
      */
-    setLabelSync(label: string | number | MarkerLabel): Marker {
+    setLabelSync(value: string | number | MarkerLabel): Marker {
         this.#setupGoogleMarkerSync();
-        this.#setLabel(label);
+        this.#setLabel(value);
         return this;
     }
 
@@ -515,6 +515,10 @@ export class Marker extends Layer {
 
     /**
      * Set the map object
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setMap() instead or pass the
+     * map to the constructor or setOptions().
      *
      * @param {Map|null} map The map object. Set to null if you want to remove the marker from the map.
      * @returns {Marker}
@@ -714,11 +718,10 @@ export class Marker extends Layer {
      * Alternate of setMap()
      *
      * @param {Map} map The map object
-     * @returns {Marker}
+     * @returns {Promise<Marker>}
      */
-    show(map: Map): Marker {
-        this.setMap(map);
-        return this;
+    show(map: Map): Promise<Marker> {
+        return this.setMap(map);
     }
 
     /**
@@ -736,7 +739,8 @@ export class Marker extends Layer {
         });
     }
 
-    /* Get the Google maps marker object synchronously. Throw an error if the Google Maps library is not available.
+    /**
+     * Get the Google maps marker object synchronously. Throw an error if the Google Maps library is not available.
      *
      * This is different from toGoogle() because it will throw an error if the Google Maps library is not available,
      * whereas toGoogle() will wait for the Google Maps library to load.
