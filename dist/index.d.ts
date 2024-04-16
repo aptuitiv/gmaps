@@ -235,120 +235,6 @@ declare class LatLng extends Base {
 }
 type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng;
 
-/**
- * The LatLngBounds class to set up and manage latitude/longitude bounds
- */
-declare class LatLngBounds extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
-     *      See comments on the extended method for the types of values that latLngValue can be.
-     */
-    constructor(latLngValue?: LatLngValue | LatLngValue[]);
-    /**
-     * Returns whether the the given LatLng value is within this bounds
-     *
-     * @param {LatLngValue} latLngValue The LatLng value to test
-     * @returns {boolean}
-     */
-    contains(latLngValue: LatLngValue): boolean;
-    /**
-     * Returns whether this bounds approximately equals the given bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {boolean}
-     */
-    equals(other: LatLngBounds): boolean;
-    /**
-     * Extends this bounds to contain the given point
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
-     *
-     * The latLngValue parameter can be:
-     * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
-     * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
-     * - an array of LatLng objects: [LatLng, LatLng, ...]
-     * - a [lat, lng] pair
-     * - a {lat, lng} object (LatLngLiteral)
-     *
-     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
-     * @returns {LatLngBounds}
-     */
-    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds;
-    /**
-     * Get the center of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getCenter(): LatLng;
-    /**
-     * Get the north-east corner of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getNorthEast(): LatLng;
-    /**
-     * Get the south-west corner of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getSouthWest(): LatLng;
-    /**
-     * Returns whether this bounds shares any points with the other bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {boolean}
-     */
-    intersects(other: LatLngBounds): boolean;
-    /**
-     * Returns whether this bounds is empty
-     *
-     * @returns {boolean}
-     */
-    isEmpty(): boolean;
-    /**
-     * Get the Google maps LatLngBounds object
-     *
-     * @returns {google.maps.LatLngBounds}
-     */
-    toGoogle(): google.maps.LatLngBounds;
-    /**
-     * Converts the LatLngBounds object to a JSON object
-     *
-     * @returns {google.maps.LatLngBoundsLiteral}
-     */
-    toJson(): google.maps.LatLngBoundsLiteral;
-    /**
-     * Converts the LatLngBounds object to a lat/lng span
-     *
-     * @returns {LatLng}
-     */
-    toSpan(): LatLng;
-    /**
-     * Converts the LatLngBounds object to a string
-     *
-     * @returns {string}
-     */
-    toString(): string;
-    /**
-     * Returns the LatLngBounds object as a string that can be used in a URL
-     *
-     * @param {number} [precision] The number of decimal places to round the lat/lng values to
-     * @returns {string}
-     */
-    toUrlValue(precision?: number): string;
-    /**
-     * Extends this bounds to contain the union of this and the given bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {LatLngBounds}
-     */
-    union(other: LatLngBounds): LatLngBounds;
-}
-type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
-
 type PointObject = {
     x: number | string;
     y: number | string;
@@ -646,6 +532,120 @@ declare class Evented extends Base {
     trigger(event: string, data?: any): Evented;
 }
 
+/**
+ * The LatLngBounds class to set up and manage latitude/longitude bounds
+ */
+declare class LatLngBounds extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
+     *      See comments on the extended method for the types of values that latLngValue can be.
+     */
+    constructor(latLngValue?: LatLngValue | LatLngValue[]);
+    /**
+     * Returns whether the the given LatLng value is within this bounds
+     *
+     * @param {LatLngValue} latLngValue The LatLng value to test
+     * @returns {boolean}
+     */
+    contains(latLngValue: LatLngValue): boolean;
+    /**
+     * Returns whether this bounds approximately equals the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {boolean}
+     */
+    equals(other: LatLngBounds): boolean;
+    /**
+     * Extends this bounds to contain the given point
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+     *
+     * The latLngValue parameter can be:
+     * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
+     * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
+     * - an array of LatLng objects: [LatLng, LatLng, ...]
+     * - a [lat, lng] pair
+     * - a {lat, lng} object (LatLngLiteral)
+     *
+     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
+     * @returns {LatLngBounds}
+     */
+    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds;
+    /**
+     * Get the center of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getCenter(): LatLng;
+    /**
+     * Get the north-east corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getNorthEast(): LatLng;
+    /**
+     * Get the south-west corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getSouthWest(): LatLng;
+    /**
+     * Returns whether this bounds shares any points with the other bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {boolean}
+     */
+    intersects(other: LatLngBounds): boolean;
+    /**
+     * Returns whether this bounds is empty
+     *
+     * @returns {boolean}
+     */
+    isEmpty(): boolean;
+    /**
+     * Get the Google maps LatLngBounds object
+     *
+     * @returns {google.maps.LatLngBounds}
+     */
+    toGoogle(): google.maps.LatLngBounds;
+    /**
+     * Converts the LatLngBounds object to a JSON object
+     *
+     * @returns {google.maps.LatLngBoundsLiteral}
+     */
+    toJson(): google.maps.LatLngBoundsLiteral;
+    /**
+     * Converts the LatLngBounds object to a lat/lng span
+     *
+     * @returns {LatLng}
+     */
+    toSpan(): LatLng;
+    /**
+     * Converts the LatLngBounds object to a string
+     *
+     * @returns {string}
+     */
+    toString(): string;
+    /**
+     * Returns the LatLngBounds object as a string that can be used in a URL
+     *
+     * @param {number} [precision] The number of decimal places to round the lat/lng values to
+     * @returns {string}
+     */
+    toUrlValue(precision?: number): string;
+    /**
+     * Extends this bounds to contain the union of this and the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to join with
+     * @returns {LatLngBounds}
+     */
+    union(other: LatLngBounds): LatLngBounds;
+}
+type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
+
 type GMMapOptions = {
     center?: LatLng;
     zoom?: number;
@@ -735,6 +735,19 @@ declare class Map extends Evented {
      */
     fitBounds(bounds: LatLngBoundsValue): Map;
     /**
+     * Initialize the map if necessary
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * This is called by other objects that depend on the map being initialized before doing their thing.
+     * For example, attaching a tooltip to a map will wait for the map to be initialized before attaching the tooltip.
+     *
+     * @internal
+     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
+     */
+    init(callback?: () => void): Promise<void>;
+    /**
      * Get the center point for the map
      *
      * @returns {LatLng}
@@ -771,6 +784,9 @@ declare class Map extends Evented {
      *   map.once('visible', () => {
      *     // Do something after the map loads
      *   });
+     *
+     * This is different from show() in that it loads the Google Maps API if it hasn't been loaded yet,
+     * and then it will show the map. The show() function depends on G.loader to load the map first.
      *
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
@@ -839,6 +855,9 @@ declare class Map extends Evented {
      *
      * If the Google Maps API hasn't loaded yet then this will wait for the "load" event to be dispatched.
      *
+     * Unlike load(), this does not load the Google Maps API, it only shows the map.
+     * You must load the map with G.loader before calling this function.
+     *
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
@@ -857,245 +876,6 @@ declare class Map extends Evented {
     toGoogle(): google.maps.Map;
 }
 
-type SizeObject = {
-    height: number | string;
-    width: number | string;
-};
-type WidthSize = number | number[] | string | string[] | SizeObject;
-/**
- * The Size class to set up and manage width and height values for an element
- */
-declare class Size extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {WidthSize|Size} [width] The X value
-     * @param {number|string} [height] The Y value
-     */
-    constructor(width?: WidthSize | Size, height?: number | string);
-    /**
-     * Get the height value
-     *
-     * @returns {number}
-     */
-    get height(): number;
-    /**
-     * Set the height value
-     *
-     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
-     */
-    set height(height: number | string);
-    /**
-     * Get the width value
-     *
-     * @returns {number}
-     */
-    get width(): number;
-    /**
-     * Set the width value
-     *
-     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
-     */
-    set width(width: number | string);
-    /**
-     * Returns a new copy of the size
-     *
-     * @returns {Size}
-     */
-    clone(): Size;
-    /**
-     * Get the height value
-     *
-     * @returns {number}
-     */
-    getHeight(): number;
-    /**
-     * Get the width value
-     *
-     * @returns {number}
-     */
-    getWidth(): number;
-    /**
-     * Returns whether the width/height pair are valid values
-     *
-     * @returns {boolean}
-     */
-    isValid(): boolean;
-    /**
-     * Set the width/height values
-     *
-     * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
-     * @param {number|string} height The height value
-     * @returns {Size}
-     */
-    set(width: WidthSize | Size, height?: number | string): Size;
-    /**
-     * Set the height value
-     *
-     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
-     * @returns {Size}
-     */
-    setHeight(height: number | string): Size;
-    /**
-     * Set the width value
-     *
-     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
-     * @returns {Size}
-     */
-    setWidth(width: number | string): Size;
-    /**
-     * Returns the Google maps size object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
-     *
-     * @returns {google.maps.Size|null}
-     */
-    toGoogle(): google.maps.Size | null;
-}
-type SizeValue = Size | number | number[] | string | string[] | SizeObject;
-
-type IconOptions = {
-    anchor?: PointValue;
-    labelOrigin?: PointValue;
-    origin?: PointValue;
-    scaledSize?: SizeValue;
-    size?: SizeValue;
-    url?: string;
-};
-/**
- * Icon class to set up an icon options for a marker
- */
-declare class Icon extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {string | IconOptions} [url] The URL for the icon or the icon options
-     * @param {IconOptions} [options] The icon options
-     */
-    constructor(url?: string | IconOptions, options?: IconOptions);
-    /**
-     * Set the icon options
-     *
-     * @param {IconOptions} options The icon options
-     * @returns {Icon}
-     */
-    setOptions(options: IconOptions): Icon;
-    /**
-     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
-     * Use this if for some reason you didn't pass the anchor in the icon options.
-     *
-     * By default, the anchor is located along the center point of the bottom of the image.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setAnchor([10, 32]);
-     *
-     * Valid values are:
-     * icon.setAnchor([10, 32]);
-     * icon.setAnchor({x: 10, y: 32});
-     * icon.setAnchor(pointClassInstance);
-     *
-     * @param {PointValue} anchor The anchor point value
-     * @returns {Icon}
-     */
-    setAnchor(anchor: PointValue): Icon;
-    /**
-     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     * Use this if for some reason you didn't pass the label origin in the icon options.
-     *
-     * By default, the origin is located in the center point of the image.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setLabelOrigin([10, 32]);
-     *
-     * Valid values are:
-     * icon.setLabelOrigin([10, 32]);
-     * icon.setLabelOrigin({x: 10, y: 32});
-     * icon.setLabelOrigin(pointClassInstance);
-     *
-     * @param {PointValue} origin The label origin point value
-     * @returns {Icon}
-     */
-    setLabelOrigin(origin: PointValue): Icon;
-    /**
-     * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
-     * Use this if for some reason you didn't pass the origin in the icon options.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setOrigin([10, 32]);
-     *
-     * Valid values are:
-     * icon.setOrigin([10, 32]);
-     * icon.setOrigin({x: 10, y: 32});
-     * icon.setOrigin(pointClassInstance);
-     *
-     * @param {PointValue} origin The origin point value
-     * @returns {Icon}
-     */
-    setOrigin(origin: PointValue): Icon;
-    /**
-     * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
-     *
-     * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setSize([40, 64]).setScaledSize([20, 32]));
-     *
-     * Valid values are:
-     * icon.setScaledSize([10, 32]);
-     * icon.setScaledSize({x: 10, y: 32});
-     * icon.setScaledSize(sizeClassInstance);
-     *
-     * @param {SizeValue} sizeValue The size value
-     * @returns {Icon}
-     */
-    setScaledSize(sizeValue: SizeValue): Icon;
-    /**
-     * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
-     *
-     * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setSize([20, 32]);
-     *
-     * Valid values are:
-     * icon.setSize([10, 32]);
-     * icon.setSize({x: 10, y: 32});
-     * icon.setSize(sizeClassInstance);
-     *
-     * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
-     *
-     * @param {SizeValue} sizeValue The size value
-     * @returns {Icon}
-     */
-    setSize(sizeValue: SizeValue): Icon;
-    /**
-     * Set the icon URL
-     *
-     * @param {string} url The icon URL
-     * @returns {Icon}
-     */
-    setUrl(url: string): Icon;
-    /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Icon}
-     */
-    toGoogle(): google.maps.Icon;
-}
-type IconValue = Icon | string | IconOptions;
-
 /**
  * Base class to help with drawing stuff on the map.
  *
@@ -1104,11 +884,44 @@ type IconValue = Icon | string | IconOptions;
 declare class Layer extends Evented {
     #private;
     /**
+     * This is an index signature so that Typescript does't complain about adding properties
+     * to the class via mixins.
+     *
+     * For example, this lets us use attachTooltip() in the Marker class even though attachTooltip()
+     * is applied to the layer via the Tooltip mixin.
+     */
+    [x: string]: any;
+    /**
+     * Get if the layer is visible or not
+     *
+     * @returns {boolean}
+     */
+    get isVisible(): boolean;
+    /**
+     * Set if the layer is visible or not
+     *
+     * @param {boolean} value Whether the layer is visible or not
+     */
+    set isVisible(value: boolean);
+    /**
      * Return the Map object or null if the Map object is not set
      *
      * @returns {Map|null}
      */
     getMap(): Map | null;
+    /**
+     * Initialize the layer
+     *
+     * This is intended to be overridden by subclasses to perform any initialization that is needed.
+     * This is not intended to be called outside of this library.
+     *
+     * This is called by other objects that depend on the element being initialized before doing their thing.
+     * For example, attaching a tooltip to a marker will wait for the marker to be initialized before attaching the tooltip.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
     /**
      * Clears the map object that the layer is added to
      *
@@ -1124,6 +937,322 @@ declare class Layer extends Evented {
      */
     setMap(map: Map | null): void;
 }
+
+/**
+ * Base class to help with drawing overlays on the map.
+ *
+ * The methods are purposely left blank so you can override them in your own class.
+ * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
+ */
+declare class Overlay extends Layer {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string} objectType The object type for the class
+     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
+     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
+     */
+    constructor(objectType: string, testObject: string, testLibrary?: string);
+    /**
+     * Get the class name for the overlay element
+     *
+     * @returns {string}
+     */
+    get className(): string;
+    /**
+     * Set the class name(s) for the overlay element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the overlay.
+     *    This can be a space separated list of class names.
+     */
+    set className(className: string);
+    /**
+     * Returns the offset value
+     *
+     * @returns {Point}
+     */
+    get offset(): Point;
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param {PointValue} value The offset value
+     */
+    set offset(value: PointValue);
+    /**
+     * Returns the position of the overlay
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng;
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue} value The position of the overlay
+     */
+    set position(value: LatLngValue);
+    /**
+     * Returns the styles for the overlay element
+     *
+     * @returns {object}
+     */
+    get styles(): object;
+    /**
+     * Set the styles for the overlay element
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     */
+    set styles(styles: object);
+    /**
+     * Display the overlay on the map
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    display(map: Map): Promise<Overlay>;
+    /**
+     * Get the offset value
+     *
+     * @returns {Point}
+     */
+    getOffset(): Point;
+    /**
+     * Get the overlay HTML element
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
+    /**
+     * Get the position of the overlay
+     *
+     * @returns {LatLng}
+     */
+    getPosition(): LatLng;
+    /**
+     * Returns whether the overlay has a position
+     *
+     * @returns {boolean}
+     */
+    hasPosition(): boolean;
+    /**
+     * Hide the overlay
+     *
+     * @returns {Overlay}
+     */
+    hide(): Overlay;
+    /**
+     * Removes a class name from the overlay element
+     *
+     * @param {string} className The class name to remove from the overlay element
+     * @returns {Overlay}
+     */
+    removeClassName(className: string): Overlay;
+    /**
+     * Set the class name(s) for the overlay element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the overlay.
+     *    This can be a space separated list of class names.
+     * @returns {Overlay}
+     */
+    setClassName(className: string): Overlay;
+    /**
+     * Set the map object to display the overlay in
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    setMap(map: Map): Promise<Overlay>;
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param {PointValue} offset The offset value
+     * @returns {Overlay}
+     */
+    setOffset(offset: PointValue): Overlay;
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @returns {Overlay}
+     */
+    setPosition(position: LatLngValue): Overlay;
+    /**
+     * Set the styles for the overlay element
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     * @returns {Overlay}
+     */
+    setStyles(styles: object): Overlay;
+    /**
+     * Add the overlay to the map.
+     *
+     * Alias for setMap()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    show(map: Map): Promise<Overlay>;
+    /**
+     * Set a single style on the overlay element
+     *
+     * @param {string} key The style key
+     * @param {string} value The style value
+     * @returns {Overlay}
+     */
+    style(key: string, value: string): Overlay;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map} map The map object
+     * @returns {Overlay}
+     */
+    toggle(map: Map): Overlay;
+    /**
+     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+    /**
+     * Remove the overlay from the map.
+     * This method is called once following a call to setMap(null).
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     */
+    remove(): void;
+}
+
+type TooltipOptions = {
+    center?: boolean;
+    className?: string;
+    content?: string | HTMLElement | Text;
+    map?: Map;
+    offset?: PointValue;
+    position?: LatLngValue;
+    styles?: object;
+    theme?: string;
+};
+/**
+ * Tooltip class
+ */
+declare class Tooltip extends Overlay {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {TooltipOptions | string | HTMLElement | Text} [options] Tooltip options
+     */
+    constructor(options?: TooltipOptions | string | HTMLElement | Text);
+    /**
+     * Returns whether to center the tooltip horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean;
+    /**
+     * Set whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker.
+     *
+     * @param {boolean} center Whether to center the tooltip on the element
+     */
+    set center(center: boolean);
+    /**
+     * Returns the content for the tooltip
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text;
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement|Text} content The content for the tooltip
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the theme to use for the tooltip
+     *
+     * @returns {string}
+     */
+    get theme(): string;
+    /**
+     * Set the theme to use for the tooltip
+     *
+     * @param {string} theme The theme to use for the tooltip
+     */
+    set theme(theme: string);
+    /**
+     * Attach the tooltip to a element
+     *
+     * The tooltip will be shown when hovering over the element.
+     *
+     * @param {Map | Layer} element The element to attach the tooltip to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'
+     *   - 'click' - Toggle the display of the tooltip when clicking on the element
+     *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
+     * @returns {Tooltip}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Tooltip>;
+    /**
+     * Sets the options for the tooltip
+     *
+     * @param {TooltipOptions} options Tooltip options
+     */
+    setOptions(options: TooltipOptions): void;
+    /**
+     * Returns whether the tooltip already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement} content The content for the tooltip
+     * @returns {Tooltip}
+     */
+    setContent(content: string | HTMLElement): Tooltip;
+    /**
+     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+}
+type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
 
 type SvgSymbolOptions = {
     anchor?: PointValue;
@@ -1369,6 +1498,245 @@ declare class SvgSymbol extends Base {
 }
 type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
 
+type SizeObject = {
+    height: number | string;
+    width: number | string;
+};
+type WidthSize = number | number[] | string | string[] | SizeObject;
+/**
+ * The Size class to set up and manage width and height values for an element
+ */
+declare class Size extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {WidthSize|Size} [width] The X value
+     * @param {number|string} [height] The Y value
+     */
+    constructor(width?: WidthSize | Size, height?: number | string);
+    /**
+     * Get the height value
+     *
+     * @returns {number}
+     */
+    get height(): number;
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     */
+    set height(height: number | string);
+    /**
+     * Get the width value
+     *
+     * @returns {number}
+     */
+    get width(): number;
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     */
+    set width(width: number | string);
+    /**
+     * Returns a new copy of the size
+     *
+     * @returns {Size}
+     */
+    clone(): Size;
+    /**
+     * Get the height value
+     *
+     * @returns {number}
+     */
+    getHeight(): number;
+    /**
+     * Get the width value
+     *
+     * @returns {number}
+     */
+    getWidth(): number;
+    /**
+     * Returns whether the width/height pair are valid values
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean;
+    /**
+     * Set the width/height values
+     *
+     * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
+     * @param {number|string} height The height value
+     * @returns {Size}
+     */
+    set(width: WidthSize | Size, height?: number | string): Size;
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setHeight(height: number | string): Size;
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setWidth(width: number | string): Size;
+    /**
+     * Returns the Google maps size object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+     *
+     * @returns {google.maps.Size|null}
+     */
+    toGoogle(): google.maps.Size | null;
+}
+type SizeValue = Size | number | number[] | string | string[] | SizeObject;
+
+type IconOptions = {
+    anchor?: PointValue;
+    labelOrigin?: PointValue;
+    origin?: PointValue;
+    scaledSize?: SizeValue;
+    size?: SizeValue;
+    url?: string;
+};
+/**
+ * Icon class to set up an icon options for a marker
+ */
+declare class Icon extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string | IconOptions} [url] The URL for the icon or the icon options
+     * @param {IconOptions} [options] The icon options
+     */
+    constructor(url?: string | IconOptions, options?: IconOptions);
+    /**
+     * Set the icon options
+     *
+     * @param {IconOptions} options The icon options
+     * @returns {Icon}
+     */
+    setOptions(options: IconOptions): Icon;
+    /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     * Use this if for some reason you didn't pass the anchor in the icon options.
+     *
+     * By default, the anchor is located along the center point of the bottom of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setAnchor([10, 32]);
+     *
+     * Valid values are:
+     * icon.setAnchor([10, 32]);
+     * icon.setAnchor({x: 10, y: 32});
+     * icon.setAnchor(pointClassInstance);
+     *
+     * @param {PointValue} anchor The anchor point value
+     * @returns {Icon}
+     */
+    setAnchor(anchor: PointValue): Icon;
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * Use this if for some reason you didn't pass the label origin in the icon options.
+     *
+     * By default, the origin is located in the center point of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setLabelOrigin([10, 32]);
+     *
+     * Valid values are:
+     * icon.setLabelOrigin([10, 32]);
+     * icon.setLabelOrigin({x: 10, y: 32});
+     * icon.setLabelOrigin(pointClassInstance);
+     *
+     * @param {PointValue} origin The label origin point value
+     * @returns {Icon}
+     */
+    setLabelOrigin(origin: PointValue): Icon;
+    /**
+     * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
+     * Use this if for some reason you didn't pass the origin in the icon options.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setOrigin([10, 32]);
+     *
+     * Valid values are:
+     * icon.setOrigin([10, 32]);
+     * icon.setOrigin({x: 10, y: 32});
+     * icon.setOrigin(pointClassInstance);
+     *
+     * @param {PointValue} origin The origin point value
+     * @returns {Icon}
+     */
+    setOrigin(origin: PointValue): Icon;
+    /**
+     * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
+     *
+     * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setSize([40, 64]).setScaledSize([20, 32]));
+     *
+     * Valid values are:
+     * icon.setScaledSize([10, 32]);
+     * icon.setScaledSize({x: 10, y: 32});
+     * icon.setScaledSize(sizeClassInstance);
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    setScaledSize(sizeValue: SizeValue): Icon;
+    /**
+     * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
+     *
+     * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setSize([20, 32]);
+     *
+     * Valid values are:
+     * icon.setSize([10, 32]);
+     * icon.setSize({x: 10, y: 32});
+     * icon.setSize(sizeClassInstance);
+     *
+     * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    setSize(sizeValue: SizeValue): Icon;
+    /**
+     * Set the icon URL
+     *
+     * @param {string} url The icon URL
+     * @returns {Icon}
+     */
+    setUrl(url: string): Icon;
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Icon}
+     */
+    toGoogle(): google.maps.Icon;
+}
+type IconValue = Icon | string | IconOptions;
+
 type MarkerLabel = google.maps.MarkerLabel;
 type GMMarkerOptions = {
     anchorPoint?: Point;
@@ -1510,6 +1878,18 @@ declare class Marker extends Layer {
      */
     hide(): Marker;
     /**
+     * Initialize the marker
+     *
+     * This is used when another element (like a tooltip) needs to be attached to the marker,
+     * but needs to make sure that the marker exists first.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
      * Add an event listener to the object
      *
      * @param {string} type The event type
@@ -1519,14 +1899,93 @@ declare class Marker extends Layer {
      */
     on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void;
     /**
+     * Set the anchor point for the marker
+     *
+     * @param {PointValue} value The anchor point for the marker
+     * @returns {Promise<Marker>}
+     */
+    setAnchorPoint(value: PointValue): Promise<Marker>;
+    /**
+     * Set the anchor point for the marker syncronously.
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setAnchorPoint() instead or pass the
+     * anchor point to the constructor or setOptions().
+     *
+     * @param {PointValue} value The anchor point for the marker
+     * @returns {Marker}
+     */
+    setAnchorPointSync(value: PointValue): Marker;
+    /**
+     * Set the cursor type to show on hover
+     *
+     * @param {string} value The cursor type to show on hover
+     * @returns {Promise<Marker>}
+     */
+    setCursor(value: string): Promise<Marker>;
+    /**
+     *  Set the cursor type to show on hover
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setCursor() instead or pass the
+     * cursor to the constructor or setOptions().
+     *
+     * @param {string} value The cursor type to show on hover
+     * @returns {Marker}
+     */
+    setCursorSync(value: string): Marker;
+    /**
+     * Set the icon value for the marker
+     *
+     * @param {Icon | SvgSymbol | string} value The icon for the marker
+     * @returns {Marker}
+     */
+    setIcon(value: Icon | SvgSymbol | string): Promise<Marker>;
+    /**
+     * Set the icon value for the marker syncronously.
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setIcon() instead or pass the
+     * icon to the constructor or setOptions().
+     *
+     * @param {Icon | SvgSymbol | string} value The icon for the marker
+     * @returns {Marker}
+     */
+    setIconSync(value: Icon | SvgSymbol | string): Marker;
+    /**
+     * Set the label value for the marker
+     *
+     * @param {string | number | MarkerLabel} label The label for the marker
+     * @returns {Marker}
+     */
+    setLabel(label: string | number | MarkerLabel): Promise<Marker>;
+    /**
+     * Set the label value for the marker syncronously.
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setLabel() instead or pass the
+     * label to the constructor or setOptions().
+     *
+     * @param {string | number | MarkerLabel} label The label for the marker
+     * @returns {Marker}
+     */
+    setLabelSync(label: string | number | MarkerLabel): Marker;
+    /**
      * Adds the marker to the map object
      *
      * Alternate of show()
      *
-     * @param {Map} map The map object
+     * @param {Map} map The map object. Set to null if you want to remove the marker from the map.
+     * @returns {Promise<Marker>}
+     */
+    setMap(map: Map | null): Promise<Marker>;
+    /**
+     * Set the map object
+     *
+     * @param {Map|null} map The map object. Set to null if you want to remove the marker from the map.
      * @returns {Marker}
      */
-    setMap(map: Map): Marker;
+    setMapSync(map: Map | null): Marker;
     /**
      * Set the marker options
      *
@@ -1535,20 +1994,41 @@ declare class Marker extends Layer {
      */
     setOptions(options: MarkerOptions): Marker;
     /**
-     * Set up a custom tooltip for the marker instead of relying on the default browser tooltip
-     *
-     * @param {TooltipValue} tooltipValue The tooltip value
-     * @param {string} title The tooltip title
-     * @returns {Marker}
-     */
-    setTooltip(tooltipValue: TooltipValue, title?: string): Marker;
-    /**
      * Set the latitude and longitude value for the marker
+     *
+     * @param {LatLngValue} value The latitude/longitude position for the marker
+     * @returns {Promise<Marker>}
+     */
+    setPosition(value: LatLngValue): Promise<Marker>;
+    /**
+     * Set the latitude and longitude value for the marker syncronously.
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setPosition() instead or pass the
+     * position to the constructor or setOptions().
      *
      * @param {LatLngValue} value The latitude/longitude position for the marker
      * @returns {Marker}
      */
-    setPosition(value: LatLngValue): Marker;
+    setPositionSync(value: LatLngValue): Marker;
+    /**
+     *Set the title for the marker
+     *
+     * @param {string} value The title to show on hover
+     * @returns {Promise<Marker>}
+     */
+    setTitle(value: string): Promise<Marker>;
+    /**
+     * Set the title for the marker
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setTitle() instead or pass the
+     * title to the constructor or setOptions().
+     *
+     * @param {string} value The title to show on hover
+     * @returns {Marker}
+     */
+    setTitleSync(value: string): Marker;
     /**
      * Adds the marker to the map object
      *
@@ -1563,316 +2043,12 @@ declare class Marker extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/marker#Marker
      *
-     * @returns {google.maps.Marker}
+     * @returns {Promise<google.maps.Marker>}
      */
-    toGoogle(): google.maps.Marker;
+    toGoogle(): Promise<google.maps.Marker>;
+    toGoogleSync(): google.maps.Marker;
 }
 type MarkerValue = Marker | MarkerOptions | LatLngValue;
-
-/**
- * Base class to help with drawing overlays on the map.
- *
- * The methods are purposely left blank so you can override them in your own class.
- * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
- */
-declare class Overlay extends Layer {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {string} objectType The object type for the class
-     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
-     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
-     */
-    constructor(objectType: string, testObject: string, testLibrary?: string);
-    /**
-     * Get the class name for the overlay element
-     *
-     * @returns {string}
-     */
-    get className(): string;
-    /**
-     * Set the class name(s) for the overlay element
-     *
-     * If you need multiple class names then separate them with a space.
-     *
-     * @param {string} className The class name(s) to add to the overlay.
-     *    This can be a space separated list of class names.
-     */
-    set className(className: string);
-    /**
-     * Returns the offset value
-     *
-     * @returns {Point}
-     */
-    get offset(): Point;
-    /**
-     * Set the x,y offset for the overlay
-     *
-     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
-     *
-     * @param {PointValue} value The offset value
-     */
-    set offset(value: PointValue);
-    /**
-     * Returns the position of the overlay
-     *
-     * @returns {LatLng}
-     */
-    get position(): LatLng;
-    /**
-     * Set the position of the overlay
-     *
-     * @param {LatLngValue} value The position of the overlay
-     */
-    set position(value: LatLngValue);
-    /**
-     * Returns the styles for the overlay element
-     *
-     * @returns {object}
-     */
-    get styles(): object;
-    /**
-     * Set the styles for the overlay element
-     *
-     * @param {object} styles The styles to apply to the overlay element
-     */
-    set styles(styles: object);
-    /**
-     * Display the overlay on the map
-     *
-     * Alias to show()
-     *
-     * @param {Map} map The Map object
-     * @returns {Overlay}
-     */
-    display(map: Map): Overlay;
-    /**
-     * Get the offset value
-     *
-     * @returns {Point}
-     */
-    getOffset(): Point;
-    /**
-     * Get the overlay HTML element
-     *
-     * @returns {HTMLElement}
-     */
-    getOverlayElement(): HTMLElement;
-    /**
-     * Get the position of the overlay
-     *
-     * @returns {LatLng}
-     */
-    getPosition(): LatLng;
-    /**
-     * Returns whether the overlay has a position
-     *
-     * @returns {boolean}
-     */
-    hasPosition(): boolean;
-    /**
-     * Hide the overlay
-     *
-     * @returns {Overlay}
-     */
-    hide(): Overlay;
-    /**
-     * Removes a class name from the overlay element
-     *
-     * @param {string} className The class name to remove from the overlay element
-     * @returns {Overlay}
-     */
-    removeClassName(className: string): Overlay;
-    /**
-     * Set the class name(s) for the overlay element
-     *
-     * If you need multiple class names then separate them with a space.
-     *
-     * @param {string} className The class name(s) to add to the overlay.
-     *    This can be a space separated list of class names.
-     * @returns {Overlay}
-     */
-    setClassName(className: string): Overlay;
-    /**
-     * Set the map object to display the overlay in
-     *
-     * Alias to show()
-     *
-     * @param {Map} map The Map object
-     * @returns {Overlay}
-     */
-    setMap(map: Map): Overlay;
-    /**
-     * Set the x,y offset for the overlay
-     *
-     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
-     *
-     * @param {PointValue} offset The offset value
-     * @returns {Overlay}
-     */
-    setOffset(offset: PointValue): Overlay;
-    /**
-     * Set the position of the overlay
-     *
-     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
-     * @returns {Overlay}
-     */
-    setPosition(position: LatLngValue): Overlay;
-    /**
-     * Set the styles for the overlay element
-     *
-     * @param {object} styles The styles to apply to the overlay element
-     * @returns {Overlay}
-     */
-    setStyles(styles: object): Overlay;
-    /**
-     * Add the overlay to the map.
-     *
-     * Alias for setMap()
-     *
-     * @param {Map} map The Map object
-     * @returns {Overlay}
-     */
-    show(map: Map): Overlay;
-    /**
-     * Set a single style on the overlay element
-     *
-     * @param {string} key The style key
-     * @param {string} value The style value
-     * @returns {Overlay}
-     */
-    style(key: string, value: string): Overlay;
-    /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-    /**
-     * Remove the overlay from the map.
-     * This method is called once following a call to setMap(null).
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     */
-    remove(): void;
-}
-
-type TooltipOptions = {
-    center?: boolean;
-    className?: string;
-    content?: string | HTMLElement | Text;
-    map?: Map;
-    offset?: PointValue;
-    position?: LatLngValue;
-    styles?: object;
-    theme?: string;
-};
-/**
- * Tooltip class
- */
-declare class Tooltip extends Overlay {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {TooltipOptions} [options] Tooltip options
-     */
-    constructor(options?: TooltipOptions);
-    /**
-     * Returns whether to center the tooltip horizontally on the element.
-     *
-     * @returns {boolean}
-     */
-    get center(): boolean;
-    /**
-     * Set whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker.
-     *
-     * @param {boolean} center Whether to center the tooltip on the element
-     */
-    set center(center: boolean);
-    /**
-     * Returns the content for the tooltip
-     *
-     * @returns {string|HTMLElement|Text}
-     */
-    get content(): string | HTMLElement | Text;
-    /**
-     * Set the content for the tooltip
-     *
-     * @param {string|HTMLElement|Text} content The content for the tooltip
-     */
-    set content(content: string | HTMLElement | Text);
-    /**
-     * Returns the theme to use for the tooltip
-     *
-     * @returns {string}
-     */
-    get theme(): string;
-    /**
-     * Set the theme to use for the tooltip
-     *
-     * @param {string} theme The theme to use for the tooltip
-     */
-    set theme(theme: string);
-    /**
-     * Attach the tooltip to a map or marker
-     *
-     * The tooltip will be shown when hovering over the map or marker.
-     *
-     * @param {Map | Marker} element The element to attach the tooltip to
-     * @returns {Tooltip}
-     */
-    attachTo(element: Map | Marker): Tooltip;
-    /**
-     * Sets the options for the tooltip
-     *
-     * @param {TooltipOptions} options Tooltip options
-     */
-    setOptions(options: TooltipOptions): void;
-    /**
-     * Returns whether the tooltip already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean;
-    /**
-     * Set the content for the tooltip
-     *
-     * @param {string|HTMLElement} content The content for the tooltip
-     * @returns {Tooltip}
-     */
-    setContent(content: string | HTMLElement): Tooltip;
-    /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-}
-type TooltipValue = Tooltip | TooltipOptions;
 
 type PopupOptions = {
     autoHide?: boolean;
@@ -1935,9 +2111,9 @@ declare class Popup extends Overlay {
      * Alias to show()
      *
      * @param {Map | Marker} element The anchor object or map object.
-     * @returns {Popup}
+     * @returns {Promise<Popup>}
      */
-    open(element: Map | Marker): Popup;
+    open(element: Map | Marker): Promise<Popup>;
     /**
      * Sets the options for the popup
      *
@@ -1964,9 +2140,9 @@ declare class Popup extends Overlay {
      * @param {Map | Marker} element The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
-     * @returns {Popup}
+     * @returns {Promise<Popup>}
      */
-    show(element: Map | Marker): Popup;
+    show(element: Map | Marker): Promise<Popup>;
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -2277,9 +2453,9 @@ declare class InfoWindow extends Layer {
      * Alias to show()
      *
      * @param {Map | Marker} element The anchor object or map object.
-     * @returns {InfoWindow}
+     * @returns {Promise<InfoWindow>}
      */
-    open(element: Map | Marker): InfoWindow;
+    open(element: Map | Marker): Promise<InfoWindow>;
     /**
      * Set the InfoWindow options
      *
@@ -2321,9 +2497,9 @@ declare class InfoWindow extends Layer {
      *
      * @param {Map | Marker} element The anchor object or map object.
      *      This should ideally be the Map or Marker object.
-     * @returns {InfoWindow}
+     * @returns {Promise<InfoWindow>}
      */
-    show(element: Map | Marker): InfoWindow;
+    show(element: Map | Marker): Promise<InfoWindow>;
     /**
      * Get the Google maps InfoWindow object
      *
