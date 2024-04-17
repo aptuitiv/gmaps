@@ -9,12 +9,7 @@
     icon.origin([10, 32]);
     icon.origin({x: 10, y: 32});
 
-    The following are valid ways to set up a size object:
-
-    size(34, 6);
-    size([34, 6]);
-    size({x: 34, y: 6});
-    size(sizeClassInstance);
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/size for documentation.
 =========================================================================== */
 
 /* global google */

@@ -9,16 +9,7 @@
     Or create the circle path yourself with
     https://www.smashingmagazine.com/2019/03/svg-circle-decomposition-paths/
 
-    Example usage:
-    const symbol = G.svgSymbol({
-        path: 'M0,6a6,6 0 1,0 12,0a6,6 0 1,0 -12,0',
-        fillColor: '#5284ed',
-        fillOpacity: 1,
-        scale: 1,
-        strokeColor: '#5284ed',
-        strokeOpacity: 0.5,
-        strokeWeight: 4,
-    });
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/svgsymbol for documentation.
 =========================================================================== */
 
 /* global google */

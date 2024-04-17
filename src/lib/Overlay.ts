@@ -2,6 +2,8 @@
     Base class to help with drawing overlays on the map.
 
     https://developers.google.com/maps/documentation/javascript/customoverlays
+
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/base-classes/overlay for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, OverlayView */
@@ -185,9 +187,9 @@ class Overlay extends Layer {
      * Alias to show()
      *
      * @param {Map} map The Map object
-     * @returns {Overlay}
+     * @returns {Promise<Overlay>}
      */
-    display(map: Map): Overlay {
+    display(map: Map): Promise<Overlay> {
         return this.show(map);
     }
 
@@ -236,8 +238,44 @@ class Overlay extends Layer {
         if (this.#overlayView) {
             this.#overlayView.setMap(null);
             this.removeMap();
+            this.isVisible = false;
         }
         return this;
+    }
+
+    /**
+     * Moves the overlay to a new position.
+     *
+     * If the overlay is not visible, it will be shown.
+     * If it's already visible on the map, it will be moved to the new position.
+     *
+     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {Map} [map] The Map object
+     * @returns {Promise<Overlay>}
+     */
+    move(position: LatLngValue, map?: Map): Promise<Overlay> {
+        return new Promise((resolve, reject) => {
+            let mapObject = map;
+            if (typeof mapObject === 'undefined') {
+                mapObject = this.getMap();
+            }
+            this.position = position;
+            if (mapObject instanceof Map) {
+                if (this.#overlayView) {
+                    this.#overlayView.setMap(mapObject.toGoogle());
+                    this.isVisible = true;
+                    super.setMap(mapObject);
+                    this.draw(this.#overlayView.getProjection());
+                    resolve(this);
+                } else {
+                    this.show(mapObject).then(() => {
+                        resolve(this);
+                    });
+                }
+            } else {
+                reject(new Error('Map object is not set'));
+            }
+        });
     }
 
     /**
@@ -274,9 +312,9 @@ class Overlay extends Layer {
      * Alias to show()
      *
      * @param {Map} map The Map object
-     * @returns {Overlay}
+     * @returns {Promise<Overlay>}
      */
-    setMap(map: Map): Overlay {
+    setMap(map: Map): Promise<Overlay> {
         return this.show(map);
     }
 
@@ -321,40 +359,62 @@ class Overlay extends Layer {
      * Alias for setMap()
      *
      * @param {Map} map The Map object
-     * @returns {Overlay}
+     * @returns {Promise<Overlay>}
      */
-    show(map: Map): Overlay {
-        if (map instanceof Map) {
-            this.#setupGoogleOverlay();
-            if (this.#overlayView) {
-                this.#overlayView.setMap(map.toGoogle());
+    show(map: Map): Promise<Overlay> {
+        return new Promise((resolve) => {
+            if (map instanceof Map) {
+                this.#setupGoogleOverlay();
+                if (this.#overlayView) {
+                    this.#overlayView.setMap(map.toGoogle());
+                    this.isVisible = true;
+                    super.setMap(map);
+                    resolve(this);
+                } else {
+                    // The Google maps library isn't loaded yet. Wait for it to load.
+                    loader().once('map_loaded', () => {
+                        this.#setupGoogleOverlay();
+                        if (this.#overlayView) {
+                            this.#overlayView.setMap(map.toGoogle());
+                            this.isVisible = true;
+                        }
+                        super.setMap(map);
+                        resolve(this);
+                    });
+                }
             } else {
-                // The Google maps library isn't loaded yet. Wait for it to load.
-                loader().once('map_loaded', () => {
-                    this.#setupGoogleOverlay();
-                    if (this.#overlayView) {
-                        this.#overlayView.setMap(map.toGoogle());
-                    }
-                });
+                resolve(this);
             }
-            super.setMap(map);
-        }
-        return this;
+        });
     }
 
     /**
      * Set a single style on the overlay element
      *
-     * @param {string} key The style key
+     * @param {string} name The style name
      * @param {string} value The style value
      * @returns {Overlay}
      */
-    style(key: string, value: string): Overlay {
-        if (isString(key) && isString(value)) {
-            this.#styles[key] = value;
-            this.#overlay.style[key] = value;
+    style(name: string, value: string): Overlay {
+        if (isString(name) && isString(value)) {
+            this.#styles[name] = value;
+            this.#overlay.style[name] = value;
         }
         return this;
+    }
+
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map} map The map object
+     * @returns {void}
+     */
+    toggle(map: Map): void {
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show(map);
+        }
     }
 
     /**

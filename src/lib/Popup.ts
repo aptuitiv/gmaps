@@ -1,12 +1,7 @@
 /* ===========================================================================
     Display a custom popup on the map
 
-    Usage:
-    marker = G.marker({
-        latitude: 40.730610,
-        longitude: -73.935242,
-    });
-    marker.bindPopup('My Popup');
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/popup for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, Text */
@@ -17,11 +12,13 @@ import { Map } from './Map';
 import { Marker } from './Marker';
 import Overlay from './Overlay';
 import { point, Point, PointValue } from './Point';
-import { isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
+import { isObject, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
-    // Whether to automatically hide other open InfoWindows when opening this one
-    autoHide?: boolean;
+    // Whether to automatically hide other open popups when opening this one
+    autoClose?: boolean;
+    // Whether to center the popup horizontally on the element. Useful if the popup is on a marker. Defaults to true.
+    center?: boolean;
     // The popup wrapper class name
     className?: string;
     // The popup content
@@ -33,6 +30,11 @@ export type PopupOptions = {
     // 0, -20 then the popup will be displayed 20px above the top of the marker.
     // If the element is a marker and this is not set, then the marker's anchorPoint value is used.
     offset?: PointValue;
+    // Styles that will be set on the popup container div.
+    styles?: object;
+    // A build-in theme to assign to the popup. By default the popup has a default theme. Set to 'none' to remove the theme.
+    // 'default' | 'none'
+    theme?: string;
 };
 
 /**
@@ -40,15 +42,23 @@ export type PopupOptions = {
  */
 export class Popup extends Overlay {
     /**
-     * Whether to automatically hide other open InfoWindows when opening this one
+     * Whether to automatically close other open popups when opening this one
      *
      * @private
      * @type {boolean}
      */
-    #autoHide: boolean = true;
+    #autoClose: boolean = true;
 
     /**
-     * Holds the tooltip content.
+     * Whether to center the popup on the element. Useful if the popup is on a marker.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #center: boolean = true;
+
+    /**
+     * Holds the popup content.
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
      *
      * @private
@@ -74,6 +84,14 @@ export class Popup extends Overlay {
     #popupOffset: Point;
 
     /**
+     * The theme to use for the popup.
+     *
+     * @private
+     * @type {string}
+     */
+    #theme: string = 'default';
+
+    /**
      * Whether clicking the thing that triggered the popup to show should also hide the popup
      *
      * @private
@@ -84,39 +102,68 @@ export class Popup extends Overlay {
     /**
      * Constructor
      *
-     * @param {PopupOptions} [options] The Popup options
+     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
      */
-    constructor(options: PopupOptions) {
+    constructor(options: PopupOptions | string | HTMLElement | Text) {
         super('popup', 'Popup');
 
         this.#popupOffset = point(0, 0);
+
         if (isObject(options)) {
-            this.setOptions(options);
+            if (options instanceof HTMLElement || options instanceof Text) {
+                // The popup contents were passed
+                this.content = options;
+            } else {
+                this.setOptions(options);
+            }
+        } else {
+            // The popup contents were passed
+            this.content = options;
         }
     }
 
     /**
-     * Get the autoHide value
+     * Get the autoClose value
      *
      * @returns {boolean}
      */
-    get autoHide(): boolean {
-        return this.#autoHide;
+    get autoClose(): boolean {
+        return this.#autoClose;
     }
 
     /**
-     * Set the autoHide value
+     * Set the autoClose value
      *
-     * @param {boolean} autoHide Whether to automatically hide other open InfoWindows when opening this one
+     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
      */
-    set autoHide(autoHide: boolean) {
-        if (typeof autoHide === 'boolean') {
-            this.#autoHide = autoHide;
+    set autoClose(autoClose: boolean) {
+        if (typeof autoClose === 'boolean') {
+            this.#autoClose = autoClose;
         }
     }
 
     /**
-     * Returns the content for the tooltip
+     * Returns whether to center the popup horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean {
+        return this.#center;
+    }
+
+    /**
+     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
+     *
+     * @param {boolean} center Whether to center the popup on the element
+     */
+    set center(center: boolean) {
+        if (typeof center === 'boolean') {
+            this.#center = center;
+        }
+    }
+
+    /**
+     * Returns the content for the popup
      *
      * @returns {string|HTMLElement|Text}
      */
@@ -125,19 +172,104 @@ export class Popup extends Overlay {
     }
 
     /**
-     * Set the content for the tooltip
+     * Set the content for the popup
      *
-     * @param {string|HTMLElement} content The content for the tooltip
+     * @param {string|HTMLElement|Text} content The content for the popup
      */
-    set content(content: string | HTMLElement) {
+    set content(content: string | HTMLElement | Text) {
         if (isStringWithValue(content)) {
             this.#content = content;
             this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof HTMLElement) {
+        } else if (content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
-            this.getOverlayElement().innerHTML = '';
+            // First clear all existing children and their events
+            while (this.getOverlayElement().firstChild) {
+                this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
+            }
+            // Append the content as the first child
             this.getOverlayElement().appendChild(content);
         }
+    }
+
+    /**
+     * Returns the theme to use for the popup
+     *
+     * @returns {string}
+     */
+    get theme(): string {
+        return this.#theme;
+    }
+
+    /**
+     * Set the theme to use for the popup
+     *
+     * @param {string} theme The theme to use for the popup
+     */
+    set theme(theme: string) {
+        this.#theme = theme;
+    }
+
+    /**
+     * Attach the popup to a element
+     *
+     * By default the popup will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the popup to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
+     *   - 'click' - Toggle the display of the popup when clicking on the element
+     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+     * @returns {Promise<Popup>}
+     */
+    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<Popup> {
+        await element.init().then(() => {
+            if (event === 'clickon' || event === 'hover') {
+                // Don't toggle the display of the InfoWindow for the clickon and hover events.
+                // If it's toggled for hover then it'll appear like it's flickering.
+                // If it's toggled with clickon then it will behave like "click" and hide on the second click.
+                this.#toggleDisplay = false;
+            }
+
+            // Show the popup when hovering over the element
+            if (event === 'hover') {
+                element.on('mouseover', (e) => {
+                    if (element instanceof Map) {
+                        this.move(e.latLng, element);
+                    } else {
+                        this.show(element);
+                    }
+                });
+                element.on('mousemove', (e) => {
+                    if (element instanceof Map) {
+                        this.move(e.latLng, element);
+                    } else {
+                        this.show(element);
+                    }
+                });
+                element.on('mouseout', () => {
+                    this.hide();
+                });
+            } else if (event === 'clickon') {
+                // Show the popup when clicking on the element
+                element.on('click', (e) => {
+                    if (element instanceof Map) {
+                        this.move(e.latLng, element);
+                    } else {
+                        this.show(element);
+                    }
+                });
+            } else {
+                // Show the popup when clicking on the element
+                element.on('click', (e) => {
+                    if (element instanceof Map) {
+                        this.position = e.latLng;
+                    }
+                    this.toggle(element);
+                });
+            }
+        });
+
+        return this;
     }
 
     /**
@@ -149,6 +281,17 @@ export class Popup extends Overlay {
      */
     close(): Popup {
         return this.hide();
+    }
+
+    /**
+     * Returns whether the popup already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean {
+        return (
+            isStringWithValue(this.#content) || this.#content instanceof HTMLElement || this.#content instanceof Text
+        );
     }
 
     /**
@@ -164,36 +307,24 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns whether the popup is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean {
+        return this.#isOpen;
+    }
+
+    /**
      * Open the popup
      *
      * Alias to show()
      *
-     * @param {Map | Marker} element The anchor object or map object.
-     * @returns {Popup}
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<Popup>}
      */
-    open(element: Map | Marker): Popup {
+    open(element: Map | Layer): Promise<Popup> {
         return this.show(element);
-    }
-
-    /**
-     * Sets the options for the popup
-     *
-     * @param {PopupOptions} options Popup options
-     * @returns {Popup}
-     */
-    setOptions(options: PopupOptions): Popup {
-        if (typeof options.autoHide === 'boolean') {
-            this.autoHide = options.autoHide;
-        }
-        if (isString(options.className)) {
-            this.setClassName(options.className);
-        }
-        if (typeof options.offset !== 'undefined') {
-            this.setOffset(options.offset);
-        }
-
-        this.setContent(options.content);
-        return this;
     }
 
     /**
@@ -203,16 +334,39 @@ export class Popup extends Overlay {
      * @returns {Popup}
      */
     setContent(content: string | HTMLElement | Text): Popup {
-        if (isStringWithValue(content)) {
-            this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof HTMLElement || content instanceof Text) {
-            // First clear all existing children and their events
-            while (this.getOverlayElement().firstChild) {
-                this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
-            }
-            // Append the content as the first child
-            this.getOverlayElement().appendChild(content);
+        this.content = content;
+        return this;
+    }
+
+    /**
+     * Sets the options for the popup
+     *
+     * @param {PopupOptions} options Popup options
+     * @returns {Popup}
+     */
+    setOptions(options: PopupOptions): Popup {
+        if (typeof options.autoClose === 'boolean') {
+            this.autoClose = options.autoClose;
         }
+        if (typeof options.center === 'boolean') {
+            this.center = options.center;
+        }
+        if (isString(options.className)) {
+            this.setClassName(options.className);
+        }
+        if (options.content) {
+            this.content = options.content;
+        }
+        if (typeof options.offset !== 'undefined') {
+            this.setOffset(options.offset);
+        }
+        if (options.styles) {
+            this.styles = options.styles;
+        }
+        if (options.theme) {
+            this.theme = options.theme;
+        }
+
         return this;
     }
 
@@ -225,50 +379,71 @@ export class Popup extends Overlay {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
-     * @returns {Popup}
+     * @returns {Promise<Popup>}
      */
-    show(element: Map | Marker): Popup {
-        const collection = PopupCollection.getInstance();
-        if (collection.has(this) && this.#isOpen) {
-            if (this.#toggleDisplay) {
-                this.hide();
-            }
-        } else {
-            // Hide other open Popups if necessary
-            if (this.#autoHide) {
-                collection.hideOthers(this);
-            }
-
-            if (element instanceof Map) {
-                this.#popupOffset = this.getOffset().clone();
-                super.show(element);
-            } else if (element instanceof Marker) {
-                this.position = element.getPosition();
-                // If the anchor is a marker then add the anchor's anchorPoint to the offset.
-                // The anchorPoint for the marker contains the x/y values to add to the marker's position that
-                // an InfoWindow should be displayed at. This can also be used with our Popup.
-                // We add the offset value for the Popup to the anchorPoint value.
-                const m = element.toGoogle();
-                const anchorPoint = m.get('anchorPoint');
-                if (anchorPoint instanceof google.maps.Point) {
-                    this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
-                } else {
-                    this.#popupOffset = this.getOffset().clone();
+    show(element: Map | Layer): Promise<Popup> {
+        return new Promise((resolve) => {
+            const collection = PopupCollection.getInstance();
+            if (collection.has(this) && this.#isOpen) {
+                if (this.#toggleDisplay) {
+                    this.hide();
                 }
-                // Set the map value to display the popup and call the add() and draw() functions.
-                super.show(element.getMap());
+                resolve(this);
+            } else {
+                // Hide other open Popups if necessary
+                if (this.#autoClose) {
+                    collection.hideOthers(this);
+                }
+
+                this.#isOpen = true;
+                collection.add(this);
+
+                if (element instanceof Map) {
+                    this.#popupOffset = this.getOffset().clone();
+                    super.show(element).then(() => {
+                        resolve(this);
+                    });
+                } else if (element instanceof Marker) {
+                    this.position = element.getPosition();
+                    // If the anchor is a marker then add the anchor's anchorPoint to the offset.
+                    // The anchorPoint for the marker contains the x/y values to add to the marker's position that
+                    // an InfoWindow should be displayed at. This can also be used with our Popup.
+                    // We add the offset value for the Popup to the anchorPoint value.
+                    element.toGoogle().then((marker) => {
+                        const anchorPoint = marker.get('anchorPoint');
+                        if (anchorPoint instanceof google.maps.Point) {
+                            this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
+                        } else {
+                            this.#popupOffset = this.getOffset().clone();
+                        }
+                        // Set the element value to display the popup and call the add() and draw() functions.
+                        super.show(element.getMap()).then(() => {
+                            resolve(this);
+                        });
+                    });
+                }
             }
-            this.#isOpen = true;
-            collection.add(this);
-        }
-        return this;
+        });
     }
 
     /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     */
+    toggle(element: Map | Layer): void {
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show(element);
+        }
+    }
+
+    /**
+     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
      *
      * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
@@ -284,23 +459,44 @@ export class Popup extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
+        // projection could be undefined if this is being displayed on a hover event. Sometimes the initial
+        // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
+        // up and the popup will be displayed.
+        if (typeof projection !== 'undefined') {
+            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
-        // Hide the tooltip when it is far out of view.
-        const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
+            // Hide the popup when it is far out of view.
+            const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
-        if (display === 'block') {
-            this.getOverlayElement().style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
-            this.getOverlayElement().style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
-        }
+            if (display === 'block') {
+                this.style('left', `${divPosition.x + this.#popupOffset.getX()}px`);
+                this.style('top', `${divPosition.y + this.#popupOffset.getY()}px`);
+            }
 
-        if (this.getOverlayElement().style.display !== display) {
-            this.getOverlayElement().style.display = display;
+            if (this.center) {
+                // Center the tooltip horizontally on the element
+                this.style('transform', 'translate(-50%, 0)');
+            }
+            if (this.#theme === 'default') {
+                const styles = this.styles || {};
+                const themeStyles = {
+                    backgroundColor: '#fff',
+                    color: '#333',
+                    padding: '3px 6px',
+                    borderRadius: '4px',
+                    boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+                };
+                this.styles = { ...themeStyles, ...styles };
+            }
+
+            if (this.getOverlayElement().style.display !== display) {
+                this.style('display', display);
+            }
         }
     }
 }
 
-export type PopupValue = Popup | PopupOptions;
+export type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
 
 /**
  * Helper function to set up the Popup class
@@ -315,40 +511,23 @@ export const popup = (options?: PopupValue): Popup => {
     return new Popup(options);
 };
 
-/**
- * To avoid circilar dependencies we need to add the bindPopup method to the Layer class here
- */
-Layer.include({
-    /**
-     * Holds the Popup object
-     *
-     * @type {Popup}
-     */
-    layerPopup: null,
+// Set up the mixing for attaching the popup to other elements.
+const popupMixin = {
     /**
      *
-     * @param {string | HTMLElement | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
-     * @param {PopupOptions} [options] The Popup options object
+     * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
+     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      */
-    bindPopup(content: string | HTMLElement | Text | PopupValue, options?: PopupOptions) {
-        if (content instanceof Popup) {
-            this.layerPopup = content;
-        } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
-            this.layerPopup = popup();
-            this.layerPopup.setContent(content);
-        } else if (isObjectWithValues(content)) {
-            this.layerPopup = popup(content);
-        }
-        if (isObjectWithValues(options)) {
-            this.layerPopup.setOptions(options);
-        }
-        this.on('click', () => {
-            if (this.layerPopup) {
-                this.layerPopup.show(this);
-            }
-        });
+    attachPopup(popupValue: PopupValue, event: 'click' | 'clickon' | 'hover' = 'click') {
+        popup(popupValue).attachTo(this, event);
     },
-});
+};
+
+/**
+ * To avoid circular dependencies we need to add the attachPopup method to the Layer and Map classes here
+ */
+Layer.include(popupMixin);
+Map.include(popupMixin);
 
 type PopupCollectionObject = {
     popups: Popup[];

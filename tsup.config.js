@@ -16,8 +16,7 @@ export default defineConfig([
                 fix: true
             })
         ],
-        format: ['cjs'], // CJS output works in the browser
-        legacyOutput: true, // Force the cjs output to us ".js" instead of ".cjs" as the file extension
+        format: ['iife'], // iife works best for the the browser
         minify: true,
         outDir: 'dist',
         // Mark matching packages as "not external" so that they are included in the bundle.
@@ -25,6 +24,13 @@ export default defineConfig([
         noExternal: [
             /@googlemaps\/*/
         ],
+        // tsup would output this as browser.global.js without this function.
+        // We want it as browser.js.
+        outExtension(data) {
+            return {
+                js: `.js`,
+            }
+        },
         platform: 'browser',
         splitting: false,
     },

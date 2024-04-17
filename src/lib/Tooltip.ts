@@ -1,41 +1,15 @@
 /* ===========================================================================
     Aids id setting up a tooltip for markers and other elements.
 
-    Usage:
-    const tooltip = G.tooltip({
-        className: 'MapTooltip',
-    });
-    const marker = G.marker({
-        latitude: 40.730610,
-        longitude: -73.935242,
-        title: 'My Marker',
-        tooltip
-    });
-
-    Alternately, you can pass an object containing the tooltip options instead of the tooltip object.
-    G.marker({
-        latitude: 40.730610,
-        longitude: -73.935242,
-        title: 'My Marker',
-        tooltip: {
-            className: 'MapTooltip',
-        }
-    });
-
-    By default, the component title will be used for the to tooltip. (i.e. the marker tooltip).
-    But, you can also set custom content. This could be useful if the component doesn't have a title (like polylines).
-    const tooltip = G.tooltip({
-        className: 'MapTooltip',
-        content: 'Some tooltip content here'
-    });
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/tooltip for documentation
 =========================================================================== */
 
 /* global google, HTMLElement, Text */
 
 import { isObject, isString, isStringWithValue } from './helpers';
 import { LatLngValue } from './LatLng';
+import Layer from './Layer';
 import { Map } from './Map';
-import { Marker } from './Marker';
 import Overlay from './Overlay';
 import { PointValue } from './Point';
 
@@ -52,7 +26,7 @@ type TooltipOptions = {
     offset?: PointValue;
     // The latitude/longitude position for the tooltip
     position?: LatLngValue;
-    // Styles that can be
+    // Styles that will be set on the tooltip container div.
     styles?: object;
     // A build-in theme to assign to the tooltip. By default the tooltip has a default theme. Set to 'none' to remove the theme.
     // 'default' | 'none'
@@ -91,15 +65,21 @@ export class Tooltip extends Overlay {
     /**
      * Constructor
      *
-     * @param {TooltipOptions} [options] Tooltip options
+     * @param {TooltipOptions | string | HTMLElement | Text} [options] Tooltip options
      */
-    constructor(options?: TooltipOptions) {
+    constructor(options?: TooltipOptions | string | HTMLElement | Text) {
         super('tooltip', 'Tooltip');
 
         this.setOffset([0, 4]);
         if (isObject(options)) {
-            this.setOptions(options);
+            if (options instanceof HTMLElement || options instanceof Text) {
+                this.content = options;
+            } else {
+                this.setOptions(options);
+            }
         } else {
+            // The tooltip contents were passed
+            this.content = options;
             this.setClassName('tooltip');
         }
     }
@@ -168,65 +148,55 @@ export class Tooltip extends Overlay {
     }
 
     /**
-     * Attach the tooltip to a map or marker
+     * Attach the tooltip to a element
      *
-     * The tooltip will be shown when hovering over the map or marker.
+     * By default the tooltip will be shown when hovering over the element.
      *
-     * @param {Map | Marker} element The element to attach the tooltip to
-     * @returns {Tooltip}
+     * @param {Map | Layer} element The element to attach the tooltip to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'
+     *   - 'click' - Toggle the display of the tooltip when clicking on the element
+     *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
+     * @returns {Promise<Tooltip>}
      */
-    attachTo(element: Map | Marker): Tooltip {
-        if (element instanceof Map) {
-            // Show the tooltip when hovering over the map
-            element.on('mouseover', (e) => {
-                this.setPosition(e.latLng);
-                this.show(element);
-            });
-            element.on('mousemove', (e) => {
-                this.setPosition(e.latLng);
-                this.show(element);
-            });
-            element.on('mouseout', () => {
-                this.hide();
-            });
-        } else if (element instanceof Marker) {
-            // Show the tooltip when hovering over the marker
-            element.setTooltip(this);
-        }
-        return this;
-    }
+    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'hover'): Promise<Tooltip> {
+        await element.init().then(() => {
+            let map: Map;
+            if (element instanceof Map) {
+                map = element;
+            } else {
+                map = element.getMap();
+            }
+            // Show the tooltip when hovering over the element
+            if (event === 'click') {
+                // Show the tooltip when clicking on the element
+                element.on('click', (e) => {
+                    this.setPosition(e.latLng);
+                    this.toggle(map);
+                });
+            } else if (event === 'clickon') {
+                // Show the tooltip when clicking on the element
+                element.on('click', (e) => {
+                    this.setPosition(e.latLng);
+                    this.show(map);
+                });
+            } else {
+                // Default to hover
+                element.on('mouseover', (e) => {
+                    this.setPosition(e.latLng);
+                    this.show(map);
+                });
+                element.on('mousemove', (e) => {
+                    this.setPosition(e.latLng);
+                    this.show(map);
+                });
+                element.on('mouseout', () => {
+                    this.hide();
+                });
+            }
+        });
 
-    /**
-     * Sets the options for the tooltip
-     *
-     * @param {TooltipOptions} options Tooltip options
-     */
-    setOptions(options: TooltipOptions) {
-        if (typeof options.center === 'boolean') {
-            this.center = options.center;
-        }
-        if (options.content) {
-            this.content = options.content;
-        }
-        if (isString(options.className)) {
-            this.removeClassName('tooltip');
-            this.setClassName(options.className);
-        }
-        if (options.map) {
-            this.setMap(options.map);
-        }
-        if (options.offset) {
-            this.setOffset(options.offset);
-        }
-        if (options.position) {
-            this.position = options.position;
-        }
-        if (options.styles) {
-            this.styles = options.styles;
-        }
-        if (options.theme) {
-            this.theme = options.theme;
-        }
+        return this;
     }
 
     /**
@@ -252,6 +222,41 @@ export class Tooltip extends Overlay {
     }
 
     /**
+     * Sets the options for the tooltip
+     *
+     * @param {TooltipOptions} options Tooltip options
+     * @returns {Tooltip}
+     */
+    setOptions(options: TooltipOptions): Tooltip {
+        if (typeof options.center === 'boolean') {
+            this.center = options.center;
+        }
+        if (options.content) {
+            this.content = options.content;
+        }
+        if (isString(options.className)) {
+            this.removeClassName('tooltip');
+            this.setClassName(options.className);
+        }
+        if (options.map) {
+            this.setMap(options.map);
+        }
+        if (options.offset) {
+            this.setOffset(options.offset);
+        }
+        if (options.position) {
+            this.position = options.position;
+        }
+        if (options.styles) {
+            this.styles = options.styles;
+        }
+        if (options.theme) {
+            this.theme = options.theme;
+        }
+        return this;
+    }
+
+    /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
      * @internal
@@ -268,7 +273,10 @@ export class Tooltip extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        if (this.hasPosition()) {
+        // projection could be undefined if this is being displayed on a hover event. Sometimes the initial
+        // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
+        // up and the tooltip will be displayed.
+        if (this.hasPosition() && typeof projection !== 'undefined') {
             const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
             // Hide the tooltip when it is far out of view.
@@ -291,24 +299,24 @@ export class Tooltip extends Overlay {
                         borderRadius: '4px',
                         boxShadow: '0 0 5px rgba(0,0,0,0.3)',
                     };
-                    this.styles = { ...styles, ...themeStyles };
+                    this.styles = { ...themeStyles, ...styles };
                 }
             }
 
             if (this.getOverlayElement().style.display !== display) {
-                this.getOverlayElement().style.display = display;
+                this.style('display', display);
             }
         }
     }
 }
 
 // The possible values for the options parameter
-export type TooltipValue = Tooltip | TooltipOptions;
+export type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
 
 /**
  * Helper function to set up the tooltip object
  *
- * @param {TooltipOptions} [options] The tooltip options or the tooltip class
+ * @param {TooltipValue} [options] The tooltip options or the tooltip class
  * @returns {Tooltip}
  */
 export const tooltip = (options?: TooltipValue): Tooltip => {
@@ -317,3 +325,24 @@ export const tooltip = (options?: TooltipValue): Tooltip => {
     }
     return new Tooltip(options);
 };
+
+/**
+ * Mixin to add the attachTooltip method to the Marker and Map classes
+ */
+const tooltipMixin = {
+    /**
+     * Attach an Tooltip to the layer
+     *
+     * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
+     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+     */
+    attachTooltip(tooltipValue: TooltipValue, event: 'click' | 'clickon' | 'hover' = 'hover') {
+        tooltip(tooltipValue).attachTo(this, event);
+    },
+};
+
+/**
+ * To avoid circular dependencies we need to add the attachTooltip method to the Layer and Map classes here
+ */
+Layer.include(tooltipMixin);
+Map.include(tooltipMixin);

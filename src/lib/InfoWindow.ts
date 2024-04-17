@@ -1,20 +1,13 @@
 /* ===========================================================================
     Helps to set up the built-in Google InfoWindow
+
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/infowindow for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, Text */
 /* eslint-disable no-use-before-define */
 
-import {
-    checkForGoogleMaps,
-    isNumber,
-    isNumberString,
-    isObject,
-    isObjectWithValues,
-    isString,
-    isStringWithValue,
-} from './helpers';
-import { Event } from './Evented';
+import { checkForGoogleMaps, isNumber, isNumberString, isObject, isStringWithValue } from './helpers';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
@@ -54,7 +47,7 @@ export type InfoWindowOptions = GMInfoWindowOptions & {
     // Defaults to [0, -4]
     pixelOffset?: SizeValue;
     // The position for the InfoWindow.
-    // You don't need to do this if you're binding the InfoWindow to a Marker object.
+    // You don't need to do this if you're attaching the InfoWindow to a Marker object.
     position?: LatLngValue;
     // Whether or not clicking the thing that triggered the info window to open should also close the info window.
     toggleDisplay?: boolean;
@@ -115,16 +108,24 @@ export class InfoWindow extends Layer {
     /**
      * Constructor
      *
-     * @param {InfoWindowOptions} [options] The InfoWindow options
+     * @param {InfoWindowOptions | string | HTMLElement | Text} [options] The InfoWindow options
      */
-    constructor(options?: InfoWindowOptions) {
+    constructor(options?: InfoWindowOptions | string | HTMLElement | Text) {
         super('infowindow', 'InfoWindow');
 
         // Set the default pixel offset so that the info window is positioned a little off the element that opened it.
         this.#options.pixelOffset = size(0, -4);
 
         if (isObject(options)) {
-            this.setOptions(options);
+            if (options instanceof HTMLElement || options instanceof Text) {
+                // The popup contents were passed
+                this.content = options;
+            } else {
+                this.setOptions(options);
+            }
+        } else {
+            // The popup contents were passed
+            this.content = options;
         }
     }
 
@@ -335,23 +336,98 @@ export class InfoWindow extends Layer {
     }
 
     /**
-     * Hide the info window
+     * Attach the InfoWindow to a element
      *
-     * Alias to hide()
+     * By default the InfoWindow will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the InfoWindow to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the InfoWindow. Defaults to 'click'
+     *   - 'click' - Toggle the display of the InfoWindow when clicking on the element
+     *   - 'clickon' - Show the InfoWindow when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
+     * @returns {Promise<InfoWindow>}
      */
-    close() {
-        this.hide();
+    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<InfoWindow> {
+        await element.init().then(() => {
+            if (event === 'clickon' || event === 'hover') {
+                // Don't toggle the display of the InfoWindow for the clickon and hover events.
+                // If it's toggled for hover then it'll appear like it's flickering.
+                // If it's toggled with clickon then it will behave like "click" and hide on the second click.
+                this.#toggleDisplay = false;
+            }
+
+            // Show the InfoWindow when hovering over the element
+            if (event === 'hover') {
+                element.on('mouseover', (e) => {
+                    this.position = e.latLng;
+                    this.show(element);
+                });
+                element.on('mousemove', (e) => {
+                    this.position = e.latLng;
+                    this.show(element);
+                });
+                element.on('mouseout', () => {
+                    this.hide();
+                });
+            } else if (event === 'clickon') {
+                // Show the InfoWindow when clicking on the element
+                element.on('click', (e) => {
+                    if (element instanceof Map) {
+                        this.position = e.latLng;
+                    }
+                    this.show(element);
+                });
+            } else {
+                // Show the InfoWindow when clicking on the element
+                element.on('click', (e) => {
+                    if (element instanceof Map) {
+                        this.position = e.latLng;
+                    }
+                    this.show(element);
+                });
+            }
+        });
+
+        return this;
     }
 
     /**
      * Hide the info window
+     *
+     * Alias to hide()
+     *
+     * @returns {InfoWindow}
      */
-    hide() {
+    close(): InfoWindow {
+        return this.hide();
+    }
+
+    /**
+     * Returns whether the InfoWindow already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean {
+        return (
+            typeof this.#options.content !== 'undefined' &&
+            (isStringWithValue(this.#options.content) ||
+                this.#options.content instanceof HTMLElement ||
+                this.#options.content instanceof Text)
+        );
+    }
+
+    /**
+     * Hide the info window
+     *
+     * @returns {InfoWindow}
+     */
+    hide(): InfoWindow {
         if (this.#infoWindow) {
             this.#infoWindow.close();
         }
         this.#isOpen = false;
         InfoWindowCollection.getInstance().remove(this);
+        return this;
     }
 
     /**
@@ -368,10 +444,10 @@ export class InfoWindow extends Layer {
      *
      * Alias to show()
      *
-     * @param {Map | Marker} element The anchor object or map object.
-     * @returns {InfoWindow}
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<InfoWindow>}
      */
-    open(element: Map | Marker): InfoWindow {
+    open(element: Map | Layer): Promise<InfoWindow> {
         return this.show(element);
     }
 
@@ -465,40 +541,61 @@ export class InfoWindow extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      *      This should ideally be the Map or Marker object.
-     * @returns {InfoWindow}
+     * @returns {Promise<InfoWindow>}
      */
-    show(element: Map | Marker): InfoWindow {
-        this.#setupGoogleInfoWindow();
-        const collection = InfoWindowCollection.getInstance();
-        if (collection.has(this) && this.#isOpen) {
-            if (this.#toggleDisplay) {
-                this.hide();
-            }
-        } else {
-            // Close other open InfoWindows if necessary
-            if (this.#autoClose) {
-                collection.hideOthers(this);
-            }
+    show(element: Map | Layer): Promise<InfoWindow> {
+        return new Promise((resolve) => {
+            this.#setupGoogleInfoWindow();
+            const collection = InfoWindowCollection.getInstance();
+            if (collection.has(this) && this.#isOpen) {
+                if (this.#toggleDisplay) {
+                    this.hide();
+                }
+                resolve(this);
+            } else {
+                // Close other open InfoWindows if necessary
+                if (this.#autoClose) {
+                    collection.hideOthers(this);
+                }
 
-            if (element instanceof Map) {
-                this.#infoWindow.open({
-                    map: element.toGoogle(),
-                    shouldFocus: this.#focus,
-                });
-                this.setMap(element);
-            } else if (element instanceof Marker) {
-                this.#infoWindow.open({
-                    anchor: element.toGoogle(),
-                    shouldFocus: this.#focus,
-                });
-                this.setMap(element.getMap());
+                this.#isOpen = true;
+                collection.add(this);
+
+                if (element instanceof Map) {
+                    this.#infoWindow.open({
+                        map: element.toGoogle(),
+                        shouldFocus: this.#focus,
+                    });
+                    this.setMap(element);
+                    resolve(this);
+                } else if (element instanceof Marker) {
+                    element.toGoogle().then((marker) => {
+                        this.#infoWindow.open({
+                            anchor: marker,
+                            shouldFocus: this.#focus,
+                        });
+                        this.setMap(element.getMap());
+                        resolve(this);
+                    });
+                }
             }
-            this.#isOpen = true;
-            collection.add(this);
+        });
+    }
+
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {void}
+     */
+    toggle(element: Map | Layer): void {
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show(element);
         }
-        return this;
     }
 
     /**
@@ -562,7 +659,7 @@ export class InfoWindow extends Layer {
     }
 }
 
-export type InfoWindowValue = InfoWindow | InfoWindowOptions;
+export type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
 
 /**
  * Helper function to set up the InfoWindow class
@@ -586,40 +683,17 @@ const infoWindowMixin = {
     layerInfoWindow: null,
 
     /**
-     * Bind an InfoWindow to the layer
+     * Attach an InfoWindow to the layer
      *
-     * @param {string | HTMLElement | Text | InfoWindowValue} content The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
-     * @param {InfoWindowOptions} [options] The InfoWindow options object
+     * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
+     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      */
-    bindInfoWindow(content: string | HTMLElement | Text | InfoWindowValue, options?: InfoWindowOptions) {
-        if (content instanceof InfoWindow) {
-            this.layerInfoWindow = content;
-        } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
-            this.layerInfoWindow = infoWindow();
-            this.layerInfoWindow.setContent(content);
-        } else if (isObjectWithValues(content)) {
-            this.layerInfoWindow = infoWindow(content);
-        }
-        if (isObjectWithValues(options)) {
-            this.layerInfoWindow.setOptions(options);
-        }
-        this.on('click', (e: Event) => {
-            if (this.layerInfoWindow) {
-                // If the element that has the event is a Map then the InfoWindow needs to be
-                // positioned where the click took place.
-                if (this.isMap() && e.latLng) {
-                    this.layerInfoWindow.position = e.latLng;
-                    // To allow an already open InfoWindow to be repositioned
-                    // it needs to be closed first.
-                    this.layerInfoWindow.close();
-                }
-                this.layerInfoWindow.show(this);
-            }
-        });
+    attachInfoWindow(infoWindowValue: InfoWindowValue, event: 'click' | 'clickon' | 'hover' = 'click') {
+        infoWindow(infoWindowValue).attachTo(this, event);
     },
 };
 /**
- * To avoid circilar dependencies we need to add the bindInfoWindow method to the Layer class here
+ * To avoid circular dependencies we need to add the attachInfoWindow method to the Layer and Map classes here
  */
 Layer.include(infoWindowMixin);
 Map.include(infoWindowMixin);

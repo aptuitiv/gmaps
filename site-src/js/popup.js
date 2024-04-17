@@ -12,6 +12,26 @@ const marker = G.marker({
     latitude: 48.9,
     longitude: 2.4,
     map: map,
-    title: 'My Marker',
+    title: 'Marker 1',
 });
-marker.bindPopup('My Popup');
+marker.attachPopup('My Popup');
+
+
+const marker2 = G.marker({
+    latitude: 48.9,
+    longitude: 3.4,
+    map: map,
+    title: 'Marker 2',
+});
+// marker.attachPopup('My Popup');
+
+const popup = G.popup({
+    content: 'This is a test',
+});
+popup.attachTo(marker2);
+
+
+const mapPopup = G.popup({
+    content: 'This is a test on the map',
+});
+map.attachPopup(mapPopup, 'clickon');

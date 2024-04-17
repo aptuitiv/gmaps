@@ -18,7 +18,7 @@ const marker = G.marker({
     title: 'My Marker',
 });
 
-marker.bindInfoWindow('Testing after load');
+marker.attachInfoWindow('Testing after load');
 
 const marker2 = G.marker({
     latitude: 49.864716,
@@ -38,7 +38,7 @@ const mapInfoWindow = G.infoWindow({
     content: 'This is a test on the map',
     minWidth: 300
 });
-map.bindInfoWindow(mapInfoWindow);
+map.attachInfoWindow(mapInfoWindow, 'hover');
 
 // map.on('click', (e) => {
 //     console.log('clicking: ', e);

@@ -1,9 +1,10 @@
 /* ===========================================================================
     Google Maps Loader
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/loader for documentation
 =========================================================================== */
 
 import { Loader as GoogleLoader, Libraries } from '@googlemaps/js-api-loader';
-import { isFunction, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
+import { callCallback, isFunction, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 
 // Loader Options
 export type LoaderOptions = {
@@ -33,6 +34,14 @@ export class Loader extends EventTarget {
     #apiKey: string;
 
     /**
+     * Holds the loading state
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isLoading: boolean = false;
+
+    /**
      * Holds the loaded state
      *
      * @private
@@ -47,6 +56,14 @@ export class Loader extends EventTarget {
      * @type {Libraries}
      */
     #libraries: Libraries = [];
+
+    /**
+     * Holds the Google maps loader object
+     *
+     * @private
+     * @type {GoogleLoader}
+     */
+    #loader: GoogleLoader;
 
     /**
      * Holds the version of the Google Maps API to load
@@ -198,29 +215,44 @@ export class Loader extends EventTarget {
      */
     load(callback?: () => void): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (isStringWithValue(this.#apiKey)) {
-                // Set up the Google maps loader
-                // https://www.npmjs.com/package/@googlemaps/js-api-loader
-                const loader = new GoogleLoader({
-                    apiKey: this.#apiKey,
-                    version: this.#version,
-                    libraries: this.#libraries,
-                });
-                loader
-                    .importLibrary('maps')
-                    .then(() => {
-                        this.#isLoaded = true;
-                        if (isFunction(callback)) {
-                            callback();
+            if (!this.#isLoaded) {
+                if (!this.#isLoading) {
+                    this.#isLoading = true;
+                    if (isStringWithValue(this.#apiKey)) {
+                        // Set up the Google maps loader
+                        // https://www.npmjs.com/package/@googlemaps/js-api-loader
+                        if (typeof this.#loader === 'undefined') {
+                            this.#loader = new GoogleLoader({
+                                apiKey: this.#apiKey,
+                                version: this.#version,
+                                libraries: this.#libraries,
+                            });
                         }
-                        this.dispatch('load');
+                        this.#loader
+                            .importLibrary('maps')
+                            .then(() => {
+                                this.#isLoaded = true;
+                                callCallback(callback);
+                                this.dispatch('load');
+                                resolve();
+                            })
+                            .catch((err) => {
+                                reject(err);
+                            });
+                    } else {
+                        reject(new Error('The Google Maps API key is not set'));
+                    }
+                } else {
+                    // Wait for the Google maps API to load
+                    this.once('load', () => {
+                        callCallback(callback);
                         resolve();
-                    })
-                    .catch((err) => {
-                        reject(err);
                     });
+                }
             } else {
-                reject(new Error('The Google Maps API key is not set'));
+                // The Google maps API has already loaded
+                callCallback(callback);
+                resolve();
             }
         });
     }

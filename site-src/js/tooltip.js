@@ -32,13 +32,15 @@ const marker = G.marker({
 // ttContent.style.transform = 'translate(-50%, 0)';
 // ttContent.innerHTML = 'This is a tooltip on a map';
 
-// const tooltip = G.tooltip({
-//     className: 'my-tooltip',
-//     // content: 'This is a tooltip',
-//     content: ttContent,
-//     // position: { lat: 42.7, lng: -72.9 },
-//     // map
-// });
+const tooltip = G.tooltip({
+    className: 'my-tooltip',
+    content: 'This is a tooltip',
+    // content: ttContent,
+    // position: { lat: 42.7, lng: -72.9 },
+    // map
+});
+tooltip.style('backgroundColor', '#ff0000');
+tooltip.style('color', '#fff');
 // // tooltip.show(map);
 // // console.log('Tooltip: ', tooltip);
 // // tooltip.attachTo(map);
