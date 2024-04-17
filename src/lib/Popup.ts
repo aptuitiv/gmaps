@@ -139,7 +139,11 @@ export class Popup extends Overlay {
             this.getOverlayElement().innerHTML = content;
         } else if (content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
-            this.getOverlayElement().innerHTML = '';
+            // First clear all existing children and their events
+            while (this.getOverlayElement().firstChild) {
+                this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
+            }
+            // Append the content as the first child
             this.getOverlayElement().appendChild(content);
         }
     }
@@ -263,6 +267,17 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Set the Popup content
+     *
+     * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
+     */
+    setContent(content: string | HTMLElement | Text): Popup {
+        this.content = content;
+        return this;
+    }
+
+    /**
      * Sets the options for the popup
      *
      * @param {PopupOptions} options Popup options
@@ -275,31 +290,13 @@ export class Popup extends Overlay {
         if (isString(options.className)) {
             this.setClassName(options.className);
         }
+        if (options.content) {
+            this.content = options.content;
+        }
         if (typeof options.offset !== 'undefined') {
             this.setOffset(options.offset);
         }
 
-        this.setContent(options.content);
-        return this;
-    }
-
-    /**
-     * Set the Popup content
-     *
-     * @param {string | HTMLElement | Text} content The Popup content
-     * @returns {Popup}
-     */
-    setContent(content: string | HTMLElement | Text): Popup {
-        if (isStringWithValue(content)) {
-            this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof HTMLElement || content instanceof Text) {
-            // First clear all existing children and their events
-            while (this.getOverlayElement().firstChild) {
-                this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
-            }
-            // Append the content as the first child
-            this.getOverlayElement().appendChild(content);
-        }
         return this;
     }
 
