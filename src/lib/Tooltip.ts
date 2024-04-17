@@ -150,14 +150,14 @@ export class Tooltip extends Overlay {
     /**
      * Attach the tooltip to a element
      *
-     * The tooltip will be shown when hovering over the element.
+     * By default the tooltip will be shown when hovering over the element.
      *
      * @param {Map | Layer} element The element to attach the tooltip to
      * @param {'click'|'clickon'|'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'
      *   - 'click' - Toggle the display of the tooltip when clicking on the element
      *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
      *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
-     * @returns {Tooltip}
+     * @returns {Promise<Tooltip>}
      */
     async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'hover'): Promise<Tooltip> {
         await element.init().then(() => {
@@ -167,15 +167,15 @@ export class Tooltip extends Overlay {
             } else {
                 map = element.getMap();
             }
-            // Show the tooltip when hovering over the map
+            // Show the tooltip when hovering over the element
             if (event === 'click') {
-                // Show the tooltip when clicking on the map
+                // Show the tooltip when clicking on the element
                 element.on('click', (e) => {
                     this.setPosition(e.latLng);
                     this.toggle(map);
                 });
             } else if (event === 'clickon') {
-                // Show the tooltip when clicking on the map
+                // Show the tooltip when clicking on the element
                 element.on('click', (e) => {
                     this.setPosition(e.latLng);
                     this.show(map);
