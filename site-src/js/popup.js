@@ -28,7 +28,7 @@ const marker2 = G.marker({
 const popup = G.popup({
     content: 'This is a test',
 });
-popup.attachTo(marker2, 'hover');
+popup.attachTo(marker2);
 
 
 const mapPopup = G.popup({
