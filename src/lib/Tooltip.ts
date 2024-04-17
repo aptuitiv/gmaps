@@ -273,7 +273,10 @@ export class Tooltip extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        if (this.hasPosition()) {
+        // projection could be undefined if this is being displayed on a hover event. Sometimes the initial
+        // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
+        // up and the tooltip will be displayed.
+        if (this.hasPosition() && typeof projection !== 'undefined') {
             const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
             // Hide the tooltip when it is far out of view.

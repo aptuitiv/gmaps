@@ -296,18 +296,23 @@ export class Popup extends Overlay {
      * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
      */
     draw(projection: google.maps.MapCanvasProjection) {
-        const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
+        // projection could be undefined if this is being displayed on a hover event. Sometimes the initial
+        // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
+        // up and the popup will be displayed.
+        if (typeof projection !== 'undefined') {
+            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
 
-        // Hide the tooltip when it is far out of view.
-        const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
+            // Hide the popup when it is far out of view.
+            const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
-        if (display === 'block') {
-            this.getOverlayElement().style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
-            this.getOverlayElement().style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
-        }
+            if (display === 'block') {
+                this.getOverlayElement().style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
+                this.getOverlayElement().style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
+            }
 
-        if (this.getOverlayElement().style.display !== display) {
-            this.getOverlayElement().style.display = display;
+            if (this.getOverlayElement().style.display !== display) {
+                this.getOverlayElement().style.display = display;
+            }
         }
     }
 }
