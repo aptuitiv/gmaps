@@ -13,7 +13,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* global google */
 
-import { checkForGoogleMaps, isFunction, isObject, isString, objectEquals } from './helpers';
+import { checkForGoogleMaps, isFunction, isObject, isObjectWithValues, isString, objectEquals } from './helpers';
 import Base from './Base';
 import { latLng, LatLng } from './LatLng';
 import { loader } from './Loader';
@@ -21,7 +21,7 @@ import { Point } from './Point';
 
 // Base event callback data type
 export type Event = {
-    // The corresponding native DOM event. This come from the Google Maps event data
+    // The corresponding native DOM event. This comes from the Google Maps event data
     domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event;
     // The latitude/longitude that was below the cursor when the event occurred.
     latLng?: LatLng;
@@ -40,32 +40,56 @@ export type Event = {
 // Type for the callback function
 export type EventCallback = (event: Event) => void;
 
-// Options for the event listener
-export type EventOptions = {
+// Configuration for the event listener
+export type EventConfig = {
+    // If true then the event listener will be called immediately if the event has already been dispatched.
+    // If the event is a "once" event then the listener will not be set up for future events.
+    callImmediate?: boolean;
+    // The context to bind the callback function to
+    context?: object;
+    // If true then the event listener callback will only be called once
+    once?: boolean;
+};
+
+// The actual options set for the event listener
+type EventListenerOptions = {
     once?: boolean;
 };
 
 // The data to hold for each event listener
-type EventData = {
+type EventListenerData = {
     callback: EventCallback;
     context?: object;
-    options: EventOptions;
+    options: EventListenerOptions;
 };
 
 // The collection of event listeners
-type Events = { [key: string]: EventData[] };
+type EventListeners = { [key: string]: EventListenerData[] };
+
+// The data for each pending event listener
+type PendingEventData = {
+    callback: EventCallback;
+    config?: EventConfig;
+};
+// The collection of pending event listeners
+type PendingEvents = { [key: string]: PendingEventData[] };
 
 /**
  * Evented class to add syntatic sugar to handling events
  */
 export class Evented extends Base {
     /**
+     * Holds the events that have been called
+     */
+    #eventsCalled: object = {};
+
+    /**
      * Holds the event listeners
      *
      * @private
-     * @type {Events}
+     * @type {EventListeners}
      */
-    #eventListeners: Events = {};
+    #eventListeners: EventListeners = {};
 
     /**
      * Holds the Google maps object that events are set up on
@@ -88,9 +112,9 @@ export class Evented extends Base {
      * Holds the event listeners that are waiting to be added once the Google Maps API is loaded
      *
      * @private
-     * @type {Events}
+     * @type {PendingEvents}
      */
-    #pendingEventListeners: Events = {};
+    #pendingEventListeners: PendingEvents = {};
 
     /**
      * The object that needs Google maps. This should be the name of the object that extends this class.
@@ -134,20 +158,19 @@ export class Evented extends Base {
      *
      * @param {string} [event] The event type
      * @param {EventCallback} [callback] The event listener function
-     * @param {EventOptions} [options] The options object or a boolean to indicate if the event should be captured
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    #addPendingEventListener(event: string, callback: EventCallback, options?: EventOptions, context?: object) {
+    #addPendingEventListener(event: string, callback: EventCallback, config?: EventConfig) {
         if (!this.#pendingEventListeners[event]) {
             this.#pendingEventListeners[event] = [];
         }
-        this.#pendingEventListeners[event].push({ callback, options, context });
+        this.#pendingEventListeners[event].push({ callback, config });
 
         if (!this.#isOnLoadEventSet) {
             loader().once('map_loaded', () => {
                 Object.keys(this.#pendingEventListeners).forEach((type) => {
                     this.#pendingEventListeners[type].forEach((evt) => {
-                        this.on(type, evt.callback, evt.options, evt.context);
+                        this.on(type, evt.callback, evt.config);
                     });
                 });
                 this.#pendingEventListeners = {};
@@ -164,6 +187,8 @@ export class Evented extends Base {
      * @returns {Evented}
      */
     dispatch(event: string, data?: any): Evented {
+        this.#eventsCalled[event] = true;
+
         if (!this.hasListener(event)) {
             return this;
         }
@@ -199,7 +224,7 @@ export class Evented extends Base {
                 }
             }
 
-            const listenersToRemove: EventData[] = [];
+            const listenersToRemove: EventListenerData[] = [];
             // Call the callback functions
             listeners.forEach((listener) => {
                 listener.callback.call(listener.context || this, eventData);
@@ -256,9 +281,9 @@ export class Evented extends Base {
      *
      * @param {string} [type] The event type
      * @param {EventCallback} [callback] The callback function to include when finding the event to remove
-     * @param {EventOptions} [options] The options to use when finding the event to remove
+     * @param {EventListenerOptions} [options] The options to use when finding the event to remove
      */
-    off(type?: string, callback?: EventCallback, options?: EventOptions): void {
+    off(type?: string, callback?: EventCallback, options?: EventListenerOptions): void {
         if (isString(type)) {
             if (this.#eventListeners[type]) {
                 if (isFunction(callback)) {
@@ -304,31 +329,82 @@ export class Evented extends Base {
      *
      * @param {string} type The event type
      * @param {Function} callback The event listener callback function
-     * @param {EventOptions} [options] The options object
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
-        this.#on(type, callback, options, context);
+    on(type: string, callback: EventCallback, config?: EventConfig): void {
+        this.#on(type, callback, config);
+    }
+
+    /**
+     * Add an event listener to the object. It will be called immediately if the event has already been dispatched.
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onImmediate(type: string, callback: EventCallback, config?: EventConfig): void {
+        const eventConfig = isObject(config) ? config : {};
+        eventConfig.callImmediate = true;
+        this.#on(type, callback, eventConfig);
     }
 
     /**
      * Add an event listener to the object
      *
+     * config:
+     * - context: object - The context to bind the callback function to
+     * - once: boolean - If true then the event listener will only be called once
+     * - callImmediate: boolean - If true then the event listener will be called immediately if the event has already been dispatched
+     *
      * @param {string} type The event type
      * @param {Function} callback The event listener callback function
-     * @param {EventOptions} [options] The options object
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    #on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
-        if (!this.#eventListeners[type]) {
-            this.#eventListeners[type] = [];
+    #on(type: string, callback: EventCallback, config?: EventConfig): void {
+        let addListener = true;
+
+        const listenerOptions: EventListenerOptions = {};
+        // The context to bind the callback function to
+        let context: object;
+
+        // If the config object set then process it.
+        if (isObjectWithValues(config)) {
+            // Set up the options for the native event listener
+            if (typeof config.once === 'boolean' && config.once === true) {
+                listenerOptions.once = true;
+            }
+
+            // Set up the context to bind the callback function to
+            if (config.context) {
+                context = config.context;
+                if (context === this) {
+                    // If the context is the same as the object, then set it to undefined to reduce memory footprint.
+                    context = undefined;
+                }
+            }
+
+            // Check if the event should be called immediately if the even type has already been dispatched
+            if (typeof config.callImmediate === 'boolean' && config.callImmediate === true) {
+                if (typeof this.#eventsCalled[type] !== 'undefined') {
+                    if (typeof config.once === 'boolean' && config.once === true) {
+                        // This is an event that should only be called once so remove the listener.
+                        // If the event is not a "once" event then it's ok to add the listener.
+                        addListener = false;
+                    }
+                    if (isFunction(callback)) {
+                        callback.call(context || this);
+                    }
+                }
+            }
         }
-        let callbackContext = context;
-        if (callbackContext === this) {
-            // If the context is the same as the object then set it to undefined to reduce memory footprint.
-            callbackContext = undefined;
+
+        if (addListener) {
+            if (!this.#eventListeners[type]) {
+                this.#eventListeners[type] = [];
+            }
+
+            this.#eventListeners[type].push({ callback, context, options: listenerOptions });
         }
-        this.#eventListeners[type].push({ callback, context: callbackContext, options });
     }
 
     /**
@@ -336,10 +412,26 @@ export class Evented extends Base {
      *
      * @param {string} type The event type
      * @param {EventCallback} [callback] The event listener callback function
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    once(type: string, callback?: EventCallback, context?: object): void {
-        this.on(type, callback, { once: true }, context);
+    once(type: string, callback?: EventCallback, config?: EventConfig): void {
+        const eventConfig = isObject(config) ? config : {};
+        eventConfig.once = true;
+        this.on(type, callback, eventConfig);
+    }
+
+    /**
+     * Sets up an event listener that will only be called once. It will be called immediately if the event has already been dispatched.
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onceImmediate(type: string, callback?: EventCallback, config?: EventConfig): void {
+        const eventConfig = isObject(config) ? config : {};
+        eventConfig.once = true;
+        eventConfig.callImmediate = true;
+        this.on(type, callback, eventConfig);
     }
 
     /**
@@ -353,14 +445,13 @@ export class Evented extends Base {
      * @internal
      * @param {string} type The event type
      * @param {EventCallback} callback The event listener callback function
-     * @param {EventOptions} options The options for the event listener
-     * @param {object} context The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    setupEventListener(type: string, callback: EventCallback, options: EventOptions, context: object): void {
+    setupEventListener(type: string, callback: EventCallback, config: EventConfig): void {
         if (isFunction(callback)) {
             if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                 const hasEvent = Array.isArray(this.#eventListeners[type]);
-                this.#on(type, callback, options, context);
+                this.#on(type, callback, config);
                 if (!hasEvent && this.#googleObject instanceof google.maps.MVCObject) {
                     // The Google maps object is set and the event listener is not already set up on it.
                     this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
@@ -368,7 +459,7 @@ export class Evented extends Base {
                     });
                 }
             } else {
-                this.#addPendingEventListener(type, callback, options, context);
+                this.#addPendingEventListener(type, callback, config);
             }
         } else {
             throw new Error(`The "${type}" event handler needs a callback function`);

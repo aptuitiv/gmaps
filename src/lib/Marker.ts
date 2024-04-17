@@ -9,7 +9,7 @@
 
 /* global google */
 
-import { EventCallback, EventOptions } from './Evented';
+import { EventCallback, EventConfig } from './Evented';
 import { icon, Icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
@@ -298,15 +298,14 @@ export class Marker extends Layer {
     }
 
     /**
-     * Add an event listener to the object
+     * Add an event listener to the Google maps object
      *
      * @param {string} type The event type
-     * @param {EventCallback} callback The event listener function
-     * @param {EventOptions} [options] The event listener options
-     * @param {object} [context] The context to bind the callback function to
+     * @param {Function} callback The event listener function
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
-        this.setupEventListener(type, callback, options, context);
+    on(type: string, callback: EventCallback, config?: EventConfig): void {
+        this.setupEventListener(type, callback, config);
     }
 
     /**

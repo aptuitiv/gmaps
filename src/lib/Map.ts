@@ -29,7 +29,7 @@ import {
     isStringWithValue,
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
-import { Evented, EventCallback, EventOptions } from './Evented';
+import { Evented, EventCallback, EventConfig } from './Evented';
 
 // The options that will be passed to the Google Maps map object
 type GMMapOptions = {
@@ -472,15 +472,14 @@ export class Map extends Evented {
     }
 
     /**
-     * Add an event listener to the object
+     * Add an event listener to the Google maps object
      *
      * @param {string} type The event type
      * @param {Function} callback The event listener function
-     * @param {EventOptions} [options] The event listener options
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void {
-        this.setupEventListener(type, callback, options, context);
+    on(type: string, callback: EventCallback, config?: EventConfig): void {
+        this.setupEventListener(type, callback, config);
     }
 
     /**
