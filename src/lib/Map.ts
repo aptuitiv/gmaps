@@ -223,9 +223,9 @@ export class Map extends Evented {
      * Alias to show()
      *
      * @param {Function} callback The callback function to call after the map loads
-     * @returns {Promise<void>}
+     * @returns {Promise<Map>}
      */
-    display(callback?: () => void): Promise<void> {
+    display(callback?: () => void): Promise<Map> {
         return this.show(callback);
     }
 
@@ -269,7 +269,7 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    init(callback?: () => void): Promise<void> {
+    init(callback?: () => void): Promise<Map> {
         return new Promise((resolve) => {
             if (!this.#isInitialized && !this.#isVisible) {
                 // The map has not been initialized or displayed
@@ -278,18 +278,18 @@ export class Map extends Evented {
                     this.#isInitializing = true;
                     this.#load(() => {
                         callCallback(callback);
-                        resolve();
+                        resolve(this);
                     });
                 } else {
                     // The map is initializing, so wait for it to finish
                     this.onceImmediate('visible', () => {
                         callCallback(callback);
-                        resolve();
+                        resolve(this);
                     });
                 }
             } else {
                 callCallback(callback);
-                resolve();
+                resolve(this);
             }
         });
     }
@@ -380,7 +380,7 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    load(callback?: () => void): Promise<void> {
+    load(callback?: () => void): Promise<Map> {
         return this.init(callback);
     }
 
@@ -590,17 +590,17 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    show(callback?: () => void): Promise<void> {
+    show(callback?: () => void): Promise<Map> {
         return new Promise((resolve) => {
             if (checkForGoogleMaps('Map', 'Map', false)) {
                 // The map library is loaded and this can be shown
                 this.#showMap(callback);
-                resolve();
+                resolve(this);
             } else {
                 // Wait for the loader to dispatch it's "load" event
                 loader().once('load', () => {
                     this.#showMap(callback);
-                    resolve();
+                    resolve(this);
                 });
             }
         });
