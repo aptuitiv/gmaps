@@ -335,11 +335,9 @@ const tooltipMixin = {
      *
      * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
      * @param {'click' | 'clickon' | 'hover'} event The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
-     * @returns {this}
      */
     attachTooltip(tooltipValue: TooltipValue, event: 'click' | 'clickon' | 'hover' = 'hover') {
         tooltip(tooltipValue).attachTo(this, event);
-        return this;
     },
 };
 
