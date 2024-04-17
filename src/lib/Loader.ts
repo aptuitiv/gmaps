@@ -230,7 +230,13 @@ export class Loader extends EventTarget {
                         }
                         this.#loader
                             .importLibrary('maps')
-                            .then(() => {
+                            .then(async () => {
+                                // Make sure that the advanced marker library is loaded. If its set in the libraries array, it will be loaded by the
+                                // Google maps loader. But, it may not be loaded by the time we need it. So, we will load it here.
+                                // It would be better if the Google maps loader could load multiple libraries at once or there was a way to wait for multiple libraries to load.
+                                if (this.#libraries.includes('marker')) {
+                                    await google.maps.importLibrary('marker');
+                                }
                                 this.#isLoaded = true;
                                 callCallback(callback);
                                 this.dispatch('load');
