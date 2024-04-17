@@ -14,6 +14,7 @@
     https://stackoverflow.com/questions/77044160/google-maps-javascript-api-draggable-markers-dont-trigger-neither-click-nor
     https://stackoverflow.com/questions/76860379/google-maps-advancedmarker-hover-listener-function-not-working
 
+    https://developers.google.com/maps/documentation/javascript/advanced-markers/migration
     https://developers.google.com/maps/documentation/javascript/reference/advanced-markers
 
 =========================================================================== */
