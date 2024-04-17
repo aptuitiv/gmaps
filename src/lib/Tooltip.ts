@@ -304,7 +304,7 @@ export class Tooltip extends Overlay {
             }
 
             if (this.getOverlayElement().style.display !== display) {
-                this.getOverlayElement().style.display = display;
+                this.style('display', display);
             }
         }
     }
