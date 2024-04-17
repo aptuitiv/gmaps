@@ -1530,9 +1530,12 @@ type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
 
 type PopupOptions = {
     autoClose?: boolean;
+    center?: boolean;
     className?: string;
     content: string | HTMLElement | Text;
     offset?: PointValue;
+    styles?: object;
+    theme?: string;
 };
 /**
  * Popup class
@@ -1558,6 +1561,18 @@ declare class Popup extends Overlay {
      */
     set autoClose(autoClose: boolean);
     /**
+     * Returns whether to center the popup horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean;
+    /**
+     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
+     *
+     * @param {boolean} center Whether to center the popup on the element
+     */
+    set center(center: boolean);
+    /**
      * Returns the content for the popup
      *
      * @returns {string|HTMLElement|Text}
@@ -1569,6 +1584,18 @@ declare class Popup extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the popup
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the theme to use for the popup
+     *
+     * @returns {string}
+     */
+    get theme(): string;
+    /**
+     * Set the theme to use for the popup
+     *
+     * @param {string} theme The theme to use for the popup
+     */
+    set theme(theme: string);
     /**
      * Attach the popup to a element
      *
@@ -1591,6 +1618,12 @@ declare class Popup extends Overlay {
      */
     close(): Popup;
     /**
+     * Returns whether the popup already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
      * Hide the popup
      *
      * @returns {Popup}
@@ -1612,19 +1645,19 @@ declare class Popup extends Overlay {
      */
     open(element: Map | Layer): Promise<Popup>;
     /**
-     * Sets the options for the popup
-     *
-     * @param {PopupOptions} options Popup options
-     * @returns {Popup}
-     */
-    setOptions(options: PopupOptions): Popup;
-    /**
      * Set the Popup content
      *
      * @param {string | HTMLElement | Text} content The Popup content
      * @returns {Popup}
      */
     setContent(content: string | HTMLElement | Text): Popup;
+    /**
+     * Sets the options for the popup
+     *
+     * @param {PopupOptions} options Popup options
+     * @returns {Popup}
+     */
+    setOptions(options: PopupOptions): Popup;
     /**
      * Open the popup
      *
@@ -2521,6 +2554,12 @@ declare class InfoWindow extends Layer {
      * @returns {InfoWindow}
      */
     close(): InfoWindow;
+    /**
+     * Returns whether the InfoWindow already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
     /**
      * Hide the info window
      *
