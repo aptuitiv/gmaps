@@ -219,6 +219,17 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns whether the popup already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean {
+        return (
+            isStringWithValue(this.#content) || this.#content instanceof HTMLElement || this.#content instanceof Text
+        );
+    }
+
+    /**
      * Hide the popup
      *
      * @returns {Popup}

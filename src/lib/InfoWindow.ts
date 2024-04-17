@@ -403,6 +403,20 @@ export class InfoWindow extends Layer {
     }
 
     /**
+     * Returns whether the InfoWindow already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean {
+        return (
+            typeof this.#options.content !== 'undefined' &&
+            (isStringWithValue(this.#options.content) ||
+                this.#options.content instanceof HTMLElement ||
+                this.#options.content instanceof Text)
+        );
+    }
+
+    /**
      * Hide the info window
      *
      * @returns {InfoWindow}
