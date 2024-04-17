@@ -17,6 +17,8 @@ import { isObject, isString, isStringWithValue } from './helpers';
 export type PopupOptions = {
     // Whether to automatically hide other open popups when opening this one
     autoClose?: boolean;
+    // Whether to center the popup horizontally on the element. Useful if the popup is on a marker. Defaults to true.
+    center?: boolean;
     // The popup wrapper class name
     className?: string;
     // The popup content
@@ -28,6 +30,11 @@ export type PopupOptions = {
     // 0, -20 then the popup will be displayed 20px above the top of the marker.
     // If the element is a marker and this is not set, then the marker's anchorPoint value is used.
     offset?: PointValue;
+    // Styles that will be set on the popup container div.
+    styles?: object;
+    // A build-in theme to assign to the popup. By default the popup has a default theme. Set to 'none' to remove the theme.
+    // 'default' | 'none'
+    theme?: string;
 };
 
 /**
@@ -41,6 +48,14 @@ export class Popup extends Overlay {
      * @type {boolean}
      */
     #autoClose: boolean = true;
+
+    /**
+     * Whether to center the popup on the element. Useful if the popup is on a marker.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #center: boolean = true;
 
     /**
      * Holds the popup content.
@@ -67,6 +82,14 @@ export class Popup extends Overlay {
      * @type {Point}
      */
     #popupOffset: Point;
+
+    /**
+     * The theme to use for the popup.
+     *
+     * @private
+     * @type {string}
+     */
+    #theme: string = 'default';
 
     /**
      * Whether clicking the thing that triggered the popup to show should also hide the popup
@@ -120,6 +143,26 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns whether to center the popup horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean {
+        return this.#center;
+    }
+
+    /**
+     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
+     *
+     * @param {boolean} center Whether to center the popup on the element
+     */
+    set center(center: boolean) {
+        if (typeof center === 'boolean') {
+            this.#center = center;
+        }
+    }
+
+    /**
      * Returns the content for the popup
      *
      * @returns {string|HTMLElement|Text}
@@ -146,6 +189,24 @@ export class Popup extends Overlay {
             // Append the content as the first child
             this.getOverlayElement().appendChild(content);
         }
+    }
+
+    /**
+     * Returns the theme to use for the popup
+     *
+     * @returns {string}
+     */
+    get theme(): string {
+        return this.#theme;
+    }
+
+    /**
+     * Set the theme to use for the popup
+     *
+     * @param {string} theme The theme to use for the popup
+     */
+    set theme(theme: string) {
+        this.#theme = theme;
     }
 
     /**
@@ -287,6 +348,9 @@ export class Popup extends Overlay {
         if (typeof options.autoClose === 'boolean') {
             this.autoClose = options.autoClose;
         }
+        if (typeof options.center === 'boolean') {
+            this.center = options.center;
+        }
         if (isString(options.className)) {
             this.setClassName(options.className);
         }
@@ -295,6 +359,12 @@ export class Popup extends Overlay {
         }
         if (typeof options.offset !== 'undefined') {
             this.setOffset(options.offset);
+        }
+        if (options.styles) {
+            this.styles = options.styles;
+        }
+        if (options.theme) {
+            this.theme = options.theme;
         }
 
         return this;
@@ -399,12 +469,28 @@ export class Popup extends Overlay {
             const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
             if (display === 'block') {
-                this.getOverlayElement().style.left = `${divPosition.x + this.#popupOffset.getX()}px`;
-                this.getOverlayElement().style.top = `${divPosition.y + this.#popupOffset.getY()}px`;
+                this.style('left', `${divPosition.x + this.#popupOffset.getX()}px`);
+                this.style('top', `${divPosition.y + this.#popupOffset.getY()}px`);
+            }
+
+            if (this.center) {
+                // Center the tooltip horizontally on the element
+                this.style('transform', 'translate(-50%, 0)');
+            }
+            if (this.#theme === 'default') {
+                const styles = this.styles || {};
+                const themeStyles = {
+                    backgroundColor: '#fff',
+                    color: '#333',
+                    padding: '3px 6px',
+                    borderRadius: '4px',
+                    boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+                };
+                this.styles = { ...themeStyles, ...styles };
             }
 
             if (this.getOverlayElement().style.display !== display) {
-                this.getOverlayElement().style.display = display;
+                this.style('display', display);
             }
         }
     }
