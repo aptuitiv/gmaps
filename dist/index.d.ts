@@ -420,7 +420,12 @@ type Event = {
     type: string;
 };
 type EventCallback = (event: Event) => void;
-type EventOptions = {
+type EventConfig = {
+    callImmediate?: boolean;
+    context?: object;
+    once?: boolean;
+};
+type EventListenerOptions = {
     once?: boolean;
 };
 /**
@@ -469,9 +474,9 @@ declare class Evented extends Base {
      *
      * @param {string} [type] The event type
      * @param {EventCallback} [callback] The callback function to include when finding the event to remove
-     * @param {EventOptions} [options] The options to use when finding the event to remove
+     * @param {EventListenerOptions} [options] The options to use when finding the event to remove
      */
-    off(type?: string, callback?: EventCallback, options?: EventOptions): void;
+    off(type?: string, callback?: EventCallback, options?: EventListenerOptions): void;
     /**
      * Removes all event listeners
      */
@@ -481,18 +486,33 @@ declare class Evented extends Base {
      *
      * @param {string} type The event type
      * @param {Function} callback The event listener callback function
-     * @param {EventOptions} [options] The options object
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void;
+    on(type: string, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Add an event listener to the object. It will be called immediately if the event has already been dispatched.
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onImmediate(type: string, callback: EventCallback, config?: EventConfig): void;
     /**
      * Sets up an event listener that will only be called once
      *
      * @param {string} type The event type
      * @param {EventCallback} [callback] The event listener callback function
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    once(type: string, callback?: EventCallback, context?: object): void;
+    once(type: string, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * Sets up an event listener that will only be called once. It will be called immediately if the event has already been dispatched.
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onceImmediate(type: string, callback?: EventCallback, config?: EventConfig): void;
     /**
      * Sets up the event listener on the Google maps object.
      *
@@ -504,10 +524,9 @@ declare class Evented extends Base {
      * @internal
      * @param {string} type The event type
      * @param {EventCallback} callback The event listener callback function
-     * @param {EventOptions} options The options for the event listener
-     * @param {object} context The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    setupEventListener(type: string, callback: EventCallback, options: EventOptions, context: object): void;
+    setupEventListener(type: string, callback: EventCallback, config: EventConfig): void;
     /**
      * Set the Google maps MVC object
      *
@@ -813,14 +832,13 @@ declare class Map extends Evented {
      */
     locate(options?: LocateOptions | LocationOnSuccess, onSuccess?: LocationOnSuccess): Map;
     /**
-     * Add an event listener to the object
+     * Add an event listener to the Google maps object
      *
      * @param {string} type The event type
      * @param {Function} callback The event listener function
-     * @param {EventOptions} [options] The event listener options
-     * @param {object} [context] The context to bind the callback function to
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void;
+    on(type: string, callback: EventCallback, config?: EventConfig): void;
     /**
      * Set the API key
      *
@@ -1047,6 +1065,17 @@ declare class Overlay extends Layer {
      */
     hide(): Overlay;
     /**
+     * Moves the overlay to a new position.
+     *
+     * If the overlay is not visible, it will be shown.
+     * If it's already visible on the map, it will be moved to the new position.
+     *
+     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {Map} [map] The Map object
+     * @returns {Promise<Overlay>}
+     */
+    move(position: LatLngValue, map?: Map): Promise<Overlay>;
+    /**
      * Removes a class name from the overlay element
      *
      * @param {string} className The class name to remove from the overlay element
@@ -1116,9 +1145,9 @@ declare class Overlay extends Layer {
      * Toggle the display of the overlay on the map
      *
      * @param {Map} map The map object
-     * @returns {Overlay}
+     * @returns {void}
      */
-    toggle(map: Map): Overlay;
+    toggle(map: Map): void;
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -1208,14 +1237,14 @@ declare class Tooltip extends Overlay {
     /**
      * Attach the tooltip to a element
      *
-     * The tooltip will be shown when hovering over the element.
+     * By default the tooltip will be shown when hovering over the element.
      *
      * @param {Map | Layer} element The element to attach the tooltip to
      * @param {'click'|'clickon'|'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'
      *   - 'click' - Toggle the display of the tooltip when clicking on the element
      *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
      *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
-     * @returns {Tooltip}
+     * @returns {Promise<Tooltip>}
      */
     attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Tooltip>;
     /**
@@ -1499,6 +1528,141 @@ declare class SvgSymbol extends Base {
 }
 type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
 
+type PopupOptions = {
+    autoClose?: boolean;
+    className?: string;
+    content: string | HTMLElement | Text;
+    offset?: PointValue;
+};
+/**
+ * Popup class
+ */
+declare class Popup extends Overlay {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
+     */
+    constructor(options: PopupOptions | string | HTMLElement | Text);
+    /**
+     * Get the autoClose value
+     *
+     * @returns {boolean}
+     */
+    get autoClose(): boolean;
+    /**
+     * Set the autoClose value
+     *
+     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
+     */
+    set autoClose(autoClose: boolean);
+    /**
+     * Returns the content for the popup
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text;
+    /**
+     * Set the content for the popup
+     *
+     * @param {string|HTMLElement|Text} content The content for the popup
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Attach the popup to a element
+     *
+     * By default the popup will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the popup to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
+     *   - 'click' - Toggle the display of the popup when clicking on the element
+     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+     * @returns {Promise<Popup>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup>;
+    /**
+     * Hide the popup
+     *
+     * Alias to hide()
+     *
+     * @returns {Popup}
+     */
+    close(): Popup;
+    /**
+     * Hide the popup
+     *
+     * @returns {Popup}
+     */
+    hide(): Popup;
+    /**
+     * Returns whether the popup is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean;
+    /**
+     * Open the popup
+     *
+     * Alias to show()
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<Popup>}
+     */
+    open(element: Map | Layer): Promise<Popup>;
+    /**
+     * Sets the options for the popup
+     *
+     * @param {PopupOptions} options Popup options
+     * @returns {Popup}
+     */
+    setOptions(options: PopupOptions): Popup;
+    /**
+     * Set the Popup content
+     *
+     * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
+     */
+    setContent(content: string | HTMLElement | Text): Popup;
+    /**
+     * Open the popup
+     *
+     * You need to pass in either an anchor object or a map object.
+     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
+     * If a map object is passed in then the popup will be displayed at the position of the popup.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     *      This should ideally be the Map or Marker object and not the Google maps object.
+     *      If this is used internally then the Google maps object can be used.
+     * @returns {Promise<Popup>}
+     */
+    show(element: Map | Layer): Promise<Popup>;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     */
+    toggle(element: Map | Layer): void;
+    /**
+     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+}
+type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
+
 type SizeObject = {
     height: number | string;
     width: number | string;
@@ -1596,6 +1760,33 @@ declare class Size extends Base {
     toGoogle(): google.maps.Size | null;
 }
 type SizeValue = Size | number | number[] | string | string[] | SizeObject;
+
+type ClusterImage = {
+    height?: number;
+    labelClassName?: string;
+    labelColor?: string;
+    labelFontFamily?: string;
+    labelFontSize?: string | number;
+    labelFontWeight?: string;
+    scaledHeight?: number;
+    scaledSize?: SizeValue;
+    scaledWidth?: number;
+    size?: SizeValue;
+    url: string;
+    width?: number;
+};
+type ClusterImageValue = string | ClusterImage;
+type ClusterImages = {
+    [key: number]: ClusterImageValue;
+};
+
+type ClusterColor = {
+    bgColor: string;
+    textColor: string;
+};
+type ClusterColors = {
+    [key: number]: string | ClusterColor;
+};
 
 type IconOptions = {
     anchor?: PointValue;
@@ -1891,14 +2082,13 @@ declare class Marker extends Layer {
      */
     init(): Promise<void>;
     /**
-     * Add an event listener to the object
+     * Add an event listener to the Google maps object
      *
      * @param {string} type The event type
-     * @param {EventCallback} callback The event listener function
-     * @param {EventOptions} [options] The event listener options
-     * @param {object} [context] The context to bind the callback function to
+     * @param {Function} callback The event listener function
+     * @param {EventConfig} [config] Configuration for the event.
      */
-    on(type: string, callback: EventCallback, options?: EventOptions, context?: object): void;
+    on(type: string, callback: EventCallback, config?: EventConfig): void;
     /**
      * Set the anchor point for the marker
      *
@@ -2066,143 +2256,6 @@ declare class Marker extends Layer {
 }
 type MarkerValue = Marker | MarkerOptions | LatLngValue;
 
-type PopupOptions = {
-    autoHide?: boolean;
-    className?: string;
-    content: string | HTMLElement | Text;
-    offset?: PointValue;
-};
-/**
- * Popup class
- */
-declare class Popup extends Overlay {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {PopupOptions} [options] The Popup options
-     */
-    constructor(options: PopupOptions);
-    /**
-     * Get the autoHide value
-     *
-     * @returns {boolean}
-     */
-    get autoHide(): boolean;
-    /**
-     * Set the autoHide value
-     *
-     * @param {boolean} autoHide Whether to automatically hide other open InfoWindows when opening this one
-     */
-    set autoHide(autoHide: boolean);
-    /**
-     * Returns the content for the tooltip
-     *
-     * @returns {string|HTMLElement|Text}
-     */
-    get content(): string | HTMLElement | Text;
-    /**
-     * Set the content for the tooltip
-     *
-     * @param {string|HTMLElement} content The content for the tooltip
-     */
-    set content(content: string | HTMLElement);
-    /**
-     * Hide the popup
-     *
-     * Alias to hide()
-     *
-     * @returns {Popup}
-     */
-    close(): Popup;
-    /**
-     * Hide the popup
-     *
-     * @returns {Popup}
-     */
-    hide(): Popup;
-    /**
-     * Open the popup
-     *
-     * Alias to show()
-     *
-     * @param {Map | Marker} element The anchor object or map object.
-     * @returns {Promise<Popup>}
-     */
-    open(element: Map | Marker): Promise<Popup>;
-    /**
-     * Sets the options for the popup
-     *
-     * @param {PopupOptions} options Popup options
-     * @returns {Popup}
-     */
-    setOptions(options: PopupOptions): Popup;
-    /**
-     * Set the Popup content
-     *
-     * @param {string | HTMLElement | Text} content The Popup content
-     * @returns {Popup}
-     */
-    setContent(content: string | HTMLElement | Text): Popup;
-    /**
-     * Open the popup
-     *
-     * You need to pass in either an anchor object or a map object.
-     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
-     * If a map object is passed in then the popup will be displayed at the position of the popup.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
-     *
-     * @param {Map | Marker} element The anchor object or map object.
-     *      This should ideally be the Map or Marker object and not the Google maps object.
-     *      If this is used internally then the Google maps object can be used.
-     * @returns {Promise<Popup>}
-     */
-    show(element: Map | Marker): Promise<Popup>;
-    /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-}
-type PopupValue = Popup | PopupOptions;
-
-type ClusterImage = {
-    height?: number;
-    labelClassName?: string;
-    labelColor?: string;
-    labelFontFamily?: string;
-    labelFontSize?: string | number;
-    labelFontWeight?: string;
-    scaledHeight?: number;
-    scaledSize?: SizeValue;
-    scaledWidth?: number;
-    size?: SizeValue;
-    url: string;
-    width?: number;
-};
-type ClusterImageValue = string | ClusterImage;
-type ClusterImages = {
-    [key: number]: ClusterImageValue;
-};
-
-type ClusterColor = {
-    bgColor: string;
-    textColor: string;
-};
-type ClusterColors = {
-    [key: number]: string | ClusterColor;
-};
-
 type LoaderOptions = {
     apiKey?: string;
     libraries?: Libraries;
@@ -2348,9 +2401,9 @@ declare class InfoWindow extends Layer {
     /**
      * Constructor
      *
-     * @param {InfoWindowOptions} [options] The InfoWindow options
+     * @param {InfoWindowOptions | string | HTMLElement | Text} [options] The InfoWindow options
      */
-    constructor(options?: InfoWindowOptions);
+    constructor(options?: InfoWindowOptions | string | HTMLElement | Text);
     /**
      * Get the aria label for the InfoWindow
      *
@@ -2448,6 +2501,19 @@ declare class InfoWindow extends Layer {
      */
     set zIndex(zIndex: number | string);
     /**
+     * Attach the InfoWindow to a element
+     *
+     * By default the InfoWindow will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the InfoWindow to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the InfoWindow. Defaults to 'click'
+     *   - 'click' - Toggle the display of the InfoWindow when clicking on the element
+     *   - 'clickon' - Show the InfoWindow when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
+     * @returns {Promise<InfoWindow>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<InfoWindow>;
+    /**
      * Hide the info window
      *
      * Alias to hide()
@@ -2472,10 +2538,10 @@ declare class InfoWindow extends Layer {
      *
      * Alias to show()
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      * @returns {Promise<InfoWindow>}
      */
-    open(element: Map | Marker): Promise<InfoWindow>;
+    open(element: Map | Layer): Promise<InfoWindow>;
     /**
      * Set the InfoWindow options
      *
@@ -2515,11 +2581,18 @@ declare class InfoWindow extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      *      This should ideally be the Map or Marker object.
      * @returns {Promise<InfoWindow>}
      */
-    show(element: Map | Marker): Promise<InfoWindow>;
+    show(element: Map | Layer): Promise<InfoWindow>;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {void}
+     */
+    toggle(element: Map | Layer): void;
     /**
      * Get the Google maps InfoWindow object
      *
@@ -2529,7 +2602,7 @@ declare class InfoWindow extends Layer {
      */
     toGoogle(): google.maps.InfoWindow;
 }
-type InfoWindowValue = InfoWindow | InfoWindowOptions;
+type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
 
 type DefaultRenderOptions = {
     colorRangeBottom?: string | ClusterColor;
