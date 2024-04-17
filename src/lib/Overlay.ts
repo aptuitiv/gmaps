@@ -372,15 +372,14 @@ class Overlay extends Layer {
      * Toggle the display of the overlay on the map
      *
      * @param {Map} map The map object
-     * @returns {Overlay}
+     * @returns {void}
      */
-    toggle(map: Map): Overlay {
+    toggle(map: Map): void {
         if (this.isVisible) {
             this.hide();
         } else {
             this.show(map);
         }
-        return this;
     }
 
     /**
