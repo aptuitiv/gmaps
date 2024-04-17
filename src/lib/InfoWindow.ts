@@ -117,16 +117,24 @@ export class InfoWindow extends Layer {
     /**
      * Constructor
      *
-     * @param {InfoWindowOptions} [options] The InfoWindow options
+     * @param {InfoWindowOptions | string | HTMLElement | Text} [options] The InfoWindow options
      */
-    constructor(options?: InfoWindowOptions) {
+    constructor(options?: InfoWindowOptions | string | HTMLElement | Text) {
         super('infowindow', 'InfoWindow');
 
         // Set the default pixel offset so that the info window is positioned a little off the element that opened it.
         this.#options.pixelOffset = size(0, -4);
 
         if (isObject(options)) {
-            this.setOptions(options);
+            if (options instanceof HTMLElement || options instanceof Text) {
+                // The popup contents were passed
+                this.content = options;
+            } else {
+                this.setOptions(options);
+            }
+        } else {
+            // The popup contents were passed
+            this.content = options;
         }
     }
 
@@ -590,7 +598,7 @@ export class InfoWindow extends Layer {
     }
 }
 
-export type InfoWindowValue = InfoWindow | InfoWindowOptions;
+export type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
 
 /**
  * Helper function to set up the InfoWindow class
