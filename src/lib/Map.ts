@@ -34,6 +34,7 @@ import { Evented, EventCallback, EventConfig } from './Evented';
 // The options that will be passed to the Google Maps map object
 type GMMapOptions = {
     center?: LatLng;
+    mapId?: string;
     zoom?: number;
 };
 
@@ -54,6 +55,9 @@ export type MapOptions = GMMapOptions & {
     // The longitude for the center point of the map
     lng: number | string;
     longitude: number | string;
+    // The Google Maps identifier for the map.
+    // See https://developers.google.com/maps/documentation/get-map-id
+    mapId?: string;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
@@ -299,7 +303,7 @@ export class Map extends Evented {
     #getMapOptions(): google.maps.MapOptions {
         const mapOptions: google.maps.MapOptions = {};
         // Options that can be set on the marker without any modification
-        const optionsToSet = ['zoom'];
+        const optionsToSet = ['mapId', 'zoom'];
         optionsToSet.forEach((key) => {
             if (typeof this.#options[key] !== 'undefined') {
                 mapOptions[key] = this.#options[key];
@@ -546,6 +550,10 @@ export class Map extends Evented {
             }
             if (center.isValid()) {
                 this.#options.center = center;
+            }
+            if (isStringWithValue(options.mapId)) {
+                // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
+                this.#options.mapId = options.mapId;
             }
 
             // Set the zoom level for the map
