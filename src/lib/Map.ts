@@ -278,7 +278,7 @@ export class Map extends Evented {
                     });
                 } else {
                     // The map is initializing, so wait for it to finish
-                    this.once('visible', () => {
+                    this.onceImmediate('visible', () => {
                         callCallback(callback);
                         resolve();
                     });
