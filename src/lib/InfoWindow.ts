@@ -516,6 +516,20 @@ export class InfoWindow extends Layer {
     }
 
     /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {void}
+     */
+    toggle(element: Map | Layer): void {
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show(element);
+        }
+    }
+
+    /**
      * Get the Google maps InfoWindow object
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
