@@ -12,7 +12,7 @@ import { Map } from './Map';
 import { Marker } from './Marker';
 import Overlay from './Overlay';
 import { point, Point, PointValue } from './Point';
-import { isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
+import { isObject, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
     // Whether to automatically hide other open popups when opening this one
@@ -341,7 +341,7 @@ export class Popup extends Overlay {
                         } else {
                             this.#popupOffset = this.getOffset().clone();
                         }
-                        // Set the map value to display the popup and call the add() and draw() functions.
+                        // Set the element value to display the popup and call the add() and draw() functions.
                         super.show(element.getMap()).then(() => {
                             resolve(this);
                         });
@@ -417,40 +417,23 @@ export const popup = (options?: PopupValue): Popup => {
     return new Popup(options);
 };
 
-/**
- * To avoid circular dependencies we need to add the attachPopup method to the Layer class here
- */
-Layer.include({
-    /**
-     * Holds the Popup object
-     *
-     * @type {Popup}
-     */
-    layerPopup: null,
+// Set up the mixing for attaching the popup to other elements.
+const popupMixin = {
     /**
      *
-     * @param {string | HTMLElement | Text | PopupValue} content The content for the Popup, or the Popup options object, or the Popup object
-     * @param {PopupOptions} [options] The Popup options object
+     * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
+     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      */
-    attachPopup(content: string | HTMLElement | Text | PopupValue, options?: PopupOptions) {
-        if (content instanceof Popup) {
-            this.layerPopup = content;
-        } else if (isString(content) || content instanceof HTMLElement || content instanceof Text) {
-            this.layerPopup = popup();
-            this.layerPopup.setContent(content);
-        } else if (isObjectWithValues(content)) {
-            this.layerPopup = popup(content);
-        }
-        if (isObjectWithValues(options)) {
-            this.layerPopup.setOptions(options);
-        }
-        this.on('click', () => {
-            if (this.layerPopup) {
-                this.layerPopup.show(this);
-            }
-        });
+    attachPopup(popupValue: PopupValue, event: 'click' | 'clickon' | 'hover' = 'click') {
+        popup(popupValue).attachTo(this, event);
     },
-});
+};
+
+/**
+ * To avoid circular dependencies we need to add the attachPopup method to the Layer and Map classes here
+ */
+Layer.include(popupMixin);
+Map.include(popupMixin);
 
 type PopupCollectionObject = {
     popups: Popup[];
