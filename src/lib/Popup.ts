@@ -43,7 +43,7 @@ export class Popup extends Overlay {
     #autoClose: boolean = true;
 
     /**
-     * Holds the tooltip content.
+     * Holds the popup content.
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
      *
      * @private
@@ -79,14 +79,23 @@ export class Popup extends Overlay {
     /**
      * Constructor
      *
-     * @param {PopupOptions} [options] The Popup options
+     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
      */
-    constructor(options: PopupOptions) {
+    constructor(options: PopupOptions | string | HTMLElement | Text) {
         super('popup', 'Popup');
 
         this.#popupOffset = point(0, 0);
+
         if (isObject(options)) {
-            this.setOptions(options);
+            if (options instanceof HTMLElement || options instanceof Text) {
+                // The popup contents were passed
+                this.content = options;
+            } else {
+                this.setOptions(options);
+            }
+        } else {
+            // The popup contents were passed
+            this.content = options;
         }
     }
 
@@ -111,7 +120,7 @@ export class Popup extends Overlay {
     }
 
     /**
-     * Returns the content for the tooltip
+     * Returns the content for the popup
      *
      * @returns {string|HTMLElement|Text}
      */
@@ -120,19 +129,82 @@ export class Popup extends Overlay {
     }
 
     /**
-     * Set the content for the tooltip
+     * Set the content for the popup
      *
-     * @param {string|HTMLElement} content The content for the tooltip
+     * @param {string|HTMLElement|Text} content The content for the popup
      */
-    set content(content: string | HTMLElement) {
+    set content(content: string | HTMLElement | Text) {
         if (isStringWithValue(content)) {
             this.#content = content;
             this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof HTMLElement) {
+        } else if (content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
             this.getOverlayElement().innerHTML = '';
             this.getOverlayElement().appendChild(content);
         }
+    }
+
+    /**
+     * Attach the popup to a element
+     *
+     * By default the popup will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the popup to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
+     *   - 'click' - Toggle the display of the popup when clicking on the element
+     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+     * @returns {Promise<Popup>}
+     */
+    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<Popup> {
+        await element.init().then(() => {
+            if (event === 'clickon' || event === 'hover') {
+                // Don't toggle the display of the InfoWindow for the clickon and hover events.
+                // If it's toggled for hover then it'll appear like it's flickering.
+                // If it's toggled with clickon then it will behave like "click" and hide on the second click.
+                this.#toggleDisplay = false;
+            }
+
+            // Show the popup when hovering over the element
+            if (event === 'hover') {
+                element.on('mouseover', (e) => {
+                    if (element instanceof Map) {
+                        this.move(e.latLng, element);
+                    } else {
+                        this.show(element);
+                    }
+                });
+                element.on('mousemove', (e) => {
+                    if (element instanceof Map) {
+                        this.move(e.latLng, element);
+                    } else {
+                        this.show(element);
+                    }
+                });
+                element.on('mouseout', () => {
+                    this.hide();
+                });
+            } else if (event === 'clickon') {
+                // Show the popup when clicking on the element
+                element.on('click', (e) => {
+                    if (element instanceof Map) {
+                        this.move(e.latLng, element);
+                    } else {
+                        this.show(element);
+                    }
+                });
+            } else {
+                // Show the popup when clicking on the element
+                element.on('click', (e) => {
+                    if (element instanceof Map) {
+                        this.position = e.latLng;
+                    }
+                    this.toggle(element);
+                });
+            }
+        });
+
+        return this;
     }
 
     /**
@@ -317,7 +389,7 @@ export class Popup extends Overlay {
     }
 }
 
-export type PopupValue = Popup | PopupOptions;
+export type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
 
 /**
  * Helper function to set up the Popup class
