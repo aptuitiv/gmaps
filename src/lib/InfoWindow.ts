@@ -383,10 +383,10 @@ export class InfoWindow extends Layer {
      *
      * Alias to show()
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      * @returns {Promise<InfoWindow>}
      */
-    open(element: Map | Marker): Promise<InfoWindow> {
+    open(element: Map | Layer): Promise<InfoWindow> {
         return this.show(element);
     }
 
@@ -480,11 +480,11 @@ export class InfoWindow extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      *      This should ideally be the Map or Marker object.
      * @returns {Promise<InfoWindow>}
      */
-    show(element: Map | Marker): Promise<InfoWindow> {
+    show(element: Map | Layer): Promise<InfoWindow> {
         return new Promise((resolve) => {
             this.#setupGoogleInfoWindow();
             const collection = InfoWindowCollection.getInstance();
