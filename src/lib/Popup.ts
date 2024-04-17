@@ -244,10 +244,10 @@ export class Popup extends Overlay {
      *
      * Alias to show()
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      * @returns {Promise<Popup>}
      */
-    open(element: Map | Marker): Promise<Popup> {
+    open(element: Map | Layer): Promise<Popup> {
         return this.show(element);
     }
 
@@ -301,12 +301,12 @@ export class Popup extends Overlay {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
      *
-     * @param {Map | Marker} element The anchor object or map object.
+     * @param {Map | Layer} element The anchor object or map object.
      *      This should ideally be the Map or Marker object and not the Google maps object.
      *      If this is used internally then the Google maps object can be used.
      * @returns {Promise<Popup>}
      */
-    show(element: Map | Marker): Promise<Popup> {
+    show(element: Map | Layer): Promise<Popup> {
         return new Promise((resolve) => {
             const collection = PopupCollection.getInstance();
             if (collection.has(this) && this.#isOpen) {
