@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 (April 17, 2024)
+
+- Updated how popups and InfoWindows can be attached to elements.
+- Added default styles to popup.
+- Updated Evented to support running an event callback immediately if the event has already been dispatched.
+- Updated Evented method signatures for setting up events to use a configuration object for some parameters.
+- Added Overlay `move()` method.
+
 ## 0.4.0 (April 11, 2024)
 
 - Updated build process to build a separate browser Javascript file from the node Javascript files.
