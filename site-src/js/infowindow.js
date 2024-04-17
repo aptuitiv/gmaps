@@ -38,7 +38,7 @@ const mapInfoWindow = G.infoWindow({
     content: 'This is a test on the map',
     minWidth: 300
 });
-map.attachInfoWindow(mapInfoWindow);
+map.attachInfoWindow(mapInfoWindow, 'hover');
 
 // map.on('click', (e) => {
 //     console.log('clicking: ', e);
