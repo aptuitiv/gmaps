@@ -244,6 +244,41 @@ class Overlay extends Layer {
     }
 
     /**
+     * Moves the overlay to a new position.
+     *
+     * If the overlay is not visible, it will be shown.
+     * If it's already visible on the map, it will be moved to the new position.
+     *
+     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {Map} [map] The Map object
+     * @returns {Promise<Overlay>}
+     */
+    move(position: LatLngValue, map?: Map): Promise<Overlay> {
+        return new Promise((resolve, reject) => {
+            let mapObject = map;
+            if (typeof mapObject === 'undefined') {
+                mapObject = this.getMap();
+            }
+            this.position = position;
+            if (mapObject instanceof Map) {
+                if (this.#overlayView) {
+                    this.#overlayView.setMap(mapObject.toGoogle());
+                    this.isVisible = true;
+                    super.setMap(mapObject);
+                    this.draw(this.#overlayView.getProjection());
+                    resolve(this);
+                } else {
+                    this.show(mapObject).then(() => {
+                        resolve(this);
+                    });
+                }
+            } else {
+                reject(new Error('Map object is not set'));
+            }
+        });
+    }
+
+    /**
      * Removes a class name from the overlay element
      *
      * @param {string} className The class name to remove from the overlay element
