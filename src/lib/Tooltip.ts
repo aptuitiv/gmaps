@@ -26,7 +26,7 @@ type TooltipOptions = {
     offset?: PointValue;
     // The latitude/longitude position for the tooltip
     position?: LatLngValue;
-    // Styles that can be
+    // Styles that will be set on the tooltip container div.
     styles?: object;
     // A build-in theme to assign to the tooltip. By default the tooltip has a default theme. Set to 'none' to remove the theme.
     // 'default' | 'none'
