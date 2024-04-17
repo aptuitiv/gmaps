@@ -352,7 +352,20 @@ export class Popup extends Overlay {
     }
 
     /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     */
+    toggle(element: Map | Layer): void {
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show(element);
+        }
+    }
+
+    /**
+     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
      *
      * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
