@@ -338,6 +338,9 @@ export class Polyline extends Layer {
             if (isNumberOrNumberString(options.strokeWeight)) {
                 this.strokeWeight = options.strokeWeight;
             }
+            if (typeof options.visible === 'boolean') {
+                this.visible = options.visible;
+            }
             if (isNumberOrNumberString(options.zIndex)) {
                 this.zIndex = options.zIndex;
             }
