@@ -25,6 +25,8 @@ import {
 export type PolylineOptions = {
     // Whether the polyline handles click events. Defaults to true.
     clickable?: boolean;
+    // The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline.
+    highlightPolyline?: PolylineOptions | Polyline; // eslint-disable-line no-use-before-define
     // The map to add the polyline to.
     map?: Map;
     // Array of LatLng values defining the path of the polyline.
@@ -45,6 +47,15 @@ export type PolylineOptions = {
  * Polyline class
  */
 export class Polyline extends Layer {
+    /**
+     * Holds a polyline to show below the existing one to create a "highlight" effect
+     * when the mouse hovers over this polyline.
+     *
+     * @private
+     * @type {Polyline}
+     */
+    #highlightPolyline: Polyline; // eslint-disable-line no-use-before-define
+
     /**
      * Holds the Polyline options
      *
@@ -91,6 +102,86 @@ export class Polyline extends Layer {
     set clickable(value: boolean) {
         if (typeof value === 'boolean') {
             this.#options.clickable = value;
+        }
+    }
+
+    /**
+     * Get the highlight polyline
+     *
+     * @returns {Polyline}
+     */
+    get highlightPolyline(): Polyline {
+        return this.#highlightPolyline;
+    }
+
+    /**
+     * Set the highlight polyline
+     *
+     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
+     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
+     *
+     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
+     */
+    set highlightPolyline(value: PolylineOptions | Polyline) {
+        if (value instanceof Polyline) {
+            this.#highlightPolyline = value;
+        } else if (isObject(value)) {
+            // Create the highlight polyline by merging the options with the existing options.
+            // This allows the developer to only set the options that are different from the existing polyline,
+            // which is typically the stroke color, opacity, and weight.
+            this.#highlightPolyline = new Polyline({ ...this.#options, ...value });
+        }
+
+        // Make sure that necessary values are set
+        this.#highlightPolyline.clickable = true;
+        this.#highlightPolyline.path = this.path;
+        this.#highlightPolyline.visible = false;
+
+        // Initialize the highlight polyline and this polyline so that events
+        // can be assigned to them and so that the map can be set.
+        this.#highlightPolyline.init().then(() => {
+            this.init().then(() => {
+                this.#highlightPolyline.setMap(this.getMap());
+
+                // Set the hover events on this polyline to show and hide the highlight polyline.
+                // Use setupEventListener instead of "on" so that this isn't added to the highlight polyline.
+                this.setupEventListener('mouseover', () => {
+                    this.#highlightPolyline.visible = true;
+                });
+                this.setupEventListener('mousemove', () => {
+                    this.#highlightPolyline.visible = true;
+                });
+
+                // Set the mouseout event on the highlight polyline so that it stays in place longer.
+                this.#highlightPolyline.on('mouseout', () => {
+                    this.#highlightPolyline.visible = false;
+                });
+                // });
+            });
+        });
+
+        // Set the zIndex of the polylines
+        if (this.#highlightPolyline.hasZIndex() && this.hasZIndex()) {
+            // Both the polyline and the highlight polyline have a zIndex set.
+            // Make sure that the highlight one is below the existing one.
+            const highlightZIndex = this.#highlightPolyline.zIndex;
+            const thisZIndex = this.zIndex;
+            if (highlightZIndex >= thisZIndex) {
+                this.#highlightPolyline.zIndex = thisZIndex - 1;
+            }
+        } else if (this.hasZIndex()) {
+            // Only this polyline has a zIndex set.
+            // Set the zIndex of the highlight polyline to be below the existing one.
+            this.#highlightPolyline.zIndex = this.zIndex - 1;
+        } else if (this.#highlightPolyline.hasZIndex()) {
+            // Only the highlight polyline has a zIndex set.
+            // Set the zIndex of this polyline to be above the highlight one.
+            this.zIndex = this.#highlightPolyline.zIndex + 1;
+        } else {
+            // Neither the polyline nor the highlight polyline have a zIndex set.
+            // Set the zIndex of the highlight polyline to be below the existing one.
+            this.#highlightPolyline.zIndex = 1;
+            this.zIndex = 2;
         }
     }
 
@@ -228,6 +319,7 @@ export class Polyline extends Layer {
     set visible(value: boolean) {
         if (typeof value === 'boolean') {
             this.#options.visible = value;
+            this.isVisible = value;
             if (this.#polyline) {
                 this.#polyline.setVisible(value);
             }
@@ -257,6 +349,15 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Returns whether the polyline has a zIndex set.
+     *
+     * @returns {boolean}
+     */
+    hasZIndex(): boolean {
+        return typeof this.#options.zIndex !== 'undefined';
+    }
+
+    /**
      * Initialize the polyline
      *
      * This is used when another element (like a tooltip) needs to be attached to the polyline,
@@ -283,7 +384,25 @@ export class Polyline extends Layer {
      * @param {EventConfig} [config] Configuration for the event.
      */
     on(type: string, callback: EventCallback, config?: EventConfig): void {
+        if (this.#highlightPolyline) {
+            // Add the event to the highlight polyline as well
+            this.#highlightPolyline.on(type, callback, config);
+        }
         this.setupEventListener(type, callback, config);
+    }
+
+    /**
+     *S et the highlight polyline
+     *
+     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
+     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
+     *
+     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
+     * @returns {Polyline}
+     */
+    setHighlightPolyline(value: PolylineOptions | Polyline): Polyline {
+        this.highlightPolyline = value;
+        return this;
     }
 
     /**
@@ -295,6 +414,9 @@ export class Polyline extends Layer {
      * @returns {Promise<Polyline>}
      */
     async setMap(value: Map | null): Promise<Polyline> {
+        if (this.#highlightPolyline) {
+            this.#highlightPolyline.setMap(value);
+        }
         await this.#setupGooglePolyline();
         if (value instanceof Map) {
             // Set the map
@@ -343,6 +465,11 @@ export class Polyline extends Layer {
             }
             if (isNumberOrNumberString(options.zIndex)) {
                 this.zIndex = options.zIndex;
+            }
+
+            // Set up the highlight polyline last so that it can use the options set above.
+            if (options.highlightPolyline) {
+                this.setHighlightPolyline(options.highlightPolyline);
             }
         }
         return this;
@@ -437,10 +564,17 @@ export class Polyline extends Layer {
                         const map = this.getMap();
                         if (this.#polyline && map) {
                             this.#polyline.setMap(map.toGoogle());
+                            // Add the map to the highlight polyline as well if it exists
+                            if (this.#highlightPolyline) {
+                                this.#highlightPolyline.setMap(map);
+                            }
                         }
                         resolve();
                     });
                 }
+            } else {
+                // The polyline object is already set up
+                resolve();
             }
         });
     }
