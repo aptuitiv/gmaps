@@ -358,6 +358,16 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Hide the polyline
+     *
+     * @returns {Polyline}
+     */
+    hide(): Polyline {
+        this.visible = false;
+        return this;
+    }
+
+    /**
      * Initialize the polyline
      *
      * This is used when another element (like a tooltip) needs to be attached to the polyline,
@@ -528,6 +538,27 @@ export class Polyline extends Layer {
     setVisible(visible: boolean): Polyline {
         this.visible = visible;
         return this;
+    }
+
+    /**
+     * Show the polyline on the map
+     *
+     * This will also set the map object if it's passed
+     *
+     * @param {Map} [map] The map object. Don't need to pass this if the map is already set on the polyline.
+     * @returns {Promise<Polyline>}
+     */
+    show(map?: Map): Promise<Polyline> {
+        return new Promise((resolve) => {
+            this.visible = true;
+            if (map) {
+                this.setMap(map).then(() => {
+                    resolve(this);
+                });
+            } else {
+                resolve(this);
+            }
+        });
     }
 
     /**
