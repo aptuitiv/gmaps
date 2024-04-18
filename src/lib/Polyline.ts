@@ -151,12 +151,12 @@ export class Polyline extends Layer {
                 this.setupEventListener('mousemove', () => {
                     this.#highlightPolyline.visible = true;
                 });
-
-                // Set the mouseout event on the highlight polyline so that it stays in place longer.
-                this.#highlightPolyline.on('mouseout', () => {
+                this.setupEventListener('mouseout', () => {
                     this.#highlightPolyline.visible = false;
                 });
-                // });
+                this.setupEventListener('mouseleave', () => {
+                    this.#highlightPolyline.visible = false;
+                });
             });
         });
 
