@@ -12,6 +12,7 @@ function randomNumber(min, max) {
 const map = G.map('map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 } });
 // map.load();
 
+const polylineCollection = G.polylineCollection();
 
 const path = [];
 const lat = 48;
@@ -29,7 +30,6 @@ const polyline = G.polyline({
     map: map,
     strokeColor: 'red',
     strokeWeight: 3,
-    // tags: 'tag1',
     zIndex: 2,
     highlightPolyline: {
         strokeColor: 'purple',
@@ -37,6 +37,7 @@ const polyline = G.polyline({
         strokeWeight: 25,
     }
 });
+polylineCollection.add(polyline);
 
 // const highlight = G.polyline({
 //     // clickable: true,
@@ -83,7 +84,6 @@ for (let i = 0; i < 10; i += 1) {
         map: map,
         strokeColor: 'blue',
         strokeWeight: 3,
-        tags: tag,
         zIndex: 1,
         highlightPolyline: {
             strokeColor: 'blue',
@@ -91,6 +91,7 @@ for (let i = 0; i < 10; i += 1) {
             strokeWeight: 10,
         }
     });
+    polylineCollection.add(polyline, tag);
 }
 
 
@@ -121,28 +122,28 @@ grid.appendChild(showButton);
 const hideAllButton = document.createElement('button');
 hideAllButton.textContent = 'Hide All';
 hideAllButton.addEventListener('click', () => {
-    G.polylineCollection.hideAll();
+    polylineCollection.hideAll();
 });
 grid.appendChild(hideAllButton);
 
 const showAllButton = document.createElement('button');
 showAllButton.textContent = 'Show All';
 showAllButton.addEventListener('click', () => {
-    G.polylineCollection.showAll();
+    polylineCollection.showAll();
 });
 grid.appendChild(showAllButton);
 
 const highlightAllButton = document.createElement('button');
 highlightAllButton.textContent = 'Highlight All';
 highlightAllButton.addEventListener('click', () => {
-    G.polylineCollection.highlightAll();
+    polylineCollection.highlightAll();
 });
 grid.appendChild(highlightAllButton);
 
 const unhighlightAllButton = document.createElement('button');
 unhighlightAllButton.textContent = 'Unhighlight All';
 unhighlightAllButton.addEventListener('click', () => {
-    G.polylineCollection.unhighlightAll();
+    polylineCollection.unhighlightAll();
 });
 grid.appendChild(unhighlightAllButton);
 
@@ -159,28 +160,28 @@ Array.from(tagsUsed).sort().forEach((tag) => {
     const hideButton = document.createElement('button');
     hideButton.textContent = `Hide ${tag}`;
     hideButton.addEventListener('click', () => {
-        G.polylineCollection.hide(tag);
+        polylineCollection.hide(tag);
     });
     tagGrid.appendChild(hideButton);
 
     const showButton = document.createElement('button');
     showButton.textContent = `Show ${tag}`;
     showButton.addEventListener('click', () => {
-        G.polylineCollection.show(tag);
+        polylineCollection.show(tag);
     });
     tagGrid.appendChild(showButton);
 
     const highlightButton = document.createElement('button');
     highlightButton.textContent = `Highlight ${tag}`;
     highlightButton.addEventListener('click', () => {
-        G.polylineCollection.highlight(tag);
+        polylineCollection.highlight(tag);
     });
     tagGrid.appendChild(highlightButton);
 
     const unhighlightButton = document.createElement('button');
     unhighlightButton.textContent = `Unhighlight ${tag}`;
     unhighlightButton.addEventListener('click', () => {
-        G.polylineCollection.unhighlight(tag);
+        polylineCollection.unhighlight(tag);
     });
     tagGrid.appendChild(unhighlightButton);
 });
@@ -188,15 +189,15 @@ Array.from(tagsUsed).sort().forEach((tag) => {
 const hideTagsButton = document.createElement('button');
 hideTagsButton.textContent = `Hide tags 1 - 3`;
 hideTagsButton.addEventListener('click', () => {
-    G.polylineCollection.hide('tag1', 'tag2', 'tag3');
+    polylineCollection.hide('tag1', 'tag2', 'tag3');
 });
 tagGrid.appendChild(hideTagsButton);
 
 const showTagsButton = document.createElement('button');
 showTagsButton.textContent = `Show tags 3 - 5`;
 showTagsButton.addEventListener('click', () => {
-    G.polylineCollection.show('tag3', 'tag4', 'tag5');
+    polylineCollection.show('tag3', 'tag4', 'tag5');
 });
 tagGrid.appendChild(showTagsButton);
 
-// console.log(G.polylineCollection);
+console.log(polylineCollection);

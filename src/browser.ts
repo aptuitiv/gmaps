@@ -15,7 +15,8 @@ import { map, Map } from './lib/Map';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
 import { point, Point } from './lib/Point';
-import { polyline, polylineCollection, Polyline } from './lib/Polyline';
+import { polyline, Polyline } from './lib/Polyline';
+import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
 import { popup, Popup } from './lib/Popup';
 import { size, Size } from './lib/Size';
 import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
@@ -45,8 +46,9 @@ const G: GlobalObj = {
     point,
     Point,
     polyline,
-    polylineCollection,
     Polyline,
+    polylineCollection,
+    PolylineCollection,
     popup,
     Popup,
     size,
