@@ -808,35 +808,37 @@ export class Marker extends Layer {
      * @private
      */
     #createMarkerObject() {
-        const markerOptions: google.maps.MarkerOptions = {};
-        // Options that can be set on the marker without any modification
-        const optionsToSet = ['cursor', 'title'];
-        optionsToSet.forEach((key) => {
-            if (typeof this.#options[key] !== 'undefined') {
-                markerOptions[key] = this.#options[key];
-            }
-        });
+        if (!this.#marker) {
+            const markerOptions: google.maps.MarkerOptions = {};
+            // Options that can be set on the marker without any modification
+            const optionsToSet = ['cursor', 'title'];
+            optionsToSet.forEach((key) => {
+                if (typeof this.#options[key] !== 'undefined') {
+                    markerOptions[key] = this.#options[key];
+                }
+            });
 
-        // Options that have to be converted to Google maps objects
-        if (this.#options.anchorPoint) {
-            markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
-        }
-        if (this.#options.icon) {
-            if (isString(this.#options.icon)) {
-                markerOptions.icon = this.#options.icon;
-            } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
-                markerOptions.icon = this.#options.icon.toGoogle();
+            // Options that have to be converted to Google maps objects
+            if (this.#options.anchorPoint) {
+                markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
             }
-        }
-        if (this.#options.map) {
-            markerOptions.map = this.#options.map.toGoogle();
-        }
-        if (this.#options.position) {
-            markerOptions.position = this.#options.position.toGoogle();
-        }
+            if (this.#options.icon) {
+                if (isString(this.#options.icon)) {
+                    markerOptions.icon = this.#options.icon;
+                } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
+                    markerOptions.icon = this.#options.icon.toGoogle();
+                }
+            }
+            if (this.#options.map) {
+                markerOptions.map = this.#options.map.toGoogle();
+            }
+            if (this.#options.position) {
+                markerOptions.position = this.#options.position.toGoogle();
+            }
 
-        this.#marker = new google.maps.Marker(markerOptions);
-        this.setEventGoogleObject(this.#marker);
+            this.#marker = new google.maps.Marker(markerOptions);
+            this.setEventGoogleObject(this.#marker);
+        }
     }
 }
 
