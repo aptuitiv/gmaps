@@ -22,6 +22,8 @@ export type PopupOptions = {
     center?: boolean;
     // The popup wrapper class name
     className?: string;
+    // The element to close the popup. This can be a CSS selector or an HTMLElement.
+    closeElement?: HTMLElement | string;
     // The popup content
     content: string | HTMLElement | Text;
     // The amount to offset the popup from the element it is displayed at.
@@ -57,6 +59,14 @@ export class Popup extends Overlay {
      * @type {boolean}
      */
     #center: boolean = true;
+
+    /**
+     * The element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @private
+     * @type {HTMLElement|string}
+     */
+    #closeElement: HTMLElement | string;
 
     /**
      * Holds the popup content.
@@ -160,6 +170,26 @@ export class Popup extends Overlay {
     set center(center: boolean) {
         if (typeof center === 'boolean') {
             this.#center = center;
+        }
+    }
+
+    /**
+     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @returns {HTMLElement|string}
+     */
+    get closeElement(): HTMLElement | string {
+        return this.#closeElement;
+    }
+
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @param {HTMLElement|string} closeElement The element to close the popup
+     */
+    set closeElement(closeElement: HTMLElement | string) {
+        if (typeof closeElement === 'string' || closeElement instanceof HTMLElement) {
+            this.#closeElement = closeElement;
         }
     }
 
@@ -329,6 +359,18 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     * The popup will be hidden when this element is clicked on.
+     *
+     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
+     * @returns {Popup}
+     */
+    setCloseElement(element: HTMLElement | string): Popup {
+        this.closeElement = element;
+        return this;
+    }
+
+    /**
      * Set the Popup content
      *
      * @param {string | HTMLElement | Text} content The Popup content
@@ -354,6 +396,9 @@ export class Popup extends Overlay {
         }
         if (isString(options.className)) {
             this.setClassName(options.className);
+        }
+        if (options.closeElement) {
+            this.closeElement = options.closeElement;
         }
         if (options.content) {
             this.content = options.content;
@@ -504,8 +549,40 @@ export class Popup extends Overlay {
             if (this.getOverlayElement().style.display !== display) {
                 this.style('display', display);
             }
+
+            if (this.#closeElement) {
+                if (this.#closeElement instanceof HTMLElement) {
+                    this.#setupCloseClick(this.#closeElement);
+                } else if (isStringWithValue(this.#closeElement)) {
+                    const matches = this.getOverlayElement().querySelectorAll(this.#closeElement);
+                    matches.forEach((element) => {
+                        this.#setupCloseClick(element as HTMLElement);
+                    });
+                }
+            }
         }
     }
+
+    /**
+     * Handle the close click event
+     *
+     * This is here so that any previous click event listeners are removed before adding the new one.
+     */
+    #handleCloseClick = () => {
+        this.hide();
+    };
+
+    /**
+     * Set up the close click event listenter on the element
+     *
+     * @param {HTMLElement} element The element that will close the popup when clicked.
+     */
+    #setupCloseClick = (element: HTMLElement) => {
+        // First, remove any existing click event listeners
+        element.removeEventListener('click', this.#handleCloseClick);
+        // Add the click event listener to hide the popup
+        element.addEventListener('click', this.#handleCloseClick);
+    };
 }
 
 export type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
