@@ -63,6 +63,14 @@ export class Polyline extends Layer {
     #highlightPolyline: Polyline; // eslint-disable-line no-use-before-define
 
     /**
+     * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isHighlighted: boolean = false;
+
+    /**
      * Holds the Polyline options
      *
      * @private
@@ -169,16 +177,24 @@ export class Polyline extends Layer {
                 // Set the hover events on this polyline to show and hide the highlight polyline.
                 // Use setupEventListener instead of "on" so that this isn't added to the highlight polyline.
                 this.setupEventListener('mouseover', () => {
-                    this.#highlightPolyline.visible = true;
+                    if (!this.#isHighlighted) {
+                        this.#highlightPolyline.visible = true;
+                    }
                 });
                 this.setupEventListener('mousemove', () => {
-                    this.#highlightPolyline.visible = true;
+                    if (!this.#isHighlighted) {
+                        this.#highlightPolyline.visible = true;
+                    }
                 });
                 this.setupEventListener('mouseout', () => {
-                    this.#highlightPolyline.visible = false;
+                    if (!this.#isHighlighted) {
+                        this.#highlightPolyline.visible = false;
+                    }
                 });
                 this.setupEventListener('mouseleave', () => {
-                    this.#highlightPolyline.visible = false;
+                    if (!this.#isHighlighted) {
+                        this.#highlightPolyline.visible = false;
+                    }
                 });
             });
         });
@@ -444,6 +460,22 @@ export class Polyline extends Layer {
      */
     hide(): Polyline {
         this.visible = false;
+        if (this.#highlightPolyline) {
+            this.#highlightPolyline.visible = false;
+        }
+        return this;
+    }
+
+    /**
+     * Display the highlight polyline if it exists
+     *
+     * @returns {Polyline}
+     */
+    highlight(): Polyline {
+        if (this.visible !== false && this.#highlightPolyline) {
+            this.#isHighlighted = true;
+            this.#highlightPolyline.visible = true;
+        }
         return this;
     }
 
@@ -670,6 +702,19 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Hide the highlight polyline if it exists
+     *
+     * @returns {Polyline}
+     */
+    unhighlight(): Polyline {
+        if (this.#highlightPolyline) {
+            this.#isHighlighted = false;
+            this.#highlightPolyline.visible = false;
+        }
+        return this;
+    }
+
+    /**
      * Set up the Google maps Polyline object if necessary
      *
      * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
@@ -786,9 +831,13 @@ type PolylineCollectionObject = {
     clear(): void;
     hide(...tags: string[]): void;
     hideAll(): void;
+    highlight(...tags: string[]): void;
+    highlightAll(): void;
     remove(p: Polyline, ...tags: string[]): void;
     show(...tags: string[]): void;
     showAll(): void;
+    unhighlight(...tags: string[]): void;
+    unhighlightAll(): void;
 };
 
 /**
@@ -863,6 +912,32 @@ const PolylineCollection = (() => {
             },
 
             /**
+             * Highlight the Polylines in the collection that have the tag(s) passed
+             *
+             * @param {string[]} tags The tag(s) to highlight polylines for
+             */
+            highlight(...tags: string[]) {
+                tags.forEach((tag) => {
+                    if (this.polylines[tag]) {
+                        this.polylines[tag].forEach((p: Polyline) => {
+                            p.highlight();
+                        });
+                    }
+                });
+            },
+
+            /**
+             * Highlight all the Polylines in the collection
+             */
+            highlightAll() {
+                Object.keys(this.polylines).forEach((tag) => {
+                    this.polylines[tag].forEach((p: Polyline) => {
+                        p.highlight();
+                    });
+                });
+            },
+
+            /**
              * Remove the polyline from the collection, optionally by tag.
              *
              * @param {Polyline} p The polyline object to remove
@@ -905,6 +980,32 @@ const PolylineCollection = (() => {
                 Object.keys(this.polylines).forEach((tag) => {
                     this.polylines[tag].forEach((p: Polyline) => {
                         p.show();
+                    });
+                });
+            },
+
+            /**
+             * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
+             *
+             * @param {string[]} tags The tag(s) to hide the highlighted polylines
+             */
+            unhighlight(...tags: string[]) {
+                tags.forEach((tag) => {
+                    if (this.polylines[tag]) {
+                        this.polylines[tag].forEach((p: Polyline) => {
+                            p.unhighlight();
+                        });
+                    }
+                });
+            },
+
+            /**
+             * Hide the hightlight for all the Polylines in the collection
+             */
+            unhighlightAll() {
+                Object.keys(this.polylines).forEach((tag) => {
+                    this.polylines[tag].forEach((p: Polyline) => {
+                        p.unhighlight();
                     });
                 });
             },
