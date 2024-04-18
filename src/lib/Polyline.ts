@@ -23,7 +23,7 @@ import {
 } from './helpers';
 
 export type PolylineOptions = {
-    // Whether the polyline handles click events.
+    // Whether the polyline handles click events. Defaults to true.
     clickable?: boolean;
     // The map to add the polyline to.
     map?: Map;
@@ -35,6 +35,8 @@ export type PolylineOptions = {
     strokeOpacity?: number;
     // The stroke width in pixels.
     strokeWeight?: number;
+    // Whether the polyline is visible on the map. Defaults to true.
+    visible?: boolean;
     // The zIndex value compared to other polygons.
     zIndex?: number;
 };
@@ -210,6 +212,29 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Get whether the polyline is visible on the map.
+     *
+     * @returns {boolean}
+     */
+    get visible(): boolean {
+        return this.#options.visible;
+    }
+
+    /**
+     * Set whether the polyline is visible on the map.
+     *
+     * @param {boolean} value Whether the polyline is visible on the map.
+     */
+    set visible(value: boolean) {
+        if (typeof value === 'boolean') {
+            this.#options.visible = value;
+            if (this.#polyline) {
+                this.#polyline.setVisible(value);
+            }
+        }
+    }
+
+    /**
      * Get the zIndex of the polyline.
      *
      * @returns {number}
@@ -365,6 +390,17 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Set whether the polyline is visible on the map.
+     *
+     * @param {boolean} visible Whether the polyline is visible on the map.
+     * @returns {Polyline}
+     */
+    setVisible(visible: boolean): Polyline {
+        this.visible = visible;
+        return this;
+    }
+
+    /**
      * Get the Google maps Polyline object
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Polyline
@@ -431,7 +467,15 @@ export class Polyline extends Layer {
             const polylineOptions: google.maps.PolylineOptions = {};
 
             // Options that can be set on the Polyline without any modification
-            const optionsToSet = ['clickable', 'map', 'strokeColor', 'stokeOpacity', 'strokeWeight', 'zIndex'];
+            const optionsToSet = [
+                'clickable',
+                'map',
+                'strokeColor',
+                'stokeOpacity',
+                'strokeWeight',
+                'visible',
+                'zIndex',
+            ];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     polylineOptions[key] = this.#options[key];
@@ -444,7 +488,6 @@ export class Polyline extends Layer {
             }
 
             this.#polyline = new google.maps.Polyline(polylineOptions);
-            console.log('Polyline created:', this.#polyline);
             this.setEventGoogleObject(this.#polyline);
         }
     }
