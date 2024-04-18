@@ -417,7 +417,7 @@ export class Polyline extends Layer {
         if (this.#highlightPolyline) {
             this.#highlightPolyline.setMap(value);
         }
-        await this.#setupGooglePolyline();
+        await this.#setupGooglePolyline(value);
         if (value instanceof Map) {
             // Set the map
             this.#options.map = value;
@@ -545,9 +545,10 @@ export class Polyline extends Layer {
     /**
      * Set up the Google maps Polyline object if necessary
      *
+     * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
      * @private
      */
-    #setupGooglePolyline(): Promise<void> {
+    #setupGooglePolyline(map?: Map): Promise<void> {
         return new Promise((resolve) => {
             if (!isObject(this.#polyline)) {
                 if (checkForGoogleMaps('Polyline', 'Polyline', false)) {
@@ -561,16 +562,21 @@ export class Polyline extends Layer {
                         // Make sure that the map is still set.
                         // It's unlikely, but possible, that the developer could have removed the map
                         // from the polyline before the Google maps object was available.
-                        const map = this.getMap();
-                        if (this.#polyline && map) {
-                            this.#polyline.setMap(map.toGoogle());
+                        const thisMap = this.getMap();
+                        if (this.#polyline && thisMap) {
+                            this.#polyline.setMap(thisMap.toGoogle());
                             // Add the map to the highlight polyline as well if it exists
                             if (this.#highlightPolyline) {
-                                this.#highlightPolyline.setMap(map);
+                                this.#highlightPolyline.setMap(thisMap);
                             }
                         }
                         resolve();
                     });
+
+                    // Trigger the map to load if it's set.
+                    if (map instanceof Map) {
+                        map.init();
+                    }
                 }
             } else {
                 // The polyline object is already set up

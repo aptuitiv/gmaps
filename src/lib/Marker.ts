@@ -507,7 +507,7 @@ export class Marker extends Layer {
      * @returns {Promise<Marker>}
      */
     async setMap(map: Map | null): Promise<Marker> {
-        await this.#setupGoogleMarker();
+        await this.#setupGoogleMarker(map);
         this.#setMap(map);
         return this;
     }
@@ -758,9 +758,10 @@ export class Marker extends Layer {
      * Set up the Google maps marker object if necessary
      *
      * @private
+     * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
      * @returns {Promise<void>}
      */
-    #setupGoogleMarker(): Promise<void> {
+    #setupGoogleMarker(map?: Map): Promise<void> {
         return new Promise((resolve) => {
             if (!isObject(this.#marker)) {
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
@@ -774,12 +775,17 @@ export class Marker extends Layer {
                         // Make sure that the map is still set.
                         // It's unlikely, but possible, that the developer could have removed the map
                         // from the marker before the Google maps object was available.
-                        const map = this.getMap();
-                        if (this.#marker && map) {
-                            this.#marker.setMap(map.toGoogle());
+                        const thisMap = this.getMap();
+                        if (this.#marker && thisMap) {
+                            this.#marker.setMap(thisMap.toGoogle());
                         }
                         resolve();
                     });
+
+                    // Trigger the map to load if it's set.
+                    if (map instanceof Map) {
+                        map.init();
+                    }
                 }
             } else {
                 resolve();
