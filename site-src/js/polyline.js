@@ -31,9 +31,31 @@ const polyline = G.polyline({
     strokeOpacity: 0.5,
     strokeWeight: 5
 });
+
 // polyline.attachTooltip('This is a polyline tooltip');
 const content = `
     <h1>My Polyline</h1>
-    <p>This is a polyline</p>
+    <p><button type="button">Close 1</button></p>
+    <p>This is a polyline <a href="#" class="closeP">close</a></p>
+    <p><button type="button">Close</button></p>
 `;
-polyline.attachPopup({ content: content, offset: [0, -4] }, 'click');
+polyline.attachPopup({ content: content, offset: [0, -4], closeElement: 'button,.closeP' }, 'clickon');
+
+const hidePolyline = () => {
+    polyline.visible = false;
+}
+
+const showPolyline = () => {
+    polyline.visible = true;
+}
+
+const hideButton = document.createElement('button');
+hideButton.textContent = 'Hide Polyline';
+hideButton.addEventListener('click', hidePolyline);
+
+const showButton = document.createElement('button');
+showButton.textContent = 'Show Polyline';
+showButton.addEventListener('click', showPolyline);
+
+document.body.appendChild(hideButton);
+document.body.appendChild(showButton);
