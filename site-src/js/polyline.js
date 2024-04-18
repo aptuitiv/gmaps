@@ -28,9 +28,34 @@ const polyline = G.polyline({
     path: path,
     map: map,
     strokeColor: 'red',
-    strokeOpacity: 0.5,
-    strokeWeight: 5
+    strokeWeight: 3,
+    zIndex: 2,
+    highlightPolyline: {
+        strokeColor: 'purple',
+        strokeOpacity: 1,
+        strokeWeight: 25,
+    }
 });
+
+// const highlight = G.polyline({
+//     // clickable: true,
+//     // path: path,
+//     // map: map,
+//     strokeColor: 'blue',
+//     strokeOpacity: 0.5,
+//     strokeWeight: 20,
+//     // visible: false,
+//     // zIndex: 1
+// });
+// polyline.highlightPolyline = highlight;
+
+// polyline.on('mouseover', () => {
+//     highlight.visible = true;
+// });
+
+// polyline.on('mouseout', () => {
+//     highlight.visible = false;
+// });
 
 // polyline.attachTooltip('This is a polyline tooltip');
 const content = `
