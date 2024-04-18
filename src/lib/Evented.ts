@@ -447,7 +447,7 @@ export class Evented extends Base {
      * @param {EventCallback} callback The event listener callback function
      * @param {EventConfig} [config] Configuration for the event.
      */
-    setupEventListener(type: string, callback: EventCallback, config: EventConfig): void {
+    setupEventListener(type: string, callback: EventCallback, config?: EventConfig): void {
         if (isFunction(callback)) {
             if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                 const hasEvent = Array.isArray(this.#eventListeners[type]);
