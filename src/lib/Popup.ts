@@ -5,7 +5,7 @@
 =========================================================================== */
 
 /* global google, HTMLElement, Text */
-/* eslint-disable no-use-before-define */
+/* eslint-disable no-use-before-define -- Done because the PopupCollection is referenced before it's created */
 
 import Layer from './Layer';
 import { Map } from './Map';
