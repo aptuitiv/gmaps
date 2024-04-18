@@ -14,7 +14,13 @@ const marker = G.marker({
     map: map,
     title: 'Marker 1',
 });
-marker.attachPopup('My Popup');
+const content = `
+    <h1>My Polyline</h1>
+    <p>This is a popup on a marker. Isn't it great!</p>
+    <p>Here is another line.</p>
+    <p><a href="https://www.google.com">Google</a></p>
+`;
+marker.attachPopup({ content: content, styles: { maxWidth: '200px', textAlign: 'center', padding: '10px 20px' } });
 
 
 const marker2 = G.marker({

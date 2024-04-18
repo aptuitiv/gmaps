@@ -24,9 +24,16 @@ for (let i = 0; i < 10; i += 1) {
 }
 
 const polyline = G.polyline({
+    clickable: true,
     path: path,
     map: map,
-    // strokeColor: 'red',
-    // strokeOpacity: 0.5,
-    // strokeWeight: 5
+    strokeColor: 'red',
+    strokeOpacity: 0.5,
+    strokeWeight: 5
 });
+// polyline.attachTooltip('This is a polyline tooltip');
+const content = `
+    <h1>My Polyline</h1>
+    <p>This is a polyline</p>
+`;
+polyline.attachPopup({ content: content, offset: [0, -4] }, 'click');
