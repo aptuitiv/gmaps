@@ -280,6 +280,9 @@ export class Popup extends Overlay {
                 element.on('mouseout', () => {
                     this.hide();
                 });
+                element.on('mouseleave', () => {
+                    this.hide();
+                });
             } else if (event === 'clickon') {
                 // Show the popup when clicking on the element
                 element.on('click', (e) => {

@@ -369,6 +369,9 @@ export class InfoWindow extends Layer {
                 element.on('mouseout', () => {
                     this.hide();
                 });
+                element.on('mouseleave', () => {
+                    this.hide();
+                });
             } else if (event === 'clickon') {
                 // Show the InfoWindow when clicking on the element
                 element.on('click', (e) => {

@@ -193,6 +193,9 @@ export class Tooltip extends Overlay {
                 element.on('mouseout', () => {
                     this.hide();
                 });
+                element.on('mouseleave', () => {
+                    this.hide();
+                });
             }
         });
 
