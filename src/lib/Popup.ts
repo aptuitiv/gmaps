@@ -236,19 +236,15 @@ export class Popup extends Overlay {
                 element.on('mouseover', (e) => {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
-                    } else if (element instanceof Polyline) {
-                        this.move(e.latLng, element.getMap());
                     } else {
-                        this.show(element);
+                        this.move(e.latLng, element.getMap());
                     }
                 });
                 element.on('mousemove', (e) => {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
-                    } else if (element instanceof Polyline) {
-                        this.move(e.latLng, element.getMap());
                     } else {
-                        this.show(element);
+                        this.move(e.latLng, element.getMap());
                     }
                 });
                 element.on('mouseout', () => {
@@ -259,10 +255,8 @@ export class Popup extends Overlay {
                 element.on('click', (e) => {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
-                    } else if (element instanceof Polyline) {
-                        this.move(e.latLng, element.getMap());
                     } else {
-                        this.show(element);
+                        this.move(e.latLng, element.getMap());
                     }
                 });
             } else {
