@@ -7,6 +7,7 @@
 
 /* global google */
 
+import { EventCallback, EventConfig } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { loader } from './Loader';
@@ -247,6 +248,17 @@ export class Polyline extends Layer {
                 resolve();
             });
         });
+    }
+
+    /**
+     * Add an event listener to the Google maps object
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    on(type: string, callback: EventCallback, config?: EventConfig): void {
+        this.setupEventListener(type, callback, config);
     }
 
     /**

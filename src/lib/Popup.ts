@@ -12,6 +12,7 @@ import { Map } from './Map';
 import { Marker } from './Marker';
 import Overlay from './Overlay';
 import { point, Point, PointValue } from './Point';
+import { Polyline } from './Polyline';
 import { isObject, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
@@ -235,6 +236,8 @@ export class Popup extends Overlay {
                 element.on('mouseover', (e) => {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
+                    } else if (element instanceof Polyline) {
+                        this.move(e.latLng, element.getMap());
                     } else {
                         this.show(element);
                     }
@@ -242,6 +245,8 @@ export class Popup extends Overlay {
                 element.on('mousemove', (e) => {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
+                    } else if (element instanceof Polyline) {
+                        this.move(e.latLng, element.getMap());
                     } else {
                         this.show(element);
                     }
@@ -254,6 +259,8 @@ export class Popup extends Overlay {
                 element.on('click', (e) => {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
+                    } else if (element instanceof Polyline) {
+                        this.move(e.latLng, element.getMap());
                     } else {
                         this.show(element);
                     }
@@ -261,7 +268,7 @@ export class Popup extends Overlay {
             } else {
                 // Show the popup when clicking on the element
                 element.on('click', (e) => {
-                    if (element instanceof Map) {
+                    if (element instanceof Map || element instanceof Polyline) {
                         this.position = e.latLng;
                     }
                     this.toggle(element);
@@ -424,6 +431,13 @@ export class Popup extends Overlay {
                             resolve(this);
                         });
                     });
+                } else {
+                    // If the anchor is a Layer then the position should be set on the Popup.
+                    // This is useful for Polylines and Polygons.
+                    this.#popupOffset = this.getOffset().clone();
+                    super.show(element.getMap()).then(() => {
+                        resolve(this);
+                    });
                 }
             }
         });
@@ -474,8 +488,12 @@ export class Popup extends Overlay {
             }
 
             if (this.center) {
-                // Center the tooltip horizontally on the element
-                this.style('transform', 'translate(-50%, 0)');
+                // Center the tooltip horizontally on the element.
+                // The -100% Y value is to position the popup above the element.
+                this.style('transform', 'translate(-50%, -100%)');
+            } else {
+                // Position the popup above the element.
+                this.style('transform', 'translate(0, -100%)');
             }
             if (this.#theme === 'default') {
                 const styles = this.styles || {};
