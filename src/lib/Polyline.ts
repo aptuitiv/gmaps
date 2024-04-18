@@ -415,23 +415,26 @@ export class Polyline extends Layer {
      * @private
      */
     #createPolylineObject() {
-        const polylineOptions: google.maps.PolylineOptions = {};
+        if (!this.#polyline) {
+            const polylineOptions: google.maps.PolylineOptions = {};
 
-        // Options that can be set on the Polyline without any modification
-        const optionsToSet = ['clickable', 'map', 'strokeColor', 'stokeOpacity', 'strokeWeight', 'zIndex'];
-        optionsToSet.forEach((key) => {
-            if (typeof this.#options[key] !== 'undefined') {
-                polylineOptions[key] = this.#options[key];
+            // Options that can be set on the Polyline without any modification
+            const optionsToSet = ['clickable', 'map', 'strokeColor', 'stokeOpacity', 'strokeWeight', 'zIndex'];
+            optionsToSet.forEach((key) => {
+                if (typeof this.#options[key] !== 'undefined') {
+                    polylineOptions[key] = this.#options[key];
+                }
+            });
+
+            // Set the path
+            if (Array.isArray(this.#options.path)) {
+                polylineOptions.path = this.#options.path.map((path) => latLng(path).toGoogle());
             }
-        });
 
-        // Set the path
-        if (Array.isArray(this.#options.path)) {
-            polylineOptions.path = this.#options.path.map((path) => latLng(path).toGoogle());
+            this.#polyline = new google.maps.Polyline(polylineOptions);
+            console.log('Polyline created:', this.#polyline);
+            this.setEventGoogleObject(this.#polyline);
         }
-
-        this.#polyline = new google.maps.Polyline(polylineOptions);
-        this.setEventGoogleObject(this.#polyline);
     }
 }
 
