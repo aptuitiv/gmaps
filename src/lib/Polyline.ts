@@ -6,6 +6,7 @@
 =========================================================================== */
 
 /* global google */
+/* eslint-disable no-use-before-define -- Done because the PolylineCollection is referenced before it's created */
 
 import { EventCallback, EventConfig } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
@@ -37,11 +38,16 @@ export type PolylineOptions = {
     strokeOpacity?: number;
     // The stroke width in pixels.
     strokeWeight?: number;
+    // A string or array of strings to associate with the polyline. These are used to identify the polyline when you retrieve it from a collection.
+    tags?: string | string[];
     // Whether the polyline is visible on the map. Defaults to true.
     visible?: boolean;
     // The zIndex value compared to other polygons.
     zIndex?: number;
 };
+
+// Holds the default tag if the polyline is added to the collection without a tag
+const defaultTag = '__default__';
 
 /**
  * Polyline class
@@ -73,12 +79,26 @@ export class Polyline extends Layer {
     #polyline: google.maps.Polyline;
 
     /**
+     * Holds the tags associated with the polyline
+     *
+     * @private
+     * @type {string[]}
+     */
+    #tags: Set<string>;
+
+    /**
      * Constructor
      *
      * @param {PolylineOptions} [options] The polyline options
      */
     constructor(options?: PolylineOptions) {
         super('polyline', 'Polyline');
+
+        // Set up the tags set
+        this.#tags = new Set();
+
+        // Add the polyline to the collection with the default tag
+        PolylineCollection.getInstance().add(this, defaultTag);
 
         if (isObject(options)) {
             this.setOptions(options);
@@ -131,6 +151,9 @@ export class Polyline extends Layer {
             // which is typically the stroke color, opacity, and weight.
             this.#highlightPolyline = new Polyline({ ...this.#options, ...value });
         }
+
+        // Remove the highlight polyline from the collection
+        PolylineCollection.getInstance().remove(this.#highlightPolyline);
 
         // Make sure that necessary values are set
         this.#highlightPolyline.clickable = true;
@@ -303,6 +326,39 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Get the tags associated with the polyline.
+     *
+     * @returns {string[]}
+     */
+    get tags(): string[] {
+        return [...this.#tags];
+    }
+
+    /**
+     * Set the tag(s) associated with the polyline.
+     *
+     * This will replace any existing tags.
+     *
+     * Tags are used to identify the polyline when you retrieve it from a collection.
+     *
+     * @param {string|string[]} value A string or array of strings to associate with the polyline.
+     */
+    set tags(value: string | string[]) {
+        // Because we're creating a new set with tags, remove the polyline from the collection
+        PolylineCollection.getInstance().remove(this);
+
+        if (Array.isArray(value)) {
+            this.#tags = new Set();
+            value.forEach((tag) => {
+                this.#addTag(tag);
+            });
+        } else if (isStringWithValue(value)) {
+            this.#tags = new Set();
+            this.#addTag(value);
+        }
+    }
+
+    /**
      * Get whether the polyline is visible on the map.
      *
      * @returns {boolean}
@@ -345,6 +401,30 @@ export class Polyline extends Layer {
             this.#options.zIndex = value;
         } else if (isNumberString(value)) {
             this.#options.zIndex = Number(value);
+        }
+    }
+
+    /**
+     * Add one or more tags to the polyline
+     *
+     * @param {string[]} tag One or more tags to add to the polyline
+     */
+    addTag(...tag: string[]): void {
+        tag.forEach((t) => {
+            this.#addTag(t);
+        });
+    }
+
+    /**
+     * Add a single tag to the polyline
+     *
+     * @param {string} tag The tag to add to the polyline
+     */
+    #addTag(tag: string) {
+        if (isStringWithValue(tag)) {
+            const collection = PolylineCollection.getInstance();
+            collection.add(this, tag);
+            this.#tags.add(tag);
         }
     }
 
@@ -470,6 +550,9 @@ export class Polyline extends Layer {
             if (isNumberOrNumberString(options.strokeWeight)) {
                 this.strokeWeight = options.strokeWeight;
             }
+            if (options.tags) {
+                this.tags = options.tags;
+            }
             if (typeof options.visible === 'boolean') {
                 this.visible = options.visible;
             }
@@ -537,6 +620,19 @@ export class Polyline extends Layer {
      */
     setVisible(visible: boolean): Polyline {
         this.visible = visible;
+        return this;
+    }
+
+    /**
+     * Set the tag(s) associated with the polyline.
+     *
+     * This will replace any existing tags.
+     *
+     * @param {string|string[]} tags A string or array of strings to associate with the polyline.
+     * @returns {Polyline}
+     */
+    setTags(tags: string | string[]): Polyline {
+        this.tags = tags;
         return this;
     }
 
@@ -682,3 +778,152 @@ export const polyline = (options?: PolylineValue): Polyline => {
     }
     return new Polyline(options);
 };
+
+type PolyLineCollection = { [key: string]: Set<Polyline> };
+type PolylineCollectionObject = {
+    polylines: PolyLineCollection;
+    add(p: Polyline, ...tags: string[]): void;
+    clear(): void;
+    hide(...tags: string[]): void;
+    hideAll(): void;
+    remove(p: Polyline, ...tags: string[]): void;
+    show(...tags: string[]): void;
+    showAll(): void;
+};
+
+/**
+ * The collection of polylines that enable doing bulk actions on polylines.
+ * Some of the bulk actions can be filtered by the polyline tag.
+ */
+const PolylineCollection = (() => {
+    /**
+     * The singleton instance of the object
+     */
+    let instance: PolylineCollectionObject;
+
+    /**
+     * Create the object instance
+     *
+     * @private
+     * @returns {PolylineCollectionObject}
+     */
+    function createInstance(): PolylineCollectionObject {
+        return {
+            /**
+             * Holds the Polyline objects by tag
+             */
+            polylines: {},
+
+            /**
+             * Adds an Polyline to the collection
+             *
+             * @param {Polyline} p The Polyline object to add
+             * @param {string[]} tags The tag(s) to assign the polyline to
+             */
+            add(p: Polyline, ...tags: string[]) {
+                tags.forEach((tag) => {
+                    if (!this.polylines[tag]) {
+                        this.polylines[tag] = new Set();
+                    }
+                    this.polylines[tag].add(p);
+                });
+            },
+
+            /**
+             * Clears the collection
+             */
+            clear() {
+                this.polylines = {};
+            },
+
+            /**
+             * Hide the Polylines in the collection that have the tag(s) passed
+             *
+             * @param {string[]} tags The tag(s) to hide polylines for
+             */
+            hide(...tags: string[]) {
+                tags.forEach((tag) => {
+                    if (this.polylines[tag]) {
+                        this.polylines[tag].forEach((p: Polyline) => {
+                            p.hide();
+                        });
+                    }
+                });
+            },
+
+            /**
+             * Hides all the Polylines in the collection
+             */
+            hideAll() {
+                Object.keys(this.polylines).forEach((tag) => {
+                    this.polylines[tag].forEach((p: Polyline) => {
+                        p.hide();
+                    });
+                });
+            },
+
+            /**
+             * Remove the polyline from the collection, optionally by tag.
+             *
+             * @param {Polyline} p The polyline object to remove
+             * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+             */
+            remove(p: Polyline, ...tags: string[]) {
+                if (tags.length > 0) {
+                    tags.forEach((tag) => {
+                        if (this.polylines[tag]) {
+                            this.polylines[tag].delete(p);
+                        }
+                    });
+                } else {
+                    // Remove the polyline from all tags
+                    Object.keys(this.polylines).forEach((tag) => {
+                        this.polylines[tag].delete(p);
+                    });
+                }
+            },
+
+            /**
+             * Show the Polylines in the collection that have the tag(s) passed
+             *
+             * @param {string[]} tags The tag(s) to show polylines for
+             */
+            show(...tags: string[]) {
+                tags.forEach((tag) => {
+                    if (this.polylines[tag]) {
+                        this.polylines[tag].forEach((p: Polyline) => {
+                            p.show();
+                        });
+                    }
+                });
+            },
+
+            /**
+             * Show all the Polylines in the collection
+             */
+            showAll() {
+                Object.keys(this.polylines).forEach((tag) => {
+                    this.polylines[tag].forEach((p: Polyline) => {
+                        p.show();
+                    });
+                });
+            },
+        };
+    }
+
+    return {
+        /**
+         * Get the singleton instance of the object
+         *
+         * @returns {PolylineCollectionObject}
+         */
+        getInstance(): PolylineCollectionObject {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        },
+    };
+})();
+
+export const polylineCollection = PolylineCollection.getInstance();
