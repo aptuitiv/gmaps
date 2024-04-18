@@ -487,10 +487,15 @@ export class Evented extends Base {
      * @returns {boolean}
      */
     #isGoogleObjectSet(): boolean {
-        return (
-            this.#googleObject instanceof google.maps.MVCObject ||
-            this.#googleObject instanceof google.maps.marker.AdvancedMarkerElement
-        );
+        let isSet = this.#googleObject instanceof google.maps.MVCObject;
+        if (
+            !isSet &&
+            typeof google.maps.marker !== 'undefined' &&
+            typeof google.maps.marker.AdvancedMarkerElement !== 'undefined'
+        ) {
+            isSet = this.#googleObject instanceof google.maps.marker.AdvancedMarkerElement;
+        }
+        return isSet;
     }
 
     /**
