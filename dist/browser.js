@@ -6801,9 +6801,119 @@
   };
   var markerCluster = (map2, markers, options) => new MarkerCluster(map2, markers, options);
 
-  // src/lib/Polyline.ts
+  // src/lib/MarkerCollection.ts
   var defaultTag = "__default__";
-  var _highlightPolyline, _isHighlighted, _options6, _polyline, _tags, _addTag, addTag_fn, _setupGooglePolyline, setupGooglePolyline_fn, _setupGooglePolylineSync, setupGooglePolylineSync_fn, _createPolylineObject, createPolylineObject_fn;
+  var MarkerCollection = class {
+    constructor() {
+      /**
+       * Holds the Marker objects by tag
+       */
+      this.markers = {};
+    }
+    /**
+     * Adds an Marker to the collection
+     *
+     * @param {Marker} p The Marker object to add
+     * @param marker
+     * @param {string[]} tags The tag(s) to assign the marker to
+     */
+    add(marker2, ...tags) {
+      if (tags.length > 0) {
+        tags.forEach((tag) => {
+          if (!this.markers[tag]) {
+            this.markers[tag] = /* @__PURE__ */ new Set();
+          }
+          this.markers[tag].add(marker2);
+        });
+      } else {
+        if (!this.markers[defaultTag]) {
+          this.markers[defaultTag] = /* @__PURE__ */ new Set();
+        }
+        this.markers[defaultTag].add(marker2);
+      }
+    }
+    /**
+     * Clears the collection
+     */
+    clear() {
+      this.markers = {};
+    }
+    /**
+     * Hide the Markers in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide markers for
+     */
+    hide(...tags) {
+      tags.forEach((tag) => {
+        if (this.markers[tag]) {
+          this.markers[tag].forEach((marker2) => {
+            marker2.hide();
+          });
+        }
+      });
+    }
+    /**
+     * Hides all the Markers in the collection
+     */
+    hideAll() {
+      Object.keys(this.markers).forEach((tag) => {
+        this.markers[tag].forEach((marker2) => {
+          marker2.hide();
+        });
+      });
+    }
+    /**
+     * Remove the marker from the collection, optionally by tag.
+     *
+     * @param {Marker} p The marker object to remove
+     * @param marker
+     * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+     */
+    remove(marker2, ...tags) {
+      if (tags.length > 0) {
+        tags.forEach((tag) => {
+          if (this.markers[tag]) {
+            this.markers[tag].delete(marker2);
+          }
+        });
+      } else {
+        Object.keys(this.markers).forEach((tag) => {
+          this.markers[tag].delete(marker2);
+        });
+      }
+    }
+    /**
+     * Show the Markers in the collection that have the tag(s) passed
+     *
+     * @param {Map} map The map object
+     * @param {string[]} tags The tag(s) to show markers for
+     */
+    show(map2, ...tags) {
+      tags.forEach((tag) => {
+        if (this.markers[tag]) {
+          this.markers[tag].forEach((marker2) => {
+            marker2.show(map2);
+          });
+        }
+      });
+    }
+    /**
+     * Show all the Markers in the collection
+     *
+     * @param {Map} map The map object
+     */
+    showAll(map2) {
+      Object.keys(this.markers).forEach((tag) => {
+        this.markers[tag].forEach((marker2) => {
+          marker2.show(map2);
+        });
+      });
+    }
+  };
+  var markerCollection = () => new MarkerCollection();
+
+  // src/lib/Polyline.ts
+  var _highlightPolyline, _isHighlighted, _options6, _polyline, _setupGooglePolyline, setupGooglePolyline_fn, _setupGooglePolylineSync, setupGooglePolylineSync_fn, _createPolylineObject, createPolylineObject_fn;
   var _Polyline = class _Polyline extends Layer_default {
     /**
      * Constructor
@@ -6812,12 +6922,6 @@
      */
     constructor(options) {
       super("polyline", "Polyline");
-      /**
-       * Add a single tag to the polyline
-       *
-       * @param {string} tag The tag to add to the polyline
-       */
-      __privateAdd(this, _addTag);
       /**
        * Set up the Google maps Polyline object if necessary
        *
@@ -6865,15 +6969,6 @@
        * @type {google.maps.Polyline}
        */
       __privateAdd(this, _polyline, void 0);
-      /**
-       * Holds the tags associated with the polyline
-       *
-       * @private
-       * @type {string[]}
-       */
-      __privateAdd(this, _tags, void 0);
-      __privateSet(this, _tags, /* @__PURE__ */ new Set());
-      PolylineCollection.getInstance().add(this, defaultTag);
       if (isObject(options)) {
         this.setOptions(options);
       }
@@ -6918,7 +7013,6 @@
       } else if (isObject(value)) {
         __privateSet(this, _highlightPolyline, new _Polyline(__spreadValues(__spreadValues({}, __privateGet(this, _options6)), value)));
       }
-      PolylineCollection.getInstance().remove(__privateGet(this, _highlightPolyline));
       __privateGet(this, _highlightPolyline).clickable = true;
       __privateGet(this, _highlightPolyline).path = this.path;
       __privateGet(this, _highlightPolyline).visible = false;
@@ -7070,35 +7164,6 @@
       }
     }
     /**
-     * Get the tags associated with the polyline.
-     *
-     * @returns {string[]}
-     */
-    get tags() {
-      return [...__privateGet(this, _tags)];
-    }
-    /**
-     * Set the tag(s) associated with the polyline.
-     *
-     * This will replace any existing tags.
-     *
-     * Tags are used to identify the polyline when you retrieve it from a collection.
-     *
-     * @param {string|string[]} value A string or array of strings to associate with the polyline.
-     */
-    set tags(value) {
-      PolylineCollection.getInstance().remove(this);
-      if (Array.isArray(value)) {
-        __privateSet(this, _tags, /* @__PURE__ */ new Set());
-        value.forEach((tag) => {
-          __privateMethod(this, _addTag, addTag_fn).call(this, tag);
-        });
-      } else if (isStringWithValue(value)) {
-        __privateSet(this, _tags, /* @__PURE__ */ new Set());
-        __privateMethod(this, _addTag, addTag_fn).call(this, value);
-      }
-    }
-    /**
      * Get whether the polyline is visible on the map.
      *
      * @returns {boolean}
@@ -7139,16 +7204,6 @@
       } else if (isNumberString(value)) {
         __privateGet(this, _options6).zIndex = Number(value);
       }
-    }
-    /**
-     * Add one or more tags to the polyline
-     *
-     * @param {string[]} tag One or more tags to add to the polyline
-     */
-    addTag(...tag) {
-      tag.forEach((t) => {
-        __privateMethod(this, _addTag, addTag_fn).call(this, t);
-      });
     }
     /**
      * Returns whether the polyline has a zIndex set.
@@ -7214,7 +7269,7 @@
       this.setupEventListener(type, callback, config);
     }
     /**
-     *S et the highlight polyline
+     * Set the highlight polyline
      *
      * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
      * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
@@ -7280,9 +7335,6 @@
         if (isNumberOrNumberString(options.strokeWeight)) {
           this.strokeWeight = options.strokeWeight;
         }
-        if (options.tags) {
-          this.tags = options.tags;
-        }
         if (typeof options.visible === "boolean") {
           this.visible = options.visible;
         }
@@ -7346,18 +7398,6 @@
       return this;
     }
     /**
-     * Set the tag(s) associated with the polyline.
-     *
-     * This will replace any existing tags.
-     *
-     * @param {string|string[]} tags A string or array of strings to associate with the polyline.
-     * @returns {Polyline}
-     */
-    setTags(tags) {
-      this.tags = tags;
-      return this;
-    }
-    /**
      * Show the polyline on the map
      *
      * This will also set the map object if it's passed
@@ -7382,11 +7422,14 @@
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Polyline
      *
-     * @returns {google.maps.Polyline}
+     * @returns {Promise<google.maps.Polyline>}
      */
     toGoogle() {
-      __privateMethod(this, _setupGooglePolyline, setupGooglePolyline_fn).call(this);
-      return __privateGet(this, _polyline);
+      return new Promise((resolve) => {
+        __privateMethod(this, _setupGooglePolyline, setupGooglePolyline_fn).call(this).then(() => {
+          resolve(__privateGet(this, _polyline));
+        });
+      });
     }
     /**
      * Hide the highlight polyline if it exists
@@ -7405,15 +7448,6 @@
   _isHighlighted = new WeakMap();
   _options6 = new WeakMap();
   _polyline = new WeakMap();
-  _tags = new WeakMap();
-  _addTag = new WeakSet();
-  addTag_fn = function(tag) {
-    if (isStringWithValue(tag)) {
-      const collection = PolylineCollection.getInstance();
-      collection.add(this, tag);
-      __privateGet(this, _tags).add(tag);
-    }
-  };
   _setupGooglePolyline = new WeakSet();
   setupGooglePolyline_fn = function(map2) {
     return new Promise((resolve) => {
@@ -7486,166 +7520,160 @@
     }
     return new Polyline(options);
   };
-  var PolylineCollection = /* @__PURE__ */ (() => {
-    let instance;
-    function createInstance() {
-      return {
-        /**
-         * Holds the Polyline objects by tag
-         */
-        polylines: {},
-        /**
-         * Adds an Polyline to the collection
-         *
-         * @param {Polyline} p The Polyline object to add
-         * @param {string[]} tags The tag(s) to assign the polyline to
-         */
-        add(p, ...tags) {
-          tags.forEach((tag) => {
-            if (!this.polylines[tag]) {
-              this.polylines[tag] = /* @__PURE__ */ new Set();
-            }
-            this.polylines[tag].add(p);
-          });
-        },
-        /**
-         * Clears the collection
-         */
-        clear() {
-          this.polylines = {};
-        },
-        /**
-         * Hide the Polylines in the collection that have the tag(s) passed
-         *
-         * @param {string[]} tags The tag(s) to hide polylines for
-         */
-        hide(...tags) {
-          tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-              this.polylines[tag].forEach((p) => {
-                p.hide();
-              });
-            }
-          });
-        },
-        /**
-         * Hides all the Polylines in the collection
-         */
-        hideAll() {
-          Object.keys(this.polylines).forEach((tag) => {
-            this.polylines[tag].forEach((p) => {
-              p.hide();
-            });
-          });
-        },
-        /**
-         * Highlight the Polylines in the collection that have the tag(s) passed
-         *
-         * @param {string[]} tags The tag(s) to highlight polylines for
-         */
-        highlight(...tags) {
-          tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-              this.polylines[tag].forEach((p) => {
-                p.highlight();
-              });
-            }
-          });
-        },
-        /**
-         * Highlight all the Polylines in the collection
-         */
-        highlightAll() {
-          Object.keys(this.polylines).forEach((tag) => {
-            this.polylines[tag].forEach((p) => {
-              p.highlight();
-            });
-          });
-        },
-        /**
-         * Remove the polyline from the collection, optionally by tag.
-         *
-         * @param {Polyline} p The polyline object to remove
-         * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
-         */
-        remove(p, ...tags) {
-          if (tags.length > 0) {
-            tags.forEach((tag) => {
-              if (this.polylines[tag]) {
-                this.polylines[tag].delete(p);
-              }
-            });
-          } else {
-            Object.keys(this.polylines).forEach((tag) => {
-              this.polylines[tag].delete(p);
-            });
-          }
-        },
-        /**
-         * Show the Polylines in the collection that have the tag(s) passed
-         *
-         * @param {string[]} tags The tag(s) to show polylines for
-         */
-        show(...tags) {
-          tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-              this.polylines[tag].forEach((p) => {
-                p.show();
-              });
-            }
-          });
-        },
-        /**
-         * Show all the Polylines in the collection
-         */
-        showAll() {
-          Object.keys(this.polylines).forEach((tag) => {
-            this.polylines[tag].forEach((p) => {
-              p.show();
-            });
-          });
-        },
-        /**
-         * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
-         *
-         * @param {string[]} tags The tag(s) to hide the highlighted polylines
-         */
-        unhighlight(...tags) {
-          tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-              this.polylines[tag].forEach((p) => {
-                p.unhighlight();
-              });
-            }
-          });
-        },
-        /**
-         * Hide the hightlight for all the Polylines in the collection
-         */
-        unhighlightAll() {
-          Object.keys(this.polylines).forEach((tag) => {
-            this.polylines[tag].forEach((p) => {
-              p.unhighlight();
-            });
-          });
-        }
-      };
-    }
-    return {
+
+  // src/lib/PolylineCollection.ts
+  var defaultTag2 = "__default__";
+  var PolylineCollection = class {
+    constructor() {
       /**
-       * Get the singleton instance of the object
-       *
-       * @returns {PolylineCollectionObject}
+       * Holds the Polyline objects by tag
        */
-      getInstance() {
-        if (!instance) {
-          instance = createInstance();
+      this.polylines = {};
+    }
+    /**
+     * Adds an Polyline to the collection
+     *
+     * @param {Polyline} p The Polyline object to add
+     * @param {string[]} tags The tag(s) to assign the polyline to
+     */
+    add(p, ...tags) {
+      if (tags.length > 0) {
+        tags.forEach((tag) => {
+          if (!this.polylines[tag]) {
+            this.polylines[tag] = /* @__PURE__ */ new Set();
+          }
+          this.polylines[tag].add(p);
+        });
+      } else {
+        if (!this.polylines[defaultTag2]) {
+          this.polylines[defaultTag2] = /* @__PURE__ */ new Set();
         }
-        return instance;
+        this.polylines[defaultTag2].add(p);
       }
-    };
-  })();
-  var polylineCollection = PolylineCollection.getInstance();
+    }
+    /**
+     * Clears the collection
+     */
+    clear() {
+      this.polylines = {};
+    }
+    /**
+     * Hide the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide polylines for
+     */
+    hide(...tags) {
+      tags.forEach((tag) => {
+        if (this.polylines[tag]) {
+          this.polylines[tag].forEach((p) => {
+            p.hide();
+          });
+        }
+      });
+    }
+    /**
+     * Hides all the Polylines in the collection
+     */
+    hideAll() {
+      Object.keys(this.polylines).forEach((tag) => {
+        this.polylines[tag].forEach((p) => {
+          p.hide();
+        });
+      });
+    }
+    /**
+     * Highlight the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to highlight polylines for
+     */
+    highlight(...tags) {
+      tags.forEach((tag) => {
+        if (this.polylines[tag]) {
+          this.polylines[tag].forEach((p) => {
+            p.highlight();
+          });
+        }
+      });
+    }
+    /**
+     * Highlight all the Polylines in the collection
+     */
+    highlightAll() {
+      Object.keys(this.polylines).forEach((tag) => {
+        this.polylines[tag].forEach((p) => {
+          p.highlight();
+        });
+      });
+    }
+    /**
+     * Remove the polyline from the collection, optionally by tag.
+     *
+     * @param {Polyline} p The polyline object to remove
+     * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+     */
+    remove(p, ...tags) {
+      if (tags.length > 0) {
+        tags.forEach((tag) => {
+          if (this.polylines[tag]) {
+            this.polylines[tag].delete(p);
+          }
+        });
+      } else {
+        Object.keys(this.polylines).forEach((tag) => {
+          this.polylines[tag].delete(p);
+        });
+      }
+    }
+    /**
+     * Show the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to show polylines for
+     */
+    show(...tags) {
+      tags.forEach((tag) => {
+        if (this.polylines[tag]) {
+          this.polylines[tag].forEach((p) => {
+            p.show();
+          });
+        }
+      });
+    }
+    /**
+     * Show all the Polylines in the collection
+     */
+    showAll() {
+      Object.keys(this.polylines).forEach((tag) => {
+        this.polylines[tag].forEach((p) => {
+          p.show();
+        });
+      });
+    }
+    /**
+     * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide the highlighted polylines
+     */
+    unhighlight(...tags) {
+      tags.forEach((tag) => {
+        if (this.polylines[tag]) {
+          this.polylines[tag].forEach((p) => {
+            p.unhighlight();
+          });
+        }
+      });
+    }
+    /**
+     * Hide the hightlight for all the Polylines in the collection
+     */
+    unhighlightAll() {
+      Object.keys(this.polylines).forEach((tag) => {
+        this.polylines[tag].forEach((p) => {
+          p.unhighlight();
+        });
+      });
+    }
+  };
+  var polylineCollection = () => new PolylineCollection();
 
   // src/lib/Overlay.ts
   var _offset, _overlay, _overlayView, _position, _styles, _setupGoogleOverlay, setupGoogleOverlay_fn;
@@ -8982,11 +9010,14 @@
     Marker,
     markerCluster,
     MarkerCluster,
+    markerCollection,
+    MarkerCollection,
     point,
     Point,
     polyline,
-    polylineCollection,
     Polyline,
+    polylineCollection,
+    PolylineCollection,
     popup,
     Popup,
     size,

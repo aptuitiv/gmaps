@@ -1727,7 +1727,6 @@ type PolylineOptions = {
     strokeColor?: string;
     strokeOpacity?: number;
     strokeWeight?: number;
-    tags?: string | string[];
     visible?: boolean;
     zIndex?: number;
 };
@@ -1835,22 +1834,6 @@ declare class Polyline extends Layer {
      */
     set strokeWeight(value: number | string);
     /**
-     * Get the tags associated with the polyline.
-     *
-     * @returns {string[]}
-     */
-    get tags(): string[];
-    /**
-     * Set the tag(s) associated with the polyline.
-     *
-     * This will replace any existing tags.
-     *
-     * Tags are used to identify the polyline when you retrieve it from a collection.
-     *
-     * @param {string|string[]} value A string or array of strings to associate with the polyline.
-     */
-    set tags(value: string | string[]);
-    /**
      * Get whether the polyline is visible on the map.
      *
      * @returns {boolean}
@@ -1874,12 +1857,6 @@ declare class Polyline extends Layer {
      * @param {number|string} value The zIndex of the polyline.
      */
     set zIndex(value: number | string);
-    /**
-     * Add one or more tags to the polyline
-     *
-     * @param {string[]} tag One or more tags to add to the polyline
-     */
-    addTag(...tag: string[]): void;
     /**
      * Returns whether the polyline has a zIndex set.
      *
@@ -1919,7 +1896,7 @@ declare class Polyline extends Layer {
      */
     on(type: string, callback: EventCallback, config?: EventConfig): void;
     /**
-     *S et the highlight polyline
+     * Set the highlight polyline
      *
      * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
      * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
@@ -1980,15 +1957,6 @@ declare class Polyline extends Layer {
      */
     setVisible(visible: boolean): Polyline;
     /**
-     * Set the tag(s) associated with the polyline.
-     *
-     * This will replace any existing tags.
-     *
-     * @param {string|string[]} tags A string or array of strings to associate with the polyline.
-     * @returns {Polyline}
-     */
-    setTags(tags: string | string[]): Polyline;
-    /**
      * Show the polyline on the map
      *
      * This will also set the map object if it's passed
@@ -2002,9 +1970,9 @@ declare class Polyline extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Polyline
      *
-     * @returns {google.maps.Polyline}
+     * @returns {Promise<google.maps.Polyline>}
      */
-    toGoogle(): google.maps.Polyline;
+    toGoogle(): Promise<google.maps.Polyline>;
     /**
      * Hide the highlight polyline if it exists
      *
@@ -3104,6 +3072,135 @@ declare class MarkerCluster extends Base {
     render(): MarkerCluster;
 }
 
+type MarkersByTag = {
+    [key: string]: Set<Marker>;
+};
+/**
+ * The collection of markers that enable doing bulk actions on markers.
+ * Some of the bulk actions can be filtered by the marker tag.
+ */
+declare class MarkerCollection {
+    /**
+     * Holds the Marker objects by tag
+     */
+    markers: MarkersByTag;
+    /**
+     * Adds an Marker to the collection
+     *
+     * @param {Marker} p The Marker object to add
+     * @param marker
+     * @param {string[]} tags The tag(s) to assign the marker to
+     */
+    add(marker: Marker, ...tags: string[]): void;
+    /**
+     * Clears the collection
+     */
+    clear(): void;
+    /**
+     * Hide the Markers in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide markers for
+     */
+    hide(...tags: string[]): void;
+    /**
+     * Hides all the Markers in the collection
+     */
+    hideAll(): void;
+    /**
+     * Remove the marker from the collection, optionally by tag.
+     *
+     * @param {Marker} p The marker object to remove
+     * @param marker
+     * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+     */
+    remove(marker: Marker, ...tags: string[]): void;
+    /**
+     * Show the Markers in the collection that have the tag(s) passed
+     *
+     * @param {Map} map The map object
+     * @param {string[]} tags The tag(s) to show markers for
+     */
+    show(map: Map, ...tags: string[]): void;
+    /**
+     * Show all the Markers in the collection
+     *
+     * @param {Map} map The map object
+     */
+    showAll(map: Map): void;
+}
+
+type PolylinesByTag = {
+    [key: string]: Set<Polyline>;
+};
+/**
+ * The collection of polylines that enable doing bulk actions on polylines.
+ * Some of the bulk actions can be filtered by the polyline tag.
+ */
+declare class PolylineCollection {
+    /**
+     * Holds the Polyline objects by tag
+     */
+    polylines: PolylinesByTag;
+    /**
+     * Adds an Polyline to the collection
+     *
+     * @param {Polyline} p The Polyline object to add
+     * @param {string[]} tags The tag(s) to assign the polyline to
+     */
+    add(p: Polyline, ...tags: string[]): void;
+    /**
+     * Clears the collection
+     */
+    clear(): void;
+    /**
+     * Hide the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide polylines for
+     */
+    hide(...tags: string[]): void;
+    /**
+     * Hides all the Polylines in the collection
+     */
+    hideAll(): void;
+    /**
+     * Highlight the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to highlight polylines for
+     */
+    highlight(...tags: string[]): void;
+    /**
+     * Highlight all the Polylines in the collection
+     */
+    highlightAll(): void;
+    /**
+     * Remove the polyline from the collection, optionally by tag.
+     *
+     * @param {Polyline} p The polyline object to remove
+     * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+     */
+    remove(p: Polyline, ...tags: string[]): void;
+    /**
+     * Show the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to show polylines for
+     */
+    show(...tags: string[]): void;
+    /**
+     * Show all the Polylines in the collection
+     */
+    showAll(): void;
+    /**
+     * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide the highlighted polylines
+     */
+    unhighlight(...tags: string[]): void;
+    /**
+     * Hide the hightlight for all the Polylines in the collection
+     */
+    unhighlightAll(): void;
+}
+
 declare const _default: {
     icon: (url?: IconValue, options?: {
         anchor?: PointValue;
@@ -3196,26 +3293,14 @@ declare const _default: {
         renderer?: _googlemaps_markerclusterer.Renderer;
     }) => MarkerCluster;
     MarkerCluster: typeof MarkerCluster;
+    markerCollection: () => MarkerCollection;
+    MarkerCollection: typeof MarkerCollection;
     point: (x?: PointValue, y?: string | number) => Point;
     Point: typeof Point;
     polyline: (options?: PolylineValue) => Polyline;
-    polylineCollection: {
-        polylines: {
-            [key: string]: Set<Polyline>;
-        };
-        add(p: Polyline, ...tags: string[]): void;
-        clear(): void;
-        hide(...tags: string[]): void;
-        hideAll(): void;
-        highlight(...tags: string[]): void;
-        highlightAll(): void;
-        remove(p: Polyline, ...tags: string[]): void;
-        show(...tags: string[]): void;
-        showAll(): void;
-        unhighlight(...tags: string[]): void;
-        unhighlightAll(): void;
-    };
     Polyline: typeof Polyline;
+    polylineCollection: () => PolylineCollection;
+    PolylineCollection: typeof PolylineCollection;
     popup: (options?: PopupValue) => Popup;
     Popup: typeof Popup;
     size: (width?: SizeValue, height?: string | number) => Size;
