@@ -435,7 +435,7 @@ export class Polyline extends Layer {
     }
 
     /**
-     *S et the highlight polyline
+     * Set the highlight polyline
      *
      * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
      * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
