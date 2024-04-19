@@ -26,7 +26,7 @@ export class PolylineCollection {
      * @param {Polyline} p The Polyline object to add
      * @param {string[]} tags The tag(s) to assign the polyline to
      */
-    add(p: Polyline, ...tags: string[]) {
+    add(p: Polyline, ...tags: string[]): void {
         if (tags.length > 0) {
             tags.forEach((tag) => {
                 if (!this.polylines[tag]) {
@@ -46,7 +46,7 @@ export class PolylineCollection {
     /**
      * Clears the collection
      */
-    clear() {
+    clear(): void {
         this.polylines = {};
     }
 
@@ -55,7 +55,7 @@ export class PolylineCollection {
      *
      * @param {string[]} tags The tag(s) to hide polylines for
      */
-    hide(...tags: string[]) {
+    hide(...tags: string[]): void {
         tags.forEach((tag) => {
             if (this.polylines[tag]) {
                 this.polylines[tag].forEach((p: Polyline) => {
@@ -68,7 +68,7 @@ export class PolylineCollection {
     /**
      * Hides all the Polylines in the collection
      */
-    hideAll() {
+    hideAll(): void {
         Object.keys(this.polylines).forEach((tag) => {
             this.polylines[tag].forEach((p: Polyline) => {
                 p.hide();
@@ -81,7 +81,7 @@ export class PolylineCollection {
      *
      * @param {string[]} tags The tag(s) to highlight polylines for
      */
-    highlight(...tags: string[]) {
+    highlight(...tags: string[]): void {
         tags.forEach((tag) => {
             if (this.polylines[tag]) {
                 this.polylines[tag].forEach((p: Polyline) => {
@@ -94,7 +94,7 @@ export class PolylineCollection {
     /**
      * Highlight all the Polylines in the collection
      */
-    highlightAll() {
+    highlightAll(): void {
         Object.keys(this.polylines).forEach((tag) => {
             this.polylines[tag].forEach((p: Polyline) => {
                 p.highlight();
@@ -108,7 +108,7 @@ export class PolylineCollection {
      * @param {Polyline} p The polyline object to remove
      * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
      */
-    remove(p: Polyline, ...tags: string[]) {
+    remove(p: Polyline, ...tags: string[]): void {
         if (tags.length > 0) {
             tags.forEach((tag) => {
                 if (this.polylines[tag]) {
@@ -128,7 +128,7 @@ export class PolylineCollection {
      *
      * @param {string[]} tags The tag(s) to show polylines for
      */
-    show(...tags: string[]) {
+    show(...tags: string[]): void {
         tags.forEach((tag) => {
             if (this.polylines[tag]) {
                 this.polylines[tag].forEach((p: Polyline) => {
@@ -141,7 +141,7 @@ export class PolylineCollection {
     /**
      * Show all the Polylines in the collection
      */
-    showAll() {
+    showAll(): void {
         Object.keys(this.polylines).forEach((tag) => {
             this.polylines[tag].forEach((p: Polyline) => {
                 p.show();
@@ -154,7 +154,7 @@ export class PolylineCollection {
      *
      * @param {string[]} tags The tag(s) to hide the highlighted polylines
      */
-    unhighlight(...tags: string[]) {
+    unhighlight(...tags: string[]): void {
         tags.forEach((tag) => {
             if (this.polylines[tag]) {
                 this.polylines[tag].forEach((p: Polyline) => {
@@ -167,7 +167,7 @@ export class PolylineCollection {
     /**
      * Hide the hightlight for all the Polylines in the collection
      */
-    unhighlightAll() {
+    unhighlightAll(): void {
         Object.keys(this.polylines).forEach((tag) => {
             this.polylines[tag].forEach((p: Polyline) => {
                 p.unhighlight();
