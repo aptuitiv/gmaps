@@ -599,11 +599,14 @@ export class Polyline extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#Polyline
      *
-     * @returns {google.maps.Polyline}
+     * @returns {Promise<google.maps.Polyline>}
      */
-    toGoogle(): google.maps.Polyline {
-        this.#setupGooglePolyline();
-        return this.#polyline;
+    toGoogle(): Promise<google.maps.Polyline> {
+        return new Promise((resolve) => {
+            this.#setupGooglePolyline().then(() => {
+                resolve(this.#polyline);
+            });
+        });
     }
 
     /**
