@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 (April 19, 2024)
+
+- Added support for the Map `mapId` parameter.
+- Started adding support for AdvancedMarker. It's still a work in progress. There are some limitations that AdvancedMarker has compared to Marker (such as hover events). We're waiting to see if Google provides more updates.
+- Added support for Polylines.
+- Added PolylineCollection.
+- Added MarkerCollection.
+
 ## 0.5.0 (April 17, 2024)
 
 - Updated how popups and InfoWindows can be attached to elements.
