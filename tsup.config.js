@@ -17,7 +17,7 @@ export default defineConfig([
             })
         ],
         format: ['iife'], // iife works best for the the browser
-        minify: false,
+        minify: true,
         outDir: 'dist',
         // Mark matching packages as "not external" so that they are included in the bundle.
         // This is necessary for using the output in the browser.
