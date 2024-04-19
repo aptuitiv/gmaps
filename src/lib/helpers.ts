@@ -157,6 +157,16 @@ export const isObjectWithValues = <T = object>(thing: any): thing is T =>
     Object.prototype.toString.call(thing) === '[object Object]' && Object.keys(thing).length > 0;
 
 /**
+ * Returns if the thing is a Promise function
+ *
+ * It's assumed to be a promise if the thing exists and "thing.then" is a function
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+export const isPromise = <T = any>(thing: any): thing is Promise<T> => !!thing && isFunction(thing.then);
+
+/**
  * Get the pixel location of the element from the LagLng value
  *
  * @param {google.maps.Map} map The Google map object

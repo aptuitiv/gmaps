@@ -95,9 +95,9 @@ export class Evented extends Base {
      * Holds the Google maps object that events are set up on
      *
      * @private
-     * @type {google.maps.MVCObject}
+     * @type {google.maps.MVCObject| google.maps.marker.AdvancedMarkerElement}
      */
-    #googleObject: google.maps.MVCObject;
+    #googleObject: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement;
 
     /**
      * Holds whether the onload event was set on the Loader class to
@@ -304,7 +304,7 @@ export class Evented extends Base {
             }
 
             // If there are no more event listeners for the given type then remove the listener from the Google maps object
-            if (this.#eventListeners[type].length === 0 && this.#googleObject instanceof google.maps.MVCObject) {
+            if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
                 google.maps.event.clearListeners(this.#googleObject, type);
             }
         } else {
@@ -319,7 +319,7 @@ export class Evented extends Base {
         this.#eventListeners = {};
 
         // Remove all event listeners from the Google maps object
-        if (this.#googleObject instanceof google.maps.MVCObject) {
+        if (this.#isGoogleObjectSet()) {
             google.maps.event.clearInstanceListeners(this.#googleObject);
         }
     }
@@ -447,12 +447,12 @@ export class Evented extends Base {
      * @param {EventCallback} callback The event listener callback function
      * @param {EventConfig} [config] Configuration for the event.
      */
-    setupEventListener(type: string, callback: EventCallback, config: EventConfig): void {
+    setupEventListener(type: string, callback: EventCallback, config?: EventConfig): void {
         if (isFunction(callback)) {
             if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                 const hasEvent = Array.isArray(this.#eventListeners[type]);
                 this.#on(type, callback, config);
-                if (!hasEvent && this.#googleObject instanceof google.maps.MVCObject) {
+                if (!hasEvent && this.#isGoogleObjectSet()) {
                     // The Google maps object is set and the event listener is not already set up on it.
                     this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
                         this.dispatch(type, e);
@@ -475,10 +475,27 @@ export class Evented extends Base {
      * This is not intended to be called from outside of this library.
      *
      * @internal
-     * @param {google.maps.MVCObject} googleObject The Google maps MVC object
+     * @param {google.maps.MVCObject| google.maps.marker.AdvancedMarkerElement} googleObject The Google maps MVC object
      */
-    setEventGoogleObject(googleObject: google.maps.MVCObject): void {
+    setEventGoogleObject(googleObject: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement): void {
         this.#googleObject = googleObject;
+    }
+
+    /**
+     * Returns if the Google object is set and ready to work with events
+     *
+     * @returns {boolean}
+     */
+    #isGoogleObjectSet(): boolean {
+        let isSet = this.#googleObject instanceof google.maps.MVCObject;
+        if (
+            !isSet &&
+            typeof google.maps.marker !== 'undefined' &&
+            typeof google.maps.marker.AdvancedMarkerElement !== 'undefined'
+        ) {
+            isSet = this.#googleObject instanceof google.maps.marker.AdvancedMarkerElement;
+        }
+        return isSet;
     }
 
     /**

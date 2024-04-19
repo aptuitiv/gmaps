@@ -262,10 +262,10 @@ class Overlay extends Layer {
             this.position = position;
             if (mapObject instanceof Map) {
                 if (this.#overlayView) {
+                    // Setting the map will trigger the redraw
                     this.#overlayView.setMap(mapObject.toGoogle());
                     this.isVisible = true;
                     super.setMap(mapObject);
-                    this.draw(this.#overlayView.getProjection());
                     resolve(this);
                 } else {
                     this.show(mapObject).then(() => {

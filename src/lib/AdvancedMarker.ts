@@ -1,10 +1,22 @@
 /* ===========================================================================
-    Enables building and managing markers on the map.
+    Enables building and managing advanced markers on the map.
 
-    https://developers.google.com/maps/documentation/javascript/markers
-    https://developers.google.com/maps/documentation/javascript/reference/marker
+    This is here as a starting point for when AdvancedMarkers are better.
+    This was a copy of the Marker.ts file with some updaets to try and get the AdvancedMarker library working.
+    It will display a marker on the map but there are issues with hover events.
+    We also ahd to do some workarounds to try and get the click events to work.
+    This is not complete and ready for production.
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/marker for documentation.
+    Google has deprecated the regular marker class and has replaced it with the AdvancedMarker library.
+    However, as of April, 2024 there are issues and roadblocks preventing us from completely
+    replacing the regular marker class with the AdvancedMarker library.
+
+    https://stackoverflow.com/questions/77044160/google-maps-javascript-api-draggable-markers-dont-trigger-neither-click-nor
+    https://stackoverflow.com/questions/76860379/google-maps-advancedmarker-hover-listener-function-not-working
+
+    https://developers.google.com/maps/documentation/javascript/advanced-markers/migration
+    https://developers.google.com/maps/documentation/javascript/reference/advanced-markers
+
 =========================================================================== */
 
 /* global google */
@@ -24,6 +36,7 @@ import {
     isNumber,
     isNumberOrNumberString,
     isObject,
+    isPromise,
     isString,
     isStringOrNumber,
     isStringWithValue,
@@ -72,17 +85,30 @@ export type MarkerOptions = GMMarkerOptions & {
     tooltip?: TooltipValue;
 };
 
+// This is needed because the gmpClickable property is in beta so it's not in the type definitions
+type AdvancedMarkerOptions = google.maps.marker.AdvancedMarkerElementOptions & {
+    gmpClickable?: boolean;
+};
+
 /**
- * Marker class to set up a single marker and add it to the map
+ * AdvancedMarker class to set up a single advanced marker and add it to the map
  */
-export class Marker extends Layer {
+export class AdvancedMarker extends Layer {
+    /**
+     * Holds if the map is initialized or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isInitialized: boolean = false;
+
     /**
      * Holds the Google maps marker object
      *
      * @private
-     * @type {google.maps.Marker}
+     * @type {google.maps.marker.AdvancedMarkerElement}
      */
-    #marker: google.maps.Marker;
+    #marker: google.maps.marker.AdvancedMarkerElement;
 
     /**
      * Holds the marker options
@@ -99,7 +125,7 @@ export class Marker extends Layer {
      * @param {MarkerOptions} [options] The marker options
      */
     constructor(position?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
-        super('marker', 'Marker');
+        super('marker', 'AdvancedMarker', 'marker');
 
         // Set a default position
         this.#options.position = latLng([0, 0]);
@@ -250,9 +276,9 @@ export class Marker extends Layer {
      * Alternate of show()
      *
      * @param {Map} map The map object
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    display(map: Map): Marker {
+    display(map: Map): AdvancedMarker {
         this.setMap(map);
         return this;
     }
@@ -271,9 +297,9 @@ export class Marker extends Layer {
     /**
      * Hide the marker
      *
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    hide(): Marker {
+    hide(): AdvancedMarker {
         this.map = null;
         return this;
     }
@@ -305,16 +331,48 @@ export class Marker extends Layer {
      * @param {EventConfig} [config] Configuration for the event.
      */
     on(type: string, callback: EventCallback, config?: EventConfig): void {
-        this.setupEventListener(type, callback, config);
+        // This has a few tests for trying to get mouseenter events to work.
+        // Tried following instructions on https://stackoverflow.com/questions/76860379/google-maps-advancedmarker-hover-listener-function-not-working
+        // but it still didn't work.
+
+        // let eventType = type;
+        // if (eventType === 'click') {
+        //     eventType = 'gmp-click';
+        // }
+        if (type === 'mouseenter') {
+            // this.#marker.content.addEventListener('click', () => {
+            //     console.log('click');
+            // });
+            this.#marker.addListener('mouseover', () => {
+                console.log('mouseover');
+            });
+            this.#marker.content.addEventListener('mouseover', () => {
+                console.log('content mouseover');
+            });
+            // this.setupEventListener(type, callback, config);
+        } else {
+            this.setupEventListener(type, callback, config);
+        }
+        // if (eventType === 'click') {
+        //     if (this.#marker) {
+        //         console.log('Marker on: ', eventType, callback);
+        //         this.#marker.addListener(eventType, () => {
+        //             console.log('marker event: ', eventType);
+        //             callback.call(this);
+        //         });
+        //     }
+        // } else {
+        //     this.setupEventListener(eventType, callback, config);
+        // }
     }
 
     /**
      * Set the anchor point for the marker
      *
      * @param {PointValue} value The anchor point for the marker
-     * @returns {Promise<Marker>}
+     * @returns {Promise<AdvancedMarker>}
      */
-    async setAnchorPoint(value: PointValue): Promise<Marker> {
+    async setAnchorPoint(value: PointValue): Promise<AdvancedMarker> {
         await this.#setupGoogleMarker();
         this.#setAnchorPoint(value);
         return this;
@@ -328,9 +386,9 @@ export class Marker extends Layer {
      * anchor point to the constructor or setOptions().
      *
      * @param {PointValue} value The anchor point for the marker
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setAnchorPointSync(value: PointValue): Marker {
+    setAnchorPointSync(value: PointValue): AdvancedMarker {
         this.#setupGoogleMarkerSync();
         this.#setAnchorPoint(value);
         return this;
@@ -348,16 +406,17 @@ export class Marker extends Layer {
         } else {
             this.#options.anchorPoint = undefined;
         }
-        this.#marker.setOptions({ anchorPoint: this.#options.anchorPoint.toGoogle() });
+        // @todo Remove this as anchor point isn't used on AdvaneceMarkers
+        // this.#marker.setOptions({ anchorPoint: this.#options.anchorPoint.toGoogle() });
     }
 
     /**
      * Set the cursor type to show on hover
      *
      * @param {string} value The cursor type to show on hover
-     * @returns {Promise<Marker>}
+     * @returns {Promise<AdvancedMarker>}
      */
-    async setCursor(value: string): Promise<Marker> {
+    async setCursor(value: string): Promise<AdvancedMarker> {
         await this.#setupGoogleMarker();
         this.#setCursor(value);
         return this;
@@ -371,9 +430,9 @@ export class Marker extends Layer {
      * cursor to the constructor or setOptions().
      *
      * @param {string} value The cursor type to show on hover
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setCursorSync(value: string): Marker {
+    setCursorSync(value: string): AdvancedMarker {
         this.#setupGoogleMarkerSync();
         this.#setCursor(value);
         return this;
@@ -390,16 +449,17 @@ export class Marker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.cursor = undefined;
         }
-        this.#marker.setCursor(this.#options.cursor);
+        // @todo Remove this as cursors isn't used on AdvaneceMarkers
+        // this.#marker.setCursor(this.#options.cursor);
     }
 
     /**
      * Set the icon value for the marker
      *
      * @param {Icon | SvgSymbol | string} value The icon for the marker
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    async setIcon(value: Icon | SvgSymbol | string): Promise<Marker> {
+    async setIcon(value: Icon | SvgSymbol | string): Promise<AdvancedMarker> {
         await this.#setupGoogleMarker();
         this.#setIcon(value);
         return this;
@@ -413,9 +473,9 @@ export class Marker extends Layer {
      * icon to the constructor or setOptions().
      *
      * @param {Icon | SvgSymbol | string} value The icon for the marker
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setIconSync(value: Icon | SvgSymbol | string): Marker {
+    setIconSync(value: Icon | SvgSymbol | string): AdvancedMarker {
         this.#setupGoogleMarkerSync();
         this.#setIcon(value);
         return this;
@@ -433,20 +493,21 @@ export class Marker extends Layer {
             this.#options.icon = undefined;
         }
 
-        if (isString(this.#options.icon)) {
-            this.#marker.setIcon(this.#options.icon);
-        } else {
-            this.#marker.setIcon(this.#options.icon.toGoogle());
-        }
+        // @todo Need to get icons/images working on the AdvancedMarker library
+        // if (isString(this.#options.icon)) {
+        //     this.#marker.setIcon(this.#options.icon);
+        // } else {
+        //     this.#marker.setIcon(this.#options.icon.toGoogle());
+        // }
     }
 
     /**
      * Set the label value for the marker
      *
      * @param {string | number | MarkerLabel} value The label for the marker
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    async setLabel(value: string | number | MarkerLabel): Promise<Marker> {
+    async setLabel(value: string | number | MarkerLabel): Promise<AdvancedMarker> {
         await this.#setupGoogleMarker();
         this.#setLabel(value);
         return this;
@@ -460,9 +521,9 @@ export class Marker extends Layer {
      * label to the constructor or setOptions().
      *
      * @param {string | number | MarkerLabel} value The label for the marker
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setLabelSync(value: string | number | MarkerLabel): Marker {
+    setLabelSync(value: string | number | MarkerLabel): AdvancedMarker {
         this.#setupGoogleMarkerSync();
         this.#setLabel(value);
         return this;
@@ -495,7 +556,8 @@ export class Marker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.label = undefined;
         }
-        this.#marker.setLabel(this.#options.label);
+        // @todo See how to get this to work with AdvancedMarkers
+        // this.#marker.setLabel(this.#options.label);
     }
 
     /**
@@ -504,10 +566,10 @@ export class Marker extends Layer {
      * Alternate of show()
      *
      * @param {Map} map The map object. Set to null if you want to remove the marker from the map.
-     * @returns {Promise<Marker>}
+     * @returns {Promise<AdvancedMarker>}
      */
-    async setMap(map: Map | null): Promise<Marker> {
-        await this.#setupGoogleMarker(map);
+    async setMap(map: Map | null): Promise<AdvancedMarker> {
+        await this.#setupGoogleMarker();
         this.#setMap(map);
         return this;
     }
@@ -520,9 +582,9 @@ export class Marker extends Layer {
      * map to the constructor or setOptions().
      *
      * @param {Map|null} map The map object. Set to null if you want to remove the marker from the map.
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setMapSync(map: Map | null): Marker {
+    setMapSync(map: Map | null): AdvancedMarker {
         this.#setupGoogleMarkerSync();
         this.#setMap(map);
         return this;
@@ -533,19 +595,28 @@ export class Marker extends Layer {
      *
      * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
      */
-    #setMap(value: Map | null) {
+    #setMap(value: Map | Promise<Map> | null) {
         if (value instanceof Map) {
             // Set the map
             this.#options.map = value;
             super.setMap(value);
-            this.#marker.setMap(value.toGoogle());
+            this.#marker.map = value.toGoogle();
         } else if (isNullOrUndefined(value)) {
             // Remove the marker from the map
             this.#options.map = null;
             super.setMap(null);
             if (this.#marker) {
-                this.#marker.setMap(null);
+                this.#marker.map = null;
             }
+        } else if (isPromise(value)) {
+            // The map value is a Promise. This could come from a situation like this:
+            // const map = map({ options }).load();
+            // In that case, the "map" variable is the promise returned from "load()".
+            value.then((map) => {
+                this.#options.map = map;
+                super.setMap(map);
+                this.#marker.map = map.toGoogle();
+            });
         }
     }
 
@@ -553,9 +624,10 @@ export class Marker extends Layer {
      * Set the marker options
      *
      * @param {MarkerOptions} options The marker options
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setOptions(options: MarkerOptions): Marker {
+    setOptions(options: MarkerOptions): AdvancedMarker {
+        console.log('Marker setOptions: ', options);
         // Set the anchor point
         if (options.anchorPoint) {
             this.anchorPoint = options.anchorPoint;
@@ -595,7 +667,9 @@ export class Marker extends Layer {
             } else if (isNumberOrNumberString(options.longitude)) {
                 latLngValue.lng = options.longitude;
             }
+            console.log('options position: ', latLngValue);
             this.position = latLngValue;
+            console.log('this.position: ', this.position);
         } else if (options.position) {
             this.position = options.position;
         }
@@ -632,9 +706,9 @@ export class Marker extends Layer {
      * Set the latitude and longitude value for the marker
      *
      * @param {LatLngValue} value The latitude/longitude position for the marker
-     * @returns {Promise<Marker>}
+     * @returns {Promise<AdvancedMarker>}
      */
-    async setPosition(value: LatLngValue): Promise<Marker> {
+    async setPosition(value: LatLngValue): Promise<AdvancedMarker> {
         await this.#setupGoogleMarker();
         this.#setPosition(value);
         return this;
@@ -648,9 +722,9 @@ export class Marker extends Layer {
      * position to the constructor or setOptions().
      *
      * @param {LatLngValue} value The latitude/longitude position for the marker
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setPositionSync(value: LatLngValue): Marker {
+    setPositionSync(value: LatLngValue): AdvancedMarker {
         this.#setupGoogleMarkerSync();
         this.#setPosition(value);
         return this;
@@ -663,9 +737,11 @@ export class Marker extends Layer {
      */
     #setPosition(value: LatLngValue) {
         const position = latLng(value);
+        console.log('#setPosition: ', value, position);
         if (position.isValid()) {
-            this.#options.position = latLng(value);
-            this.#marker.setPosition(this.#options.position.toGoogle());
+            console.log('#setPosition: ', position);
+            this.#options.position = position;
+            this.#marker.position = this.#options.position.toGoogle();
         }
     }
 
@@ -673,9 +749,9 @@ export class Marker extends Layer {
      *Set the title for the marker
      *
      * @param {string} value The title to show on hover
-     * @returns {Promise<Marker>}
+     * @returns {Promise<AdvancedMarker>}
      */
-    async setTitle(value: string): Promise<Marker> {
+    async setTitle(value: string): Promise<AdvancedMarker> {
         await this.#setupGoogleMarker();
         this.#setTitle(value);
         return this;
@@ -689,9 +765,9 @@ export class Marker extends Layer {
      * title to the constructor or setOptions().
      *
      * @param {string} value The title to show on hover
-     * @returns {Marker}
+     * @returns {AdvancedMarker}
      */
-    setTitleSync(value: string): Marker {
+    setTitleSync(value: string): AdvancedMarker {
         this.#setupGoogleMarkerSync();
         this.#setTitle(value);
         return this;
@@ -708,7 +784,7 @@ export class Marker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.title = undefined;
         }
-        this.#marker.setTitle(this.#options.title);
+        this.#marker.title = this.#options.title;
     }
 
     /**
@@ -717,9 +793,9 @@ export class Marker extends Layer {
      * Alternate of setMap()
      *
      * @param {Map} map The map object
-     * @returns {Promise<Marker>}
+     * @returns {Promise<AdvancedMarker>}
      */
-    show(map: Map): Promise<Marker> {
+    show(map: Map): Promise<AdvancedMarker> {
         return this.setMap(map);
     }
 
@@ -728,9 +804,9 @@ export class Marker extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/marker#Marker
      *
-     * @returns {Promise<google.maps.Marker>}
+     * @returns {Promise<google.maps.marker.AdvancedMarkerElement>}
      */
-    toGoogle(): Promise<google.maps.Marker> {
+    toGoogle(): Promise<google.maps.marker.AdvancedMarkerElement> {
         return new Promise((resolve) => {
             this.#setupGoogleMarker().then(() => {
                 resolve(this.#marker);
@@ -747,9 +823,9 @@ export class Marker extends Layer {
      * Only use this when you have to get the Google Maps object synchronously and you know that the Google Maps library is already loaded.
      * If you don't have to get the Google Maps object synchronously, then use toGoogle() instead.
      *
-     * @returns {google.maps.Marker}
+     * @returns {google.maps.marker.AdvancedMarkerElement}
      */
-    toGoogleSync(): google.maps.Marker {
+    toGoogleSync(): google.maps.marker.AdvancedMarkerElement {
         this.#setupGoogleMarkerSync();
         return this.#marker;
     }
@@ -758,16 +834,19 @@ export class Marker extends Layer {
      * Set up the Google maps marker object if necessary
      *
      * @private
-     * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
      * @returns {Promise<void>}
      */
-    #setupGoogleMarker(map?: Map): Promise<void> {
+    #setupGoogleMarker(): Promise<void> {
         return new Promise((resolve) => {
             if (!isObject(this.#marker)) {
-                if (checkForGoogleMaps('Marker', 'Marker', false)) {
+                // The lowercase "marker" refers to the AdvancedMarker library
+                if (checkForGoogleMaps('Marker', 'marker', false)) {
                     this.#createMarkerObject();
                     resolve();
-                } else {
+                } else if (!this.#isInitialized) {
+                    // Only initialize the marker once.
+                    // If this isn't done then the marker may be created multiple times.
+                    this.#isInitialized = true;
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().once('map_loaded', () => {
@@ -775,17 +854,16 @@ export class Marker extends Layer {
                         // Make sure that the map is still set.
                         // It's unlikely, but possible, that the developer could have removed the map
                         // from the marker before the Google maps object was available.
-                        const thisMap = this.getMap();
-                        if (this.#marker && thisMap) {
-                            this.#marker.setMap(thisMap.toGoogle());
+                        const map = this.getMap();
+                        if (this.#marker && map) {
+                            this.#marker.map = map.toGoogle();
                         }
                         resolve();
                     });
-
-                    // Trigger the map to load if it's set.
-                    if (map instanceof Map) {
-                        map.init();
-                    }
+                } else {
+                    this.onceImmediate('initialized', () => {
+                        resolve();
+                    });
                 }
             } else {
                 resolve();
@@ -798,7 +876,8 @@ export class Marker extends Layer {
      */
     #setupGoogleMarkerSync(): void {
         if (!isObject(this.#marker)) {
-            if (checkForGoogleMaps('Marker', 'Marker', false)) {
+            // The lowercase "marker" refers to the AdvancedMarker library
+            if (checkForGoogleMaps('Marker', 'marker', false)) {
                 this.#createMarkerObject();
             } else {
                 throw new Error(
@@ -815,7 +894,7 @@ export class Marker extends Layer {
      */
     #createMarkerObject() {
         if (!this.#marker) {
-            const markerOptions: google.maps.MarkerOptions = {};
+            const markerOptions: AdvancedMarkerOptions = {};
             // Options that can be set on the marker without any modification
             const optionsToSet = ['cursor', 'title'];
             optionsToSet.forEach((key) => {
@@ -824,43 +903,45 @@ export class Marker extends Layer {
                 }
             });
 
+            // @todo See how to get this to work with AdvancedMarkers
             // Options that have to be converted to Google maps objects
-            if (this.#options.anchorPoint) {
-                markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
-            }
-            if (this.#options.icon) {
-                if (isString(this.#options.icon)) {
-                    markerOptions.icon = this.#options.icon;
-                } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
-                    markerOptions.icon = this.#options.icon.toGoogle();
-                }
-            }
+            // if (this.#options.anchorPoint) {
+            //     markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
+            // }
+            // if (this.#options.icon) {
+            //     if (isString(this.#options.icon)) {
+            //         markerOptions.icon = this.#options.icon;
+            //     } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
+            //         markerOptions.icon = this.#options.icon.toGoogle();
+            //     }
+            // }
             if (this.#options.map) {
                 markerOptions.map = this.#options.map.toGoogle();
             }
             if (this.#options.position) {
                 markerOptions.position = this.#options.position.toGoogle();
             }
-
-            this.#marker = new google.maps.Marker(markerOptions);
+            markerOptions.gmpClickable = true;
+            this.#marker = new google.maps.marker.AdvancedMarkerElement(markerOptions);
+            this.dispatch('initialized');
             this.setEventGoogleObject(this.#marker);
         }
     }
 }
 
 // The possible values for the latLngValue parameter
-export type MarkerValue = Marker | MarkerOptions | LatLngValue;
+export type MarkerValue = AdvancedMarker | MarkerOptions | LatLngValue;
 
 /**
  * Helper function to set up the marker object
  *
  * @param {MarkerValue} [position] The latitude/longitude pair or the marker options
  * @param {MarkerOptions} [options] The marker options
- * @returns {Marker}
+ * @returns {AdvancedMarker}
  */
-export const marker = (position?: MarkerValue, options?: MarkerOptions): Marker => {
-    if (position instanceof Marker) {
+export const advancedMarker = (position?: MarkerValue, options?: MarkerOptions): AdvancedMarker => {
+    if (position instanceof AdvancedMarker) {
         return position;
     }
-    return new Marker(position, options);
+    return new AdvancedMarker(position, options);
 };

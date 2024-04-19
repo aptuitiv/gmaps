@@ -526,7 +526,7 @@ declare class Evented extends Base {
      * @param {EventCallback} callback The event listener callback function
      * @param {EventConfig} [config] Configuration for the event.
      */
-    setupEventListener(type: string, callback: EventCallback, config: EventConfig): void;
+    setupEventListener(type: string, callback: EventCallback, config?: EventConfig): void;
     /**
      * Set the Google maps MVC object
      *
@@ -536,9 +536,9 @@ declare class Evented extends Base {
      * This is not intended to be called from outside of this library.
      *
      * @internal
-     * @param {google.maps.MVCObject} googleObject The Google maps MVC object
+     * @param {google.maps.MVCObject| google.maps.marker.AdvancedMarkerElement} googleObject The Google maps MVC object
      */
-    setEventGoogleObject(googleObject: google.maps.MVCObject): void;
+    setEventGoogleObject(googleObject: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement): void;
     /**
      * Triggers an event
      *
@@ -667,6 +667,7 @@ type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
 
 type GMMapOptions = {
     center?: LatLng;
+    mapId?: string;
     zoom?: number;
 };
 type MapOptions = GMMapOptions & {
@@ -677,6 +678,7 @@ type MapOptions = GMMapOptions & {
     libraries?: Libraries;
     lng: number | string;
     longitude: number | string;
+    mapId?: string;
     version?: string;
     zoom?: number;
 };
@@ -729,9 +731,9 @@ declare class Map extends Evented {
      * Alias to show()
      *
      * @param {Function} callback The callback function to call after the map loads
-     * @returns {Promise<void>}
+     * @returns {Promise<Map>}
      */
-    display(callback?: () => void): Promise<void>;
+    display(callback?: () => void): Promise<Map>;
     /**
      * Sets the viewport to contain the given bounds.
      *
@@ -765,7 +767,7 @@ declare class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    init(callback?: () => void): Promise<void>;
+    init(callback?: () => void): Promise<Map>;
     /**
      * Get the center point for the map
      *
@@ -810,7 +812,7 @@ declare class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    load(callback?: () => void): Promise<void>;
+    load(callback?: () => void): Promise<Map>;
     /**
      * Try to locate the user using the GeoLocation API
      *
@@ -879,7 +881,7 @@ declare class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    show(callback?: () => void): Promise<void>;
+    show(callback?: () => void): Promise<Map>;
     /**
      * Stop watching for the user's location
      *
@@ -1532,6 +1534,7 @@ type PopupOptions = {
     autoClose?: boolean;
     center?: boolean;
     className?: string;
+    closeElement?: HTMLElement | string;
     content: string | HTMLElement | Text;
     offset?: PointValue;
     styles?: object;
@@ -1572,6 +1575,18 @@ declare class Popup extends Overlay {
      * @param {boolean} center Whether to center the popup on the element
      */
     set center(center: boolean);
+    /**
+     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @returns {HTMLElement|string}
+     */
+    get closeElement(): HTMLElement | string;
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @param {HTMLElement|string} closeElement The element to close the popup
+     */
+    set closeElement(closeElement: HTMLElement | string);
     /**
      * Returns the content for the popup
      *
@@ -1645,6 +1660,14 @@ declare class Popup extends Overlay {
      */
     open(element: Map | Layer): Promise<Popup>;
     /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     * The popup will be hidden when this element is clicked on.
+     *
+     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
+     * @returns {Popup}
+     */
+    setCloseElement(element: HTMLElement | string): Popup;
+    /**
      * Set the Popup content
      *
      * @param {string | HTMLElement | Text} content The Popup content
@@ -1695,6 +1718,269 @@ declare class Popup extends Overlay {
     draw(projection: google.maps.MapCanvasProjection): void;
 }
 type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
+
+type PolylineOptions = {
+    clickable?: boolean;
+    highlightPolyline?: PolylineOptions | Polyline;
+    map?: Map;
+    path?: LatLngValue[];
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+    visible?: boolean;
+    zIndex?: number;
+};
+/**
+ * Polyline class
+ */
+declare class Polyline extends Layer {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {PolylineOptions} [options] The polyline options
+     */
+    constructor(options?: PolylineOptions);
+    /**
+     * Get whether the polyline handles click events.
+     *
+     * @returns {boolean}
+     */
+    get clickable(): boolean;
+    /**
+     * Set whether the polyline handles click events.
+     *
+     * @param {boolean} value Whether the polyline handles click events.
+     */
+    set clickable(value: boolean);
+    /**
+     * Get the highlight polyline
+     *
+     * @returns {Polyline}
+     */
+    get highlightPolyline(): Polyline;
+    /**
+     * Set the highlight polyline
+     *
+     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
+     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
+     *
+     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
+     */
+    set highlightPolyline(value: PolylineOptions | Polyline);
+    /**
+     * Get the map object
+     *
+     * @returns {Map}
+     */
+    get map(): Map;
+    /**
+     * Set the map object
+     *
+     * @param {Map|null} value The map object. Set to null if you want to remove the polyline from the map.
+     */
+    set map(value: Map | null);
+    /**
+     * Get the path of the polyline.
+     *
+     * The path is an array of LatLng values defining the path of the polyline.
+     *
+     * @returns {LatLngValue[]}
+     */
+    get path(): LatLngValue[];
+    /**
+     * Set the path of the polyline.
+     * The path is an array of LatLng values defining the path of the polyline.
+     * You can pass an array of LatLng objects or an array of LatLngLiteral objects.
+     *
+     * @param {LatLngValue[]} value The path of the polyline.
+     */
+    set path(value: LatLngValue[]);
+    /**
+     * Get the SVG stroke color
+     *
+     * @returns {string}
+     */
+    get strokeColor(): string;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} value The SVG stroke color.
+     */
+    set strokeColor(value: string);
+    /**
+     * Get the opacity of the stroke.
+     * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
+     *
+     * @returns {number}
+     */
+    get strokeOpacity(): number;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} value The opacity of the stroke.
+     */
+    set strokeOpacity(value: number | string);
+    /**
+     * Get the weight of the stroke in pixels.
+     *
+     * @returns {number}
+     */
+    get strokeWeight(): number;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} value The weight of the stroke.
+     */
+    set strokeWeight(value: number | string);
+    /**
+     * Get whether the polyline is visible on the map.
+     *
+     * @returns {boolean}
+     */
+    get visible(): boolean;
+    /**
+     * Set whether the polyline is visible on the map.
+     *
+     * @param {boolean} value Whether the polyline is visible on the map.
+     */
+    set visible(value: boolean);
+    /**
+     * Get the zIndex of the polyline.
+     *
+     * @returns {number}
+     */
+    get zIndex(): number;
+    /**
+     * Set the zIndex of the polyline.
+     *
+     * @param {number|string} value The zIndex of the polyline.
+     */
+    set zIndex(value: number | string);
+    /**
+     * Returns whether the polyline has a zIndex set.
+     *
+     * @returns {boolean}
+     */
+    hasZIndex(): boolean;
+    /**
+     * Hide the polyline
+     *
+     * @returns {Polyline}
+     */
+    hide(): Polyline;
+    /**
+     * Display the highlight polyline if it exists
+     *
+     * @returns {Polyline}
+     */
+    highlight(): Polyline;
+    /**
+     * Initialize the polyline
+     *
+     * This is used when another element (like a tooltip) needs to be attached to the polyline,
+     * but needs to make sure that the polyline exists first.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * Add an event listener to the Google maps object
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    on(type: string, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Set the highlight polyline
+     *
+     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
+     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
+     *
+     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
+     * @returns {Polyline}
+     */
+    setHighlightPolyline(value: PolylineOptions | Polyline): Polyline;
+    /**
+     * Adds the polyline to the map object
+     *
+     * Alternate of show()
+     *
+     * @param {Map} value The map object. Set to null if you want to remove the polyline from the map.
+     * @returns {Promise<Polyline>}
+     */
+    setMap(value: Map | null): Promise<Polyline>;
+    /**
+     * Set the Polyline options
+     *
+     * @param {PolylineOptions} options The Polyline options
+     * @returns {Polyline}
+     */
+    setOptions(options: PolylineOptions): Polyline;
+    /**
+     * Se the path of the polyline.
+     *
+     * @param {LatLngValue[]} path The path of the polyline.
+     * @returns {Polyline}
+     */
+    setPath(path: LatLngValue[]): Polyline;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} strokeColor The SVG stroke color.
+     * @returns {Polyline}
+     */
+    setStrokeColor(strokeColor: string): Polyline;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} strokeOpacity The opacity of the stroke.
+     * @returns {Polyline}
+     */
+    setStrokeOpacity(strokeOpacity: number | string): Polyline;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} strokeWeight The weight of the stroke.
+     * @returns {Polyline}
+     */
+    setStrokeWeight(strokeWeight: number | string): Polyline;
+    /**
+     * Set whether the polyline is visible on the map.
+     *
+     * @param {boolean} visible Whether the polyline is visible on the map.
+     * @returns {Polyline}
+     */
+    setVisible(visible: boolean): Polyline;
+    /**
+     * Show the polyline on the map
+     *
+     * This will also set the map object if it's passed
+     *
+     * @param {Map} [map] The map object. Don't need to pass this if the map is already set on the polyline.
+     * @returns {Promise<Polyline>}
+     */
+    show(map?: Map): Promise<Polyline>;
+    /**
+     * Get the Google maps Polyline object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Polyline
+     *
+     * @returns {Promise<google.maps.Polyline>}
+     */
+    toGoogle(): Promise<google.maps.Polyline>;
+    /**
+     * Hide the highlight polyline if it exists
+     *
+     * @returns {Polyline}
+     */
+    unhighlight(): Polyline;
+}
+type PolylineValue = Polyline | PolylineOptions;
 
 type SizeObject = {
     height: number | string;
@@ -2786,6 +3072,135 @@ declare class MarkerCluster extends Base {
     render(): MarkerCluster;
 }
 
+type MarkersByTag = {
+    [key: string]: Set<Marker>;
+};
+/**
+ * The collection of markers that enable doing bulk actions on markers.
+ * Some of the bulk actions can be filtered by the marker tag.
+ */
+declare class MarkerCollection {
+    /**
+     * Holds the Marker objects by tag
+     */
+    markers: MarkersByTag;
+    /**
+     * Adds an Marker to the collection
+     *
+     * @param {Marker} p The Marker object to add
+     * @param marker
+     * @param {string[]} tags The tag(s) to assign the marker to
+     */
+    add(marker: Marker, ...tags: string[]): void;
+    /**
+     * Clears the collection
+     */
+    clear(): void;
+    /**
+     * Hide the Markers in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide markers for
+     */
+    hide(...tags: string[]): void;
+    /**
+     * Hides all the Markers in the collection
+     */
+    hideAll(): void;
+    /**
+     * Remove the marker from the collection, optionally by tag.
+     *
+     * @param {Marker} p The marker object to remove
+     * @param marker
+     * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+     */
+    remove(marker: Marker, ...tags: string[]): void;
+    /**
+     * Show the Markers in the collection that have the tag(s) passed
+     *
+     * @param {Map} map The map object
+     * @param {string[]} tags The tag(s) to show markers for
+     */
+    show(map: Map, ...tags: string[]): void;
+    /**
+     * Show all the Markers in the collection
+     *
+     * @param {Map} map The map object
+     */
+    showAll(map: Map): void;
+}
+
+type PolylinesByTag = {
+    [key: string]: Set<Polyline>;
+};
+/**
+ * The collection of polylines that enable doing bulk actions on polylines.
+ * Some of the bulk actions can be filtered by the polyline tag.
+ */
+declare class PolylineCollection {
+    /**
+     * Holds the Polyline objects by tag
+     */
+    polylines: PolylinesByTag;
+    /**
+     * Adds an Polyline to the collection
+     *
+     * @param {Polyline} p The Polyline object to add
+     * @param {string[]} tags The tag(s) to assign the polyline to
+     */
+    add(p: Polyline, ...tags: string[]): void;
+    /**
+     * Clears the collection
+     */
+    clear(): void;
+    /**
+     * Hide the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide polylines for
+     */
+    hide(...tags: string[]): void;
+    /**
+     * Hides all the Polylines in the collection
+     */
+    hideAll(): void;
+    /**
+     * Highlight the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to highlight polylines for
+     */
+    highlight(...tags: string[]): void;
+    /**
+     * Highlight all the Polylines in the collection
+     */
+    highlightAll(): void;
+    /**
+     * Remove the polyline from the collection, optionally by tag.
+     *
+     * @param {Polyline} p The polyline object to remove
+     * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+     */
+    remove(p: Polyline, ...tags: string[]): void;
+    /**
+     * Show the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to show polylines for
+     */
+    show(...tags: string[]): void;
+    /**
+     * Show all the Polylines in the collection
+     */
+    showAll(): void;
+    /**
+     * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string[]} tags The tag(s) to hide the highlighted polylines
+     */
+    unhighlight(...tags: string[]): void;
+    /**
+     * Hide the hightlight for all the Polylines in the collection
+     */
+    unhighlightAll(): void;
+}
+
 declare const _default: {
     icon: (url?: IconValue, options?: {
         anchor?: PointValue;
@@ -2878,8 +3293,14 @@ declare const _default: {
         renderer?: _googlemaps_markerclusterer.Renderer;
     }) => MarkerCluster;
     MarkerCluster: typeof MarkerCluster;
+    markerCollection: () => MarkerCollection;
+    MarkerCollection: typeof MarkerCollection;
     point: (x?: PointValue, y?: string | number) => Point;
     Point: typeof Point;
+    polyline: (options?: PolylineValue) => Polyline;
+    Polyline: typeof Polyline;
+    polylineCollection: () => PolylineCollection;
+    PolylineCollection: typeof PolylineCollection;
     popup: (options?: PopupValue) => Popup;
     Popup: typeof Popup;
     size: (width?: SizeValue, height?: string | number) => Size;

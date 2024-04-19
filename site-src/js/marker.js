@@ -2,11 +2,14 @@
     Javascript for the Marker page
 =========================================================================== */
 
+function randomNumber(min, max) {
+    return Math.random() * (max - min) + min;
+}
 
 /* global G */
 
 /* TEST 1  */
-// G.loader().setApiKey(apiKey).load();
+G.loader().setApiKey(apiKey).load();
 
 // const map = G.map('map1', {
 //     latitude: 40.730610,
@@ -93,3 +96,84 @@ function removeEvents() {
     marker.offAll();
     console.log('Events removed');
 }
+
+// Marker collections
+const lat = 48.9;
+const lng = 2;
+const markerCollection = G.markerCollection();
+const tags = Array.from({ length: 10 }, (v, i) => `tag${i + 1}`);
+
+const tagsUsed = new Set();
+for (let i = 0; i < 20; i += 1) {
+    const tag = tags[Math.floor(Math.random() * tags.length)];
+    tagsUsed.add(tag);
+    const marker = G.marker({
+        latitude: lat + randomNumber(-2.5, 2.5),
+        longitude: lng + randomNumber(-6, 6),
+        map: map,
+        tooltip: `Marker ${tag}`,
+    });
+    markerCollection.add(marker, tag);
+}
+
+// Buttons to do stuff
+const grid = document.createElement('div');
+grid.style.display = 'flex';
+grid.style.flexDirection = 'row';
+grid.style.flexWrap = 'wrap';
+grid.style.gap = '10px';
+grid.style.padding = '10px 0';
+document.body.appendChild(grid);
+
+const hideAllButton = document.createElement('button');
+hideAllButton.textContent = 'Hide All';
+hideAllButton.addEventListener('click', () => {
+    markerCollection.hideAll();
+});
+grid.appendChild(hideAllButton);
+
+const showAllButton = document.createElement('button');
+showAllButton.textContent = 'Show All';
+showAllButton.addEventListener('click', () => {
+    markerCollection.showAll(map);
+});
+grid.appendChild(showAllButton);
+
+// Tag buttons
+const tagGrid = document.createElement('div');
+tagGrid.style.display = 'flex';
+tagGrid.style.flexDirection = 'row';
+tagGrid.style.flexWrap = 'wrap';
+tagGrid.style.gap = '10px';
+tagGrid.style.padding = '10px 0';
+document.body.appendChild(tagGrid);
+
+Array.from(tagsUsed).sort().forEach((tag) => {
+    const hideButton = document.createElement('button');
+    hideButton.textContent = `Hide ${tag}`;
+    hideButton.addEventListener('click', () => {
+        markerCollection.hide(tag);
+    });
+    tagGrid.appendChild(hideButton);
+
+    const showButton = document.createElement('button');
+    showButton.textContent = `Show ${tag}`;
+    showButton.addEventListener('click', () => {
+        markerCollection.show(map, tag);
+    });
+    tagGrid.appendChild(showButton);
+});
+
+const hideTagsButton = document.createElement('button');
+hideTagsButton.textContent = `Hide tags 1 - 3`;
+hideTagsButton.addEventListener('click', () => {
+    markerCollection.hide('tag1', 'tag2', 'tag3');
+});
+tagGrid.appendChild(hideTagsButton);
+
+const showTagsButton = document.createElement('button');
+showTagsButton.textContent = `Show tags 3 - 5`;
+showTagsButton.addEventListener('click', () => {
+    markerCollection.show(map, 'tag3', 'tag4', 'tag5');
+});
+tagGrid.appendChild(showTagsButton);

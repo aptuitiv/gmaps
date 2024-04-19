@@ -5,13 +5,14 @@
 =========================================================================== */
 
 /* global google, HTMLElement, Text */
-/* eslint-disable no-use-before-define */
+/* eslint-disable no-use-before-define -- Done because the PopupCollection is referenced before it's created */
 
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
 import Overlay from './Overlay';
 import { point, Point, PointValue } from './Point';
+import { Polyline } from './Polyline';
 import { isObject, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
@@ -21,6 +22,8 @@ export type PopupOptions = {
     center?: boolean;
     // The popup wrapper class name
     className?: string;
+    // The element to close the popup. This can be a CSS selector or an HTMLElement.
+    closeElement?: HTMLElement | string;
     // The popup content
     content: string | HTMLElement | Text;
     // The amount to offset the popup from the element it is displayed at.
@@ -56,6 +59,14 @@ export class Popup extends Overlay {
      * @type {boolean}
      */
     #center: boolean = true;
+
+    /**
+     * The element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @private
+     * @type {HTMLElement|string}
+     */
+    #closeElement: HTMLElement | string;
 
     /**
      * Holds the popup content.
@@ -163,6 +174,26 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @returns {HTMLElement|string}
+     */
+    get closeElement(): HTMLElement | string {
+        return this.#closeElement;
+    }
+
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @param {HTMLElement|string} closeElement The element to close the popup
+     */
+    set closeElement(closeElement: HTMLElement | string) {
+        if (typeof closeElement === 'string' || closeElement instanceof HTMLElement) {
+            this.#closeElement = closeElement;
+        }
+    }
+
+    /**
      * Returns the content for the popup
      *
      * @returns {string|HTMLElement|Text}
@@ -236,17 +267,20 @@ export class Popup extends Overlay {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
                     } else {
-                        this.show(element);
+                        this.move(e.latLng, element.getMap());
                     }
                 });
                 element.on('mousemove', (e) => {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
                     } else {
-                        this.show(element);
+                        this.move(e.latLng, element.getMap());
                     }
                 });
                 element.on('mouseout', () => {
+                    this.hide();
+                });
+                element.on('mouseleave', () => {
                     this.hide();
                 });
             } else if (event === 'clickon') {
@@ -255,13 +289,13 @@ export class Popup extends Overlay {
                     if (element instanceof Map) {
                         this.move(e.latLng, element);
                     } else {
-                        this.show(element);
+                        this.move(e.latLng, element.getMap());
                     }
                 });
             } else {
                 // Show the popup when clicking on the element
                 element.on('click', (e) => {
-                    if (element instanceof Map) {
+                    if (element instanceof Map || element instanceof Polyline) {
                         this.position = e.latLng;
                     }
                     this.toggle(element);
@@ -328,6 +362,18 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     * The popup will be hidden when this element is clicked on.
+     *
+     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
+     * @returns {Popup}
+     */
+    setCloseElement(element: HTMLElement | string): Popup {
+        this.closeElement = element;
+        return this;
+    }
+
+    /**
      * Set the Popup content
      *
      * @param {string | HTMLElement | Text} content The Popup content
@@ -353,6 +399,9 @@ export class Popup extends Overlay {
         }
         if (isString(options.className)) {
             this.setClassName(options.className);
+        }
+        if (options.closeElement) {
+            this.closeElement = options.closeElement;
         }
         if (options.content) {
             this.content = options.content;
@@ -424,6 +473,13 @@ export class Popup extends Overlay {
                             resolve(this);
                         });
                     });
+                } else {
+                    // If the anchor is a Layer then the position should be set on the Popup.
+                    // This is useful for Polylines and Polygons.
+                    this.#popupOffset = this.getOffset().clone();
+                    super.show(element.getMap()).then(() => {
+                        resolve(this);
+                    });
                 }
             }
         });
@@ -474,8 +530,12 @@ export class Popup extends Overlay {
             }
 
             if (this.center) {
-                // Center the tooltip horizontally on the element
-                this.style('transform', 'translate(-50%, 0)');
+                // Center the tooltip horizontally on the element.
+                // The -100% Y value is to position the popup above the element.
+                this.style('transform', 'translate(-50%, -100%)');
+            } else {
+                // Position the popup above the element.
+                this.style('transform', 'translate(0, -100%)');
             }
             if (this.#theme === 'default') {
                 const styles = this.styles || {};
@@ -492,8 +552,40 @@ export class Popup extends Overlay {
             if (this.getOverlayElement().style.display !== display) {
                 this.style('display', display);
             }
+
+            if (this.#closeElement) {
+                if (this.#closeElement instanceof HTMLElement) {
+                    this.#setupCloseClick(this.#closeElement);
+                } else if (isStringWithValue(this.#closeElement)) {
+                    const matches = this.getOverlayElement().querySelectorAll(this.#closeElement);
+                    matches.forEach((element) => {
+                        this.#setupCloseClick(element as HTMLElement);
+                    });
+                }
+            }
         }
     }
+
+    /**
+     * Handle the close click event
+     *
+     * This is here so that any previous click event listeners are removed before adding the new one.
+     */
+    #handleCloseClick = () => {
+        this.hide();
+    };
+
+    /**
+     * Set up the close click event listenter on the element
+     *
+     * @param {HTMLElement} element The element that will close the popup when clicked.
+     */
+    #setupCloseClick = (element: HTMLElement) => {
+        // First, remove any existing click event listeners
+        element.removeEventListener('click', this.#handleCloseClick);
+        // Add the click event listener to hide the popup
+        element.addEventListener('click', this.#handleCloseClick);
+    };
 }
 
 export type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;

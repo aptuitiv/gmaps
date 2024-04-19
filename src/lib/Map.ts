@@ -34,6 +34,7 @@ import { Evented, EventCallback, EventConfig } from './Evented';
 // The options that will be passed to the Google Maps map object
 type GMMapOptions = {
     center?: LatLng;
+    mapId?: string;
     zoom?: number;
 };
 
@@ -54,6 +55,9 @@ export type MapOptions = GMMapOptions & {
     // The longitude for the center point of the map
     lng: number | string;
     longitude: number | string;
+    // The Google Maps identifier for the map.
+    // See https://developers.google.com/maps/documentation/get-map-id
+    mapId?: string;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
@@ -219,9 +223,9 @@ export class Map extends Evented {
      * Alias to show()
      *
      * @param {Function} callback The callback function to call after the map loads
-     * @returns {Promise<void>}
+     * @returns {Promise<Map>}
      */
-    display(callback?: () => void): Promise<void> {
+    display(callback?: () => void): Promise<Map> {
         return this.show(callback);
     }
 
@@ -265,7 +269,7 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    init(callback?: () => void): Promise<void> {
+    init(callback?: () => void): Promise<Map> {
         return new Promise((resolve) => {
             if (!this.#isInitialized && !this.#isVisible) {
                 // The map has not been initialized or displayed
@@ -274,18 +278,18 @@ export class Map extends Evented {
                     this.#isInitializing = true;
                     this.#load(() => {
                         callCallback(callback);
-                        resolve();
+                        resolve(this);
                     });
                 } else {
                     // The map is initializing, so wait for it to finish
                     this.onceImmediate('visible', () => {
                         callCallback(callback);
-                        resolve();
+                        resolve(this);
                     });
                 }
             } else {
                 callCallback(callback);
-                resolve();
+                resolve(this);
             }
         });
     }
@@ -299,7 +303,7 @@ export class Map extends Evented {
     #getMapOptions(): google.maps.MapOptions {
         const mapOptions: google.maps.MapOptions = {};
         // Options that can be set on the marker without any modification
-        const optionsToSet = ['zoom'];
+        const optionsToSet = ['mapId', 'zoom'];
         optionsToSet.forEach((key) => {
             if (typeof this.#options[key] !== 'undefined') {
                 mapOptions[key] = this.#options[key];
@@ -376,7 +380,7 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    load(callback?: () => void): Promise<void> {
+    load(callback?: () => void): Promise<Map> {
         return this.init(callback);
     }
 
@@ -547,6 +551,10 @@ export class Map extends Evented {
             if (center.isValid()) {
                 this.#options.center = center;
             }
+            if (isStringWithValue(options.mapId)) {
+                // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
+                this.#options.mapId = options.mapId;
+            }
 
             // Set the zoom level for the map
             if (options.zoom) {
@@ -582,17 +590,17 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      * @returns {Promise<void>}
      */
-    show(callback?: () => void): Promise<void> {
+    show(callback?: () => void): Promise<Map> {
         return new Promise((resolve) => {
             if (checkForGoogleMaps('Map', 'Map', false)) {
                 // The map library is loaded and this can be shown
                 this.#showMap(callback);
-                resolve();
+                resolve(this);
             } else {
                 // Wait for the loader to dispatch it's "load" event
                 loader().once('load', () => {
                     this.#showMap(callback);
-                    resolve();
+                    resolve(this);
                 });
             }
         });
