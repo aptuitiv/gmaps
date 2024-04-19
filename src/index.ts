@@ -11,6 +11,7 @@ import { loader, Loader } from './lib/Loader';
 import { map, Map } from './lib/Map';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
+import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
 import { point, Point } from './lib/Point';
 import { polyline, Polyline } from './lib/Polyline';
 import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
@@ -36,6 +37,8 @@ export default {
     Marker,
     markerCluster,
     MarkerCluster,
+    markerCollection,
+    MarkerCollection,
     point,
     Point,
     polyline,

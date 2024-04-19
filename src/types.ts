@@ -10,6 +10,7 @@ import { loader, Loader } from './lib/Loader';
 import { map, Map } from './lib/Map';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
+import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
 import { point, Point } from './lib/Point';
 import { polyline, Polyline } from './lib/Polyline';
 import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
@@ -35,6 +36,8 @@ type GlobalObj = {
     Marker: typeof Marker;
     markerCluster: typeof markerCluster;
     MarkerCluster: typeof MarkerCluster;
+    markerCollection: typeof markerCollection;
+    MarkerCollection: typeof MarkerCollection;
     point: typeof point;
     Point: typeof Point;
     polyline: typeof polyline;
