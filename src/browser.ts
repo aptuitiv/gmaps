@@ -6,22 +6,22 @@
 /* global globalThis, NodeJS, Window */
 
 // Import the class helpers
-import { icon, Icon } from './lib/Icon';
-import { infoWindow, InfoWindow } from './lib/InfoWindow';
-import { latLng, LatLng } from './lib/LatLng';
-import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
-import { loader, Loader } from './lib/Loader';
-import { map, Map } from './lib/Map';
-import { marker, Marker } from './lib/Marker';
-import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
-import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
-import { point, Point } from './lib/Point';
-import { polyline, Polyline } from './lib/Polyline';
-import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
-import { popup, Popup } from './lib/Popup';
-import { size, Size } from './lib/Size';
-import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
-import { tooltip, Tooltip } from './lib/Tooltip';
+import { icon } from './lib/Icon';
+import { infoWindow } from './lib/InfoWindow';
+import { latLng } from './lib/LatLng';
+import { latLngBounds } from './lib/LatLngBounds';
+import { loader } from './lib/Loader';
+import { map } from './lib/Map';
+import { marker } from './lib/Marker';
+import { markerCluster } from './lib/MarkerCluster';
+import { markerCollection } from './lib/MarkerCollection';
+import { point } from './lib/Point';
+import { polyline } from './lib/Polyline';
+import { polylineCollection } from './lib/PolylineCollection';
+import { popup } from './lib/Popup';
+import { size } from './lib/Size';
+import { svgSymbol } from './lib/SvgSymbol';
+import { tooltip } from './lib/Tooltip';
 
 // Types
 import GlobalObj from './types';
@@ -29,37 +29,21 @@ import GlobalObj from './types';
 // Set up the global namespace object
 const G: GlobalObj = {
     icon,
-    Icon,
     infoWindow,
-    InfoWindow,
     latLng,
-    LatLng,
     latLngBounds,
-    LatLngBounds,
     loader,
-    Loader,
     map,
-    Map,
     marker,
-    Marker,
     markerCluster,
-    MarkerCluster,
     markerCollection,
-    MarkerCollection,
     point,
-    Point,
     polyline,
-    Polyline,
     polylineCollection,
-    PolylineCollection,
     popup,
-    Popup,
     size,
-    Size,
     svgSymbol,
-    SvgSymbol,
     tooltip,
-    Tooltip,
 };
 
 /**
