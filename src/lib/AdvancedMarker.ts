@@ -2,7 +2,7 @@
     Enables building and managing advanced markers on the map.
 
     This is here as a starting point for when AdvancedMarkers are better.
-    This was a copy of the Marker.ts file with some updaets to try and get the AdvancedMarker library working.
+    This was a copy of the Marker.ts file with some updates to try and get the AdvancedMarker library working.
     It will display a marker on the map but there are issues with hover events.
     We also ahd to do some workarounds to try and get the click events to work.
     This is not complete and ready for production.

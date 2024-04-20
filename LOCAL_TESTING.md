@@ -2,7 +2,7 @@
 
 We've included [11ty](https://www.11ty.dev/) to build a local static site that you can use for testing.
 
-The files ae in the `site-src` directory.
+The files are in the `site-src` directory.
 
 You will need to create a `.env` file that contains the `GOOGLE_MAPS_API_KEY` variable. Assign your Google maps API key to that variable.
 
