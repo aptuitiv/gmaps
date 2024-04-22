@@ -59,6 +59,8 @@ const mapTypeControl = G.mapTypeControl({
 const map1 = G.map('map1', {
     center: [40.7128, -74.0060],
     mapTypeControl: mapTypeControl,
+    maxZoom: 12,
+    minZoom: 10,
 });
 map1.show();
 map1.on('click', (e) => {

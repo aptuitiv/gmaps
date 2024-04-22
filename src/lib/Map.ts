@@ -23,6 +23,7 @@ import {
     checkForGoogleMaps,
     isBoolean,
     isFunction,
+    isNull,
     isNumber,
     isNumberOrNumberString,
     isNumberString,
@@ -210,6 +211,54 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the maximum zoom level for the map
+     *
+     * @returns {null|number}
+     */
+    get maxZoom(): null | number {
+        return this.#options.maxZoom ?? null;
+    }
+
+    /**
+     * Set the maximum zoom level for the map
+     *
+     * @param {null|number} value The maximum zoom level
+     */
+    set maxZoom(value: null | number) {
+        console.log('Set max zoom: ', value);
+        if (isNumber(value) || isNull(value)) {
+            this.#options.maxZoom = value;
+            if (this.#map) {
+                this.#map.setOptions({ maxZoom: value });
+            }
+        }
+    }
+
+    /**
+     * Get the minimum zoom level for the map
+     *
+     * @returns {null|number}
+     */
+    get minZoom(): null | number {
+        return this.#options.minZoom ?? null;
+    }
+
+    /**
+     * Set the minimum zoom level for the map
+     *
+     * @param {null|number} value The minimum zoom level
+     */
+    set minZoom(value: null | number) {
+        console.log('Set min zoom: ', value);
+        if (isNumber(value) || isNull(value)) {
+            this.#options.minZoom = value;
+            if (this.#map) {
+                this.#map.setOptions({ minZoom: value });
+            }
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -327,9 +376,10 @@ export class Map extends Evented {
      */
     #getMapOptions(): Promise<google.maps.MapOptions> {
         return new Promise((resolve) => {
+            console.log('this.#options: ', this.#options);
             const mapOptions: google.maps.MapOptions = {};
             // Options that can be set on the marker without any modification
-            const optionsToSet = ['mapId', 'mapTypeId', 'zoom'];
+            const optionsToSet = ['mapId', 'mapTypeId', 'maxZoom', 'minZoom', 'zoom'];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     mapOptions[key] = this.#options[key];
@@ -344,6 +394,7 @@ export class Map extends Evented {
             (async () => {
                 const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
                 mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                console.log('MapOtpions: ', mapOptions);
                 resolve(mapOptions);
             })();
         });
@@ -596,6 +647,13 @@ export class Map extends Evented {
             }
             if (options.mapTypeId) {
                 this.mapTypeId = options.mapTypeId;
+            }
+            console.log('Map options set: ', options);
+            if (typeof options.maxZoom !== 'undefined') {
+                this.maxZoom = options.maxZoom;
+            }
+            if (typeof options.minZoom !== 'undefined') {
+                this.minZoom = options.minZoom;
             }
 
             // Set the zoom level for the map

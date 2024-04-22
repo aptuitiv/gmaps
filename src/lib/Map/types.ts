@@ -14,6 +14,8 @@ export type GMMapOptions = {
     mapTypeControl?: boolean;
     mapTypeControlOptions?: google.maps.MapTypeControlOptions;
     mapTypeId?: google.maps.MapTypeId | string;
+    maxZoom?: number;
+    minZoom?: number;
     zoom?: number;
 };
 
@@ -43,6 +45,15 @@ export type MapOptions = {
     mapTypeControl?: boolean | MapTypeControl;
     // The map type ID to use for the map.
     mapTypeId?: MapTypeIdValue | string;
+    // The maximum zoom level which will be displayed on the map.
+    // If omitted, or set to null, the maximum zoom from the current map type is used instead.
+    // Valid zoom values are numbers from zero up to the supported maximum zoom level.
+    // https://developers.google.com/maps/documentation/javascript/maxzoom
+    maxZoom?: number;
+    // The minimum zoom level which will be displayed on the map.
+    // If omitted, or set to null, the minimum zoom from the current map type is used instead.
+    // Valid zoom values are numbers from zero up to the supported maximum zoom level.
+    minZoom?: number;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
