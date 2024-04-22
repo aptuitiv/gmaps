@@ -1,5 +1,4 @@
 import { Libraries } from '@googlemaps/js-api-loader';
-import * as _googlemaps_markerclusterer from '@googlemaps/markerclusterer';
 import { Algorithm, SuperClusterOptions, onClusterClickHandler, Renderer } from '@googlemaps/markerclusterer';
 
 /**
@@ -76,6 +75,12 @@ declare class Base {
      * @returns {boolean}
      */
     isPoint(): boolean;
+    /**
+     * Returns if the object is a Polyline object
+     *
+     * @returns {boolean}
+     */
+    isPolyline(): boolean;
     /**
      * Returns if the object is a Popup object
      *
@@ -234,6 +239,14 @@ declare class LatLng extends Base {
     toJson(): google.maps.LatLngLiteral;
 }
 type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng;
+/**
+ * Helper function to set up a new LatLng object value
+ *
+ * @param {LatLngValue} [latitude] The latitude value or the latitude/longitude pair
+ * @param {number|string} [longitude] The longitude value
+ * @returns {LatLng}
+ */
+declare const latLng: (latitude?: LatLngValue | string | number, longitude?: number | string) => LatLng;
 
 type PointObject = {
     x: number | string;
@@ -410,6 +423,14 @@ declare class Point extends Base {
     trunc(): Point;
 }
 type PointValue = Point | number | number[] | string | string[] | PointObject;
+/**
+ * Helper function to set up the point object
+ *
+ * @param {PointValue} [x] The x value, or the Point object, or an array of [x, y] pairs, or a {x, y} object
+ * @param {number|string} [y] The y value
+ * @returns {Point}
+ */
+declare const point: (x?: PointValue, y?: number | string) => Point;
 
 type Event = {
     domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event;
@@ -552,6 +573,417 @@ declare class Evented extends Base {
 }
 
 /**
+ * Returns if the thing is a function
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+declare const isFunction: (thing: any) => thing is Function;
+/**
+ * Returns if the value is null.
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+declare const isNull: (thing: any) => thing is null;
+/**
+ * Returns if the value is a valid number
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isNumber: (thing: any) => thing is number;
+/**
+ * Returns if the given value is a string that represents a numerical value
+ *   e.g. returns true for `"34"` and false for `"text34"` and `34`
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isNumberString: (thing: any) => thing is string;
+/**
+ * Returns if the given value is a number or string that represents a numerical value
+ *   e.g. returns true for 34 or "34" and false for "text34" and "text"
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isNumberOrNumberString: (thing: any) => thing is string | number;
+/**
+ * Returns if the value is a string
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isString: (thing: any) => thing is string;
+/**
+ * Returns if the value is string and has a length greater than 0
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isStringWithValue: (thing: any) => thing is string;
+/**
+ * Returns if the value is a valid string or number
+ *
+ * @param {unknown} thing The value to test against
+ * @returns {boolean}
+ */
+declare const isStringOrNumber: (thing: unknown) => thing is string | number;
+/**
+ * Returns if the value is undefined
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isUndefined: (thing: any) => thing is undefined;
+/**
+ * Returns if the value is null or undefined
+ *
+ * @param {any} thing The thing to test
+ * @returns {boolean}
+ */
+declare const isNullOrUndefined: (thing: any) => thing is null;
+/**
+ * Get the number value for the given thing
+ * If the thing is a number, return it
+ * If the thing is a string that represents a number, return the number
+ * Otherwise, return NaN
+ *
+ * @param {any} thing The value to convert to a number
+ * @returns {number|typeof NaN}
+ */
+declare const getNumber: (thing: any) => number | typeof NaN;
+/**
+ * Converts a value to a boolean
+ *
+ * The following values are considered true:
+ * - true (boolean)
+ * - 'true' (string)
+ * - 'yes'
+ * - 1 (number)
+ * - '1' (string)
+ *
+ * @param {any} thing The value to convert to a boolean
+ * @returns {boolean}
+ */
+declare const getBoolean: (thing: any) => boolean;
+/**
+ * Returns if the value is an object
+ *
+ * https://attacomsian.com/blog/javascript-check-variable-is-object
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isObject: <T = object>(thing: any) => thing is T;
+/**
+ * Returns if the value is an object
+ *
+ * https://attacomsian.com/blog/javascript-check-variable-is-object
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isObjectWithValues: <T = object>(thing: any) => thing is T;
+/**
+ * Returns if the thing is a Promise function
+ *
+ * It's assumed to be a promise if the thing exists and "thing.then" is a function
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isPromise: <T = any>(thing: any) => thing is Promise<T>;
+/**
+ * Get the pixel location of the element from the LagLng value
+ *
+ * @param {google.maps.Map} map The Google map object
+ * @param {google.maps.LatLng} position The Google maps LatLng object
+ * @returns {google.maps.Point}
+ */
+declare const getPixelsFromLatLng: (map: google.maps.Map, position: google.maps.LatLng) => google.maps.Point;
+/**
+ * Checks to see if Google maps has been loaded
+ *
+ * @param {string} object The object that needs Google maps
+ * @param {string} [library] An optional Google maps library class to check for. This needs to be part of the google.maps object
+ * @param {boolean} [throwError] An optional flag to throw an error if the Google maps library is not loaded
+ * @returns {boolean}
+ */
+declare const checkForGoogleMaps: (object: string, library?: string, throwError?: boolean) => boolean;
+/**
+ * Compare two objects to see if they are equal
+ *
+ * @param {any} a The first object to compare
+ * @param {any} b The second object to compare
+ * @returns {boolean}
+ */
+declare const objectEquals: (a: any, b: any) => boolean;
+/**
+ * Call the callback function if it is a function
+ *
+ * @param {Function|undefined} callback The callback function to call
+ * @param {any[]} args The arguments to pass to the callback function
+ */
+declare const callCallback: (callback: Function | undefined, ...args: any[]) => void;
+
+type SizeObject = {
+    height: number | string;
+    width: number | string;
+};
+type WidthSize = number | number[] | string | string[] | SizeObject;
+/**
+ * The Size class to set up and manage width and height values for an element
+ */
+declare class Size extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {WidthSize|Size} [width] The X value
+     * @param {number|string} [height] The Y value
+     */
+    constructor(width?: WidthSize | Size, height?: number | string);
+    /**
+     * Get the height value
+     *
+     * @returns {number}
+     */
+    get height(): number;
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     */
+    set height(height: number | string);
+    /**
+     * Get the width value
+     *
+     * @returns {number}
+     */
+    get width(): number;
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     */
+    set width(width: number | string);
+    /**
+     * Returns a new copy of the size
+     *
+     * @returns {Size}
+     */
+    clone(): Size;
+    /**
+     * Get the height value
+     *
+     * @returns {number}
+     */
+    getHeight(): number;
+    /**
+     * Get the width value
+     *
+     * @returns {number}
+     */
+    getWidth(): number;
+    /**
+     * Returns whether the width/height pair are valid values
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean;
+    /**
+     * Set the width/height values
+     *
+     * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
+     * @param {number|string} height The height value
+     * @returns {Size}
+     */
+    set(width: WidthSize | Size, height?: number | string): Size;
+    /**
+     * Set the height value
+     *
+     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setHeight(height: number | string): Size;
+    /**
+     * Set the width value
+     *
+     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+     * @returns {Size}
+     */
+    setWidth(width: number | string): Size;
+    /**
+     * Returns the Google maps size object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+     *
+     * @returns {google.maps.Size|null}
+     */
+    toGoogle(): google.maps.Size | null;
+}
+type SizeValue = Size | number | number[] | string | string[] | SizeObject;
+/**
+ * Helper function to set up the size object
+ *
+ * @param {WidthSize} [width] The width value
+ * @param {number|string} [height] The height value
+ * @returns {Size}
+ */
+declare const size: (width?: SizeValue, height?: number | string) => Size;
+
+type IconOptions = {
+    anchor?: PointValue;
+    labelOrigin?: PointValue;
+    origin?: PointValue;
+    scaledSize?: SizeValue;
+    size?: SizeValue;
+    url?: string;
+};
+/**
+ * Icon class to set up an icon options for a marker
+ */
+declare class Icon extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string | IconOptions} [url] The URL for the icon or the icon options
+     * @param {IconOptions} [options] The icon options
+     */
+    constructor(url?: string | IconOptions, options?: IconOptions);
+    /**
+     * Set the icon options
+     *
+     * @param {IconOptions} options The icon options
+     * @returns {Icon}
+     */
+    setOptions(options: IconOptions): Icon;
+    /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     * Use this if for some reason you didn't pass the anchor in the icon options.
+     *
+     * By default, the anchor is located along the center point of the bottom of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setAnchor([10, 32]);
+     *
+     * Valid values are:
+     * icon.setAnchor([10, 32]);
+     * icon.setAnchor({x: 10, y: 32});
+     * icon.setAnchor(pointClassInstance);
+     *
+     * @param {PointValue} anchor The anchor point value
+     * @returns {Icon}
+     */
+    setAnchor(anchor: PointValue): Icon;
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * Use this if for some reason you didn't pass the label origin in the icon options.
+     *
+     * By default, the origin is located in the center point of the image.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setLabelOrigin([10, 32]);
+     *
+     * Valid values are:
+     * icon.setLabelOrigin([10, 32]);
+     * icon.setLabelOrigin({x: 10, y: 32});
+     * icon.setLabelOrigin(pointClassInstance);
+     *
+     * @param {PointValue} origin The label origin point value
+     * @returns {Icon}
+     */
+    setLabelOrigin(origin: PointValue): Icon;
+    /**
+     * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
+     * Use this if for some reason you didn't pass the origin in the icon options.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setOrigin([10, 32]);
+     *
+     * Valid values are:
+     * icon.setOrigin([10, 32]);
+     * icon.setOrigin({x: 10, y: 32});
+     * icon.setOrigin(pointClassInstance);
+     *
+     * @param {PointValue} origin The origin point value
+     * @returns {Icon}
+     */
+    setOrigin(origin: PointValue): Icon;
+    /**
+     * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
+     *
+     * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setSize([40, 64]).setScaledSize([20, 32]));
+     *
+     * Valid values are:
+     * icon.setScaledSize([10, 32]);
+     * icon.setScaledSize({x: 10, y: 32});
+     * icon.setScaledSize(sizeClassInstance);
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    setScaledSize(sizeValue: SizeValue): Icon;
+    /**
+     * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
+     *
+     * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
+     *
+     * const icon = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * icon.setSize([20, 32]);
+     *
+     * Valid values are:
+     * icon.setSize([10, 32]);
+     * icon.setSize({x: 10, y: 32});
+     * icon.setSize(sizeClassInstance);
+     *
+     * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
+     *
+     * @param {SizeValue} sizeValue The size value
+     * @returns {Icon}
+     */
+    setSize(sizeValue: SizeValue): Icon;
+    /**
+     * Set the icon URL
+     *
+     * @param {string} url The icon URL
+     * @returns {Icon}
+     */
+    setUrl(url: string): Icon;
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Icon}
+     */
+    toGoogle(): google.maps.Icon;
+}
+type IconValue = Icon | string | IconOptions;
+/**
+ * Helper function to set up the icon object
+ *
+ * @param {IconValue} [url] The URL for the icon, the icon object, or the icon options
+ * @param {IconOptions} [options] The options for the icon
+ * @returns {Icon}
+ */
+declare const icon: (url?: IconValue, options?: IconOptions) => Icon;
+
+/**
  * The LatLngBounds class to set up and manage latitude/longitude bounds
  */
 declare class LatLngBounds extends Base {
@@ -664,6 +1096,16 @@ declare class LatLngBounds extends Base {
     union(other: LatLngBounds): LatLngBounds;
 }
 type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
+/**
+ * Helper function to set up the LatLngBounds object
+ *
+ * See comments on the extended method in the LatLngBounds class for the types of values
+ * that latLngValue can be.
+ *
+ * @param {LatLngBoundsValue} [latLngValue] The latitude/longitude bounds value
+ * @returns {LatLngBounds}
+ */
+declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
 
 type GMMapOptions = {
     center?: LatLng;
@@ -895,6 +1337,15 @@ declare class Map extends Evented {
      */
     toGoogle(): google.maps.Map;
 }
+/**
+ * Helper function to set up the map object
+ *
+ * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
+ *      The selector can be a class name, an id, or an HTML element. If you need something beyond an id or class name as the selector then pass the element itself.
+ * @param {MapOptions} [config] The map options
+ * @returns {Map}
+ */
+declare const map: (selector: string | HTMLElement, config?: MapOptions) => Map;
 
 /**
  * Base class to help with drawing stuff on the map.
@@ -957,6 +1408,630 @@ declare class Layer extends Evented {
      */
     setMap(map: Map | null): void;
 }
+
+type GMInfoWindowOptions = {
+    ariaLabel?: string;
+    content?: string | HTMLElement | Text;
+    disableAutoPan?: boolean;
+    maxWidth?: number;
+    minWidth?: number;
+    pixelOffset?: Size;
+    position?: LatLng;
+    zIndex?: number;
+};
+type InfoWindowOptions = GMInfoWindowOptions & {
+    autoClose?: boolean;
+    focus?: boolean;
+    pixelOffset?: SizeValue;
+    position?: LatLngValue;
+    toggleDisplay?: boolean;
+};
+/**
+ * InfoWindow class
+ */
+declare class InfoWindow extends Layer {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {InfoWindowOptions | string | HTMLElement | Text} [options] The InfoWindow options
+     */
+    constructor(options?: InfoWindowOptions | string | HTMLElement | Text);
+    /**
+     * Get the aria label for the InfoWindow
+     *
+     * @returns {string}
+     */
+    get ariaLabel(): string;
+    /**
+     * Set the aria label for the InfoWindow
+     *
+     * @param {string|number} ariaLabel The aria label for the InfoWindow
+     */
+    set ariaLabel(ariaLabel: string | number);
+    /**
+     * Get the content for the InfoWindow
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text;
+    /**
+     * Set the content for the InfoWindow
+     *
+     * @param {string|HTMLElement|Text} content The content for the InfoWindow
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Get the disableAutoPan option for the InfoWindow
+     *
+     * @returns {boolean}
+     */
+    get disableAutoPan(): boolean;
+    /**
+     * Set the disableAutoPan option for the InfoWindow
+     *
+     * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
+     */
+    set disableAutoPan(disableAutoPan: boolean);
+    /**
+     * Get the maxWidth option for the InfoWindow
+     *
+     * @returns {number}
+     */
+    get maxWidth(): number;
+    /**
+     * Set the maxWidth option for the InfoWindow
+     *
+     * @param {number|string} maxWidth The maxWidth option for the InfoWindow
+     */
+    set maxWidth(maxWidth: number | string);
+    /**
+     * Get the minWidth option for the InfoWindow
+     *
+     * @returns {number}
+     */
+    get minWidth(): number;
+    /**
+     * Set the minWidth option for the InfoWindow
+     *
+     * @param {number|string} minWidth The minWidth option for the InfoWindow
+     */
+    set minWidth(minWidth: number | string);
+    /**
+     * Get the pixelOffset option for the InfoWindow
+     *
+     * @returns {Size}
+     */
+    get pixelOffset(): Size;
+    /**
+     * Set the pixelOffset option for the InfoWindow
+     *
+     * @param {SizeValue} pixelOffset The pixelOffset option for the InfoWindow
+     */
+    set pixelOffset(pixelOffset: SizeValue);
+    /**
+     * Get the position option for the InfoWindow
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng;
+    /**
+     * Set the position option for the InfoWindow
+     *
+     * @param {LatLngValue} position The position option for the InfoWindow
+     */
+    set position(position: LatLngValue);
+    /**
+     * Get the zIndex option for the InfoWindow
+     *
+     * @returns {number}
+     */
+    get zIndex(): number;
+    /**
+     * Set the zIndex option for the InfoWindow
+     *
+     * @param {number|string} zIndex The zIndex option for the InfoWindow
+     */
+    set zIndex(zIndex: number | string);
+    /**
+     * Attach the InfoWindow to a element
+     *
+     * By default the InfoWindow will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the InfoWindow to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the InfoWindow. Defaults to 'click'
+     *   - 'click' - Toggle the display of the InfoWindow when clicking on the element
+     *   - 'clickon' - Show the InfoWindow when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
+     * @returns {Promise<InfoWindow>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<InfoWindow>;
+    /**
+     * Hide the info window
+     *
+     * Alias to hide()
+     *
+     * @returns {InfoWindow}
+     */
+    close(): InfoWindow;
+    /**
+     * Returns whether the InfoWindow already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
+     * Hide the info window
+     *
+     * @returns {InfoWindow}
+     */
+    hide(): InfoWindow;
+    /**
+     * Returns whether the InfoWindow is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean;
+    /**
+     * Show the info window
+     *
+     * Alias to show()
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<InfoWindow>}
+     */
+    open(element: Map | Layer): Promise<InfoWindow>;
+    /**
+     * Set the InfoWindow options
+     *
+     * @param {InfoWindowOptions} options The InfoWindow options
+     * @returns {InfoWindow}
+     */
+    setOptions(options: InfoWindowOptions): InfoWindow;
+    /**
+     * Set the InfoWindow content
+     *
+     * @param {string | HTMLElement | Text} content The InfoWindow content
+     * @returns {InfoWindow}
+     */
+    setContent(content: string | HTMLElement | Text): InfoWindow;
+    /**
+     * Set the InfoWindow position
+     *
+     * @param {LatLngValue} position The position for the InfoWindow
+     * @returns {InfoWindow}
+     */
+    setPosition(position: LatLngValue): InfoWindow;
+    /**
+     * Sets the zIndex value for the InfoWindow
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
+     *
+     * @param {number|string} zIndex The zindex value
+     * @returns {InfoWindow}
+     */
+    setZIndex(zIndex: number | string): InfoWindow;
+    /**
+     * Show the info window
+     *
+     * You need to pass in either an anchor object or a map object.
+     * If an anchor object is passed in then the info window will be displayed at the anchor's position.
+     * If a map object is passed in then the info window will be displayed at the position of the info window.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     *      This should ideally be the Map or Marker object.
+     * @returns {Promise<InfoWindow>}
+     */
+    show(element: Map | Layer): Promise<InfoWindow>;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {void}
+     */
+    toggle(element: Map | Layer): void;
+    /**
+     * Get the Google maps InfoWindow object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
+     *
+     * @returns {google.maps.InfoWindow}
+     */
+    toGoogle(): google.maps.InfoWindow;
+}
+type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
+/**
+ * Helper function to set up the InfoWindow class
+ *
+ * @param {InfoWindowValue} [options] The InfoWindow options
+ * @returns {InfoWindow}
+ */
+declare const infoWindow: (options?: InfoWindowValue) => InfoWindow;
+
+type LoaderOptions = {
+    apiKey?: string;
+    libraries?: Libraries;
+    version?: string;
+};
+/**
+ * Class to load the Google maps API
+ *
+ * This should be a singleton object and prevent multiple loader objects on the page.
+ */
+declare class Loader extends EventTarget {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {LoaderOptions} [options] The loader options object
+     */
+    constructor(options?: LoaderOptions);
+    /**
+     * Get the Google Maps API key
+     *
+     * @returns {string}
+     */
+    get apiKey(): string;
+    /**
+     * Set the Google Maps API key
+     *
+     * @param {string} apiKey The Google Maps API key
+     */
+    set apiKey(apiKey: string);
+    /**
+     * Get the libraries to load with Google maps
+     *
+     * @returns {Libraries}
+     */
+    get libraries(): Libraries;
+    /**
+     * Set the libraries to load with Google maps
+     * The "places" library is a common one to load.
+     * https://developers.google.com/maps/documentation/javascript/places
+     *
+     * @param {Libraries} libraries The libraries to load with Google maps
+     */
+    set libraries(libraries: Libraries);
+    /**
+     * Get the version of the Google Maps API to load
+     *
+     * @returns {string}
+     */
+    get version(): string;
+    /**
+     * Set the version of the Google Maps API to load
+     * https://developers.google.com/maps/documentation/javascript/versions
+     *
+     * @param {string} version The version of the Google Maps API to load
+     */
+    set version(version: string);
+    /**
+     * Set the loader options
+     *
+     * @param {LoaderOptions} options The loader options object
+     * @returns {Loader}
+     */
+    setOptions(options: LoaderOptions): Loader;
+    /**
+     * Set the Google Maps API key
+     *
+     * @param {string} apiKey The Google Maps API key
+     * @returns {Loader}
+     */
+    setApiKey(apiKey: string): Loader;
+    /**
+     * Set the libraries to load with Google maps
+     * The "places" library is a common one to load.
+     * https://developers.google.com/maps/documentation/javascript/places
+     *
+     * @param {Libraries} libraries The libraries to load with Google maps
+     * @returns {Loader}
+     */
+    setLibraries(libraries: Libraries): Loader;
+    /**
+     * Set the version of the Google Maps API to load
+     * https://developers.google.com/maps/documentation/javascript/versions
+     *
+     * @param {string} version The version of the Google Maps API to load
+     * @returns {Loader}
+     */
+    setVersion(version: string): Loader;
+    /**
+     * Load the Google maps API
+     *
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
+     * @returns {Promise<void>}
+     */
+    load(callback?: () => void): Promise<void>;
+    /**
+     * Dispatch an event
+     *
+     * @param {string} event The event to dispatch
+     */
+    dispatch(event: string): void;
+    /**
+     * Add an event listener to the object.
+     *
+     * All events on the loader object are set up as "once" events because the
+     * load event is only dispatched one time when the Google maps API is loaded.
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     */
+    on(type: string, callback: EventListenerOrEventListenerObject): void;
+    /**
+     * Sets up an event listener that will only be called once
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     */
+    once(type: string, callback: EventListenerOrEventListenerObject | null): void;
+}
+/**
+ * Helper function to set up the loader object.
+ *
+ * Only one loader object can be created on a page.
+ * This prevents trying to load the Google maps library multiple times.
+ * It also allows us to internally handle when the Google maps library is loaded.
+ *
+ * @param {LoaderOptions} [config] The loader options
+ * @returns {Loader}
+ */
+declare const loader: (config?: LoaderOptions) => Loader;
+
+type SvgSymbolOptions = {
+    anchor?: PointValue;
+    fillColor?: string;
+    fillOpacity?: number;
+    labelOrigin?: PointValue;
+    path: string;
+    rotation?: number;
+    scale?: number;
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+};
+/**
+ * Class to set up an SVG icon for a marker
+ */
+declare class SvgSymbol extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string | SvgSymbolOptions} [path] The SVG path for the icon or the icon options
+     * @param {SvgSymbolOptions} [options] The options for the icon
+     */
+    constructor(path?: string | SvgSymbolOptions, options?: SvgSymbolOptions);
+    /**
+     * Get the anchor point
+     *
+     * @returns {PointValue}
+     */
+    get anchor(): PointValue;
+    /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     *
+     * @param {PointValue} anchor The anchor point value
+     */
+    set anchor(anchor: PointValue);
+    /**
+     * Get the SVG fill color
+     *
+     * @returns {string}
+     */
+    get fillColor(): string;
+    /**
+     * Set the SVG fill color.
+     *
+     * @param {string} fillColor The SVG fill color.
+     */
+    set fillColor(fillColor: string);
+    /**
+     * Get the opacity for the fill
+     *
+     * @returns {number}
+     */
+    get fillOpacity(): number;
+    /**
+     * Set the opacity for the fill
+     *
+     * @param {number|string} fillOpacity The opacity for the fill
+     */
+    set fillOpacity(fillOpacity: number | string);
+    /**
+     * Get the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     *
+     * @returns {PointValue}
+     */
+    get labelOrigin(): PointValue;
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     *
+     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     */
+    set labelOrigin(labelOrigin: PointValue);
+    /**
+     * Get the SVG path for the icon
+     *
+     * @returns {string}
+     */
+    get path(): string;
+    /**
+     * Set the SVG path for the icon
+     *
+     * @param {path} path The SVG path for the icon
+     */
+    set path(path: string);
+    /**
+     * Get the rotation of the icon in degrees clockwise about the anchor point.
+     *
+     * @returns {number}
+     */
+    get rotation(): number;
+    /**
+     * Set the rotation of the icon in degrees clockwise about the anchor point.
+     *
+     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
+     */
+    set rotation(rotation: number | string);
+    /**
+     * Get the amount by which the icon is scaled.
+     *
+     * @returns {number}
+     */
+    get scale(): number;
+    /**
+     * Set the amount by which the icon is scaled.
+     *
+     * @param {number|string} scale The amount by which the icon is scaled.
+     */
+    set scale(scale: number | string);
+    /**
+     * Get the SVG stroke color
+     *
+     * @returns {string}
+     */
+    get strokeColor(): string;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} strokeColor The SVG stroke color.
+     */
+    set strokeColor(strokeColor: string);
+    /**
+     * Get the opacity of the stroke.
+     * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
+     *
+     * @returns {number}
+     */
+    get strokeOpacity(): number;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} strokeOpacity The opacity of the stroke.
+     */
+    set strokeOpacity(strokeOpacity: number | string);
+    /**
+     * Get the weight of the stroke in pixels.
+     *
+     * @returns {number}
+     */
+    get strokeWeight(): number;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} strokeWeight The weight of the stroke.
+     */
+    set strokeWeight(strokeWeight: number | string);
+    /**
+     * Set the icon options
+     *
+     * @param {SvgSymbolOptions} options The icon options
+     * @returns {SvgSymbol}
+     */
+    setOptions(options: SvgSymbolOptions): SvgSymbol;
+    /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     * Use this if for some reason you didn't pass the anchor in the icon options.
+     *
+     * By default, the anchor is located along the center point of the bottom of the image.
+     *
+     * const symbol = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * symbol.setAnchor([10, 32]);
+     *
+     * Valid values are:
+     * symbol.setAnchor([10, 32]);
+     * symbol.setAnchor({x: 10, y: 32});
+     * symbol.setAnchor(pointClassInstance);
+     *
+     * @param {PointValue} anchor The anchor point value
+     * @returns {SvgSymbol}
+     */
+    setAnchor(anchor: PointValue): SvgSymbol;
+    /**
+     * Set the SVG fill color.
+     *
+     * @param {string} fillColor The SVG fill color.
+     * @returns {SvgSymbol}
+     */
+    setFillColor(fillColor: string): SvgSymbol;
+    /**
+     * Set the opacity for the fill
+     *
+     * @param {number|string} fillOpacity The opacity for the fill
+     * @returns {SvgSymbol}
+     */
+    setFillOpacity(fillOpacity: number | string): SvgSymbol;
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     *
+     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * @returns {SvgSymbol}
+     */
+    setLabelOrigin(labelOrigin: PointValue): SvgSymbol;
+    /**
+     * Set the SVG path for the icon
+     *
+     * @param {path} path The SVG path for the icon
+     * @returns {SvgSymbol}
+     */
+    setPath(path: string): SvgSymbol;
+    /**
+     * Set the rotation of the icon in degrees clockwise about the anchor point.
+     *
+     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
+     * @returns {SvgSymbol}
+     */
+    setRotation(rotation: number | string): SvgSymbol;
+    /**
+     * Set the amount by which the icon is scaled.
+     *
+     * @param {number|string} scale The amount by which the icon is scaled.
+     * @returns {SvgSymbol}
+     */
+    setScale(scale: number | string): SvgSymbol;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} strokeColor The SVG stroke color.
+     * @returns {SvgSymbol}
+     */
+    setStrokeColor(strokeColor: string): SvgSymbol;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} strokeOpacity The opacity of the stroke.
+     * @returns {SvgSymbol}
+     */
+    setStrokeOpacity(strokeOpacity: number | string): SvgSymbol;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} strokeWeight The weight of the stroke.
+     * @returns {SvgSymbol}
+     */
+    setStrokeWeight(strokeWeight: number | string): SvgSymbol;
+    /**
+     * Get the icon options
+     *
+     * @returns {google.maps.Symbol}
+     */
+    toGoogle(): google.maps.Symbol;
+}
+type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
+/**
+ * Helper function to set up the icon object
+ *
+ * @param {SvgSymbolValue} [path] The SVG path for the icon, the icon object, or the icon options
+ * @param {SvgSymbolOptions} [options] The options for the icon
+ * @returns {SvgSymbol}
+ */
+declare const svgSymbol: (path?: SvgSymbolValue, options?: SvgSymbolOptions) => SvgSymbol;
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -1285,968 +2360,13 @@ declare class Tooltip extends Overlay {
     draw(projection: google.maps.MapCanvasProjection): void;
 }
 type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
-
-type SvgSymbolOptions = {
-    anchor?: PointValue;
-    fillColor?: string;
-    fillOpacity?: number;
-    labelOrigin?: PointValue;
-    path: string;
-    rotation?: number;
-    scale?: number;
-    strokeColor?: string;
-    strokeOpacity?: number;
-    strokeWeight?: number;
-};
 /**
- * Class to set up an SVG icon for a marker
+ * Helper function to set up the tooltip object
+ *
+ * @param {TooltipValue} [options] The tooltip options or the tooltip class
+ * @returns {Tooltip}
  */
-declare class SvgSymbol extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {string | SvgSymbolOptions} [path] The SVG path for the icon or the icon options
-     * @param {SvgSymbolOptions} [options] The options for the icon
-     */
-    constructor(path?: string | SvgSymbolOptions, options?: SvgSymbolOptions);
-    /**
-     * Get the anchor point
-     *
-     * @returns {PointValue}
-     */
-    get anchor(): PointValue;
-    /**
-     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
-     *
-     * @param {PointValue} anchor The anchor point value
-     */
-    set anchor(anchor: PointValue);
-    /**
-     * Get the SVG fill color
-     *
-     * @returns {string}
-     */
-    get fillColor(): string;
-    /**
-     * Set the SVG fill color.
-     *
-     * @param {string} fillColor The SVG fill color.
-     */
-    set fillColor(fillColor: string);
-    /**
-     * Get the opacity for the fill
-     *
-     * @returns {number}
-     */
-    get fillOpacity(): number;
-    /**
-     * Set the opacity for the fill
-     *
-     * @param {number|string} fillOpacity The opacity for the fill
-     */
-    set fillOpacity(fillOpacity: number | string);
-    /**
-     * Get the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     *
-     * @returns {PointValue}
-     */
-    get labelOrigin(): PointValue;
-    /**
-     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     *
-     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     */
-    set labelOrigin(labelOrigin: PointValue);
-    /**
-     * Get the SVG path for the icon
-     *
-     * @returns {string}
-     */
-    get path(): string;
-    /**
-     * Set the SVG path for the icon
-     *
-     * @param {path} path The SVG path for the icon
-     */
-    set path(path: string);
-    /**
-     * Get the rotation of the icon in degrees clockwise about the anchor point.
-     *
-     * @returns {number}
-     */
-    get rotation(): number;
-    /**
-     * Set the rotation of the icon in degrees clockwise about the anchor point.
-     *
-     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
-     */
-    set rotation(rotation: number | string);
-    /**
-     * Get the amount by which the icon is scaled.
-     *
-     * @returns {number}
-     */
-    get scale(): number;
-    /**
-     * Set the amount by which the icon is scaled.
-     *
-     * @param {number|string} scale The amount by which the icon is scaled.
-     */
-    set scale(scale: number | string);
-    /**
-     * Get the SVG stroke color
-     *
-     * @returns {string}
-     */
-    get strokeColor(): string;
-    /**
-     * Set the SVG stroke color.
-     *
-     * @param {string} strokeColor The SVG stroke color.
-     */
-    set strokeColor(strokeColor: string);
-    /**
-     * Get the opacity of the stroke.
-     * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
-     *
-     * @returns {number}
-     */
-    get strokeOpacity(): number;
-    /**
-     * Set the opacity of the stroke.
-     *
-     * @param {number|string} strokeOpacity The opacity of the stroke.
-     */
-    set strokeOpacity(strokeOpacity: number | string);
-    /**
-     * Get the weight of the stroke in pixels.
-     *
-     * @returns {number}
-     */
-    get strokeWeight(): number;
-    /**
-     * Set the weight of the stroke.
-     *
-     * @param {number|string} strokeWeight The weight of the stroke.
-     */
-    set strokeWeight(strokeWeight: number | string);
-    /**
-     * Set the icon options
-     *
-     * @param {SvgSymbolOptions} options The icon options
-     * @returns {SvgSymbol}
-     */
-    setOptions(options: SvgSymbolOptions): SvgSymbol;
-    /**
-     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
-     * Use this if for some reason you didn't pass the anchor in the icon options.
-     *
-     * By default, the anchor is located along the center point of the bottom of the image.
-     *
-     * const symbol = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * symbol.setAnchor([10, 32]);
-     *
-     * Valid values are:
-     * symbol.setAnchor([10, 32]);
-     * symbol.setAnchor({x: 10, y: 32});
-     * symbol.setAnchor(pointClassInstance);
-     *
-     * @param {PointValue} anchor The anchor point value
-     * @returns {SvgSymbol}
-     */
-    setAnchor(anchor: PointValue): SvgSymbol;
-    /**
-     * Set the SVG fill color.
-     *
-     * @param {string} fillColor The SVG fill color.
-     * @returns {SvgSymbol}
-     */
-    setFillColor(fillColor: string): SvgSymbol;
-    /**
-     * Set the opacity for the fill
-     *
-     * @param {number|string} fillOpacity The opacity for the fill
-     * @returns {SvgSymbol}
-     */
-    setFillOpacity(fillOpacity: number | string): SvgSymbol;
-    /**
-     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     *
-     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     * @returns {SvgSymbol}
-     */
-    setLabelOrigin(labelOrigin: PointValue): SvgSymbol;
-    /**
-     * Set the SVG path for the icon
-     *
-     * @param {path} path The SVG path for the icon
-     * @returns {SvgSymbol}
-     */
-    setPath(path: string): SvgSymbol;
-    /**
-     * Set the rotation of the icon in degrees clockwise about the anchor point.
-     *
-     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
-     * @returns {SvgSymbol}
-     */
-    setRotation(rotation: number | string): SvgSymbol;
-    /**
-     * Set the amount by which the icon is scaled.
-     *
-     * @param {number|string} scale The amount by which the icon is scaled.
-     * @returns {SvgSymbol}
-     */
-    setScale(scale: number | string): SvgSymbol;
-    /**
-     * Set the SVG stroke color.
-     *
-     * @param {string} strokeColor The SVG stroke color.
-     * @returns {SvgSymbol}
-     */
-    setStrokeColor(strokeColor: string): SvgSymbol;
-    /**
-     * Set the opacity of the stroke.
-     *
-     * @param {number|string} strokeOpacity The opacity of the stroke.
-     * @returns {SvgSymbol}
-     */
-    setStrokeOpacity(strokeOpacity: number | string): SvgSymbol;
-    /**
-     * Set the weight of the stroke.
-     *
-     * @param {number|string} strokeWeight The weight of the stroke.
-     * @returns {SvgSymbol}
-     */
-    setStrokeWeight(strokeWeight: number | string): SvgSymbol;
-    /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Symbol}
-     */
-    toGoogle(): google.maps.Symbol;
-}
-type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
-
-type PopupOptions = {
-    autoClose?: boolean;
-    center?: boolean;
-    className?: string;
-    closeElement?: HTMLElement | string;
-    content: string | HTMLElement | Text;
-    offset?: PointValue;
-    styles?: object;
-    theme?: string;
-};
-/**
- * Popup class
- */
-declare class Popup extends Overlay {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
-     */
-    constructor(options: PopupOptions | string | HTMLElement | Text);
-    /**
-     * Get the autoClose value
-     *
-     * @returns {boolean}
-     */
-    get autoClose(): boolean;
-    /**
-     * Set the autoClose value
-     *
-     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
-     */
-    set autoClose(autoClose: boolean);
-    /**
-     * Returns whether to center the popup horizontally on the element.
-     *
-     * @returns {boolean}
-     */
-    get center(): boolean;
-    /**
-     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
-     *
-     * @param {boolean} center Whether to center the popup on the element
-     */
-    set center(center: boolean);
-    /**
-     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
-     *
-     * @returns {HTMLElement|string}
-     */
-    get closeElement(): HTMLElement | string;
-    /**
-     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
-     *
-     * @param {HTMLElement|string} closeElement The element to close the popup
-     */
-    set closeElement(closeElement: HTMLElement | string);
-    /**
-     * Returns the content for the popup
-     *
-     * @returns {string|HTMLElement|Text}
-     */
-    get content(): string | HTMLElement | Text;
-    /**
-     * Set the content for the popup
-     *
-     * @param {string|HTMLElement|Text} content The content for the popup
-     */
-    set content(content: string | HTMLElement | Text);
-    /**
-     * Returns the theme to use for the popup
-     *
-     * @returns {string}
-     */
-    get theme(): string;
-    /**
-     * Set the theme to use for the popup
-     *
-     * @param {string} theme The theme to use for the popup
-     */
-    set theme(theme: string);
-    /**
-     * Attach the popup to a element
-     *
-     * By default the popup will be shown when the element is clicked on.
-     *
-     * @param {Map | Layer} element The element to attach the popup to
-     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
-     *   - 'click' - Toggle the display of the popup when clicking on the element
-     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
-     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
-     * @returns {Promise<Popup>}
-     */
-    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup>;
-    /**
-     * Hide the popup
-     *
-     * Alias to hide()
-     *
-     * @returns {Popup}
-     */
-    close(): Popup;
-    /**
-     * Returns whether the popup already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean;
-    /**
-     * Hide the popup
-     *
-     * @returns {Popup}
-     */
-    hide(): Popup;
-    /**
-     * Returns whether the popup is open or not
-     *
-     * @returns {boolean}
-     */
-    isOpen(): boolean;
-    /**
-     * Open the popup
-     *
-     * Alias to show()
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     * @returns {Promise<Popup>}
-     */
-    open(element: Map | Layer): Promise<Popup>;
-    /**
-     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
-     * The popup will be hidden when this element is clicked on.
-     *
-     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
-     * @returns {Popup}
-     */
-    setCloseElement(element: HTMLElement | string): Popup;
-    /**
-     * Set the Popup content
-     *
-     * @param {string | HTMLElement | Text} content The Popup content
-     * @returns {Popup}
-     */
-    setContent(content: string | HTMLElement | Text): Popup;
-    /**
-     * Sets the options for the popup
-     *
-     * @param {PopupOptions} options Popup options
-     * @returns {Popup}
-     */
-    setOptions(options: PopupOptions): Popup;
-    /**
-     * Open the popup
-     *
-     * You need to pass in either an anchor object or a map object.
-     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
-     * If a map object is passed in then the popup will be displayed at the position of the popup.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     *      This should ideally be the Map or Marker object and not the Google maps object.
-     *      If this is used internally then the Google maps object can be used.
-     * @returns {Promise<Popup>}
-     */
-    show(element: Map | Layer): Promise<Popup>;
-    /**
-     * Toggle the display of the overlay on the map
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     */
-    toggle(element: Map | Layer): void;
-    /**
-     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-}
-type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
-
-type PolylineOptions = {
-    clickable?: boolean;
-    highlightPolyline?: PolylineOptions | Polyline;
-    map?: Map;
-    path?: LatLngValue[];
-    strokeColor?: string;
-    strokeOpacity?: number;
-    strokeWeight?: number;
-    visible?: boolean;
-    zIndex?: number;
-};
-/**
- * Polyline class
- */
-declare class Polyline extends Layer {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {PolylineOptions} [options] The polyline options
-     */
-    constructor(options?: PolylineOptions);
-    /**
-     * Get whether the polyline handles click events.
-     *
-     * @returns {boolean}
-     */
-    get clickable(): boolean;
-    /**
-     * Set whether the polyline handles click events.
-     *
-     * @param {boolean} value Whether the polyline handles click events.
-     */
-    set clickable(value: boolean);
-    /**
-     * Get the highlight polyline
-     *
-     * @returns {Polyline}
-     */
-    get highlightPolyline(): Polyline;
-    /**
-     * Set the highlight polyline
-     *
-     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
-     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
-     *
-     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
-     */
-    set highlightPolyline(value: PolylineOptions | Polyline);
-    /**
-     * Get the map object
-     *
-     * @returns {Map}
-     */
-    get map(): Map;
-    /**
-     * Set the map object
-     *
-     * @param {Map|null} value The map object. Set to null if you want to remove the polyline from the map.
-     */
-    set map(value: Map | null);
-    /**
-     * Get the path of the polyline.
-     *
-     * The path is an array of LatLng values defining the path of the polyline.
-     *
-     * @returns {LatLngValue[]}
-     */
-    get path(): LatLngValue[];
-    /**
-     * Set the path of the polyline.
-     * The path is an array of LatLng values defining the path of the polyline.
-     * You can pass an array of LatLng objects or an array of LatLngLiteral objects.
-     *
-     * @param {LatLngValue[]} value The path of the polyline.
-     */
-    set path(value: LatLngValue[]);
-    /**
-     * Get the SVG stroke color
-     *
-     * @returns {string}
-     */
-    get strokeColor(): string;
-    /**
-     * Set the SVG stroke color.
-     *
-     * @param {string} value The SVG stroke color.
-     */
-    set strokeColor(value: string);
-    /**
-     * Get the opacity of the stroke.
-     * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
-     *
-     * @returns {number}
-     */
-    get strokeOpacity(): number;
-    /**
-     * Set the opacity of the stroke.
-     *
-     * @param {number|string} value The opacity of the stroke.
-     */
-    set strokeOpacity(value: number | string);
-    /**
-     * Get the weight of the stroke in pixels.
-     *
-     * @returns {number}
-     */
-    get strokeWeight(): number;
-    /**
-     * Set the weight of the stroke.
-     *
-     * @param {number|string} value The weight of the stroke.
-     */
-    set strokeWeight(value: number | string);
-    /**
-     * Get whether the polyline is visible on the map.
-     *
-     * @returns {boolean}
-     */
-    get visible(): boolean;
-    /**
-     * Set whether the polyline is visible on the map.
-     *
-     * @param {boolean} value Whether the polyline is visible on the map.
-     */
-    set visible(value: boolean);
-    /**
-     * Get the zIndex of the polyline.
-     *
-     * @returns {number}
-     */
-    get zIndex(): number;
-    /**
-     * Set the zIndex of the polyline.
-     *
-     * @param {number|string} value The zIndex of the polyline.
-     */
-    set zIndex(value: number | string);
-    /**
-     * Returns whether the polyline has a zIndex set.
-     *
-     * @returns {boolean}
-     */
-    hasZIndex(): boolean;
-    /**
-     * Hide the polyline
-     *
-     * @returns {Polyline}
-     */
-    hide(): Polyline;
-    /**
-     * Display the highlight polyline if it exists
-     *
-     * @returns {Polyline}
-     */
-    highlight(): Polyline;
-    /**
-     * Initialize the polyline
-     *
-     * This is used when another element (like a tooltip) needs to be attached to the polyline,
-     * but needs to make sure that the polyline exists first.
-     *
-     * This is not intended to be called outside of this library.
-     *
-     * @internal
-     * @returns {Promise<void>}
-     */
-    init(): Promise<void>;
-    /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
-     */
-    on(type: string, callback: EventCallback, config?: EventConfig): void;
-    /**
-     * Set the highlight polyline
-     *
-     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
-     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
-     *
-     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
-     * @returns {Polyline}
-     */
-    setHighlightPolyline(value: PolylineOptions | Polyline): Polyline;
-    /**
-     * Adds the polyline to the map object
-     *
-     * Alternate of show()
-     *
-     * @param {Map} value The map object. Set to null if you want to remove the polyline from the map.
-     * @returns {Promise<Polyline>}
-     */
-    setMap(value: Map | null): Promise<Polyline>;
-    /**
-     * Set the Polyline options
-     *
-     * @param {PolylineOptions} options The Polyline options
-     * @returns {Polyline}
-     */
-    setOptions(options: PolylineOptions): Polyline;
-    /**
-     * Se the path of the polyline.
-     *
-     * @param {LatLngValue[]} path The path of the polyline.
-     * @returns {Polyline}
-     */
-    setPath(path: LatLngValue[]): Polyline;
-    /**
-     * Set the SVG stroke color.
-     *
-     * @param {string} strokeColor The SVG stroke color.
-     * @returns {Polyline}
-     */
-    setStrokeColor(strokeColor: string): Polyline;
-    /**
-     * Set the opacity of the stroke.
-     *
-     * @param {number|string} strokeOpacity The opacity of the stroke.
-     * @returns {Polyline}
-     */
-    setStrokeOpacity(strokeOpacity: number | string): Polyline;
-    /**
-     * Set the weight of the stroke.
-     *
-     * @param {number|string} strokeWeight The weight of the stroke.
-     * @returns {Polyline}
-     */
-    setStrokeWeight(strokeWeight: number | string): Polyline;
-    /**
-     * Set whether the polyline is visible on the map.
-     *
-     * @param {boolean} visible Whether the polyline is visible on the map.
-     * @returns {Polyline}
-     */
-    setVisible(visible: boolean): Polyline;
-    /**
-     * Show the polyline on the map
-     *
-     * This will also set the map object if it's passed
-     *
-     * @param {Map} [map] The map object. Don't need to pass this if the map is already set on the polyline.
-     * @returns {Promise<Polyline>}
-     */
-    show(map?: Map): Promise<Polyline>;
-    /**
-     * Get the Google maps Polyline object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Polyline
-     *
-     * @returns {Promise<google.maps.Polyline>}
-     */
-    toGoogle(): Promise<google.maps.Polyline>;
-    /**
-     * Hide the highlight polyline if it exists
-     *
-     * @returns {Polyline}
-     */
-    unhighlight(): Polyline;
-}
-type PolylineValue = Polyline | PolylineOptions;
-
-type SizeObject = {
-    height: number | string;
-    width: number | string;
-};
-type WidthSize = number | number[] | string | string[] | SizeObject;
-/**
- * The Size class to set up and manage width and height values for an element
- */
-declare class Size extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {WidthSize|Size} [width] The X value
-     * @param {number|string} [height] The Y value
-     */
-    constructor(width?: WidthSize | Size, height?: number | string);
-    /**
-     * Get the height value
-     *
-     * @returns {number}
-     */
-    get height(): number;
-    /**
-     * Set the height value
-     *
-     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
-     */
-    set height(height: number | string);
-    /**
-     * Get the width value
-     *
-     * @returns {number}
-     */
-    get width(): number;
-    /**
-     * Set the width value
-     *
-     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
-     */
-    set width(width: number | string);
-    /**
-     * Returns a new copy of the size
-     *
-     * @returns {Size}
-     */
-    clone(): Size;
-    /**
-     * Get the height value
-     *
-     * @returns {number}
-     */
-    getHeight(): number;
-    /**
-     * Get the width value
-     *
-     * @returns {number}
-     */
-    getWidth(): number;
-    /**
-     * Returns whether the width/height pair are valid values
-     *
-     * @returns {boolean}
-     */
-    isValid(): boolean;
-    /**
-     * Set the width/height values
-     *
-     * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
-     * @param {number|string} height The height value
-     * @returns {Size}
-     */
-    set(width: WidthSize | Size, height?: number | string): Size;
-    /**
-     * Set the height value
-     *
-     * @param {number|string} height The height value. Ideally it's a number but it could be a number string
-     * @returns {Size}
-     */
-    setHeight(height: number | string): Size;
-    /**
-     * Set the width value
-     *
-     * @param {number|string} width The width value. Ideally it's a number but it could be a number string
-     * @returns {Size}
-     */
-    setWidth(width: number | string): Size;
-    /**
-     * Returns the Google maps size object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
-     *
-     * @returns {google.maps.Size|null}
-     */
-    toGoogle(): google.maps.Size | null;
-}
-type SizeValue = Size | number | number[] | string | string[] | SizeObject;
-
-type ClusterImage = {
-    height?: number;
-    labelClassName?: string;
-    labelColor?: string;
-    labelFontFamily?: string;
-    labelFontSize?: string | number;
-    labelFontWeight?: string;
-    scaledHeight?: number;
-    scaledSize?: SizeValue;
-    scaledWidth?: number;
-    size?: SizeValue;
-    url: string;
-    width?: number;
-};
-type ClusterImageValue = string | ClusterImage;
-type ClusterImages = {
-    [key: number]: ClusterImageValue;
-};
-
-type ClusterColor = {
-    bgColor: string;
-    textColor: string;
-};
-type ClusterColors = {
-    [key: number]: string | ClusterColor;
-};
-
-type IconOptions = {
-    anchor?: PointValue;
-    labelOrigin?: PointValue;
-    origin?: PointValue;
-    scaledSize?: SizeValue;
-    size?: SizeValue;
-    url?: string;
-};
-/**
- * Icon class to set up an icon options for a marker
- */
-declare class Icon extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {string | IconOptions} [url] The URL for the icon or the icon options
-     * @param {IconOptions} [options] The icon options
-     */
-    constructor(url?: string | IconOptions, options?: IconOptions);
-    /**
-     * Set the icon options
-     *
-     * @param {IconOptions} options The icon options
-     * @returns {Icon}
-     */
-    setOptions(options: IconOptions): Icon;
-    /**
-     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
-     * Use this if for some reason you didn't pass the anchor in the icon options.
-     *
-     * By default, the anchor is located along the center point of the bottom of the image.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setAnchor([10, 32]);
-     *
-     * Valid values are:
-     * icon.setAnchor([10, 32]);
-     * icon.setAnchor({x: 10, y: 32});
-     * icon.setAnchor(pointClassInstance);
-     *
-     * @param {PointValue} anchor The anchor point value
-     * @returns {Icon}
-     */
-    setAnchor(anchor: PointValue): Icon;
-    /**
-     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     * Use this if for some reason you didn't pass the label origin in the icon options.
-     *
-     * By default, the origin is located in the center point of the image.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setLabelOrigin([10, 32]);
-     *
-     * Valid values are:
-     * icon.setLabelOrigin([10, 32]);
-     * icon.setLabelOrigin({x: 10, y: 32});
-     * icon.setLabelOrigin(pointClassInstance);
-     *
-     * @param {PointValue} origin The label origin point value
-     * @returns {Icon}
-     */
-    setLabelOrigin(origin: PointValue): Icon;
-    /**
-     * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
-     * Use this if for some reason you didn't pass the origin in the icon options.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setOrigin([10, 32]);
-     *
-     * Valid values are:
-     * icon.setOrigin([10, 32]);
-     * icon.setOrigin({x: 10, y: 32});
-     * icon.setOrigin(pointClassInstance);
-     *
-     * @param {PointValue} origin The origin point value
-     * @returns {Icon}
-     */
-    setOrigin(origin: PointValue): Icon;
-    /**
-     * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
-     *
-     * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setSize([40, 64]).setScaledSize([20, 32]));
-     *
-     * Valid values are:
-     * icon.setScaledSize([10, 32]);
-     * icon.setScaledSize({x: 10, y: 32});
-     * icon.setScaledSize(sizeClassInstance);
-     *
-     * @param {SizeValue} sizeValue The size value
-     * @returns {Icon}
-     */
-    setScaledSize(sizeValue: SizeValue): Icon;
-    /**
-     * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
-     *
-     * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
-     *
-     * const icon = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * icon.setSize([20, 32]);
-     *
-     * Valid values are:
-     * icon.setSize([10, 32]);
-     * icon.setSize({x: 10, y: 32});
-     * icon.setSize(sizeClassInstance);
-     *
-     * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
-     *
-     * @param {SizeValue} sizeValue The size value
-     * @returns {Icon}
-     */
-    setSize(sizeValue: SizeValue): Icon;
-    /**
-     * Set the icon URL
-     *
-     * @param {string} url The icon URL
-     * @returns {Icon}
-     */
-    setUrl(url: string): Icon;
-    /**
-     * Get the icon options
-     *
-     * @returns {google.maps.Icon}
-     */
-    toGoogle(): google.maps.Icon;
-}
-type IconValue = Icon | string | IconOptions;
+declare const tooltip: (options?: TooltipValue) => Tooltip;
 
 type MarkerLabel = google.maps.MarkerLabel;
 type GMMarkerOptions = {
@@ -2574,360 +2694,41 @@ declare class Marker extends Layer {
     toGoogleSync(): google.maps.Marker;
 }
 type MarkerValue = Marker | MarkerOptions | LatLngValue;
-
-type LoaderOptions = {
-    apiKey?: string;
-    libraries?: Libraries;
-    version?: string;
-};
 /**
- * Class to load the Google maps API
+ * Helper function to set up the marker object
  *
- * This should be a singleton object and prevent multiple loader objects on the page.
+ * @param {MarkerValue} [position] The latitude/longitude pair or the marker options
+ * @param {MarkerOptions} [options] The marker options
+ * @returns {Marker}
  */
-declare class Loader extends EventTarget {
-    #private;
-    /**
-     * Class constructor
-     *
-     * @param {LoaderOptions} [options] The loader options object
-     */
-    constructor(options?: LoaderOptions);
-    /**
-     * Get the Google Maps API key
-     *
-     * @returns {string}
-     */
-    get apiKey(): string;
-    /**
-     * Set the Google Maps API key
-     *
-     * @param {string} apiKey The Google Maps API key
-     */
-    set apiKey(apiKey: string);
-    /**
-     * Get the libraries to load with Google maps
-     *
-     * @returns {Libraries}
-     */
-    get libraries(): Libraries;
-    /**
-     * Set the libraries to load with Google maps
-     * The "places" library is a common one to load.
-     * https://developers.google.com/maps/documentation/javascript/places
-     *
-     * @param {Libraries} libraries The libraries to load with Google maps
-     */
-    set libraries(libraries: Libraries);
-    /**
-     * Get the version of the Google Maps API to load
-     *
-     * @returns {string}
-     */
-    get version(): string;
-    /**
-     * Set the version of the Google Maps API to load
-     * https://developers.google.com/maps/documentation/javascript/versions
-     *
-     * @param {string} version The version of the Google Maps API to load
-     */
-    set version(version: string);
-    /**
-     * Set the loader options
-     *
-     * @param {LoaderOptions} options The loader options object
-     * @returns {Loader}
-     */
-    setOptions(options: LoaderOptions): Loader;
-    /**
-     * Set the Google Maps API key
-     *
-     * @param {string} apiKey The Google Maps API key
-     * @returns {Loader}
-     */
-    setApiKey(apiKey: string): Loader;
-    /**
-     * Set the libraries to load with Google maps
-     * The "places" library is a common one to load.
-     * https://developers.google.com/maps/documentation/javascript/places
-     *
-     * @param {Libraries} libraries The libraries to load with Google maps
-     * @returns {Loader}
-     */
-    setLibraries(libraries: Libraries): Loader;
-    /**
-     * Set the version of the Google Maps API to load
-     * https://developers.google.com/maps/documentation/javascript/versions
-     *
-     * @param {string} version The version of the Google Maps API to load
-     * @returns {Loader}
-     */
-    setVersion(version: string): Loader;
-    /**
-     * Load the Google maps API
-     *
-     * @param {Function} callback A callback function to run when the Google maps API has loaded
-     * @returns {Promise<void>}
-     */
-    load(callback?: () => void): Promise<void>;
-    /**
-     * Dispatch an event
-     *
-     * @param {string} event The event to dispatch
-     */
-    dispatch(event: string): void;
-    /**
-     * Add an event listener to the object.
-     *
-     * All events on the loader object are set up as "once" events because the
-     * load event is only dispatched one time when the Google maps API is loaded.
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     */
-    on(type: string, callback: EventListenerOrEventListenerObject): void;
-    /**
-     * Sets up an event listener that will only be called once
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     */
-    once(type: string, callback: EventListenerOrEventListenerObject | null): void;
-}
+declare const marker: (position?: MarkerValue, options?: MarkerOptions) => Marker;
 
-type GMInfoWindowOptions = {
-    ariaLabel?: string;
-    content?: string | HTMLElement | Text;
-    disableAutoPan?: boolean;
-    maxWidth?: number;
-    minWidth?: number;
-    pixelOffset?: Size;
-    position?: LatLng;
-    zIndex?: number;
+type ClusterColor = {
+    bgColor: string;
+    textColor: string;
 };
-type InfoWindowOptions = GMInfoWindowOptions & {
-    autoClose?: boolean;
-    focus?: boolean;
-    pixelOffset?: SizeValue;
-    position?: LatLngValue;
-    toggleDisplay?: boolean;
+type ClusterColors = {
+    [key: number]: string | ClusterColor;
 };
-/**
- * InfoWindow class
- */
-declare class InfoWindow extends Layer {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {InfoWindowOptions | string | HTMLElement | Text} [options] The InfoWindow options
-     */
-    constructor(options?: InfoWindowOptions | string | HTMLElement | Text);
-    /**
-     * Get the aria label for the InfoWindow
-     *
-     * @returns {string}
-     */
-    get ariaLabel(): string;
-    /**
-     * Set the aria label for the InfoWindow
-     *
-     * @param {string|number} ariaLabel The aria label for the InfoWindow
-     */
-    set ariaLabel(ariaLabel: string | number);
-    /**
-     * Get the content for the InfoWindow
-     *
-     * @returns {string|HTMLElement|Text}
-     */
-    get content(): string | HTMLElement | Text;
-    /**
-     * Set the content for the InfoWindow
-     *
-     * @param {string|HTMLElement|Text} content The content for the InfoWindow
-     */
-    set content(content: string | HTMLElement | Text);
-    /**
-     * Get the disableAutoPan option for the InfoWindow
-     *
-     * @returns {boolean}
-     */
-    get disableAutoPan(): boolean;
-    /**
-     * Set the disableAutoPan option for the InfoWindow
-     *
-     * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
-     */
-    set disableAutoPan(disableAutoPan: boolean);
-    /**
-     * Get the maxWidth option for the InfoWindow
-     *
-     * @returns {number}
-     */
-    get maxWidth(): number;
-    /**
-     * Set the maxWidth option for the InfoWindow
-     *
-     * @param {number|string} maxWidth The maxWidth option for the InfoWindow
-     */
-    set maxWidth(maxWidth: number | string);
-    /**
-     * Get the minWidth option for the InfoWindow
-     *
-     * @returns {number}
-     */
-    get minWidth(): number;
-    /**
-     * Set the minWidth option for the InfoWindow
-     *
-     * @param {number|string} minWidth The minWidth option for the InfoWindow
-     */
-    set minWidth(minWidth: number | string);
-    /**
-     * Get the pixelOffset option for the InfoWindow
-     *
-     * @returns {Size}
-     */
-    get pixelOffset(): Size;
-    /**
-     * Set the pixelOffset option for the InfoWindow
-     *
-     * @param {SizeValue} pixelOffset The pixelOffset option for the InfoWindow
-     */
-    set pixelOffset(pixelOffset: SizeValue);
-    /**
-     * Get the position option for the InfoWindow
-     *
-     * @returns {LatLng}
-     */
-    get position(): LatLng;
-    /**
-     * Set the position option for the InfoWindow
-     *
-     * @param {LatLngValue} position The position option for the InfoWindow
-     */
-    set position(position: LatLngValue);
-    /**
-     * Get the zIndex option for the InfoWindow
-     *
-     * @returns {number}
-     */
-    get zIndex(): number;
-    /**
-     * Set the zIndex option for the InfoWindow
-     *
-     * @param {number|string} zIndex The zIndex option for the InfoWindow
-     */
-    set zIndex(zIndex: number | string);
-    /**
-     * Attach the InfoWindow to a element
-     *
-     * By default the InfoWindow will be shown when the element is clicked on.
-     *
-     * @param {Map | Layer} element The element to attach the InfoWindow to
-     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the InfoWindow. Defaults to 'click'
-     *   - 'click' - Toggle the display of the InfoWindow when clicking on the element
-     *   - 'clickon' - Show the InfoWindow when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
-     *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
-     * @returns {Promise<InfoWindow>}
-     */
-    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<InfoWindow>;
-    /**
-     * Hide the info window
-     *
-     * Alias to hide()
-     *
-     * @returns {InfoWindow}
-     */
-    close(): InfoWindow;
-    /**
-     * Returns whether the InfoWindow already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean;
-    /**
-     * Hide the info window
-     *
-     * @returns {InfoWindow}
-     */
-    hide(): InfoWindow;
-    /**
-     * Returns whether the InfoWindow is open or not
-     *
-     * @returns {boolean}
-     */
-    isOpen(): boolean;
-    /**
-     * Show the info window
-     *
-     * Alias to show()
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     * @returns {Promise<InfoWindow>}
-     */
-    open(element: Map | Layer): Promise<InfoWindow>;
-    /**
-     * Set the InfoWindow options
-     *
-     * @param {InfoWindowOptions} options The InfoWindow options
-     * @returns {InfoWindow}
-     */
-    setOptions(options: InfoWindowOptions): InfoWindow;
-    /**
-     * Set the InfoWindow content
-     *
-     * @param {string | HTMLElement | Text} content The InfoWindow content
-     * @returns {InfoWindow}
-     */
-    setContent(content: string | HTMLElement | Text): InfoWindow;
-    /**
-     * Set the InfoWindow position
-     *
-     * @param {LatLngValue} position The position for the InfoWindow
-     * @returns {InfoWindow}
-     */
-    setPosition(position: LatLngValue): InfoWindow;
-    /**
-     * Sets the zIndex value for the InfoWindow
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
-     *
-     * @param {number|string} zIndex The zindex value
-     * @returns {InfoWindow}
-     */
-    setZIndex(zIndex: number | string): InfoWindow;
-    /**
-     * Show the info window
-     *
-     * You need to pass in either an anchor object or a map object.
-     * If an anchor object is passed in then the info window will be displayed at the anchor's position.
-     * If a map object is passed in then the info window will be displayed at the position of the info window.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     *      This should ideally be the Map or Marker object.
-     * @returns {Promise<InfoWindow>}
-     */
-    show(element: Map | Layer): Promise<InfoWindow>;
-    /**
-     * Toggle the display of the overlay on the map
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     * @returns {void}
-     */
-    toggle(element: Map | Layer): void;
-    /**
-     * Get the Google maps InfoWindow object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
-     *
-     * @returns {google.maps.InfoWindow}
-     */
-    toGoogle(): google.maps.InfoWindow;
-}
-type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
+
+type ClusterImage = {
+    height?: number;
+    labelClassName?: string;
+    labelColor?: string;
+    labelFontFamily?: string;
+    labelFontSize?: string | number;
+    labelFontWeight?: string;
+    scaledHeight?: number;
+    scaledSize?: SizeValue;
+    scaledWidth?: number;
+    size?: SizeValue;
+    url: string;
+    width?: number;
+};
+type ClusterImageValue = string | ClusterImage;
+type ClusterImages = {
+    [key: number]: ClusterImageValue;
+};
 
 type DefaultRenderOptions = {
     colorRangeBottom?: string | ClusterColor;
@@ -3071,6 +2872,16 @@ declare class MarkerCluster extends Base {
      */
     render(): MarkerCluster;
 }
+/**
+ * Helper function to set up the marker cluster object
+ *
+ * @param {Map} map The map object
+ * @param {Marker[]|MarkerClusterOptions} [markers] Markers to cluster. You can also use addMarker() instead of adding the markers here.
+ *      Alternately, you can pass the cluster options here.
+ * @param {MarkerClusterOptions} [options] Options for the marker clusterer
+ * @returns {MarkerCluster}
+ */
+declare const markerCluster: (map: Map, markers?: MarkerClusterOptions | Marker[], options?: MarkerClusterOptions) => MarkerCluster;
 
 type MarkersByTag = {
     [key: string]: Set<Marker>;
@@ -3087,8 +2898,7 @@ declare class MarkerCollection {
     /**
      * Adds an Marker to the collection
      *
-     * @param {Marker} p The Marker object to add
-     * @param marker
+     * @param {Marker} marker The Marker object to add
      * @param {string[]} tags The tag(s) to assign the marker to
      */
     add(marker: Marker, ...tags: string[]): void;
@@ -3109,8 +2919,7 @@ declare class MarkerCollection {
     /**
      * Remove the marker from the collection, optionally by tag.
      *
-     * @param {Marker} p The marker object to remove
-     * @param marker
+     * @param {Marker} marker The marker object to remove
      * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
      */
     remove(marker: Marker, ...tags: string[]): void;
@@ -3128,6 +2937,282 @@ declare class MarkerCollection {
      */
     showAll(map: Map): void;
 }
+/**
+ * Helper function to set up the marker collection object
+ *
+ * @returns {MarkerCollection}
+ */
+declare const markerCollection: () => MarkerCollection;
+
+type PolylineOptions = {
+    clickable?: boolean;
+    highlightPolyline?: PolylineOptions | Polyline;
+    map?: Map;
+    path?: LatLngValue[];
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+    visible?: boolean;
+    zIndex?: number;
+};
+/**
+ * Polyline class
+ */
+declare class Polyline extends Layer {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {PolylineOptions} [options] The polyline options
+     */
+    constructor(options?: PolylineOptions);
+    /**
+     * Get whether the polyline handles click events.
+     *
+     * @returns {boolean}
+     */
+    get clickable(): boolean;
+    /**
+     * Set whether the polyline handles click events.
+     *
+     * @param {boolean} value Whether the polyline handles click events.
+     */
+    set clickable(value: boolean);
+    /**
+     * Get the highlight polyline
+     *
+     * @returns {Polyline}
+     */
+    get highlightPolyline(): Polyline;
+    /**
+     * Set the highlight polyline
+     *
+     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
+     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
+     *
+     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
+     */
+    set highlightPolyline(value: PolylineOptions | Polyline);
+    /**
+     * Get the map object
+     *
+     * @returns {Map}
+     */
+    get map(): Map;
+    /**
+     * Set the map object
+     *
+     * @param {Map|null} value The map object. Set to null if you want to remove the polyline from the map.
+     */
+    set map(value: Map | null);
+    /**
+     * Get the path of the polyline.
+     *
+     * The path is an array of LatLng values defining the path of the polyline.
+     *
+     * @returns {LatLngValue[]}
+     */
+    get path(): LatLngValue[];
+    /**
+     * Set the path of the polyline.
+     * The path is an array of LatLng values defining the path of the polyline.
+     * You can pass an array of LatLng objects or an array of LatLngLiteral objects.
+     *
+     * @param {LatLngValue[]} value The path of the polyline.
+     */
+    set path(value: LatLngValue[]);
+    /**
+     * Get the SVG stroke color
+     *
+     * @returns {string}
+     */
+    get strokeColor(): string;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} value The SVG stroke color.
+     */
+    set strokeColor(value: string);
+    /**
+     * Get the opacity of the stroke.
+     * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
+     *
+     * @returns {number}
+     */
+    get strokeOpacity(): number;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} value The opacity of the stroke.
+     */
+    set strokeOpacity(value: number | string);
+    /**
+     * Get the weight of the stroke in pixels.
+     *
+     * @returns {number}
+     */
+    get strokeWeight(): number;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} value The weight of the stroke.
+     */
+    set strokeWeight(value: number | string);
+    /**
+     * Get whether the polyline is visible on the map.
+     *
+     * @returns {boolean}
+     */
+    get visible(): boolean;
+    /**
+     * Set whether the polyline is visible on the map.
+     *
+     * @param {boolean} value Whether the polyline is visible on the map.
+     */
+    set visible(value: boolean);
+    /**
+     * Get the zIndex of the polyline.
+     *
+     * @returns {number}
+     */
+    get zIndex(): number;
+    /**
+     * Set the zIndex of the polyline.
+     *
+     * @param {number|string} value The zIndex of the polyline.
+     */
+    set zIndex(value: number | string);
+    /**
+     * Returns whether the polyline has a zIndex set.
+     *
+     * @returns {boolean}
+     */
+    hasZIndex(): boolean;
+    /**
+     * Hide the polyline
+     *
+     * @returns {Polyline}
+     */
+    hide(): Polyline;
+    /**
+     * Display the highlight polyline if it exists
+     *
+     * @returns {Polyline}
+     */
+    highlight(): Polyline;
+    /**
+     * Initialize the polyline
+     *
+     * This is used when another element (like a tooltip) needs to be attached to the polyline,
+     * but needs to make sure that the polyline exists first.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * Add an event listener to the Google maps object
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    on(type: string, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Set the highlight polyline
+     *
+     * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
+     * This is useful when you want to show a highlight effect when the mouse hovers over the polyline.
+     *
+     * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
+     * @returns {Polyline}
+     */
+    setHighlightPolyline(value: PolylineOptions | Polyline): Polyline;
+    /**
+     * Adds the polyline to the map object
+     *
+     * Alternate of show()
+     *
+     * @param {Map} value The map object. Set to null if you want to remove the polyline from the map.
+     * @returns {Promise<Polyline>}
+     */
+    setMap(value: Map | null): Promise<Polyline>;
+    /**
+     * Set the Polyline options
+     *
+     * @param {PolylineOptions} options The Polyline options
+     * @returns {Polyline}
+     */
+    setOptions(options: PolylineOptions): Polyline;
+    /**
+     * Se the path of the polyline.
+     *
+     * @param {LatLngValue[]} path The path of the polyline.
+     * @returns {Polyline}
+     */
+    setPath(path: LatLngValue[]): Polyline;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} strokeColor The SVG stroke color.
+     * @returns {Polyline}
+     */
+    setStrokeColor(strokeColor: string): Polyline;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} strokeOpacity The opacity of the stroke.
+     * @returns {Polyline}
+     */
+    setStrokeOpacity(strokeOpacity: number | string): Polyline;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} strokeWeight The weight of the stroke.
+     * @returns {Polyline}
+     */
+    setStrokeWeight(strokeWeight: number | string): Polyline;
+    /**
+     * Set whether the polyline is visible on the map.
+     *
+     * @param {boolean} visible Whether the polyline is visible on the map.
+     * @returns {Polyline}
+     */
+    setVisible(visible: boolean): Polyline;
+    /**
+     * Show the polyline on the map
+     *
+     * This will also set the map object if it's passed
+     *
+     * @param {Map} [map] The map object. Don't need to pass this if the map is already set on the polyline.
+     * @returns {Promise<Polyline>}
+     */
+    show(map?: Map): Promise<Polyline>;
+    /**
+     * Get the Google maps Polyline object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Polyline
+     *
+     * @returns {Promise<google.maps.Polyline>}
+     */
+    toGoogle(): Promise<google.maps.Polyline>;
+    /**
+     * Hide the highlight polyline if it exists
+     *
+     * @returns {Polyline}
+     */
+    unhighlight(): Polyline;
+}
+type PolylineValue = Polyline | PolylineOptions;
+/**
+ * Helper function to set up the polyline object
+ *
+ * @param {PolylineValue} [options] The polyline options or the polyline class
+ * @returns {Polyline}
+ */
+declare const polyline: (options?: PolylineValue) => Polyline;
 
 type PolylinesByTag = {
     [key: string]: Set<Polyline>;
@@ -3200,126 +3285,207 @@ declare class PolylineCollection {
      */
     unhighlightAll(): void;
 }
+/**
+ * Helper function to set up the polyline collection object
+ *
+ * @returns {PolylineCollection}
+ */
+declare const polylineCollection: () => PolylineCollection;
 
-declare const _default: {
-    icon: (url?: IconValue, options?: {
-        anchor?: PointValue;
-        labelOrigin?: PointValue;
-        origin?: PointValue;
-        scaledSize?: SizeValue;
-        size?: SizeValue;
-        url?: string;
-    }) => Icon;
-    Icon: typeof Icon;
-    infoWindow: (options?: InfoWindowValue) => InfoWindow;
-    InfoWindow: typeof InfoWindow;
-    latLng: (latitude?: string | number | LatLngValue, longitude?: string | number) => LatLng;
-    LatLng: typeof LatLng;
-    latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
-    LatLngBounds: typeof LatLngBounds;
-    loader: (config?: LoaderOptions) => Loader;
-    Loader: typeof Loader;
-    map: (selector: string | HTMLElement, config?: MapOptions) => Map;
-    Map: typeof Map;
-    marker: (position?: MarkerValue, options?: MarkerOptions) => Marker;
-    Marker: typeof Marker;
-    markerCluster: (map: Map, markers?: {
-        algorithm?: "grid" | "supercluster" | "noop";
-        algorithmClass?: _googlemaps_markerclusterer.Algorithm;
-        algorithmOptions?: SuperCluster.Options<{
-            [name: string]: any;
-        }, {
-            [name: string]: any;
-        }>;
-        defaultRenderOptions?: {
-            colorRangeBottom?: string | ClusterColor;
-            colorRangeTop?: string | ClusterColor;
-            colors?: ClusterColors;
-            labelFontFamily?: string;
-            labelFontSize?: string | number;
-            centerOpacity?: number;
-            middleOpacity?: number;
-            outerOpacity?: number;
-            showNumber?: boolean;
-        };
-        imageRendererOptions?: {
-            images?: ClusterImages;
-            image?: ClusterImageValue;
-            labelClassName?: string;
-            labelColor?: string;
-            labelFontFamily?: string;
-            labelFontSize?: string | number;
-            labelFontWeight?: string;
-            showNumber?: boolean;
-        };
-        onClusterClick?: _googlemaps_markerclusterer.onClusterClickHandler;
-        maxZoom?: number;
-        minPoints?: number;
-        radius?: number;
-        renderer?: _googlemaps_markerclusterer.Renderer;
-    } | Marker[], options?: {
-        algorithm?: "grid" | "supercluster" | "noop";
-        algorithmClass?: _googlemaps_markerclusterer.Algorithm;
-        algorithmOptions?: SuperCluster.Options<{
-            [name: string]: any;
-        }, {
-            [name: string]: any;
-        }>;
-        defaultRenderOptions?: {
-            colorRangeBottom?: string | ClusterColor;
-            colorRangeTop?: string | ClusterColor;
-            colors?: ClusterColors;
-            labelFontFamily?: string;
-            labelFontSize?: string | number;
-            centerOpacity?: number;
-            middleOpacity?: number;
-            outerOpacity?: number;
-            showNumber?: boolean;
-        };
-        imageRendererOptions?: {
-            images?: ClusterImages;
-            image?: ClusterImageValue;
-            labelClassName?: string;
-            labelColor?: string;
-            labelFontFamily?: string;
-            labelFontSize?: string | number;
-            labelFontWeight?: string;
-            showNumber?: boolean;
-        };
-        onClusterClick?: _googlemaps_markerclusterer.onClusterClickHandler;
-        maxZoom?: number;
-        minPoints?: number;
-        radius?: number;
-        renderer?: _googlemaps_markerclusterer.Renderer;
-    }) => MarkerCluster;
-    MarkerCluster: typeof MarkerCluster;
-    markerCollection: () => MarkerCollection;
-    MarkerCollection: typeof MarkerCollection;
-    point: (x?: PointValue, y?: string | number) => Point;
-    Point: typeof Point;
-    polyline: (options?: PolylineValue) => Polyline;
-    Polyline: typeof Polyline;
-    polylineCollection: () => PolylineCollection;
-    PolylineCollection: typeof PolylineCollection;
-    popup: (options?: PopupValue) => Popup;
-    Popup: typeof Popup;
-    size: (width?: SizeValue, height?: string | number) => Size;
-    Size: typeof Size;
-    svgSymbol: (path?: SvgSymbolValue, options?: {
-        anchor?: PointValue;
-        fillColor?: string;
-        fillOpacity?: number;
-        labelOrigin?: PointValue;
-        path: string;
-        rotation?: number;
-        scale?: number;
-        strokeColor?: string;
-        strokeOpacity?: number;
-        strokeWeight?: number;
-    }) => SvgSymbol;
-    SvgSymbol: typeof SvgSymbol;
-    tooltip: (options?: TooltipValue) => Tooltip;
-    Tooltip: typeof Tooltip;
+type PopupOptions = {
+    autoClose?: boolean;
+    center?: boolean;
+    className?: string;
+    closeElement?: HTMLElement | string;
+    content: string | HTMLElement | Text;
+    offset?: PointValue;
+    styles?: object;
+    theme?: string;
 };
+/**
+ * Popup class
+ */
+declare class Popup extends Overlay {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
+     */
+    constructor(options: PopupOptions | string | HTMLElement | Text);
+    /**
+     * Get the autoClose value
+     *
+     * @returns {boolean}
+     */
+    get autoClose(): boolean;
+    /**
+     * Set the autoClose value
+     *
+     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
+     */
+    set autoClose(autoClose: boolean);
+    /**
+     * Returns whether to center the popup horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean;
+    /**
+     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
+     *
+     * @param {boolean} center Whether to center the popup on the element
+     */
+    set center(center: boolean);
+    /**
+     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @returns {HTMLElement|string}
+     */
+    get closeElement(): HTMLElement | string;
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @param {HTMLElement|string} closeElement The element to close the popup
+     */
+    set closeElement(closeElement: HTMLElement | string);
+    /**
+     * Returns the content for the popup
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text;
+    /**
+     * Set the content for the popup
+     *
+     * @param {string|HTMLElement|Text} content The content for the popup
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the theme to use for the popup
+     *
+     * @returns {string}
+     */
+    get theme(): string;
+    /**
+     * Set the theme to use for the popup
+     *
+     * @param {string} theme The theme to use for the popup
+     */
+    set theme(theme: string);
+    /**
+     * Attach the popup to a element
+     *
+     * By default the popup will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the popup to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
+     *   - 'click' - Toggle the display of the popup when clicking on the element
+     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+     * @returns {Promise<Popup>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup>;
+    /**
+     * Hide the popup
+     *
+     * Alias to hide()
+     *
+     * @returns {Popup}
+     */
+    close(): Popup;
+    /**
+     * Returns whether the popup already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
+     * Hide the popup
+     *
+     * @returns {Popup}
+     */
+    hide(): Popup;
+    /**
+     * Returns whether the popup is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean;
+    /**
+     * Open the popup
+     *
+     * Alias to show()
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<Popup>}
+     */
+    open(element: Map | Layer): Promise<Popup>;
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     * The popup will be hidden when this element is clicked on.
+     *
+     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
+     * @returns {Popup}
+     */
+    setCloseElement(element: HTMLElement | string): Popup;
+    /**
+     * Set the Popup content
+     *
+     * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
+     */
+    setContent(content: string | HTMLElement | Text): Popup;
+    /**
+     * Sets the options for the popup
+     *
+     * @param {PopupOptions} options Popup options
+     * @returns {Popup}
+     */
+    setOptions(options: PopupOptions): Popup;
+    /**
+     * Open the popup
+     *
+     * You need to pass in either an anchor object or a map object.
+     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
+     * If a map object is passed in then the popup will be displayed at the position of the popup.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     *      This should ideally be the Map or Marker object and not the Google maps object.
+     *      If this is used internally then the Google maps object can be used.
+     * @returns {Promise<Popup>}
+     */
+    show(element: Map | Layer): Promise<Popup>;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     */
+    toggle(element: Map | Layer): void;
+    /**
+     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+}
+type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
+/**
+ * Helper function to set up the Popup class
+ *
+ * @param {PopupValue} [options] The Popup options
+ * @returns {Popup}
+ */
+declare const popup: (options?: PopupValue) => Popup;
 
-export { _default as default };
+export { Base, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, callCallback, checkForGoogleMaps, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, marker, markerCluster, markerCollection, objectEquals, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
