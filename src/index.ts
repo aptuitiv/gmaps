@@ -16,7 +16,8 @@ export { latLng, LatLng, LatLngValue } from './lib/LatLng';
 export { latLngBounds, LatLngBounds, LatLngBoundsValue } from './lib/LatLngBounds';
 export { default as Layer } from './lib/Layer';
 export { loader, Loader, LoaderOptions } from './lib/Loader';
-export { map, LocationOnSuccess, LocateOptions, LocationPosition, Map, MapOptions } from './lib/Map';
+export { map, Map } from './lib/Map';
+export { LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './lib/Map/types';
 export { marker, Marker, MarkerLabel, MarkerOptions, MarkerValue } from './lib/Marker';
 export {
     markerCluster,
