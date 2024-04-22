@@ -31,6 +31,7 @@ import {
 import { LatLng, latLng, LatLngValue } from './LatLng';
 import { Evented, EventCallback, EventConfig } from './Evented';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
+import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
 
 /**
  * The map class
@@ -69,6 +70,14 @@ export class Map extends Evented {
     #map: google.maps.Map;
 
     /**
+     * Holds the map type control object
+     *
+     * @private
+     * @type {MapTypeControl}
+     */
+    #mapTypeControl: MapTypeControl;
+
+    /**
      * Holds the map options
      *
      * @private
@@ -105,6 +114,7 @@ export class Map extends Evented {
         // Set some default values
         this.#options.center = latLng(0, 0);
         this.#options.zoom = 6;
+        this.#mapTypeControl = mapTypeControl();
 
         this.#selector = selector;
         if (isObject(options)) {
@@ -145,25 +155,33 @@ export class Map extends Evented {
     }
 
     /**
-     * Get whether the map type control is displayed
+     * Get the map type control object
      *
-     * @returns {boolean}
+     * @returns {MapTypeControl}
      */
-    get mapTypeControl(): boolean {
-        return this.#options.mapTypeControl ?? true;
+    get mapTypeControl(): MapTypeControl {
+        return this.#mapTypeControl;
     }
 
     /**
-     * Set whether to display the map type control
+     * Set the map type control object, or whether to display the map type control
      *
-     * @param {boolean} value The map type control option
+     * @param {boolean|MapTypeControl} value The map type control option
      */
-    set mapTypeControl(value: boolean) {
+    set mapTypeControl(value: boolean | MapTypeControl) {
         if (isBoolean(value)) {
-            this.#options.mapTypeControl = value;
-            if (this.#map) {
-                this.#map.setOptions({ mapTypeControl: value });
-            }
+            this.#mapTypeControl.enabled = value;
+        } else if (value instanceof MapTypeControl) {
+            this.#mapTypeControl = value;
+        }
+
+        if (this.#map) {
+            this.#mapTypeControl.toGoogle().then((mapTypeControlOptions) => {
+                this.#map.setOptions({
+                    mapTypeControl: this.#mapTypeControl.enabled,
+                    mapTypeControlOptions,
+                });
+            });
         }
     }
 
@@ -283,20 +301,28 @@ export class Map extends Evented {
      * @private
      * @returns {google.maps.MapOptions}
      */
-    #getMapOptions(): google.maps.MapOptions {
-        const mapOptions: google.maps.MapOptions = {};
-        // Options that can be set on the marker without any modification
-        const optionsToSet = ['mapId', 'zoom'];
-        optionsToSet.forEach((key) => {
-            if (typeof this.#options[key] !== 'undefined') {
-                mapOptions[key] = this.#options[key];
-            }
+    #getMapOptions(): Promise<google.maps.MapOptions> {
+        return new Promise((resolve) => {
+            const mapOptions: google.maps.MapOptions = {};
+            // Options that can be set on the marker without any modification
+            const optionsToSet = ['mapId', 'zoom'];
+            optionsToSet.forEach((key) => {
+                if (typeof this.#options[key] !== 'undefined') {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+
+            // Options that have to be converted to Google Maps objects
+            mapOptions.center = this.#options.center.toGoogle();
+            mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
+
+            // Get async map options
+            (async () => {
+                const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
+                mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                resolve(mapOptions);
+            })();
         });
-
-        // Options that have to be converted to Google Maps objects
-        mapOptions.center = this.#options.center.toGoogle();
-
-        return mapOptions;
     }
 
     /**
@@ -530,7 +556,7 @@ export class Map extends Evented {
                 // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
                 this.#options.mapId = options.mapId;
             }
-            if (options.mapTypeControl) {
+            if (typeof options.mapTypeControl !== 'undefined') {
                 this.mapTypeControl = options.mapTypeControl;
             }
 
@@ -540,7 +566,9 @@ export class Map extends Evented {
             }
 
             if (this.#map) {
-                this.#map.setOptions(this.#getMapOptions());
+                this.#getMapOptions().then((mapOptions) => {
+                    this.#map.setOptions(mapOptions);
+                });
             }
         }
         return this;
@@ -610,20 +638,23 @@ export class Map extends Evented {
                     'The map element could not be found. Make sure the map selector is correct and the element exists.'
                 );
             }
-            this.#map = new google.maps.Map(element, this.#getMapOptions());
-            this.setEventGoogleObject(this.#map);
-            // Dispatch the event to say that the map is visible
-            this.dispatch('visible');
-            // Dispatch the event on the loader to say that the map is fully loaded.
-            // This is done because the map is loaded after the loader's "load" event is dispatched
-            // and some objects depend on the map being loaded before they can be set up.
-            loader().dispatch('map_loaded');
+            this.#getMapOptions().then((mapOptions) => {
+                this.#map = new google.maps.Map(element, mapOptions);
 
-            // Set that the map is initialized
-            this.#isInitialized = true;
+                this.setEventGoogleObject(this.#map);
+                // Dispatch the event to say that the map is visible
+                this.dispatch('visible');
+                // Dispatch the event on the loader to say that the map is fully loaded.
+                // This is done because the map is loaded after the loader's "load" event is dispatched
+                // and some objects depend on the map being loaded before they can be set up.
+                loader().dispatch('map_loaded');
 
-            // Set that the map is visible
-            this.#isVisible = true;
+                // Set that the map is initialized
+                this.#isInitialized = true;
+
+                // Set that the map is visible
+                this.#isVisible = true;
+            });
         }
 
         // Call the callback function if necessary

@@ -6,12 +6,14 @@
 /* global globalThis, NodeJS, Window */
 
 // Import the class helpers
+import { ControlPosition, MapTypeControlStyle, MapTypeId } from './lib/constants';
 import { icon } from './lib/Icon';
 import { infoWindow } from './lib/InfoWindow';
 import { latLng } from './lib/LatLng';
 import { latLngBounds } from './lib/LatLngBounds';
 import { loader } from './lib/Loader';
 import { map } from './lib/Map';
+import { mapTypeControl } from './lib/Map/MapTypeControl';
 import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';
 import { markerCollection } from './lib/MarkerCollection';
@@ -28,12 +30,16 @@ import GlobalObj from './types';
 
 // Set up the global namespace object
 const G: GlobalObj = {
+    ControlPosition,
+    MapTypeControlStyle,
+    MapTypeId,
     icon,
     infoWindow,
     latLng,
     latLngBounds,
     loader,
     map,
+    mapTypeControl,
     marker,
     markerCluster,
     markerCollection,

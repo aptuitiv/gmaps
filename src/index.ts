@@ -8,6 +8,7 @@
 // rather than using the Marker class directly.
 
 export { default as Base } from './lib/Base';
+export * from './lib/constants';
 export { Event, EventCallback, EventConfig, EventListenerOptions, Evented } from './lib/Evented';
 export * from './lib/helpers';
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
@@ -17,6 +18,7 @@ export { latLngBounds, LatLngBounds, LatLngBoundsValue } from './lib/LatLngBound
 export { default as Layer } from './lib/Layer';
 export { loader, Loader, LoaderOptions } from './lib/Loader';
 export { map, Map } from './lib/Map';
+export { mapTypeControl, MapTypeControl, MapTypeControlOptions } from './lib/Map/MapTypeControl';
 export { LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './lib/Map/types';
 export { marker, Marker, MarkerLabel, MarkerOptions, MarkerValue } from './lib/Marker';
 export {
