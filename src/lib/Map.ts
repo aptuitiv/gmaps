@@ -38,12 +38,6 @@ type GMMapOptions = {
     zoom?: number;
 };
 
-export interface GMapOptions {
-    center?: LatLng;
-    mapId?: string;
-    zoom?: number;
-}
-
 // The options that are passed to map() and setOptions()
 export type MapOptions = GMMapOptions & {
     // The Google Maps API key
