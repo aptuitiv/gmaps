@@ -22,20 +22,20 @@ export type GMMapOptions = {
 // The options that are passed to map() and setOptions()
 export type MapOptions = {
     // The Google Maps API key
-    apiKey: string;
+    apiKey?: string;
     // The center point for the map.
     // This is an alternate to setting the latitude and longitude separately.
     center?: LatLngValue;
     // The latitude for the center point of the map
-    lat: number | string;
-    latitude: number | string;
+    lat?: number | string;
+    latitude?: number | string;
     // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
     // The "places" library is a common one to load. https://developers.google.com/maps/documentation/javascript/places
     // https://developers.google.com/maps/documentation/javascript/libraries
     libraries?: Libraries;
     // The longitude for the center point of the map
-    lng: number | string;
-    longitude: number | string;
+    lng?: number | string;
+    longitude?: number | string;
     // The Google Maps identifier for the map.
     // See https://developers.google.com/maps/documentation/get-map-id
     mapId?: string;
