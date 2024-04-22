@@ -225,7 +225,6 @@ export class Map extends Evented {
      * @param {null|number} value The maximum zoom level
      */
     set maxZoom(value: null | number) {
-        console.log('Set max zoom: ', value);
         if (isNumber(value) || isNull(value)) {
             this.#options.maxZoom = value;
             if (this.#map) {
@@ -249,7 +248,6 @@ export class Map extends Evented {
      * @param {null|number} value The minimum zoom level
      */
     set minZoom(value: null | number) {
-        console.log('Set min zoom: ', value);
         if (isNumber(value) || isNull(value)) {
             this.#options.minZoom = value;
             if (this.#map) {
@@ -376,7 +374,6 @@ export class Map extends Evented {
      */
     #getMapOptions(): Promise<google.maps.MapOptions> {
         return new Promise((resolve) => {
-            console.log('this.#options: ', this.#options);
             const mapOptions: google.maps.MapOptions = {};
             // Options that can be set on the marker without any modification
             const optionsToSet = ['mapId', 'mapTypeId', 'maxZoom', 'minZoom', 'zoom'];
@@ -394,7 +391,6 @@ export class Map extends Evented {
             (async () => {
                 const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
                 mapOptions.mapTypeControlOptions = mapTypeControlOptions;
-                console.log('MapOtpions: ', mapOptions);
                 resolve(mapOptions);
             })();
         });
@@ -648,7 +644,6 @@ export class Map extends Evented {
             if (options.mapTypeId) {
                 this.mapTypeId = options.mapTypeId;
             }
-            console.log('Map options set: ', options);
             if (typeof options.maxZoom !== 'undefined') {
                 this.maxZoom = options.maxZoom;
             }
