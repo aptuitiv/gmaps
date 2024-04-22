@@ -138,7 +138,7 @@ export class Map extends Evented {
      * @private
      * @type {google.maps.Map}
      */
-    #map!: google.maps.Map;
+    #map: google.maps.Map;
 
     /**
      * Holds the map options
