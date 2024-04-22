@@ -502,7 +502,7 @@ export class Evented extends Base {
         // Google maps object was set up.
         if (isObject(this.#pendingMapObjectEventListeners)) {
             Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
-                this.#pendingMapObjectEventListeners[type].forEach((evt) => {
+                this.#pendingMapObjectEventListeners[type].forEach(() => {
                     this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
                         this.dispatch(type, e);
                     });
