@@ -21,6 +21,7 @@ import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
     callCallback,
     checkForGoogleMaps,
+    isBoolean,
     isFunction,
     isNumber,
     isNumberOrNumberString,
@@ -35,11 +36,12 @@ import { Evented, EventCallback, EventConfig } from './Evented';
 type GMMapOptions = {
     center?: LatLng;
     mapId?: string;
+    mapTypeControl?: boolean;
     zoom?: number;
 };
 
 // The options that are passed to map() and setOptions()
-export type MapOptions = GMMapOptions & {
+export type MapOptions = {
     // The Google Maps API key
     apiKey: string;
     // The center point for the map.
@@ -58,6 +60,9 @@ export type MapOptions = GMMapOptions & {
     // The Google Maps identifier for the map.
     // See https://developers.google.com/maps/documentation/get-map-id
     mapId?: string;
+    // Whether to show or hide the map type control. Default: true
+    // https://developers.google.com/maps/documentation/javascript/controls
+    mapTypeControl?: boolean;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
@@ -212,6 +217,29 @@ export class Map extends Evented {
             this.#options.center = center;
             if (isObject(this.#map)) {
                 this.#map.setCenter(this.#options.center.toGoogle());
+            }
+        }
+    }
+
+    /**
+     * Get whether the map type control is displayed
+     *
+     * @returns {boolean}
+     */
+    get mapTypeControl(): boolean {
+        return this.#options.mapTypeControl ?? true;
+    }
+
+    /**
+     * Set whether to display the map type control
+     *
+     * @param {boolean} value The map type control option
+     */
+    set mapTypeControl(value: boolean) {
+        if (isBoolean(value)) {
+            this.#options.mapTypeControl = value;
+            if (this.#map) {
+                this.#map.setOptions({ mapTypeControl: value });
             }
         }
     }
@@ -578,6 +606,9 @@ export class Map extends Evented {
             if (isStringWithValue(options.mapId)) {
                 // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
                 this.#options.mapId = options.mapId;
+            }
+            if (options.mapTypeControl) {
+                this.mapTypeControl = options.mapTypeControl;
             }
 
             // Set the zoom level for the map

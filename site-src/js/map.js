@@ -56,6 +56,8 @@ map1.on('click', (e) => {
 
     map1.setCenter(36.224, 2.3522);
 
+    map1.mapTypeControl = false;
+
     if (e.latLng) {
         console.log(`You clicked at ${e.latLng.lat}/${e.latLng.lng}`);
     }
