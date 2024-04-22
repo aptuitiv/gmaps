@@ -185,6 +185,38 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the center point for the map
+     *
+     * @returns {LatLng}
+     */
+    get center(): LatLng {
+        let { center } = this.#options;
+        if (this.#map) {
+            const mapCenter = this.#map.getCenter();
+            center = latLng(mapCenter.lat(), mapCenter.lng());
+        }
+        if (!center.equals(this.#options.center)) {
+            this.#options.center = center;
+        }
+        return this.#options.center;
+    }
+
+    /**
+     * Set the center point for the map
+     *
+     * @param {LatLngValue} value The center point for the map
+     */
+    set center(value: LatLngValue) {
+        const center = latLng(value);
+        if (center.isValid()) {
+            this.#options.center = center;
+            if (isObject(this.#map)) {
+                this.#map.setCenter(this.#options.center.toGoogle());
+            }
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -322,15 +354,7 @@ export class Map extends Evented {
      * @returns {LatLng}
      */
     getCenter(): LatLng {
-        let { center } = this.#options;
-        if (this.#map) {
-            const mapCenter = this.#map.getCenter();
-            center = latLng(mapCenter.lat(), mapCenter.lng());
-        }
-        if (!center.equals(this.#options.center)) {
-            this.#options.center = center;
-        }
-        return this.#options.center;
+        return this.center;
     }
 
     /**
