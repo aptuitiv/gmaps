@@ -18,7 +18,7 @@ import Base from './Base';
 import { point, Point, PointValue } from './Point';
 import { isNumber, isNumberString, isObject, isStringWithValue } from './helpers';
 
-type SvgSymbolOptions = {
+export type SvgSymbolOptions = {
     // The position of the symbol relative to the marker or polyline.
     // By default, the anchor is located along the center point of the bottom of the image.
     anchor?: PointValue;

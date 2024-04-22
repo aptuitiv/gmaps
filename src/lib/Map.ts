@@ -38,6 +38,12 @@ type GMMapOptions = {
     zoom?: number;
 };
 
+export interface GMapOptions {
+    center?: LatLng;
+    mapId?: string;
+    zoom?: number;
+}
+
 // The options that are passed to map() and setOptions()
 export type MapOptions = GMMapOptions & {
     // The Google Maps API key
@@ -66,7 +72,7 @@ export type MapOptions = GMMapOptions & {
 };
 
 // The options for the Map.locate() function
-type LocateOptions = {
+export type LocateOptions = {
     // Indicates if the application would like to receive the best possible results.
     // If true and if the device is able to provide a more accurate position, it will do so.
     // This can result in slower response times or increased power consumption on a mobile device.
@@ -89,7 +95,7 @@ type LocateOptions = {
 };
 
 // The data returned from the Geolocation API and sent to the 'locationfound' event
-type LocationPosition = {
+export type LocationPosition = {
     accuracy?: number;
     altitude?: number;
     altitudeAccuracy?: number;
@@ -102,7 +108,7 @@ type LocationPosition = {
 };
 
 // The callback function for the Map.locate() function
-type LocationOnSuccess = (position: LocationPosition) => void;
+export type LocationOnSuccess = (position: LocationPosition) => void;
 
 /**
  * The map class
@@ -138,7 +144,7 @@ export class Map extends Evented {
      * @private
      * @type {google.maps.Map}
      */
-    #map: google.maps.Map;
+    #map!: google.maps.Map;
 
     /**
      * Holds the map options

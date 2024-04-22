@@ -52,7 +52,7 @@ export type EventConfig = {
 };
 
 // The actual options set for the event listener
-type EventListenerOptions = {
+export type EventListenerOptions = {
     once?: boolean;
 };
 

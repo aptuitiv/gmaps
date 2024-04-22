@@ -19,13 +19,13 @@ import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helper
 
 // The object for the x and y coordinates
 // Example: `{x: 34, y: 6}`
-type PointObject = {
+export type PointObject = {
     x: number | string;
     y: number | string;
 };
 
 // The possible types for the X value
-export type XPoint = number | number[] | string | string[] | PointObject;
+type XPoint = number | number[] | string | string[] | PointObject;
 
 /**
  * The Point class to set up and manage x/y coordinates

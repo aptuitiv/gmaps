@@ -19,13 +19,13 @@ import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helper
 
 // The object for the width and height
 // Example: `{width: 34, height: 6}`
-type SizeObject = {
+export type SizeObject = {
     height: number | string;
     width: number | string;
 };
 
 // The possible types for the X value
-export type WidthSize = number | number[] | string | string[] | SizeObject;
+type WidthSize = number | number[] | string | string[] | SizeObject;
 
 /**
  * The Size class to set up and manage width and height values for an element
