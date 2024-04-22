@@ -15,6 +15,7 @@
 
 /* global google, HTMLElement */
 
+import { MapTypeId } from './constants';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
@@ -186,6 +187,29 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the map type ID
+     *
+     * @returns {string}
+     */
+    get mapTypeId(): string {
+        return this.#options.mapTypeId ?? MapTypeId.ROADMAP;
+    }
+
+    /**
+     * Set the map type ID
+     *
+     * @param {string} value The map type ID
+     */
+    set mapTypeId(value: string) {
+        if (isStringWithValue(value)) {
+            this.#options.mapTypeId = value;
+            if (this.#map) {
+                this.#map.setMapTypeId(value);
+            }
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -305,7 +329,7 @@ export class Map extends Evented {
         return new Promise((resolve) => {
             const mapOptions: google.maps.MapOptions = {};
             // Options that can be set on the marker without any modification
-            const optionsToSet = ['mapId', 'zoom'];
+            const optionsToSet = ['mapId', 'mapTypeId', 'zoom'];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     mapOptions[key] = this.#options[key];
@@ -521,6 +545,17 @@ export class Map extends Evented {
     }
 
     /**
+     * Set the map type ID
+     *
+     * @param {string} mapTypeId The map type ID to use for the map.
+     * @returns {Map}
+     */
+    setMapTypeId(mapTypeId: string): Map {
+        this.mapTypeId = mapTypeId;
+        return this;
+    }
+
+    /**
      * Set the map options
      *
      * @param {MapOptions} options The map options
@@ -558,6 +593,9 @@ export class Map extends Evented {
             }
             if (typeof options.mapTypeControl !== 'undefined') {
                 this.mapTypeControl = options.mapTypeControl;
+            }
+            if (options.mapTypeId) {
+                this.mapTypeId = options.mapTypeId;
             }
 
             // Set the zoom level for the map

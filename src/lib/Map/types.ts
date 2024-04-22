@@ -5,6 +5,7 @@
 import { Libraries } from '@googlemaps/js-api-loader';
 import { LatLng, LatLngValue } from '../LatLng';
 import { MapTypeControl } from './MapTypeControl';
+import { MapTypeIdValue } from '../constants';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -12,6 +13,7 @@ export type GMMapOptions = {
     mapId?: string;
     mapTypeControl?: boolean;
     mapTypeControlOptions?: google.maps.MapTypeControlOptions;
+    mapTypeId?: google.maps.MapTypeId | string;
     zoom?: number;
 };
 
@@ -39,6 +41,8 @@ export type MapOptions = {
     // or, false to disable the Map Type control.
     // https://developers.google.com/maps/documentation/javascript/controls
     mapTypeControl?: boolean | MapTypeControl;
+    // The map type ID to use for the map.
+    mapTypeId?: MapTypeIdValue | string;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
