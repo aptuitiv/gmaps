@@ -114,7 +114,15 @@ export class Evented extends Base {
      * @private
      * @type {PendingEvents}
      */
-    #pendingEventListeners: PendingEvents = {};
+    #pendingLoadEventListeners: PendingEvents = {};
+
+    /**
+     * Holds the event listeners that are waiting to be added once the Google Maps object is set
+     *
+     * @private
+     * @type {PendingEvents}
+     */
+    #pendingMapObjectEventListeners: PendingEvents = {};
 
     /**
      * The object that needs Google maps. This should be the name of the object that extends this class.
@@ -160,20 +168,20 @@ export class Evented extends Base {
      * @param {EventCallback} [callback] The event listener function
      * @param {EventConfig} [config] Configuration for the event.
      */
-    #addPendingEventListener(event: string, callback: EventCallback, config?: EventConfig) {
-        if (!this.#pendingEventListeners[event]) {
-            this.#pendingEventListeners[event] = [];
+    #addPendingLoadEventListener(event: string, callback: EventCallback, config?: EventConfig) {
+        if (!this.#pendingLoadEventListeners[event]) {
+            this.#pendingLoadEventListeners[event] = [];
         }
-        this.#pendingEventListeners[event].push({ callback, config });
+        this.#pendingLoadEventListeners[event].push({ callback, config });
 
         if (!this.#isOnLoadEventSet) {
             loader().once('map_loaded', () => {
-                Object.keys(this.#pendingEventListeners).forEach((type) => {
-                    this.#pendingEventListeners[type].forEach((evt) => {
+                Object.keys(this.#pendingLoadEventListeners).forEach((type) => {
+                    this.#pendingLoadEventListeners[type].forEach((evt) => {
                         this.on(type, evt.callback, evt.config);
                     });
                 });
-                this.#pendingEventListeners = {};
+                this.#pendingLoadEventListeners = {};
             });
             this.#isOnLoadEventSet = true;
         }
@@ -452,14 +460,23 @@ export class Evented extends Base {
             if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                 const hasEvent = Array.isArray(this.#eventListeners[type]);
                 this.#on(type, callback, config);
-                if (!hasEvent && this.#isGoogleObjectSet()) {
-                    // The Google maps object is set and the event listener is not already set up on it.
-                    this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
-                        this.dispatch(type, e);
-                    });
+                if (!hasEvent) {
+                    if (this.#isGoogleObjectSet()) {
+                        // The Google maps object is set and the event listener is not already set up on it.
+                        this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                            this.dispatch(type, e);
+                        });
+                    } else {
+                        // The Google maps object is not set yet so so save the event listener so that it
+                        // can be added to the Google map object once it's set up
+                        if (!this.#pendingMapObjectEventListeners[type]) {
+                            this.#pendingMapObjectEventListeners[type] = [];
+                        }
+                        this.#pendingMapObjectEventListeners[type].push({ callback, config });
+                    }
                 }
             } else {
-                this.#addPendingEventListener(type, callback, config);
+                this.#addPendingLoadEventListener(type, callback, config);
             }
         } else {
             throw new Error(`The "${type}" event handler needs a callback function`);
@@ -479,6 +496,20 @@ export class Evented extends Base {
      */
     setEventGoogleObject(googleObject: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement): void {
         this.#googleObject = googleObject;
+
+        // Set up the pending event listeners if there are any.
+        // This handles siguations where the event was set up before the
+        // Google maps object was set up.
+        if (isObject(this.#pendingMapObjectEventListeners)) {
+            Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
+                this.#pendingMapObjectEventListeners[type].forEach((evt) => {
+                    this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                        this.dispatch(type, e);
+                    });
+                });
+            });
+            this.#pendingMapObjectEventListeners = {};
+        }
     }
 
     /**
