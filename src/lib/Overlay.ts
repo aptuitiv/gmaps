@@ -221,6 +221,19 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Returns the MapCanvasProjection object associated with this OverlayView.
+     *
+     * The projection is not initialized until onAdd is called by the API.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
+     *
+     * @returns {google.maps.MapCanvasProjection}
+     */
+    getProjection(): google.maps.MapCanvasProjection {
+        return this.#overlayView.getProjection();
+    }
+
+    /**
      * Returns whether the overlay has a position
      *
      * @returns {boolean}
