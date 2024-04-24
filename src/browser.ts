@@ -26,7 +26,28 @@ import { svgSymbol } from './lib/SvgSymbol';
 import { tooltip } from './lib/Tooltip';
 
 // Types
-import GlobalObj from './types';
+type GlobalObj = {
+    ControlPosition: typeof ControlPosition;
+    MapTypeControlStyle: typeof MapTypeControlStyle;
+    MapTypeId: typeof MapTypeId;
+    icon: typeof icon;
+    infoWindow: typeof infoWindow;
+    latLng: typeof latLng;
+    latLngBounds: typeof latLngBounds;
+    loader: typeof loader;
+    map: typeof map;
+    mapTypeControl: typeof mapTypeControl;
+    marker: typeof marker;
+    markerCluster: typeof markerCluster;
+    markerCollection: typeof markerCollection;
+    point: typeof point;
+    polyline: typeof polyline;
+    polylineCollection: typeof polylineCollection;
+    popup: typeof popup;
+    size: typeof size;
+    svgSymbol: typeof svgSymbol;
+    tooltip: typeof tooltip;
+};
 
 // Set up the global namespace object
 const G: GlobalObj = {
