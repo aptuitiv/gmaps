@@ -58,7 +58,7 @@ export type MapOptions = {
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
     // The default zoom for the map. Defaults to 8.
-    zoom?: number;
+    zoom?: number | string;
 };
 
 // The options for the Map.locate() function
