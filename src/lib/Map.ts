@@ -277,7 +277,7 @@ export class Map extends Evented {
      *
      * @param {number|string} value The zoom level
      */
-    set zoom(value: number) {
+    set zoom(value: number | string) {
         if (isNumber(value)) {
             this.#options.zoom = value;
         } else if (isNumberString(value)) {
@@ -285,7 +285,7 @@ export class Map extends Evented {
         }
 
         if (this.#map) {
-            this.#map.setZoom(value);
+            this.#map.setZoom(Number(value));
         }
     }
 
@@ -668,10 +668,10 @@ export class Map extends Evented {
     /**
      * Set the zoom value
      *
-     * @param {number} zoom The zoom value
+     * @param {number|string} zoom The zoom value
      * @returns {Map}
      */
-    setZoom(zoom: number): Map {
+    setZoom(zoom: number | string): Map {
         this.zoom = zoom;
         return this;
     }
