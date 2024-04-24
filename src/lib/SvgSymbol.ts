@@ -67,7 +67,7 @@ export class SvgSymbol extends Base {
         this.#options = {
             anchor: point([0, 0]),
             fillColor: '#000000',
-            fillOpacity: 0,
+            fillOpacity: 1,
             labelOrigin: point([0, 0]),
             path: '',
             rotation: 0,
