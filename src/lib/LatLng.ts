@@ -71,7 +71,7 @@ export class LatLng extends Base {
      */
     constructor(latitude?: Latitude | LatLng, longitude?: number | string) {
         super('latlng');
-        if (latitude) {
+        if (typeof latitude !== 'undefined') {
             this.set(latitude, longitude);
         }
     }
