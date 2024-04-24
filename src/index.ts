@@ -13,7 +13,7 @@ export { Event, EventCallback, EventConfig, EventListenerOptions, Evented } from
 export * from './lib/helpers';
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
 export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
-export { latLng, LatLng, LatLngValue } from './lib/LatLng';
+export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';
 export { latLngBounds, LatLngBounds, LatLngBoundsValue } from './lib/LatLngBounds';
 export { default as Layer } from './lib/Layer';
 export { loader, Loader, LoaderOptions } from './lib/Loader';
