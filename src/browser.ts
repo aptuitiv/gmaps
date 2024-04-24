@@ -17,6 +17,7 @@ import { mapTypeControl } from './lib/Map/MapTypeControl';
 import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';
 import { markerCollection } from './lib/MarkerCollection';
+import { overlay } from './lib/Overlay';
 import { point } from './lib/Point';
 import { polyline } from './lib/Polyline';
 import { polylineCollection } from './lib/PolylineCollection';
@@ -40,6 +41,7 @@ type GlobalObj = {
     marker: typeof marker;
     markerCluster: typeof markerCluster;
     markerCollection: typeof markerCollection;
+    overlay: typeof overlay;
     point: typeof point;
     polyline: typeof polyline;
     polylineCollection: typeof polylineCollection;
@@ -64,6 +66,7 @@ const G: GlobalObj = {
     marker,
     markerCluster,
     markerCollection,
+    overlay,
     point,
     polyline,
     polylineCollection,

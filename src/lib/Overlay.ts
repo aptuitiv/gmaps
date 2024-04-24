@@ -22,7 +22,7 @@ import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './hel
  * The methods are purposely left blank so you can override them in your own class.
  * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
  */
-class Overlay extends Layer {
+export class Overlay extends Layer {
     /**
      * Holds the offset for the overlay
      *
@@ -533,4 +533,9 @@ const getOverlayViewClass = (classObject: Overlay) => {
     return new OverlayView(classObject);
 };
 
-export default Overlay;
+/**
+ * Helper function to set up the overlay object
+ *
+ * @returns {Overlay}
+ */
+export const overlay = (): Overlay => new Overlay('overlay', 'OverlayView');

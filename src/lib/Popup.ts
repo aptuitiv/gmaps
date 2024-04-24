@@ -10,7 +10,7 @@
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
-import Overlay from './Overlay';
+import { Overlay } from './Overlay';
 import { point, Point, PointValue } from './Point';
 import { Polyline } from './Polyline';
 import { isObject, isString, isStringWithValue } from './helpers';
