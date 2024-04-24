@@ -44,7 +44,7 @@ export default defineConfig([
             })
         ],
         format: ['cjs', 'esm'],
-        minify: true,
+        minify: false,
         outDir: 'dist',
         outExtension({ format }) {
             return {
