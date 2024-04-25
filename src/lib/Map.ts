@@ -35,6 +35,9 @@ import { Evented, EventCallback, EventConfig } from './Evented';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
 
+// Based on google.maps.MapTypeId
+export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
+
 /**
  * The map class
  */
