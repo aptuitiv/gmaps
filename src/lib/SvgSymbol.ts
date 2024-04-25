@@ -313,7 +313,7 @@ export class SvgSymbol extends Base {
             });
             pointValues.forEach((key) => {
                 if (options[key]) {
-                    this.#options[key] = point(options[key]).toGoogle();
+                    this.#options[key] = point(options[key]);
                 }
             });
             stringValues.forEach((key) => {
