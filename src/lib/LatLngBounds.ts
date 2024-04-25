@@ -228,8 +228,13 @@ export class LatLngBounds extends Base {
      * @param {LatLngBounds} other The LatLngBounds object to join with
      * @returns {LatLngBounds}
      */
-    union(other: LatLngBounds): LatLngBounds {
-        this.#bounds.union(other.toGoogle());
+    union(other: LatLngBounds | google.maps.LatLngBounds): LatLngBounds {
+        if (other instanceof LatLngBounds) {
+            this.#bounds.union(other.toGoogle());
+        } else {
+            // Assume it's a Google Maps LatLngBounds object
+            this.#bounds.union(other);
+        }
         return this;
     }
 }
