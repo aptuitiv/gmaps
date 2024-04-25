@@ -303,7 +303,7 @@ export class SvgSymbol extends Base {
             const pointValues = ['anchor', 'labelOrigin'];
             const stringValues = ['fillColor', 'path', 'strokeColor'];
             numberValues.forEach((key) => {
-                if ((options[key] && isNumber(options[key])) || isNumberString(options[key])) {
+                if ((typeof options[key] !== 'undefined' && isNumber(options[key])) || isNumberString(options[key])) {
                     if (isNumberString(options[key])) {
                         this.#options[key] = Number(options[key]);
                     } else {
