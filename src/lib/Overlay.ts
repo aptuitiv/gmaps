@@ -215,6 +215,27 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Computes the geographical coordinates from pixel coordinates in the div that holds the draggable map.
+     *
+     * This is a shortcut to getting the projection from the overlay and then calling
+     * fromDivPixelToLatLng on the projection with the pixel value.
+     *
+     * @param {PointValue} x The Point value or the x numeric point value.
+     * @param {number} [y] The y value if x is a number.
+     * @returns {LatLng}
+     */
+    getDivLatLngFromPixel(x: PointValue, y?: number): LatLng {
+        // const pixel = point(x, y);
+        const gp = new google.maps.Point(x as number, y);
+        const pixel = point(gp);
+        const projection = this.getProjection();
+        if (projection) {
+            return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()));
+        }
+        return latLng();
+    }
+
+    /**
      * Get the offset value
      *
      * @returns {Point}
