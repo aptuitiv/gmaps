@@ -664,7 +664,7 @@ export class Marker extends Layer {
     #setPosition(value: LatLngValue) {
         const position = latLng(value);
         if (position.isValid()) {
-            this.#options.position = latLng(value);
+            this.#options.position = position;
             this.#marker.setPosition(this.#options.position.toGoogle());
         }
     }
