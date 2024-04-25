@@ -923,7 +923,7 @@ export class Marker extends Layer {
     }
 }
 
-// The possible values for the latLngValue parameter
+// The possible values for the position parameter
 export type MarkerValue = Marker | MarkerOptions | LatLngValue;
 
 /**
