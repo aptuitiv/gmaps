@@ -20,6 +20,7 @@ import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
+    isBoolean,
     isNullOrUndefined,
     isNumber,
     isNumberOrNumberString,
@@ -37,6 +38,8 @@ type GMMarkerOptions = {
     anchorPoint?: Point;
     // The cursor type to show on hover. Defaults to "pointer" if not set.
     cursor?: string;
+    // Whether the marker can be dragged on the map. Defaults to false.
+    draggable?: boolean;
     // The icon value for the marker
     icon?: Icon | SvgSymbol | string;
     // The label value for the marker
@@ -155,6 +158,24 @@ export class Marker extends Layer {
     }
 
     /**
+     * Get whether the marker can be dragged on the map
+     *
+     * @returns {boolean}
+     */
+    get draggable(): boolean {
+        return this.#options.draggable ?? false;
+    }
+
+    /**
+     * Set whether the marker can be dragged on the map
+     *
+     * @param {boolean} value Whether the marker can be dragged on the map
+     */
+    set draggable(value: boolean) {
+        this.setDraggable(value);
+    }
+
+    /**
      * Get the icon for the marker
      *
      * @returns {Icon | SvgSymbol | string}
@@ -255,6 +276,15 @@ export class Marker extends Layer {
     display(map: Map): Marker {
         this.setMap(map);
         return this;
+    }
+
+    /**
+     * Returns whether the marker can be dragged on the map
+     *
+     * @returns {boolean}
+     */
+    getDraggable(): boolean {
+        return this.draggable;
     }
 
     /**
@@ -391,6 +421,46 @@ export class Marker extends Layer {
             this.#options.cursor = undefined;
         }
         this.#marker.setCursor(this.#options.cursor);
+    }
+
+    /**
+     * Set whether the marker can be dragged on the map
+     *
+     * @param {boolean} value Whether the marker can be dragged on the map
+     * @returns {Promise<Marker>}
+     */
+    async setDraggable(value: boolean): Promise<Marker> {
+        await this.#setupGoogleMarker();
+        this.#setDraggable(value);
+        return this;
+    }
+
+    /**
+     * Set whether the marker can be dragged on the map
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setDraggable() instead or pass the
+     * draggable option to the constructor or setOptions().
+     *
+     * @param {boolean} value Whether the marker can be dragged on the map
+     * @returns {Marker}
+     */
+    setDraggableSync(value: boolean): Marker {
+        this.#setupGoogleMarkerSync();
+        this.#setDraggable(value);
+        return this;
+    }
+
+    /**
+     * Set whether the marker can be dragged on the map
+     *
+     * @param {boolean} value Whether the marker can be dragged on the map
+     */
+    #setDraggable(value: boolean) {
+        if (isBoolean(value)) {
+            this.#options.draggable = value;
+            this.#marker.setDraggable(value);
+        }
     }
 
     /**
@@ -559,6 +629,11 @@ export class Marker extends Layer {
         // Set the anchor point
         if (options.anchorPoint) {
             this.anchorPoint = options.anchorPoint;
+        }
+
+        // Set if the marker can be dragged
+        if (typeof options.draggable === 'boolean') {
+            this.draggable = options.draggable;
         }
 
         // Set the icon
