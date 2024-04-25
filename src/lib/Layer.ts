@@ -105,6 +105,11 @@ class Layer extends Evented {
      */
     setMap(map: Map | null) {
         this.#map = map;
+        if (map) {
+            this.isVisible = true;
+        } else {
+            this.isVisible = false;
+        }
     }
 }
 
