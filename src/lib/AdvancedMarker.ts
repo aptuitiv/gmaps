@@ -349,9 +349,8 @@ export class AdvancedMarker extends Layer {
             this.#marker.content.addEventListener('mouseover', () => {
                 console.log('content mouseover');
             });
-            // this.setupEventListener(type, callback, config);
         } else {
-            this.setupEventListener(type, callback, config);
+            super.on(type, callback, config);
         }
         // if (eventType === 'click') {
         //     if (this.#marker) {
