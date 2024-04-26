@@ -101,6 +101,192 @@ declare class Base {
     isSvgSymbol(): boolean;
 }
 
+/**
+ * Identifiers used to specify the placement of controls on the map.
+ * See https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+ */
+declare const ControlPosition: Readonly<{
+    /**
+     * Equivalent to BOTTOM_CENTER in both LTR and RTL.
+     */
+    BLOCK_END_INLINE_CENTER: "0.0";
+    /**
+     * Equivalent to BOTTOM_RIGHT in LTR, or BOTTOM_LEFT in RTL.
+     */
+    BLOCK_END_INLINE_END: "1.0";
+    /**
+     * Equivalent to BOTTOM_LEFT in LTR, or BOTTOM_RIGHT in RTL.
+     */
+    BLOCK_END_INLINE_START: "2.0";
+    /**
+     * Equivalent to TOP_CENTER in both LTR and RTL.
+     */
+    BLOCK_START_INLINE_CENTER: "3.0";
+    /**
+     * Equivalent to TOP_RIGHT in LTR, or TOP_LEFT in RTL.
+     */
+    BLOCK_START_INLINE_END: "4.0";
+    /**
+     * Equivalent to TOP_LEFT in LTR, or TOP_RIGHT in RTL.
+     */
+    BLOCK_START_INLINE_START: "5.0";
+    /**
+     * Elements are positioned in the center of the bottom row. Consider using
+     * BLOCK_END_INLINE_CENTER instead.
+     */
+    BOTTOM_CENTER: "6.0";
+    /**
+     * Elements are positioned in the bottom left and flow towards the middle.
+     * Elements are positioned to the right of the Google logo. Consider using
+     * BLOCK_END_INLINE_START instead.
+     */
+    BOTTOM_LEFT: "7.0";
+    /**
+     * Elements are positioned in the bottom right and flow towards the middle.
+     * Elements are positioned to the left of the copyrights. Consider using
+     * BLOCK_END_INLINE_END instead.
+     */
+    BOTTOM_RIGHT: "8.0";
+    /**
+     * Equivalent to RIGHT_CENTER in LTR, or LEFT_CENTER in RTL.
+     */
+    INLINE_END_BLOCK_CENTER: "9.0";
+    /**
+     * Equivalent to RIGHT_BOTTOM in LTR, or LEFT_BOTTOM in RTL.
+     */
+    INLINE_END_BLOCK_END: "10.0";
+    /**
+     * Equivalent to RIGHT_TOP in LTR, or LEFT_TOP in RTL.
+     */
+    INLINE_END_BLOCK_START: "11.0";
+    /**
+     * Equivalent to LEFT_CENTER in LTR, or RIGHT_CENTER in RTL.
+     */
+    INLINE_START_BLOCK_CENTER: "12.0";
+    /**
+     * Equivalent to LEFT_BOTTOM in LTR, or RIGHT_BOTTOM in RTL.
+     */
+    INLINE_START_BLOCK_END: "13.0";
+    /**
+     * Equivalent to LEFT_TOP in LTR, or RIGHT_TOP in RTL.
+     */
+    INLINE_START_BLOCK_START: "14.0";
+    /**
+     * Elements are positioned on the left, above bottom-left elements, and flow
+     * upwards. Consider using INLINE_START_BLOCK_END instead.
+     */
+    LEFT_BOTTOM: "15.0";
+    /**
+     * Elements are positioned in the center of the left side. Consider using
+     * INLINE_START_BLOCK_CENTER instead.
+     */
+    LEFT_CENTER: "16.0";
+    /**
+     * Elements are positioned on the left, below top-left elements, and flow
+     * downwards. Consider using INLINE_START_BLOCK_START instead.
+     */
+    LEFT_TOP: "17.0";
+    /**
+     * Elements are positioned on the right, above bottom-right elements, and
+     * flow upwards. Consider using INLINE_END_BLOCK_END instead.
+     */
+    RIGHT_BOTTOM: "18.0";
+    /**
+     * Elements are positioned in the center of the right side. Consider using
+     * INLINE_END_BLOCK_CENTER instead.
+     */
+    RIGHT_CENTER: "19.0";
+    /**
+     * Elements are positioned on the right, below top-right elements, and flow
+     * downwards. Consider using INLINE_END_BLOCK_START instead.
+     */
+    RIGHT_TOP: "20.0";
+    /**
+     * Elements are positioned in the center of the top row. Consider using
+     * BLOCK_START_INLINE_CENTER instead.
+     */
+    TOP_CENTER: "21.0";
+    /**
+     * Elements are positioned in the top left and flow towards the middle.
+     * Consider using BLOCK_START_INLINE_START instead.
+     */
+    TOP_LEFT: "22.0";
+    /**
+     * Elements are positioned in the top right and flow towards the middle.
+     * Consider using BLOCK_START_INLINE_END instead.
+     */
+    TOP_RIGHT: "23.0";
+}>;
+type ControlPositionValue = (typeof ControlPosition)[keyof typeof ControlPosition];
+/**
+ * Converts a ControlPosition string value to a google.maps.ControlPosition value.
+ *
+ * This is only necessary because the Google Maps API uses a float value for the
+ * ControlPosition.
+ *
+ * @param {string} value The ControlPosition value to convert
+ * @returns {google.maps.ControlPosition}
+ */
+declare const convertControlPosition: (value: string) => google.maps.ControlPosition;
+/**
+ * Style values for common MapTypesControls.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/control#MapTypeControlStyle
+ */
+declare const MapTypeControlStyle: Readonly<{
+    /**
+     * Uses the default map type control. When the <code>DEFAULT</code> control
+     * is shown, it will vary according to window size and other factors. The
+     * <code>DEFAULT</code> control may change in future versions of the API.
+     */
+    DEFAULT: "0.0";
+    /**
+     * A dropdown menu for the screen realestate conscious.
+     */
+    DROPDOWN_MENU: "1.0";
+    /**
+     * The standard horizontal radio buttons bar.
+     */
+    HORIZONTAL_BAR: "2.0";
+}>;
+type MapTypeControlStyleValue = (typeof MapTypeControlStyle)[keyof typeof MapTypeControlStyle];
+/**
+ * Converts a MapTypeControlStyle string value to a google.maps.ControlPosition value.
+ *
+ * This is only necessary because the Google Maps API uses a float value for the
+ * MapTypeControlStyle.
+ *
+ * @param {string} value The MapTypeControlStyle value to convert
+ * @returns {google.maps.ControlPosition}
+ */
+declare const convertMapTypeControlStyle: (value: string) => google.maps.MapTypeControlStyle;
+/**
+ * Identifiers for common MapTypes.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/map#MapTypeId
+ */
+declare const MapTypeId: Readonly<{
+    /**
+     * This map type displays a transparent layer of major streets on satellite
+     * images.
+     */
+    HYBRID: "hybrid";
+    /**
+     * This map type displays a normal street map.
+     */
+    ROADMAP: "roadmap";
+    /**
+     * This map type displays satellite images.
+     */
+    SATELLITE: "satellite";
+    /**
+     * This map type displays maps with physical features such as terrain and
+     * vegetation.
+     */
+    TERRAIN: "terrain";
+}>;
+type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
+
 type LatLngLiteral = {
     lat?: number | string;
     lng?: number | string;
@@ -118,10 +304,10 @@ declare class LatLng extends Base {
     /**
      * Constructor
      *
-     * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
+     * @param {Latitude|LatLng|google.maps.LatLng} latitude The latitude value or the latitude/longitude pair
      * @param {number|string} [longitude] The longitude value
      */
-    constructor(latitude?: Latitude | LatLng, longitude?: number | string);
+    constructor(latitude?: Latitude | LatLng | google.maps.LatLng, longitude?: number | string);
     /**
      * Get the latitude value
      *
@@ -190,7 +376,7 @@ declare class LatLng extends Base {
      * @param {number|string} longitude The longitude value
      * @returns {LatLng}
      */
-    set(latitude: Latitude | LatLng, longitude?: number | string): LatLng;
+    set(latitude: Latitude | LatLng | google.maps.LatLng, longitude?: number | string): LatLng;
     /**
      * Sets the latitude value
      *
@@ -238,7 +424,7 @@ declare class LatLng extends Base {
      */
     toJson(): google.maps.LatLngLiteral;
 }
-type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng;
+type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng | google.maps.LatLng;
 /**
  * Helper function to set up a new LatLng object value
  *
@@ -445,6 +631,7 @@ type EventConfig = {
     callImmediate?: boolean;
     context?: object;
     once?: boolean;
+    only?: boolean;
 };
 type EventListenerOptions = {
     once?: boolean;
@@ -535,19 +722,29 @@ declare class Evented extends Base {
      */
     onceImmediate(type: string, callback?: EventCallback, config?: EventConfig): void;
     /**
-     * Sets up the event listener on the Google maps object.
+     * Sets up an event listener that will have only one event listener for this type.
      *
-     * This also handles setting up the pending events if the Google Maps library isn't loaded already.
+     * It will be called immediately if the event has already been dispatched.
      *
-     * This should be called from an "on()" function in the class that extends this class.
-     * It is not intended to be called from outside of this library.
+     * The difference between this and on() is that only() will only set up one event listener for this type.
      *
-     * @internal
      * @param {string} type The event type
-     * @param {EventCallback} callback The event listener callback function
+     * @param {EventCallback} [callback] The event listener callback function
      * @param {EventConfig} [config] Configuration for the event.
      */
-    setupEventListener(type: string, callback: EventCallback, config?: EventConfig): void;
+    only(type: string, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Sets up an event listener that will only be called once and only one event listener for this type will be set up.
+     *
+     * It will be called immediately if the event has already been dispatched.
+     *
+     * The difference between this and once() is that onlyOnce() will only set up one event listener for this type.
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onlyOnce(type: string, callback: EventCallback, config?: EventConfig): void;
     /**
      * Set the Google maps MVC object
      *
@@ -572,6 +769,13 @@ declare class Evented extends Base {
     trigger(event: string, data?: any): Evented;
 }
 
+/**
+ * Returns if the value is boolean
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isBoolean: (thing: any) => thing is boolean;
 /**
  * Returns if the thing is a function
  *
@@ -1093,7 +1297,7 @@ declare class LatLngBounds extends Base {
      * @param {LatLngBounds} other The LatLngBounds object to join with
      * @returns {LatLngBounds}
      */
-    union(other: LatLngBounds): LatLngBounds;
+    union(other: LatLngBounds | google.maps.LatLngBounds): LatLngBounds;
 }
 type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
 /**
@@ -1107,22 +1311,172 @@ type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
  */
 declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
 
-type GMMapOptions = {
-    center?: LatLng;
-    mapId?: string;
-    zoom?: number;
+type MapTypeControlOptions = {
+    mapTypeIds?: MapTypeIdValue[];
+    position?: ControlPositionValue;
+    style?: MapTypeControlStyleValue;
 };
-type MapOptions = GMMapOptions & {
-    apiKey: string;
+/**
+ * Map Type control class
+ */
+declare class MapTypeControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {MapTypeControlOptions | boolean} [options] Either the MapTypeControl options or a boolean value to disable the control.
+     */
+    constructor(options?: MapTypeControlOptions | boolean);
+    /**
+     * Get whether the Map Type control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Map Type control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get whether the hybrid map type is enabled
+     *
+     * @returns {boolean}
+     */
+    get hybrid(): boolean;
+    /**
+     * Set whether the hybrid map type is enabled
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set hybrid(value: boolean);
+    /**
+     * Get the map type control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the map type control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Get whether the roadmap map type is enabled
+     *
+     * @returns {boolean}
+     */
+    get roadmap(): boolean;
+    /**
+     * Set whether the roadmap map type is enabled
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set roadmap(value: boolean);
+    /**
+     * Get whether the satellite map type is enabled
+     *
+     * @returns {boolean}
+     */
+    get satellite(): boolean;
+    /**
+     * Set whether the satellite map type is enabled
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set satellite(value: boolean);
+    /**
+     * Get the map type control style
+     *
+     * @returns {MapTypeControlStyle}
+     */
+    get style(): MapTypeControlStyleValue;
+    /**
+     * Set the map type control style
+     *
+     * @param {MapTypeControlStyleValue} value The style of the control
+     */
+    set style(value: MapTypeControlStyleValue);
+    /**
+     * Get whether the terrain map type is enabled
+     *
+     * @returns {boolean}
+     */
+    get terrain(): boolean;
+    /**
+     * Set whether the terrain map type is enabled
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set terrain(value: boolean);
+    /**
+     * Disable the Map Type control
+     *
+     * @returns {MapTypeControl}
+     */
+    disable(): MapTypeControl;
+    /**
+     * Enable the Map Type control
+     *
+     * @returns {MapTypeControl}
+     */
+    enable(): MapTypeControl;
+    /**
+     * Set the map type ids to include in the control
+     *
+     * @param {MapTypeIdValue[]} mapTypeIds The map type ids to include in the control
+     * @returns {MapTypeControl}
+     */
+    setMapTypeIds(mapTypeIds: MapTypeIdValue[]): MapTypeControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {MapTypeControl}
+     */
+    setPosition(position: ControlPositionValue): MapTypeControl;
+    /**
+     * Set the style of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#MapTypeControlStyle
+     *
+     * @param {MapTypeControlStyleValue} style The style of the control
+     * @returns {MapTypeControl}
+     */
+    setStyle(style: MapTypeControlStyleValue): MapTypeControl;
+    /**
+     * Get the MapTypeControl options Google Maps object
+     *
+     * @returns {Promise<google.maps.MapTypeControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.MapTypeControlOptions>;
+}
+type MapTypeControlValue = MapTypeControlOptions | boolean | MapTypeControl;
+/**
+ * Helper function to set up the MapTypeControl object
+ *
+ * @param {MapTypeControlValue} options The MapTypeControl options, a boolean value to disable the control, or a MapTypeControl object.
+ * @returns {MapTypeControl}
+ */
+declare const mapTypeControl: (options?: MapTypeControlValue) => MapTypeControl;
+
+type MapOptions = {
+    apiKey?: string;
     center?: LatLngValue;
-    lat: number | string;
-    latitude: number | string;
+    lat?: number | string;
+    latitude?: number | string;
     libraries?: Libraries;
-    lng: number | string;
-    longitude: number | string;
+    lng?: number | string;
+    longitude?: number | string;
     mapId?: string;
+    mapTypeControl?: boolean | MapTypeControl;
+    mapTypeId?: MapTypeIdValue | string;
+    maxZoom?: number;
+    minZoom?: number;
     version?: string;
-    zoom?: number;
+    zoom?: number | string;
 };
 type LocateOptions = {
     enableHighAccuracy?: boolean;
@@ -1142,6 +1496,11 @@ type LocationPosition = {
     timestamp: number;
 };
 type LocationOnSuccess = (position: LocationPosition) => void;
+
+type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
+type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
+type GMEvent = 'bounds_changed' | 'center_changed' | 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'heading_changed' | 'idle' | 'isfractionalzoomenabled_changed' | 'mapcapabilities_changed' | 'maptypeid_changed' | 'mousemove' | 'mouseout' | 'mouseover' | 'projection_changed' | 'renderingtype_changed' | 'tilesloaded' | 'tilt_changed' | 'zoom_changed';
+type MapEvent = GMEvent | InternalEvent;
 /**
  * The map class
  */
@@ -1156,6 +1515,90 @@ declare class Map extends Evented {
      */
     constructor(selector: string | HTMLElement, options?: MapOptions);
     /**
+     * Get the center point for the map
+     *
+     * @returns {LatLng}
+     */
+    get center(): LatLng;
+    /**
+     * Set the center point for the map
+     *
+     * @param {LatLngValue} value The center point for the map
+     */
+    set center(value: LatLngValue);
+    /**
+     * Get the latitude value for the center point
+     *
+     * @returns {number}
+     */
+    get latitude(): number;
+    /**
+     * Set the latitude value for the center point
+     *
+     * @param {string|number} value The latitude value
+     */
+    set latitude(value: string | number);
+    /**
+     * Get the longitude value for the center point
+     *
+     * @returns {number}
+     */
+    get longitude(): number;
+    /**
+     * Set the longitude value for the center point
+     *
+     * @param {string|number} value The longitude value
+     */
+    set longitude(value: string | number);
+    /**
+     * Get the map type control object
+     *
+     * @returns {MapTypeControl}
+     */
+    get mapTypeControl(): MapTypeControl;
+    /**
+     * Set the map type control object, or whether to display the map type control
+     *
+     * @param {boolean|MapTypeControl} value The map type control option
+     */
+    set mapTypeControl(value: boolean | MapTypeControl);
+    /**
+     * Get the map type ID
+     *
+     * @returns {string}
+     */
+    get mapTypeId(): string;
+    /**
+     * Set the map type ID
+     *
+     * @param {string} value The map type ID
+     */
+    set mapTypeId(value: string);
+    /**
+     * Get the maximum zoom level for the map
+     *
+     * @returns {null|number}
+     */
+    get maxZoom(): null | number;
+    /**
+     * Set the maximum zoom level for the map
+     *
+     * @param {null|number} value The maximum zoom level
+     */
+    set maxZoom(value: null | number);
+    /**
+     * Get the minimum zoom level for the map
+     *
+     * @returns {null|number}
+     */
+    get minZoom(): null | number;
+    /**
+     * Set the minimum zoom level for the map
+     *
+     * @param {null|number} value The minimum zoom level
+     */
+    set minZoom(value: null | number);
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -1166,7 +1609,7 @@ declare class Map extends Evented {
      *
      * @param {number|string} value The zoom level
      */
-    set zoom(value: number);
+    set zoom(value: number | string);
     /**
      * Show the map
      *
@@ -1216,6 +1659,12 @@ declare class Map extends Evented {
      * @returns {LatLng}
      */
     getCenter(): LatLng;
+    /**
+     * Gets whether the map is visible. This also means that the map library is loaded.
+     *
+     * @returns {boolean}
+     */
+    getIsVisible(): boolean;
     /**
      * Gets the current projection for the map.
      *
@@ -1276,13 +1725,37 @@ declare class Map extends Evented {
      */
     locate(options?: LocateOptions | LocationOnSuccess, onSuccess?: LocationOnSuccess): Map;
     /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
+     * @inheritdoc
      */
-    on(type: string, callback: EventCallback, config?: EventConfig): void;
+    hasListener(type: MapEvent, callback?: EventCallback): boolean;
+    /**
+     * @inheritdoc
+     */
+    off(type?: MapEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: MapEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: MapEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    only(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
     /**
      * Set the API key
      *
@@ -1299,6 +1772,26 @@ declare class Map extends Evented {
      */
     setCenter(latitude: number | LatLngValue, longitude?: number): Map;
     /**
+     * Set the latitude and longitude values and optionally update the center point.
+     *
+     * The times when you would not want to update the center point are when you are setting the latitude and longitude
+     * and you don't want to recenter the map, but you want the latitude and longitude values to be available for future
+     * times when the map may be centered.
+     *
+     * @param {number|string} latitude The latitude value
+     * @param {number|string} longitude The longitude value
+     * @param {boolean} [updateCenter] Whether to update the map center point. Defaults to true.
+     * @returns {Map}
+     */
+    setLatitudeLongitude(latitude: number | string, longitude: number | string, updateCenter?: boolean): Map;
+    /**
+     * Set the map type ID
+     *
+     * @param {string} mapTypeId The map type ID to use for the map.
+     * @returns {Map}
+     */
+    setMapTypeId(mapTypeId: string): Map;
+    /**
      * Set the map options
      *
      * @param {MapOptions} options The map options
@@ -1308,10 +1801,10 @@ declare class Map extends Evented {
     /**
      * Set the zoom value
      *
-     * @param {number} zoom The zoom value
+     * @param {number|string} zoom The zoom value
      * @returns {Map}
      */
-    setZoom(zoom: number): Map;
+    setZoom(zoom: number | string): Map;
     /**
      * Show the map
      *
@@ -1426,6 +1919,7 @@ type InfoWindowOptions = GMInfoWindowOptions & {
     position?: LatLngValue;
     toggleDisplay?: boolean;
 };
+type InfoWindowEvent = 'close' | 'closeclick' | 'content_changed' | 'domready' | 'position_changed' | 'visible' | 'zindex_changed';
 /**
  * InfoWindow class
  */
@@ -1572,6 +2066,38 @@ declare class InfoWindow extends Layer {
      * @returns {boolean}
      */
     isOpen(): boolean;
+    /**
+     * @inheritdoc
+     */
+    hasListener(type: InfoWindowEvent, callback?: EventCallback): boolean;
+    /**
+     * @inheritdoc
+     */
+    off(type?: InfoWindowEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    only(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
     /**
      * Show the info window
      *
@@ -2112,6 +2638,28 @@ declare class Overlay extends Layer {
      */
     display(map: Map): Promise<Overlay>;
     /**
+     * Computes the geographical coordinates from pixel coordinates in the map's container.
+     *
+     * This is a shortcut to getting the projection from the overlay and then calling
+     * fromContainerPixelToLatLng on the projection with the pixel value.
+     *
+     * @param {PointValue} x The Point value or the x numeric point value.
+     * @param {number} [y] The y value if x is a number.
+     * @returns {LatLng}
+     */
+    getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng;
+    /**
+     * Computes the geographical coordinates from pixel coordinates in the div that holds the draggable map.
+     *
+     * This is a shortcut to getting the projection from the overlay and then calling
+     * fromDivPixelToLatLng on the projection with the pixel value.
+     *
+     * @param {PointValue} x The Point value or the x numeric point value.
+     * @param {number} [y] The y value if x is a number.
+     * @returns {LatLng}
+     */
+    getDivLatLngFromPixel(x: PointValue, y?: number): LatLng;
+    /**
      * Get the offset value
      *
      * @returns {Point}
@@ -2129,6 +2677,16 @@ declare class Overlay extends Layer {
      * @returns {LatLng}
      */
     getPosition(): LatLng;
+    /**
+     * Returns the MapCanvasProjection object associated with this OverlayView.
+     *
+     * The projection is not initialized until onAdd is called by the API.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
+     *
+     * @returns {google.maps.MapCanvasProjection}
+     */
+    getProjection(): google.maps.MapCanvasProjection;
     /**
      * Returns whether the overlay has a position
      *
@@ -2253,6 +2811,12 @@ declare class Overlay extends Layer {
      */
     remove(): void;
 }
+/**
+ * Helper function to set up the overlay object
+ *
+ * @returns {Overlay}
+ */
+declare const overlay: () => Overlay;
 
 type TooltipOptions = {
     center?: boolean;
@@ -2372,6 +2936,7 @@ type MarkerLabel = google.maps.MarkerLabel;
 type GMMarkerOptions = {
     anchorPoint?: Point;
     cursor?: string;
+    draggable?: boolean;
     icon?: Icon | SvgSymbol | string;
     label?: string | MarkerLabel;
     map?: Map;
@@ -2389,6 +2954,7 @@ type MarkerOptions = GMMarkerOptions & {
     svgIcon?: SvgSymbolValue | string;
     tooltip?: TooltipValue;
 };
+type MarkerEvent = 'animation_changed' | 'click' | 'clickable_changed' | 'contextmenu' | 'cursor_changed' | 'dblclick' | 'drag' | 'dragend' | 'draggable_changed' | 'dragstart' | 'flat_changed' | 'icon_changed' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'position_changed' | 'shape_changed' | 'title_changed' | 'visible_changed' | 'zindex_changed';
 /**
  * Marker class to set up a single marker and add it to the map
  */
@@ -2425,6 +2991,18 @@ declare class Marker extends Layer {
      * @param {string} value The cursor type to show on hover
      */
     set cursor(value: string);
+    /**
+     * Get whether the marker can be dragged on the map
+     *
+     * @returns {boolean}
+     */
+    get draggable(): boolean;
+    /**
+     * Set whether the marker can be dragged on the map
+     *
+     * @param {boolean} value Whether the marker can be dragged on the map
+     */
+    set draggable(value: boolean);
     /**
      * Get the icon for the marker
      *
@@ -2495,6 +3073,12 @@ declare class Marker extends Layer {
      */
     display(map: Map): Marker;
     /**
+     * Returns whether the marker can be dragged on the map
+     *
+     * @returns {boolean}
+     */
+    getDraggable(): boolean;
+    /**
      * Get the marker position (i.e. the LatLng object)
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
@@ -2521,13 +3105,37 @@ declare class Marker extends Layer {
      */
     init(): Promise<void>;
     /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
+     * @inheritdoc
      */
-    on(type: string, callback: EventCallback, config?: EventConfig): void;
+    hasListener(type: MarkerEvent, callback?: EventCallback): boolean;
+    /**
+     * @inheritdoc
+     */
+    off(type?: MarkerEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: MarkerEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: MarkerEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    only(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void;
     /**
      * Set the anchor point for the marker
      *
@@ -2564,6 +3172,24 @@ declare class Marker extends Layer {
      * @returns {Marker}
      */
     setCursorSync(value: string): Marker;
+    /**
+     * Set whether the marker can be dragged on the map
+     *
+     * @param {boolean} value Whether the marker can be dragged on the map
+     * @returns {Promise<Marker>}
+     */
+    setDraggable(value: boolean): Promise<Marker>;
+    /**
+     * Set whether the marker can be dragged on the map
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setDraggable() instead or pass the
+     * draggable option to the constructor or setOptions().
+     *
+     * @param {boolean} value Whether the marker can be dragged on the map
+     * @returns {Marker}
+     */
+    setDraggableSync(value: boolean): Marker;
     /**
      * Set the icon value for the marker
      *
@@ -2944,6 +3570,158 @@ declare class MarkerCollection {
  */
 declare const markerCollection: () => MarkerCollection;
 
+type PlacesSearchBoxOptions = {
+    bounds?: LatLngBoundsValue;
+    input: HTMLInputElement;
+};
+type PlacesSearchBoxEvent = 'places_changed';
+/**
+ * The PlacesSearchBox class
+ */
+declare class PlacesSearchBox extends Evented {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string | HTMLInputElement | PlacesSearchBoxOptions} input The input reference or the options
+     * @param {PlacesSearchBoxOptions} [options] The places search box options if the input is reference to the input element
+     */
+    constructor(input: string | HTMLInputElement | PlacesSearchBoxOptions, options?: PlacesSearchBoxOptions);
+    /**
+     * Get the bounds to which query predictions are biased.
+     *
+     * @returns {LatLngBounds | undefined}
+     */
+    get bounds(): LatLngBounds | undefined;
+    /**
+     * Sets the region to use for biasing query predictions.
+     *
+     * Results will only be biased towards this area and not be completely restricted to it.
+     *
+     * @param {LatLngBoundsValue} value The bounds to set
+     */
+    set bounds(value: LatLngBoundsValue);
+    /**
+     * Get the input reference
+     *
+     * @returns {HTMLInputElement | undefined}
+     */
+    get input(): HTMLInputElement | undefined;
+    /**
+     * Set the input reference
+     *
+     * @param {string | HTMLInputElement} value The input HTMLInputElement or the selector for the input element
+     */
+    set input(value: string | HTMLInputElement);
+    /**
+     * Get the bounds to which query predictions are biased.
+     *
+     * @returns {LatLngBounds | undefined}
+     */
+    getBounds(): LatLngBounds | undefined;
+    /**
+     * Gets the first place that has been found
+     *
+     * The results from the places_changed event is typically one place and it's the place that the user clicked on.
+     *
+     * @returns {google.maps.places.PlaceResult | undefined}
+     */
+    getPlace(): google.maps.places.PlaceResult | undefined;
+    /**
+     * Get the places that have been found
+     *
+     * This is typically one place and it's the place that the user clicked on.
+     *
+     * @returns {google.maps.places.PlaceResult[]}
+     */
+    getPlaces(): google.maps.places.PlaceResult[];
+    /**
+     * Get the map bounds based on the places that have been found.
+     *
+     * @returns {LatLngBounds|undefined}
+     */
+    getPlacesBounds(): LatLngBounds | undefined;
+    /**
+     * Initialize the places search box object
+     *
+     * This must be called in order for the places search box to work.
+     *
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * Returns whether the places search box object has been initialized
+     *
+     * @returns {boolean}
+     */
+    isInitialized(): boolean;
+    /**
+     * @inheritdoc
+     */
+    hasListener(type: PlacesSearchBoxEvent, callback?: EventCallback): boolean;
+    /**
+     * @inheritdoc
+     */
+    off(type?: PlacesSearchBoxEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: PlacesSearchBoxEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: PlacesSearchBoxEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    only(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Sets the region to use for biasing query predictions.
+     *
+     * Results will only be biased towards this area and not be completely restricted to it.
+     *
+     * @param {LatLngBoundsValue} value The bounds to set
+     * @returns {PlacesSearchBox}
+     */
+    setBounds(value: LatLngBoundsValue): PlacesSearchBox;
+    /**
+     * Set the input reference
+     *
+     * @param {string|HTMLInputElement} input The input HTMLInputElement or the selector for the input element
+     * @returns {PlacesSearchBox}
+     */
+    setInput(input: string | HTMLInputElement): PlacesSearchBox;
+    /**
+     * Set the places search box options
+     *
+     * @param {PlacesSearchBoxOptions} options The options to set
+     * @returns {PlacesSearchBox}
+     */
+    setOptions(options: PlacesSearchBoxOptions): PlacesSearchBox;
+}
+type PlacesSearchBoxValue = HTMLInputElement | string | PlacesSearchBox | PlacesSearchBoxOptions;
+/**
+ * Helper function to set up the places search box object
+ *
+ * @param {PlacesSearchBoxValue} [input] The input reference or the options
+ * @param {PlacesSearchBoxOptions} [options] The places search box options
+ * @returns {PlacesSearchBox}
+ */
+declare const placesSearchBox: (input?: PlacesSearchBoxValue, options?: PlacesSearchBoxOptions) => PlacesSearchBox;
+
+type PolylineEvent = 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'mousedown' | 'mousemove' | 'mouseout' | 'mouseover' | 'mouseup';
 type PolylineOptions = {
     clickable?: boolean;
     highlightPolyline?: PolylineOptions | Polyline;
@@ -3113,13 +3891,37 @@ declare class Polyline extends Layer {
      */
     init(): Promise<void>;
     /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
+     * @inheritdoc
      */
-    on(type: string, callback: EventCallback, config?: EventConfig): void;
+    hasListener(type: PolylineEvent, callback?: EventCallback): boolean;
+    /**
+     * @inheritdoc
+     */
+    off(type?: PolylineEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: PolylineEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: PolylineEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    only(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void;
     /**
      * Set the highlight polyline
      *
@@ -3488,4 +4290,4 @@ type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
  */
 declare const popup: (options?: PopupValue) => Popup;
 
-export { Base, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, callCallback, checkForGoogleMaps, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, marker, markerCluster, markerCollection, objectEquals, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
+export { Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, callCallback, checkForGoogleMaps, convertControlPosition, convertMapTypeControlStyle, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
