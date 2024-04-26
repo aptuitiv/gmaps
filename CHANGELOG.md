@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0 (April 26, 2024)
+
+- Added support for using the library in nodejs.
+- Improvements to how events are handled internally.
+- Added support for `only` aond `onlyOnce` event listener types.
+- Map:
+  - Added support for enabling/disabling the Map Type control.
+  - Added support for setting the map type id.
+  - Added support for min and max zoom.
+  - Added support for separately setting the latitude and longitude of the map center point.
+  - Added `getIsVisible()` method.
+- Overlay:
+  - Added `overlay()` method to set up an overlay element.
+  - Added `getProjection()` method.
+  - Added `getContainerLatLngFromPixel()` method.
+  - Added `getDivLatLngFromPixel()` method.
+- Added support for `google.maps.LatLng` to be passed as a value to the LatLng class.
+- Fixed svgSymbol default fillOpacity to be 1.
+- Added support for the marker to be draggable.
+- Allow LatLngBoungs union to get a `google.maps.LatLngBounds` value.
+- Added event types to different components.
+- Added PlacesSearchBox component.
+  
 ## 0.6.0 (April 19, 2024)
 
 - Added support for the Map `mapId` parameter.
