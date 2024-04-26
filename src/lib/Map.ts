@@ -161,6 +161,7 @@ export class Map extends Evented {
         super('map', 'Map');
 
         // Set some default values
+        this.#options.mapTypeId = MapTypeId.ROADMAP;
         this.#options.center = latLng(0, 0);
         this.#options.zoom = 6;
         this.#mapTypeControl = mapTypeControl();
