@@ -16,7 +16,6 @@
 import { checkForGoogleMaps, isFunction, isObject, isObjectWithValues, isString, objectEquals } from './helpers';
 import Base from './Base';
 import { latLng, LatLng } from './LatLng';
-import { loader } from './Loader';
 import { Point } from './Point';
 
 // Base event callback data type
@@ -158,32 +157,6 @@ export class Evented extends Base {
             this.#testLibrary = testLibrary;
         } else {
             this.#testLibrary = testObject;
-        }
-    }
-
-    /**
-     * Add an event listener that will be set up after the Google Maps API is loaded
-     *
-     * @param {string} [event] The event type
-     * @param {EventCallback} [callback] The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
-     */
-    #addPendingLoadEventListener(event: string, callback: EventCallback, config?: EventConfig) {
-        if (!this.#pendingLoadEventListeners[event]) {
-            this.#pendingLoadEventListeners[event] = [];
-        }
-        this.#pendingLoadEventListeners[event].push({ callback, config });
-
-        if (!this.#isOnLoadEventSet) {
-            loader().once('map_loaded', () => {
-                Object.keys(this.#pendingLoadEventListeners).forEach((type) => {
-                    this.#pendingLoadEventListeners[type].forEach((evt) => {
-                        this.on(type, evt.callback, evt.config);
-                    });
-                });
-                this.#pendingLoadEventListeners = {};
-            });
-            this.#isOnLoadEventSet = true;
         }
     }
 
@@ -457,10 +430,18 @@ export class Evented extends Base {
      */
     setupEventListener(type: string, callback: EventCallback, config?: EventConfig): void {
         if (isFunction(callback)) {
-            if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
-                const hasEvent = Array.isArray(this.#eventListeners[type]);
-                this.#on(type, callback, config);
-                if (!hasEvent) {
+            // Check if the event listener is already set up
+            const hasEvent = Array.isArray(this.#eventListeners[type]);
+            // Add the event listener
+            this.#on(type, callback, config);
+
+            // If the event listener was not already set up then set it up on the Google maps object.
+            // We only want to add the event listener to the Google maps object once. We can have multiple
+            // internal event listeners, but because we are handling the event listener internally,
+            // we only need to add it to the Google Maps object once.
+            if (!hasEvent) {
+                let setupPending = false;
+                if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                     if (this.#isGoogleObjectSet()) {
                         // The Google maps object is set and the event listener is not already set up on it.
                         this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
@@ -469,14 +450,21 @@ export class Evented extends Base {
                     } else {
                         // The Google maps object is not set yet so so save the event listener so that it
                         // can be added to the Google map object once it's set up
-                        if (!this.#pendingMapObjectEventListeners[type]) {
-                            this.#pendingMapObjectEventListeners[type] = [];
-                        }
-                        this.#pendingMapObjectEventListeners[type].push({ callback, config });
+                        setupPending = true;
                     }
+                } else {
+                    // The Google Maps library hasn't been loaded yet so save the event listener so that it
+                    // can be added to the Google map object once the library is loaded and the Google maps object is set up.
+                    setupPending = true;
                 }
-            } else {
-                this.#addPendingLoadEventListener(type, callback, config);
+
+                // Set up the pending event listener if needed
+                if (setupPending) {
+                    if (!this.#pendingMapObjectEventListeners[type]) {
+                        this.#pendingMapObjectEventListeners[type] = [];
+                    }
+                    this.#pendingMapObjectEventListeners[type].push({ callback, config });
+                }
             }
         } else {
             throw new Error(`The "${type}" event handler needs a callback function`);
