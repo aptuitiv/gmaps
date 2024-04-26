@@ -72,6 +72,21 @@ type MapEvent = GMEvent | InternalEvent;
  */
 export class Map extends Evented {
     /**
+     * Holds the latitude portion of the center point for the map
+     *
+     * @private
+     * @type {number}
+     */
+    #latitude: number = 0;
+
+    /**
+     * Holds the longitude portion of the center point for the map
+     *
+     * @private
+     * @type {number}
+     */
+    #longitude: number = 0;
+    /**
      * Holds if the map is initialized or not
      *
      * @private
@@ -182,9 +197,61 @@ export class Map extends Evented {
         const center = latLng(value);
         if (center.isValid()) {
             this.#options.center = center;
+            this.#latitude = center.lat;
+            this.#longitude = center.lng;
             if (isObject(this.#map)) {
                 this.#map.setCenter(this.#options.center.toGoogle());
             }
+        }
+    }
+
+    /**
+     * Get the latitude value for the center point
+     *
+     * @returns {number}
+     */
+    get latitude(): number {
+        return this.#latitude;
+    }
+
+    /**
+     * Set the latitude value for the center point
+     *
+     * @param {string|number} value The latitude value
+     */
+    set latitude(value: string | number) {
+        if (isNumberOrNumberString(value)) {
+            if (isNumber(value)) {
+                this.#latitude = value;
+            } else {
+                this.#latitude = Number(value);
+            }
+            this.center = { lat: this.#latitude, lng: this.#longitude };
+        }
+    }
+
+    /**
+     * Get the longitude value for the center point
+     *
+     * @returns {number}
+     */
+    get longitude(): number {
+        return this.#longitude;
+    }
+
+    /**
+     * Set the longitude value for the center point
+     *
+     * @param {string|number} value The longitude value
+     */
+    set longitude(value: string | number) {
+        if (isNumberOrNumberString(value)) {
+            if (isNumber(value)) {
+                this.#longitude = value;
+            } else {
+                this.#longitude = Number(value);
+            }
+            this.center = { lat: this.#latitude, lng: this.#longitude };
         }
     }
 
@@ -661,8 +728,33 @@ export class Map extends Evented {
         const center = latLng(latitude, longitude);
         if (center.isValid()) {
             this.#options.center = center;
+            this.#latitude = center.lat;
+            this.#longitude = center.lng;
             if (isObject(this.#map)) {
                 this.#map.setCenter(this.#options.center.toGoogle());
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Set the latitude and longitude values and optionally update the center point.
+     *
+     * The times when you would not want to update the center point are when you are setting the latitude and longitude
+     * and you don't want to recenter the map, but you want the latitude and longitude values to be available for future
+     * times when the map may be centered.
+     *
+     * @param {number|string} latitude The latitude value
+     * @param {number|string} longitude The longitude value
+     * @param {boolean} [updateCenter] Whether to update the map center point. Defaults to true.
+     * @returns {Map}
+     */
+    setLatitudeLongitude(latitude: number | string, longitude: number | string, updateCenter: boolean = true): Map {
+        if (isNumberOrNumberString(latitude) && isNumberOrNumberString(longitude)) {
+            this.#latitude = Number(latitude);
+            this.#longitude = Number(longitude);
+            if (updateCenter) {
+                this.setCenter(this.#latitude, this.#longitude);
             }
         }
         return this;
@@ -699,13 +791,17 @@ export class Map extends Evented {
             } else {
                 if (isNumberOrNumberString(options.lat)) {
                     center.setLat(options.lat);
+                    this.latitude = options.lat;
                 } else if (isNumberOrNumberString(options.latitude)) {
                     center.setLat(options.latitude);
+                    this.latitude = options.latitude;
                 }
                 if (isNumberOrNumberString(options.lng)) {
                     center.setLng(options.lng);
+                    this.longitude = options.lng;
                 } else if (isNumberOrNumberString(options.longitude)) {
                     center.setLng(options.longitude);
+                    this.longitude = options.longitude;
                 }
             }
             if (center.isValid()) {
