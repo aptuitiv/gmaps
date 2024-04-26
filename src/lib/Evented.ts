@@ -48,6 +48,10 @@ export type EventConfig = {
     context?: object;
     // If true then the event listener callback will only be called once
     once?: boolean;
+    // If true then the event listener callback will only be called once and only one listener will
+    // be added for this event type. This is useful for events that should only be called once.
+    // If the event has already been dispatched then the callback will be called immediately.
+    onlyOnce?: boolean;
 };
 
 // The actual options set for the event listener
@@ -89,6 +93,14 @@ export class Evented extends Base {
      * @type {EventListeners}
      */
     #eventListeners: EventListeners = {};
+
+    /**
+     * Holds the event listeners that are set to only be called once
+     *
+     * @private
+     * @type {string[]}
+     */
+    #onlyEventListeners: string[] = [];
 
     /**
      * Holds the Google maps object that events are set up on
@@ -282,6 +294,12 @@ export class Evented extends Base {
                 } else {
                     this.#eventListeners[type] = [];
                 }
+
+                // Remove the event listener from the onlyEventListeners array
+                const index = this.#onlyEventListeners.indexOf(type);
+                if (index > -1) {
+                    this.#onlyEventListeners.splice(index, 1);
+                }
             }
 
             // If there are no more event listeners for the given type then remove the listener from the Google maps object
@@ -298,6 +316,7 @@ export class Evented extends Base {
      */
     offAll(): void {
         this.#eventListeners = {};
+        this.#onlyEventListeners = [];
 
         // Remove all event listeners from the Google maps object
         if (this.#isGoogleObjectSet()) {
@@ -313,7 +332,9 @@ export class Evented extends Base {
      * @param {EventConfig} [config] Configuration for the event.
      */
     on(type: string, callback: EventCallback, config?: EventConfig): void {
-        this.#on(type, callback, config);
+        if (!this.#onlyEventListeners.includes(type)) {
+            this.#on(type, callback, config);
+        }
     }
 
     /**
@@ -324,9 +345,83 @@ export class Evented extends Base {
      * @param {EventConfig} [config] Configuration for the event.
      */
     onImmediate(type: string, callback: EventCallback, config?: EventConfig): void {
-        const eventConfig = isObject(config) ? config : {};
-        eventConfig.callImmediate = true;
-        this.on(type, callback, eventConfig);
+        if (!this.#onlyEventListeners.includes(type)) {
+            const eventConfig = isObject(config) ? config : {};
+            eventConfig.callImmediate = true;
+            this.on(type, callback, eventConfig);
+        }
+    }
+
+    /**
+     * Sets up an event listener that will only be called once
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    once(type: string, callback?: EventCallback, config?: EventConfig): void {
+        if (!this.#onlyEventListeners.includes(type)) {
+            const eventConfig = isObject(config) ? config : {};
+            eventConfig.once = true;
+            this.on(type, callback, eventConfig);
+        }
+    }
+
+    /**
+     * Sets up an event listener that will only be called once. It will be called immediately if the event has already been dispatched.
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onceImmediate(type: string, callback?: EventCallback, config?: EventConfig): void {
+        if (!this.#onlyEventListeners.includes(type)) {
+            const eventConfig = isObject(config) ? config : {};
+            eventConfig.once = true;
+            eventConfig.callImmediate = true;
+            this.on(type, callback, eventConfig);
+        }
+    }
+
+    /**
+     * Sets up an event listener that will have only one event listener for this type.
+     *
+     * It will be called immediately if the event has already been dispatched.
+     *
+     * The difference between this and on() is that only() will only set up one event listener for this type.
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    only(type: string, callback: EventCallback, config?: EventConfig): void {
+        if (!this.#onlyEventListeners.includes(type)) {
+            this.#onlyEventListeners.push(type);
+            const eventConfig = isObject(config) ? config : {};
+            eventConfig.callImmediate = true;
+            this.on(type, callback, eventConfig);
+        }
+    }
+
+    /**
+     * Sets up an event listener that will only be called once and only one event listener for this type will be set up.
+     *
+     * It will be called immediately if the event has already been dispatched.
+     *
+     * The difference between this and once() is that onlyOnce() will only set up one event listener for this type.
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onlyOnce(type: string, callback: EventCallback, config?: EventConfig): void {
+        if (!this.#onlyEventListeners.includes(type)) {
+            this.#onlyEventListeners.push(type);
+            const eventConfig = isObject(config) ? config : {};
+            eventConfig.once = true;
+            eventConfig.callImmediate = true;
+            this.on(type, callback, eventConfig);
+        }
     }
 
     /**
@@ -335,6 +430,7 @@ export class Evented extends Base {
      * config:
      * - context: object - The context to bind the callback function to
      * - once: boolean - If true then the event listener will only be called once
+     * - onlyOnce: boolean - If true then the event listener will only be called once and only one listener will be added for this event type.
      * - callImmediate: boolean - If true then the event listener will be called immediately if the event has already been dispatched
      *
      * @param {string} type The event type
@@ -353,6 +449,13 @@ export class Evented extends Base {
             // Set up the options for the native event listener
             if (typeof config.once === 'boolean' && config.once === true) {
                 listenerOptions.once = true;
+            } else if (typeof config.onlyOnce === 'boolean' && config.onlyOnce === true) {
+                listenerOptions.once = true;
+                if (this.hasListener(type)) {
+                    // This is an event that should only be called once and only one listener should be added.
+                    // If the event has already been dispatched then call the callback immediately.
+                    addListener = false;
+                }
             }
 
             // Set up the context to bind the callback function to
@@ -386,33 +489,6 @@ export class Evented extends Base {
 
             this.#eventListeners[type].push({ callback, context, options: listenerOptions });
         }
-    }
-
-    /**
-     * Sets up an event listener that will only be called once
-     *
-     * @param {string} type The event type
-     * @param {EventCallback} [callback] The event listener callback function
-     * @param {EventConfig} [config] Configuration for the event.
-     */
-    once(type: string, callback?: EventCallback, config?: EventConfig): void {
-        const eventConfig = isObject(config) ? config : {};
-        eventConfig.once = true;
-        this.on(type, callback, eventConfig);
-    }
-
-    /**
-     * Sets up an event listener that will only be called once. It will be called immediately if the event has already been dispatched.
-     *
-     * @param {string} type The event type
-     * @param {EventCallback} [callback] The event listener callback function
-     * @param {EventConfig} [config] Configuration for the event.
-     */
-    onceImmediate(type: string, callback?: EventCallback, config?: EventConfig): void {
-        const eventConfig = isObject(config) ? config : {};
-        eventConfig.once = true;
-        eventConfig.callImmediate = true;
-        this.on(type, callback, eventConfig);
     }
 
     /**
