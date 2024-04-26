@@ -2,6 +2,14 @@
 /*  eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types  */
 
 /**
+ * Returns if the value is boolean
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+export const isBoolean = (thing: any): thing is boolean => typeof thing === 'boolean';
+
+/**
  * Returns if the thing is a function
  *
  * @param {any} thing The thing to test

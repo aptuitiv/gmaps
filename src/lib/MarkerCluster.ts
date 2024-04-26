@@ -29,7 +29,7 @@ import Base from './Base';
 import { loader } from './Loader';
 
 // Options for the default renderer
-type DefaultRenderOptions = {
+export type DefaultRenderOptions = {
     // The color to use for the cluster if it has less than the average number of markers in a cluster.
     colorRangeBottom?: string | ClusterColor;
     // The color to use for the cluster if it has more than the average number of markers in a cluster.
@@ -57,7 +57,7 @@ type DefaultRenderOptions = {
     showNumber?: boolean;
 };
 
-type ImageRendererOptions = {
+export type ImageRendererOptions = {
     /**
      * An object that holds the images for the clusters. This is used to configure the image renderer for the clusters.
      * The key should either be a number and the value should be an object containing the image URL, the width, and height of the image.
@@ -84,7 +84,7 @@ type ImageRendererOptions = {
 };
 
 // Options for the marker cluster
-type MarkerClusterOptions = {
+export type MarkerClusterOptions = {
     /**
      * A simple string to set the algorithm. Default is "supercluster" for SuperClusterAlgorithm.
      * This is an alternate way to set the algorithm if you don't want to use the algorithmClass.

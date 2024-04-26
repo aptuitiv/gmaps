@@ -5,7 +5,7 @@
 
 /* global G */
 
-// G.map('map2', { apiKey: apiKey, center: ['50.864716', 10.3522], zoom: 11 }).load().then(() => {
+// G.map('#map2', { apiKey: apiKey, center: ['50.864716', 10.3522], zoom: 11 }).load().then(() => {
 //     // Do something after loading an displaying the map
 // });
 const loader = G.loader({ apiKey: apiKey, });
@@ -38,7 +38,7 @@ load.on('load', () => { console.log('loaded event'); });
 //     console.log('error: ', err);
 // });
 // console.log('load: ', load);
-// const map = G.map('map1', {
+// const map = G.map('#map1', {
 //     apiKey: apiKey,
 //     center: { lat: 36.224, lng: -81.688 },
 // }).load(() => {
@@ -52,7 +52,7 @@ load.on('load', () => { console.log('loaded event'); });
 
 // G.loader({ apiKey: apiKey, }).load().then(() => {
 //     console.log('Loaded 3');
-//     const map2 = G.map('map2', {
+//     const map2 = G.map('#map2', {
 //         // apiKey: apiKey,
 //         // center: { lat: 10, lng: 0 },
 //     }).show(() => {

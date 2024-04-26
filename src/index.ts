@@ -2,55 +2,39 @@
     Main file for the Google Map Display library for importing into other projects.
 =========================================================================== */
 
-// Import the class helpers
-import { icon, Icon } from './lib/Icon';
-import { infoWindow, InfoWindow } from './lib/InfoWindow';
-import { latLng, LatLng } from './lib/LatLng';
-import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
-import { loader, Loader } from './lib/Loader';
-import { map, Map } from './lib/Map';
-import { marker, Marker } from './lib/Marker';
-import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
-import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
-import { point, Point } from './lib/Point';
-import { polyline, Polyline } from './lib/Polyline';
-import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
-import { popup, Popup } from './lib/Popup';
-import { size, Size } from './lib/Size';
-import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
-import { tooltip, Tooltip } from './lib/Tooltip';
+// The classes are exported so that developers can use them at types within their own code.
+// It's not intended that they used directly.
+// For example, the marker() function should be used to create a new Marker object
+// rather than using the Marker class directly.
 
-export default {
-    icon,
-    Icon,
-    infoWindow,
-    InfoWindow,
-    latLng,
-    LatLng,
-    latLngBounds,
-    LatLngBounds,
-    loader,
-    Loader,
-    map,
-    Map,
-    marker,
-    Marker,
+export { default as Base } from './lib/Base';
+export * from './lib/constants';
+export { Event, EventCallback, EventConfig, EventListenerOptions, Evented } from './lib/Evented';
+export * from './lib/helpers';
+export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
+export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
+export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';
+export { latLngBounds, LatLngBounds, LatLngBoundsValue } from './lib/LatLngBounds';
+export { default as Layer } from './lib/Layer';
+export { loader, Loader, LoaderOptions } from './lib/Loader';
+export { map, Map, MapType } from './lib/Map';
+export { mapTypeControl, MapTypeControl, MapTypeControlOptions } from './lib/Map/MapTypeControl';
+export { LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './lib/Map/types';
+export { marker, Marker, MarkerLabel, MarkerOptions, MarkerValue } from './lib/Marker';
+export {
     markerCluster,
+    DefaultRenderOptions,
+    ImageRendererOptions,
     MarkerCluster,
-    markerCollection,
-    MarkerCollection,
-    point,
-    Point,
-    polyline,
-    Polyline,
-    polylineCollection,
-    PolylineCollection,
-    popup,
-    Popup,
-    size,
-    Size,
-    svgSymbol,
-    SvgSymbol,
-    tooltip,
-    Tooltip,
-};
+    MarkerClusterOptions,
+} from './lib/MarkerCluster';
+export { markerCollection, MarkerCollection } from './lib/MarkerCollection';
+export { overlay, Overlay } from './lib/Overlay';
+export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchBoxValue } from './lib/PlacesSearchBox';
+export { point, Point, PointObject, PointValue } from './lib/Point';
+export { polyline, Polyline, PolylineOptions, PolylineValue } from './lib/Polyline';
+export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
+export { popup, Popup, PopupOptions, PopupValue } from './lib/Popup';
+export { size, Size, SizeObject, SizeValue } from './lib/Size';
+export { svgSymbol, SvgSymbol, SvgSymbolOptions, SvgSymbolValue } from './lib/SvgSymbol';
+export { tooltip, Tooltip, TooltipOptions, TooltipValue } from './lib/Tooltip';

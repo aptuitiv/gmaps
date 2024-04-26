@@ -123,6 +123,15 @@ class Base {
     }
 
     /**
+     * Returns if the object is a Polyline object
+     *
+     * @returns {boolean}
+     */
+    isPolyline(): boolean {
+        return this.getObjectType() === 'polyline';
+    }
+
+    /**
      * Returns if the object is a Popup object
      *
      * @returns {boolean}

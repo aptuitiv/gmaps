@@ -7,7 +7,7 @@
 
 
 
-const map = G.map('map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 } });
+const map = G.map('#map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 } });
 map.load();
 
 let clusterOptions = undefined;

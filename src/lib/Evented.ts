@@ -16,7 +16,6 @@
 import { checkForGoogleMaps, isFunction, isObject, isObjectWithValues, isString, objectEquals } from './helpers';
 import Base from './Base';
 import { latLng, LatLng } from './LatLng';
-import { loader } from './Loader';
 import { Point } from './Point';
 
 // Base event callback data type
@@ -49,10 +48,13 @@ export type EventConfig = {
     context?: object;
     // If true then the event listener callback will only be called once
     once?: boolean;
+    // If true then only one listener will be added for this event type.
+    // If the event has already been dispatched then the callback will be called immediately.
+    only?: boolean;
 };
 
 // The actual options set for the event listener
-type EventListenerOptions = {
+export type EventListenerOptions = {
     once?: boolean;
 };
 
@@ -92,6 +94,14 @@ export class Evented extends Base {
     #eventListeners: EventListeners = {};
 
     /**
+     * Holds the event listeners that are set to only be called once
+     *
+     * @private
+     * @type {string[]}
+     */
+    #onlyEventListeners: string[] = [];
+
+    /**
      * Holds the Google maps object that events are set up on
      *
      * @private
@@ -114,7 +124,15 @@ export class Evented extends Base {
      * @private
      * @type {PendingEvents}
      */
-    #pendingEventListeners: PendingEvents = {};
+    #pendingLoadEventListeners: PendingEvents = {};
+
+    /**
+     * Holds the event listeners that are waiting to be added once the Google Maps object is set
+     *
+     * @private
+     * @type {PendingEvents}
+     */
+    #pendingMapObjectEventListeners: PendingEvents = {};
 
     /**
      * The object that needs Google maps. This should be the name of the object that extends this class.
@@ -150,32 +168,6 @@ export class Evented extends Base {
             this.#testLibrary = testLibrary;
         } else {
             this.#testLibrary = testObject;
-        }
-    }
-
-    /**
-     * Add an event listener that will be set up after the Google Maps API is loaded
-     *
-     * @param {string} [event] The event type
-     * @param {EventCallback} [callback] The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
-     */
-    #addPendingEventListener(event: string, callback: EventCallback, config?: EventConfig) {
-        if (!this.#pendingEventListeners[event]) {
-            this.#pendingEventListeners[event] = [];
-        }
-        this.#pendingEventListeners[event].push({ callback, config });
-
-        if (!this.#isOnLoadEventSet) {
-            loader().once('map_loaded', () => {
-                Object.keys(this.#pendingEventListeners).forEach((type) => {
-                    this.#pendingEventListeners[type].forEach((evt) => {
-                        this.on(type, evt.callback, evt.config);
-                    });
-                });
-                this.#pendingEventListeners = {};
-            });
-            this.#isOnLoadEventSet = true;
         }
     }
 
@@ -301,6 +293,12 @@ export class Evented extends Base {
                 } else {
                     this.#eventListeners[type] = [];
                 }
+
+                // Remove the event listener from the onlyEventListeners array
+                const index = this.#onlyEventListeners.indexOf(type);
+                if (index > -1) {
+                    this.#onlyEventListeners.splice(index, 1);
+                }
             }
 
             // If there are no more event listeners for the given type then remove the listener from the Google maps object
@@ -317,6 +315,7 @@ export class Evented extends Base {
      */
     offAll(): void {
         this.#eventListeners = {};
+        this.#onlyEventListeners = [];
 
         // Remove all event listeners from the Google maps object
         if (this.#isGoogleObjectSet()) {
@@ -345,66 +344,7 @@ export class Evented extends Base {
     onImmediate(type: string, callback: EventCallback, config?: EventConfig): void {
         const eventConfig = isObject(config) ? config : {};
         eventConfig.callImmediate = true;
-        this.#on(type, callback, eventConfig);
-    }
-
-    /**
-     * Add an event listener to the object
-     *
-     * config:
-     * - context: object - The context to bind the callback function to
-     * - once: boolean - If true then the event listener will only be called once
-     * - callImmediate: boolean - If true then the event listener will be called immediately if the event has already been dispatched
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener callback function
-     * @param {EventConfig} [config] Configuration for the event.
-     */
-    #on(type: string, callback: EventCallback, config?: EventConfig): void {
-        let addListener = true;
-
-        const listenerOptions: EventListenerOptions = {};
-        // The context to bind the callback function to
-        let context: object;
-
-        // If the config object set then process it.
-        if (isObjectWithValues(config)) {
-            // Set up the options for the native event listener
-            if (typeof config.once === 'boolean' && config.once === true) {
-                listenerOptions.once = true;
-            }
-
-            // Set up the context to bind the callback function to
-            if (config.context) {
-                context = config.context;
-                if (context === this) {
-                    // If the context is the same as the object, then set it to undefined to reduce memory footprint.
-                    context = undefined;
-                }
-            }
-
-            // Check if the event should be called immediately if the even type has already been dispatched
-            if (typeof config.callImmediate === 'boolean' && config.callImmediate === true) {
-                if (typeof this.#eventsCalled[type] !== 'undefined') {
-                    if (typeof config.once === 'boolean' && config.once === true) {
-                        // This is an event that should only be called once so remove the listener.
-                        // If the event is not a "once" event then it's ok to add the listener.
-                        addListener = false;
-                    }
-                    if (isFunction(callback)) {
-                        callback.call(context || this);
-                    }
-                }
-            }
-        }
-
-        if (addListener) {
-            if (!this.#eventListeners[type]) {
-                this.#eventListeners[type] = [];
-            }
-
-            this.#eventListeners[type].push({ callback, context, options: listenerOptions });
-        }
+        this.on(type, callback, eventConfig);
     }
 
     /**
@@ -435,31 +375,145 @@ export class Evented extends Base {
     }
 
     /**
-     * Sets up the event listener on the Google maps object.
+     * Sets up an event listener that will have only one event listener for this type.
      *
-     * This also handles setting up the pending events if the Google Maps library isn't loaded already.
+     * It will be called immediately if the event has already been dispatched.
      *
-     * This should be called from an "on()" function in the class that extends this class.
-     * It is not intended to be called from outside of this library.
+     * The difference between this and on() is that only() will only set up one event listener for this type.
      *
-     * @internal
      * @param {string} type The event type
-     * @param {EventCallback} callback The event listener callback function
+     * @param {EventCallback} [callback] The event listener callback function
      * @param {EventConfig} [config] Configuration for the event.
      */
-    setupEventListener(type: string, callback: EventCallback, config?: EventConfig): void {
+    only(type: string, callback: EventCallback, config?: EventConfig): void {
+        const eventConfig = isObject(config) ? config : {};
+        eventConfig.only = true;
+        eventConfig.callImmediate = true;
+        this.on(type, callback, eventConfig);
+    }
+
+    /**
+     * Sets up an event listener that will only be called once and only one event listener for this type will be set up.
+     *
+     * It will be called immediately if the event has already been dispatched.
+     *
+     * The difference between this and once() is that onlyOnce() will only set up one event listener for this type.
+     *
+     * @param {string} type The event type
+     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    onlyOnce(type: string, callback: EventCallback, config?: EventConfig): void {
+        const eventConfig = isObject(config) ? config : {};
+        eventConfig.once = true;
+        eventConfig.only = true;
+        eventConfig.callImmediate = true;
+        this.on(type, callback, eventConfig);
+    }
+
+    /**
+     * Add an event listener to the object
+     *
+     * config:
+     * - context: object - The context to bind the callback function to
+     * - once: boolean - If true then the event listener will only be called once
+     * - onlyOnce: boolean - If true then the event listener will only be called once and only one listener will be added for this event type.
+     * - callImmediate: boolean - If true then the event listener will be called immediately if the event has already been dispatched
+     *
+     * @param {string} type The event type
+     * @param {Function} callback The event listener callback function
+     * @param {EventConfig} [config] Configuration for the event.
+     */
+    #on(type: string, callback: EventCallback, config?: EventConfig): void {
         if (isFunction(callback)) {
-            if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
-                const hasEvent = Array.isArray(this.#eventListeners[type]);
-                this.#on(type, callback, config);
-                if (!hasEvent && this.#isGoogleObjectSet()) {
-                    // The Google maps object is set and the event listener is not already set up on it.
-                    this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
-                        this.dispatch(type, e);
-                    });
+            // If the event listener was not already set up then set it up on the Google maps object.
+            // We only want to add the event listener to the Google maps object once. We can have multiple
+            // internal event listeners, but because we are handling the event listener internally,
+            // we only need to add it to the Google Maps object once.
+            if (!Array.isArray(this.#eventListeners[type])) {
+                let setupPending = false;
+                if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
+                    if (this.#isGoogleObjectSet()) {
+                        // The Google maps object is set and the event listener is not already set up on it.
+                        this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                            this.dispatch(type, e);
+                        });
+                    } else {
+                        // The Google maps object is not set yet so so save the event listener so that it
+                        // can be added to the Google map object once it's set up
+                        setupPending = true;
+                    }
+                } else {
+                    // The Google Maps library hasn't been loaded yet so save the event listener so that it
+                    // can be added to the Google map object once the library is loaded and the Google maps object is set up.
+                    setupPending = true;
                 }
-            } else {
-                this.#addPendingEventListener(type, callback, config);
+
+                // Set up the pending event listener if needed
+                if (setupPending) {
+                    if (!this.#pendingMapObjectEventListeners[type]) {
+                        this.#pendingMapObjectEventListeners[type] = [];
+                    }
+                    this.#pendingMapObjectEventListeners[type].push({ callback, config });
+                }
+            }
+
+            // Variable to hold if the listener should be added
+            let addListener = true;
+            // Options for the event listener
+            const listenerOptions: EventListenerOptions = {};
+            // The context to bind the callback function to
+            let context: object;
+
+            // If the event type is already in the list of onlyEventListeners then don't add the listener
+            if (this.#onlyEventListeners.includes(type)) {
+                addListener = false;
+            }
+
+            // If the config object set then process it.
+            if (addListener && isObjectWithValues(config)) {
+                // Set up the options for the event listener
+                if (typeof config.once === 'boolean' && config.once === true) {
+                    listenerOptions.once = true;
+                }
+                if (typeof config.only === 'boolean' && config.only === true) {
+                    this.#onlyEventListeners.push(type);
+                    if (this.hasListener(type)) {
+                        // This is an event that should only be called once and only one listener should be added.
+                        // If the event has already been dispatched then call the callback immediately.
+                        addListener = false;
+                    }
+                }
+
+                // Set up the context to bind the callback function to
+                if (config.context) {
+                    context = config.context;
+                    if (context === this) {
+                        // If the context is the same as the object, then set it to undefined to reduce memory footprint.
+                        context = undefined;
+                    }
+                }
+
+                // Check if the event should be called immediately if the even type has already been dispatched
+                if (typeof config.callImmediate === 'boolean' && config.callImmediate === true) {
+                    if (typeof this.#eventsCalled[type] !== 'undefined') {
+                        if (typeof config.once === 'boolean' && config.once === true) {
+                            // This is an event that should only be called once so remove the listener.
+                            // If the event is not a "once" event then it's ok to add the listener.
+                            addListener = false;
+                        }
+                        if (isFunction(callback)) {
+                            callback.call(context || this);
+                        }
+                    }
+                }
+            }
+
+            if (addListener) {
+                if (!this.#eventListeners[type]) {
+                    this.#eventListeners[type] = [];
+                }
+                this.#eventListeners[type].push({ callback, context, options: listenerOptions });
             }
         } else {
             throw new Error(`The "${type}" event handler needs a callback function`);
@@ -479,6 +533,20 @@ export class Evented extends Base {
      */
     setEventGoogleObject(googleObject: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement): void {
         this.#googleObject = googleObject;
+
+        // Set up the pending event listeners if there are any.
+        // This handles siguations where the event was set up before the
+        // Google maps object was set up.
+        if (isObject(this.#pendingMapObjectEventListeners)) {
+            Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
+                this.#pendingMapObjectEventListeners[type].forEach(() => {
+                    this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                        this.dispatch(type, e);
+                    });
+                });
+            });
+            this.#pendingMapObjectEventListeners = {};
+        }
     }
 
     /**

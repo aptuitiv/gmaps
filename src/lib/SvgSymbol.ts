@@ -18,7 +18,7 @@ import Base from './Base';
 import { point, Point, PointValue } from './Point';
 import { isNumber, isNumberString, isObject, isStringWithValue } from './helpers';
 
-type SvgSymbolOptions = {
+export type SvgSymbolOptions = {
     // The position of the symbol relative to the marker or polyline.
     // By default, the anchor is located along the center point of the bottom of the image.
     anchor?: PointValue;
@@ -67,7 +67,7 @@ export class SvgSymbol extends Base {
         this.#options = {
             anchor: point([0, 0]),
             fillColor: '#000000',
-            fillOpacity: 0,
+            fillOpacity: 1,
             labelOrigin: point([0, 0]),
             path: '',
             rotation: 0,
@@ -303,7 +303,7 @@ export class SvgSymbol extends Base {
             const pointValues = ['anchor', 'labelOrigin'];
             const stringValues = ['fillColor', 'path', 'strokeColor'];
             numberValues.forEach((key) => {
-                if ((options[key] && isNumber(options[key])) || isNumberString(options[key])) {
+                if ((typeof options[key] !== 'undefined' && isNumber(options[key])) || isNumberString(options[key])) {
                     if (isNumberString(options[key])) {
                         this.#options[key] = Number(options[key]);
                     } else {
@@ -313,7 +313,7 @@ export class SvgSymbol extends Base {
             });
             pointValues.forEach((key) => {
                 if (options[key]) {
-                    this.#options[key] = point(options[key]).toGoogle();
+                    this.#options[key] = point(options[key]);
                 }
             });
             stringValues.forEach((key) => {

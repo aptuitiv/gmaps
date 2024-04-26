@@ -10,10 +10,10 @@ import { isObject, isString, isStringWithValue } from './helpers';
 import { LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
-import Overlay from './Overlay';
+import { Overlay } from './Overlay';
 import { PointValue } from './Point';
 
-type TooltipOptions = {
+export type TooltipOptions = {
     // Whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker. Defaults to true.
     center?: boolean;
     // A class name to add to the tooltip element
@@ -186,14 +186,13 @@ export class Tooltip extends Overlay {
                     this.setPosition(e.latLng);
                     this.show(map);
                 });
-                element.on('mousemove', (e) => {
-                    this.setPosition(e.latLng);
-                    this.show(map);
-                });
+                if (element instanceof Map) {
+                    element.on('mousemove', (e) => {
+                        this.setPosition(e.latLng);
+                        this.show(map);
+                    });
+                }
                 element.on('mouseout', () => {
-                    this.hide();
-                });
-                element.on('mouseleave', () => {
                     this.hide();
                 });
             }

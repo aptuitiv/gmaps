@@ -13,7 +13,7 @@ import { isObject, isStringWithValue } from './helpers';
 import { point, PointValue } from './Point';
 import { size, SizeValue } from './Size';
 
-type IconOptions = {
+export type IconOptions = {
     // The position at which to anchor an image in correspondence to the location of the marker on the map.
     // By default, the anchor is located along the center point of the bottom of the image.
     anchor?: PointValue;

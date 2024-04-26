@@ -9,7 +9,7 @@ const mapObject = {
     apiKey: apiKey,
     center: { latitude: 48.864716, longitude: 2.3522 },
     zoom: 11,
-    mapContainer: 'map1',
+    mapContainer: '#map1',
     init: function () {
         this.map = G.map(this.mapContainer, { center: this.center, zoom: this.zoom, apiKey: this.apiKey });
         this.map.load();
@@ -47,14 +47,28 @@ const mapObject = {
 // mapObject.init();
 // mapObject.setupEvents();
 
-G.loader({ apiKey: apiKey, }).load();
+G.loader({ apiKey: apiKey, libraries: ['places'] }).load();
 
-const map1 = G.map('map1', { center: [40.7128, -74.0060] });
+const mapTypeControl = G.mapTypeControl({
+    // mapTypeIds: [G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN],
+    // position: G.ControlPosition.RIGHT_CENTER,
+    style: G.MapTypeControlStyle.DROPDOWN_MENU,
+});
+// mapTypeControl.setMapTypeIds([G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN]);
+
+const map1 = G.map('#map1', {
+    center: [40.7128, -74.0060],
+    mapTypeControl: mapTypeControl,
+    maxZoom: 12,
+    minZoom: 10,
+});
 map1.show();
 map1.on('click', (e) => {
     console.log(`The event type is ${e.type}`);
 
     map1.setCenter(36.224, 2.3522);
+
+    console.log('map 1 control: ', map1.mapTypeControl);
 
     if (e.latLng) {
         console.log(`You clicked at ${e.latLng.lat}/${e.latLng.lng}`);
@@ -66,11 +80,30 @@ map1.on('click', (e) => {
     }
 });
 
+// Set up places search for map 1
+// const input = document.getElementById('placesSearch');
+const placesSearchBox = G.placesSearchBox();
+placesSearchBox.input = '#placesSearch';
+placesSearchBox.init().then(() => {
+    placesSearchBox.on('places_changed', () => {
+        const place = placesSearchBox.getPlace();
+        G.marker({
+            map: map1,
+            position: place.geometry.location,
+            tooltip: place.name,
+        });
+        map1.fitBounds(placesSearchBox.getPlacesBounds());
+    });
+});
+
+
 const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
 map2.show();
+map2.setMapTypeId(G.MapTypeId.SATELLITE);
 
 const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
 map3.show();
+map3.mapTypeId = G.MapTypeId.HYBRID;
 
 const map4Element = document.getElementById('map4');
 const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
@@ -86,7 +119,7 @@ function getMapData() {
     console.log('Map 1 center: ', map1.getCenter());
 }
 
-// const map = G.map('map1', {
+// const map = G.map('#map1', {
 //     apiKey: apiKey,
 //     center: { lat: 36.224, lng: -81.688 },
 //     zoom: 11
@@ -108,7 +141,7 @@ function getMapData() {
 // });
 
 
-// const map2 = G.map('map2');
+// const map2 = G.map('#map2');
 
 // map2.show(() => {
 //     console.log('Displayd xs 2')

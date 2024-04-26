@@ -7,7 +7,7 @@
 /* global google */
 
 import Base from './Base';
-import { checkForGoogleMaps, isNumber, isNumberString, isObject } from './helpers';
+import { checkForGoogleMaps, isFunction, isNumber, isNumberString, isObject } from './helpers';
 
 // The object literal for a latitude/longitude pair.
 // The values are optional so that this type can be used when building a lat/lng object pair.
@@ -66,12 +66,12 @@ export class LatLng extends Base {
     /**
      * Constructor
      *
-     * @param {Latitude|LatLng} latitude The latitude value or the latitude/longitude pair
+     * @param {Latitude|LatLng|google.maps.LatLng} latitude The latitude value or the latitude/longitude pair
      * @param {number|string} [longitude] The longitude value
      */
-    constructor(latitude?: Latitude | LatLng, longitude?: number | string) {
+    constructor(latitude?: Latitude | LatLng | google.maps.LatLng, longitude?: number | string) {
         super('latlng');
-        if (latitude) {
+        if (typeof latitude !== 'undefined') {
             this.set(latitude, longitude);
         }
     }
@@ -189,19 +189,23 @@ export class LatLng extends Base {
      * @param {number|string} longitude The longitude value
      * @returns {LatLng}
      */
-    set(latitude: Latitude | LatLng, longitude?: number | string): LatLng {
+    set(latitude: Latitude | LatLng | google.maps.LatLng, longitude?: number | string): LatLng {
         /* eslint-disable @typescript-eslint/no-explicit-any */
         if (Array.isArray(latitude)) {
             const [lat, lng] = latitude;
             this.latitude = lat;
             this.longitude = lng;
         } else if (isObject(latitude)) {
-            if (typeof (latitude as LatLngLiteral).lat !== 'undefined') {
+            if (isFunction((latitude as google.maps.LatLng).lat)) {
+                this.latitude = (latitude as google.maps.LatLng).lat();
+            } else if (typeof (latitude as LatLngLiteral).lat !== 'undefined') {
                 this.latitude = (latitude as LatLngLiteral).lat;
             } else if (typeof (latitude as LatLngLiteralExpanded).latitude !== 'undefined') {
                 this.latitude = (latitude as LatLngLiteralExpanded).latitude;
             }
-            if (typeof (latitude as LatLngLiteral).lng !== 'undefined') {
+            if (isFunction((latitude as google.maps.LatLng).lng)) {
+                this.longitude = (latitude as google.maps.LatLng).lng();
+            } else if (typeof (latitude as LatLngLiteral).lng !== 'undefined') {
                 this.longitude = (latitude as LatLngLiteral).lng;
             } else if (typeof (latitude as LatLngLiteralExpanded).longitude !== 'undefined') {
                 this.longitude = (latitude as LatLngLiteralExpanded).longitude;
@@ -303,7 +307,7 @@ export class LatLng extends Base {
 }
 
 // The possible types of latitude/longitude pair values
-export type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng;
+export type LatLngValue = number[] | string[] | LatLngLiteral | LatLngLiteralExpanded | LatLng | google.maps.LatLng;
 
 /**
  * Helper function to set up a new LatLng object value

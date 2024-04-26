@@ -15,13 +15,15 @@
 
 /* global google, HTMLElement */
 
-import { Libraries } from '@googlemaps/js-api-loader';
+import { MapTypeId } from './constants';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
     callCallback,
     checkForGoogleMaps,
+    isBoolean,
     isFunction,
+    isNull,
     isNumber,
     isNumberOrNumberString,
     isNumberString,
@@ -29,85 +31,70 @@ import {
     isStringWithValue,
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
-import { Evented, EventCallback, EventConfig } from './Evented';
+import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
+import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
+import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
 
-// The options that will be passed to the Google Maps map object
-type GMMapOptions = {
-    center?: LatLng;
-    mapId?: string;
-    zoom?: number;
-};
+// Based on google.maps.MapTypeId
+export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 
-// The options that are passed to map() and setOptions()
-export type MapOptions = GMMapOptions & {
-    // The Google Maps API key
-    apiKey: string;
-    // The center point for the map.
-    // This is an alternate to setting the latitude and longitude separately.
-    center?: LatLngValue;
-    // The latitude for the center point of the map
-    lat: number | string;
-    latitude: number | string;
-    // An array of additional Maps JavaScript API libraries to load. By default no extra libraries are loaded.
-    // The "places" library is a common one to load. https://developers.google.com/maps/documentation/javascript/places
-    // https://developers.google.com/maps/documentation/javascript/libraries
-    libraries?: Libraries;
-    // The longitude for the center point of the map
-    lng: number | string;
-    longitude: number | string;
-    // The Google Maps identifier for the map.
-    // See https://developers.google.com/maps/documentation/get-map-id
-    mapId?: string;
-    // The version of the Google Maps API to load.
-    // https://developers.google.com/maps/documentation/javascript/versions
-    version?: string;
-    // The default zoom for the map. Defaults to 8.
-    zoom?: number;
-};
+// Map events that are not part of the Google Maps API
+type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
+// Google Maps library map events
+type GMEvent =
+    | 'bounds_changed'
+    | 'center_changed'
+    | 'click'
+    | 'contextmenu'
+    | 'dblclick'
+    | 'drag'
+    | 'dragend'
+    | 'dragstart'
+    | 'heading_changed'
+    | 'idle'
+    | 'isfractionalzoomenabled_changed'
+    | 'mapcapabilities_changed'
+    | 'maptypeid_changed'
+    | 'mousemove'
+    | 'mouseout'
+    | 'mouseover'
+    | 'projection_changed'
+    | 'renderingtype_changed'
+    | 'tilesloaded'
+    | 'tilt_changed'
+    | 'zoom_changed';
 
-// The options for the Map.locate() function
-type LocateOptions = {
-    // Indicates if the application would like to receive the best possible results.
-    // If true and if the device is able to provide a more accurate position, it will do so.
-    // This can result in slower response times or increased power consumption on a mobile device.
-    // If false then the device can save resources by responding more quickly.
-    // Default: false.
-    enableHighAccuracy?: boolean;
-    // The maximum age in milliseconds of a possible cached position that is acceptable to return.
-    // If set to 0, it means that the device cannot use a cached position and must attempt to retrieve the real
-    // current position. If set to Infinity the device must return a cached position regardless of its age.
-    // Default: 0
-    maximumAge?: number;
-    // The maximum time in milliseconds the device is allowed to take in order to return a position.
-    // The default value is Infinity, meaning that getCurrentPosition() won't return until the position is available.
-    // Default: Infinity
-    timeout?: number;
-    // Whether ot use watchPosition to track the user's location. It set to false, the user's location will only be
-    // retrieved once.
-    // Default true
-    watch?: boolean;
-};
-
-// The data returned from the Geolocation API and sent to the 'locationfound' event
-type LocationPosition = {
-    accuracy?: number;
-    altitude?: number;
-    altitudeAccuracy?: number;
-    heading?: number;
-    latitude: number;
-    latLng: LatLng;
-    longitude: number;
-    speed?: number;
-    timestamp: number;
-};
-
-// The callback function for the Map.locate() function
-type LocationOnSuccess = (position: LocationPosition) => void;
+// All possible map events
+type MapEvent = GMEvent | InternalEvent;
 
 /**
  * The map class
  */
 export class Map extends Evented {
+    /**
+     * Holds the latitude portion of the center point for the map
+     *
+     * @private
+     * @type {number}
+     */
+    #latitude: number = 0;
+
+    /**
+     * Holds the longitude portion of the center point for the map
+     *
+     * @private
+     * @type {number}
+     */
+    #longitude: number = 0;
+
+    /**
+     * Holds if the map is getting the map options
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isGettingMapOptions: boolean = false;
+
     /**
      * Holds if the map is initialized or not
      *
@@ -141,6 +128,14 @@ export class Map extends Evented {
     #map: google.maps.Map;
 
     /**
+     * Holds the map type control object
+     *
+     * @private
+     * @type {MapTypeControl}
+     */
+    #mapTypeControl: MapTypeControl;
+
+    /**
      * Holds the map options
      *
      * @private
@@ -168,19 +163,212 @@ export class Map extends Evented {
      * Class constructor
      *
      * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-     *      The selector can be a class name, an id, or an HTML element. If you need something beyond an id or class name as the selector then pass the element itself.
+     *      The selector can be any valid selector for document.querySelector() can be used. Or, it can be an HTML element
      * @param {MapOptions} [options] The options object for the map
      */
     constructor(selector: string | HTMLElement, options?: MapOptions) {
         super('map', 'Map');
 
         // Set some default values
+        this.#options.mapTypeId = MapTypeId.ROADMAP;
         this.#options.center = latLng(0, 0);
         this.#options.zoom = 6;
+        this.#mapTypeControl = mapTypeControl();
 
         this.#selector = selector;
         if (isObject(options)) {
             this.setOptions(options);
+        }
+    }
+
+    /**
+     * Get the center point for the map
+     *
+     * @returns {LatLng}
+     */
+    get center(): LatLng {
+        let { center } = this.#options;
+        if (this.#map) {
+            const mapCenter = this.#map.getCenter();
+            center = latLng(mapCenter.lat(), mapCenter.lng());
+        }
+        if (!center.equals(this.#options.center)) {
+            this.#options.center = center;
+        }
+        return this.#options.center;
+    }
+
+    /**
+     * Set the center point for the map
+     *
+     * @param {LatLngValue} value The center point for the map
+     */
+    set center(value: LatLngValue) {
+        const center = latLng(value);
+        if (center.isValid()) {
+            this.#options.center = center;
+            this.#latitude = center.lat;
+            this.#longitude = center.lng;
+            if (isObject(this.#map)) {
+                this.#map.setCenter(this.#options.center.toGoogle());
+            }
+        }
+    }
+
+    /**
+     * Get the latitude value for the center point
+     *
+     * @returns {number}
+     */
+    get latitude(): number {
+        return this.#latitude;
+    }
+
+    /**
+     * Set the latitude value for the center point
+     *
+     * @param {string|number} value The latitude value
+     */
+    set latitude(value: string | number) {
+        if (isNumberOrNumberString(value)) {
+            if (isNumber(value)) {
+                this.#latitude = value;
+            } else {
+                this.#latitude = Number(value);
+            }
+            this.center = { lat: this.#latitude, lng: this.#longitude };
+        }
+    }
+
+    /**
+     * Get the longitude value for the center point
+     *
+     * @returns {number}
+     */
+    get longitude(): number {
+        return this.#longitude;
+    }
+
+    /**
+     * Set the longitude value for the center point
+     *
+     * @param {string|number} value The longitude value
+     */
+    set longitude(value: string | number) {
+        if (isNumberOrNumberString(value)) {
+            if (isNumber(value)) {
+                this.#longitude = value;
+            } else {
+                this.#longitude = Number(value);
+            }
+            this.center = { lat: this.#latitude, lng: this.#longitude };
+        }
+    }
+
+    /**
+     * Get the map type control object
+     *
+     * @returns {MapTypeControl}
+     */
+    get mapTypeControl(): MapTypeControl {
+        return this.#mapTypeControl;
+    }
+
+    /**
+     * Set the map type control object, or whether to display the map type control
+     *
+     * @param {boolean|MapTypeControl} value The map type control option
+     */
+    set mapTypeControl(value: boolean | MapTypeControl) {
+        if (isBoolean(value)) {
+            this.#mapTypeControl.enabled = value;
+        } else if (value instanceof MapTypeControl) {
+            this.#mapTypeControl = value;
+        }
+
+        if (this.#map) {
+            this.#mapTypeControl.toGoogle().then((mapTypeControlOptions) => {
+                this.#map.setOptions({
+                    mapTypeControl: this.#mapTypeControl.enabled,
+                    mapTypeControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
+     * Get the map type ID
+     *
+     * @returns {string}
+     */
+    get mapTypeId(): string {
+        let { mapTypeId } = this.#options;
+        if (this.#map) {
+            mapTypeId = this.#map.getMapTypeId();
+        }
+        if (isStringWithValue(mapTypeId) && mapTypeId !== this.#options.mapTypeId) {
+            this.#options.mapTypeId = mapTypeId;
+        }
+        return this.#options.mapTypeId;
+    }
+
+    /**
+     * Set the map type ID
+     *
+     * @param {string} value The map type ID
+     */
+    set mapTypeId(value: string) {
+        if (isStringWithValue(value)) {
+            this.#options.mapTypeId = value;
+            if (this.#map) {
+                this.#map.setMapTypeId(value);
+            }
+        }
+    }
+
+    /**
+     * Get the maximum zoom level for the map
+     *
+     * @returns {null|number}
+     */
+    get maxZoom(): null | number {
+        return this.#options.maxZoom ?? null;
+    }
+
+    /**
+     * Set the maximum zoom level for the map
+     *
+     * @param {null|number} value The maximum zoom level
+     */
+    set maxZoom(value: null | number) {
+        if (isNumber(value) || isNull(value)) {
+            this.#options.maxZoom = value;
+            if (this.#map) {
+                this.#map.setOptions({ maxZoom: value });
+            }
+        }
+    }
+
+    /**
+     * Get the minimum zoom level for the map
+     *
+     * @returns {null|number}
+     */
+    get minZoom(): null | number {
+        return this.#options.minZoom ?? null;
+    }
+
+    /**
+     * Set the minimum zoom level for the map
+     *
+     * @param {null|number} value The minimum zoom level
+     */
+    set minZoom(value: null | number) {
+        if (isNumber(value) || isNull(value)) {
+            this.#options.minZoom = value;
+            if (this.#map) {
+                this.#map.setOptions({ minZoom: value });
+            }
         }
     }
 
@@ -205,7 +393,7 @@ export class Map extends Evented {
      *
      * @param {number|string} value The zoom level
      */
-    set zoom(value: number) {
+    set zoom(value: number | string) {
         if (isNumber(value)) {
             this.#options.zoom = value;
         } else if (isNumberString(value)) {
@@ -213,7 +401,7 @@ export class Map extends Evented {
         }
 
         if (this.#map) {
-            this.#map.setZoom(value);
+            this.#map.setZoom(Number(value));
         }
     }
 
@@ -300,20 +488,28 @@ export class Map extends Evented {
      * @private
      * @returns {google.maps.MapOptions}
      */
-    #getMapOptions(): google.maps.MapOptions {
-        const mapOptions: google.maps.MapOptions = {};
-        // Options that can be set on the marker without any modification
-        const optionsToSet = ['mapId', 'zoom'];
-        optionsToSet.forEach((key) => {
-            if (typeof this.#options[key] !== 'undefined') {
-                mapOptions[key] = this.#options[key];
-            }
+    #getMapOptions(): Promise<google.maps.MapOptions> {
+        return new Promise((resolve) => {
+            const mapOptions: google.maps.MapOptions = {};
+            // Options that can be set on the marker without any modification
+            const optionsToSet = ['mapId', 'mapTypeId', 'maxZoom', 'minZoom', 'zoom'];
+            optionsToSet.forEach((key) => {
+                if (typeof this.#options[key] !== 'undefined') {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+
+            // Options that have to be converted to Google Maps objects
+            mapOptions.center = this.#options.center.toGoogle();
+            mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
+
+            // Get async map options
+            (async () => {
+                const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
+                mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                resolve(mapOptions);
+            })();
         });
-
-        // Options that have to be converted to Google Maps objects
-        mapOptions.center = this.#options.center.toGoogle();
-
-        return mapOptions;
     }
 
     /**
@@ -322,15 +518,16 @@ export class Map extends Evented {
      * @returns {LatLng}
      */
     getCenter(): LatLng {
-        let { center } = this.#options;
-        if (this.#map) {
-            const mapCenter = this.#map.getCenter();
-            center = latLng(mapCenter.lat(), mapCenter.lng());
-        }
-        if (!center.equals(this.#options.center)) {
-            this.#options.center = center;
-        }
-        return this.#options.center;
+        return this.center;
+    }
+
+    /**
+     * Gets whether the map is visible. This also means that the map library is loaded.
+     *
+     * @returns {boolean}
+     */
+    getIsVisible(): boolean {
+        return this.#isVisible;
     }
 
     /**
@@ -476,14 +673,59 @@ export class Map extends Evented {
     }
 
     /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
+     * @inheritdoc
      */
-    on(type: string, callback: EventCallback, config?: EventConfig): void {
-        this.setupEventListener(type, callback, config);
+    hasListener(type: MapEvent, callback?: EventCallback): boolean {
+        return super.hasListener(type, callback);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    off(type?: MapEvent, callback?: EventCallback, options?: EventListenerOptions): void {
+        super.off(type, callback, options);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    on(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.on(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    once(type: MapEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.once(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: MapEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.onceImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    only(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.only(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onlyOnce(type, callback, config);
     }
 
     /**
@@ -512,10 +754,46 @@ export class Map extends Evented {
         const center = latLng(latitude, longitude);
         if (center.isValid()) {
             this.#options.center = center;
+            this.#latitude = center.lat;
+            this.#longitude = center.lng;
             if (isObject(this.#map)) {
                 this.#map.setCenter(this.#options.center.toGoogle());
             }
         }
+        return this;
+    }
+
+    /**
+     * Set the latitude and longitude values and optionally update the center point.
+     *
+     * The times when you would not want to update the center point are when you are setting the latitude and longitude
+     * and you don't want to recenter the map, but you want the latitude and longitude values to be available for future
+     * times when the map may be centered.
+     *
+     * @param {number|string} latitude The latitude value
+     * @param {number|string} longitude The longitude value
+     * @param {boolean} [updateCenter] Whether to update the map center point. Defaults to true.
+     * @returns {Map}
+     */
+    setLatitudeLongitude(latitude: number | string, longitude: number | string, updateCenter: boolean = true): Map {
+        if (isNumberOrNumberString(latitude) && isNumberOrNumberString(longitude)) {
+            this.#latitude = Number(latitude);
+            this.#longitude = Number(longitude);
+            if (updateCenter) {
+                this.setCenter(this.#latitude, this.#longitude);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Set the map type ID
+     *
+     * @param {string} mapTypeId The map type ID to use for the map.
+     * @returns {Map}
+     */
+    setMapTypeId(mapTypeId: string): Map {
+        this.mapTypeId = mapTypeId;
         return this;
     }
 
@@ -539,13 +817,17 @@ export class Map extends Evented {
             } else {
                 if (isNumberOrNumberString(options.lat)) {
                     center.setLat(options.lat);
+                    this.latitude = options.lat;
                 } else if (isNumberOrNumberString(options.latitude)) {
                     center.setLat(options.latitude);
+                    this.latitude = options.latitude;
                 }
                 if (isNumberOrNumberString(options.lng)) {
                     center.setLng(options.lng);
+                    this.longitude = options.lng;
                 } else if (isNumberOrNumberString(options.longitude)) {
                     center.setLng(options.longitude);
+                    this.longitude = options.longitude;
                 }
             }
             if (center.isValid()) {
@@ -555,6 +837,18 @@ export class Map extends Evented {
                 // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
                 this.#options.mapId = options.mapId;
             }
+            if (typeof options.mapTypeControl !== 'undefined') {
+                this.mapTypeControl = options.mapTypeControl;
+            }
+            if (options.mapTypeId) {
+                this.mapTypeId = options.mapTypeId;
+            }
+            if (typeof options.maxZoom !== 'undefined') {
+                this.maxZoom = options.maxZoom;
+            }
+            if (typeof options.minZoom !== 'undefined') {
+                this.minZoom = options.minZoom;
+            }
 
             // Set the zoom level for the map
             if (options.zoom) {
@@ -562,7 +856,9 @@ export class Map extends Evented {
             }
 
             if (this.#map) {
-                this.#map.setOptions(this.#getMapOptions());
+                this.#getMapOptions().then((mapOptions) => {
+                    this.#map.setOptions(mapOptions);
+                });
             }
         }
         return this;
@@ -571,10 +867,10 @@ export class Map extends Evented {
     /**
      * Set the zoom value
      *
-     * @param {number} zoom The zoom value
+     * @param {number|string} zoom The zoom value
      * @returns {Map}
      */
-    setZoom(zoom: number): Map {
+    setZoom(zoom: number | string): Map {
         this.zoom = zoom;
         return this;
     }
@@ -615,15 +911,14 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      */
     #showMap(callback?: () => void) {
-        // Only set up the map if it hasn't been set up yet
-        if (!this.#isVisible) {
+        // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
+        if (!this.#isVisible && !this.#isGettingMapOptions) {
+            this.#isGettingMapOptions = true;
+
+            // Get the DOM element to attach the map to
             let element: HTMLElement = null;
             if (typeof this.#selector === 'string') {
-                if (this.#selector.startsWith('.')) {
-                    element = document.querySelector(this.#selector);
-                } else {
-                    element = document.getElementById(this.#selector.replace('#', ''));
-                }
+                element = document.querySelector(this.#selector);
             } else if (this.#selector instanceof HTMLElement) {
                 element = this.#selector;
             }
@@ -632,20 +927,24 @@ export class Map extends Evented {
                     'The map element could not be found. Make sure the map selector is correct and the element exists.'
                 );
             }
-            this.#map = new google.maps.Map(element, this.#getMapOptions());
-            this.setEventGoogleObject(this.#map);
-            // Dispatch the event to say that the map is visible
-            this.dispatch('visible');
-            // Dispatch the event on the loader to say that the map is fully loaded.
-            // This is done because the map is loaded after the loader's "load" event is dispatched
-            // and some objects depend on the map being loaded before they can be set up.
-            loader().dispatch('map_loaded');
 
-            // Set that the map is initialized
-            this.#isInitialized = true;
+            // Get the map options
+            this.#getMapOptions().then((mapOptions) => {
+                this.#map = new google.maps.Map(element, mapOptions);
+                this.setEventGoogleObject(this.#map);
+                // Dispatch the event to say that the map is visible
+                this.dispatch('visible');
+                // Dispatch the event on the loader to say that the map is fully loaded.
+                // This is done because the map is loaded after the loader's "load" event is dispatched
+                // and some objects depend on the map being loaded before they can be set up.
+                loader().dispatch('map_loaded');
 
-            // Set that the map is visible
-            this.#isVisible = true;
+                // Set that the map is initialized
+                this.#isInitialized = true;
+
+                // Set that the map is visible
+                this.#isVisible = true;
+            });
         }
 
         // Call the callback function if necessary

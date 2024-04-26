@@ -7,7 +7,6 @@
 
 import { Evented } from './Evented';
 import { Map } from './Map';
-import {} from './helpers';
 
 /**
  * Base class to help with drawing stuff on the map.
@@ -106,6 +105,11 @@ class Layer extends Evented {
      */
     setMap(map: Map | null) {
         this.#map = map;
+        if (map) {
+            this.isVisible = true;
+        } else {
+            this.isVisible = false;
+        }
     }
 }
 

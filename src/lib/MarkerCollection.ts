@@ -24,8 +24,7 @@ export class MarkerCollection {
     /**
      * Adds an Marker to the collection
      *
-     * @param {Marker} p The Marker object to add
-     * @param marker
+     * @param {Marker} marker The Marker object to add
      * @param {string[]} tags The tag(s) to assign the marker to
      */
     add(marker: Marker, ...tags: string[]): void {
@@ -81,8 +80,7 @@ export class MarkerCollection {
     /**
      * Remove the marker from the collection, optionally by tag.
      *
-     * @param {Marker} p The marker object to remove
-     * @param marker
+     * @param {Marker} marker The marker object to remove
      * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
      */
     remove(marker: Marker, ...tags: string[]): void {
