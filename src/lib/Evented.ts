@@ -326,7 +326,7 @@ export class Evented extends Base {
     onImmediate(type: string, callback: EventCallback, config?: EventConfig): void {
         const eventConfig = isObject(config) ? config : {};
         eventConfig.callImmediate = true;
-        this.#on(type, callback, eventConfig);
+        this.on(type, callback, eventConfig);
     }
 
     /**
