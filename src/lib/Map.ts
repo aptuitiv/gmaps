@@ -86,6 +86,15 @@ export class Map extends Evented {
      * @type {number}
      */
     #longitude: number = 0;
+
+    /**
+     * Holds if the map is getting the map options
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isGettingMapOptions: boolean = false;
+
     /**
      * Holds if the map is initialized or not
      *
@@ -902,8 +911,11 @@ export class Map extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      */
     #showMap(callback?: () => void) {
-        // Only set up the map if it hasn't been set up yet
-        if (!this.#isVisible) {
+        // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
+        if (!this.#isVisible && !this.#isGettingMapOptions) {
+            this.#isGettingMapOptions = true;
+
+            // Get the DOM element to attach the map to
             let element: HTMLElement = null;
             if (typeof this.#selector === 'string') {
                 if (this.#selector.startsWith('.')) {
@@ -919,9 +931,10 @@ export class Map extends Evented {
                     'The map element could not be found. Make sure the map selector is correct and the element exists.'
                 );
             }
+
+            // Get the map options
             this.#getMapOptions().then((mapOptions) => {
                 this.#map = new google.maps.Map(element, mapOptions);
-
                 this.setEventGoogleObject(this.#map);
                 // Dispatch the event to say that the map is visible
                 this.dispatch('visible');
