@@ -270,17 +270,12 @@ export class Popup extends Overlay {
                         this.move(e.latLng, element.getMap());
                     }
                 });
-                element.on('mousemove', (e) => {
-                    if (element instanceof Map) {
+                if (element instanceof Map) {
+                    element.on('mousemove', (e) => {
                         this.move(e.latLng, element);
-                    } else {
-                        this.move(e.latLng, element.getMap());
-                    }
-                });
+                    });
+                }
                 element.on('mouseout', () => {
-                    this.hide();
-                });
-                element.on('mouseleave', () => {
                     this.hide();
                 });
             } else if (event === 'clickon') {

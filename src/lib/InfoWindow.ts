@@ -373,14 +373,13 @@ export class InfoWindow extends Layer {
                     this.position = e.latLng;
                     this.show(element);
                 });
-                element.on('mousemove', (e) => {
-                    this.position = e.latLng;
-                    this.show(element);
-                });
+                if (element instanceof Map) {
+                    element.on('mousemove', (e) => {
+                        this.position = e.latLng;
+                        this.show(element);
+                    });
+                }
                 element.on('mouseout', () => {
-                    this.hide();
-                });
-                element.on('mouseleave', () => {
                     this.hide();
                 });
             } else if (event === 'clickon') {

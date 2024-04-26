@@ -186,14 +186,13 @@ export class Tooltip extends Overlay {
                     this.setPosition(e.latLng);
                     this.show(map);
                 });
-                element.on('mousemove', (e) => {
-                    this.setPosition(e.latLng);
-                    this.show(map);
-                });
+                if (element instanceof Map) {
+                    element.on('mousemove', (e) => {
+                        this.setPosition(e.latLng);
+                        this.show(map);
+                    });
+                }
                 element.on('mouseout', () => {
-                    this.hide();
-                });
-                element.on('mouseleave', () => {
                     this.hide();
                 });
             }
