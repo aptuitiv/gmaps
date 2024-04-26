@@ -293,7 +293,14 @@ export class Map extends Evented {
      * @returns {string}
      */
     get mapTypeId(): string {
-        return this.#options.mapTypeId ?? MapTypeId.ROADMAP;
+        let { mapTypeId } = this.#options;
+        if (this.#map) {
+            mapTypeId = this.#map.getMapTypeId();
+        }
+        if (isStringWithValue(mapTypeId) && mapTypeId !== this.#options.mapTypeId) {
+            this.#options.mapTypeId = mapTypeId;
+        }
+        return this.#options.mapTypeId;
     }
 
     /**
