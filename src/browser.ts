@@ -18,6 +18,7 @@ import { marker } from './lib/Marker';
 import { markerCluster } from './lib/MarkerCluster';
 import { markerCollection } from './lib/MarkerCollection';
 import { overlay } from './lib/Overlay';
+import { placesSearchBox } from './lib/PlacesSearchBox';
 import { point } from './lib/Point';
 import { polyline } from './lib/Polyline';
 import { polylineCollection } from './lib/PolylineCollection';
@@ -42,6 +43,7 @@ type GlobalObj = {
     markerCluster: typeof markerCluster;
     markerCollection: typeof markerCollection;
     overlay: typeof overlay;
+    placesSearchBox: typeof placesSearchBox;
     point: typeof point;
     polyline: typeof polyline;
     polylineCollection: typeof polylineCollection;
@@ -67,6 +69,7 @@ const G: GlobalObj = {
     markerCluster,
     markerCollection,
     overlay,
+    placesSearchBox,
     point,
     polyline,
     polylineCollection,

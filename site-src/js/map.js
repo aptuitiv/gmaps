@@ -47,7 +47,7 @@ const mapObject = {
 // mapObject.init();
 // mapObject.setupEvents();
 
-G.loader({ apiKey: apiKey, }).load();
+G.loader({ apiKey: apiKey, libraries: ['places'] }).load();
 
 const mapTypeControl = G.mapTypeControl({
     // mapTypeIds: [G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN],
@@ -79,6 +79,23 @@ map1.on('click', (e) => {
         e.stop();
     }
 });
+
+// Set up places search for map 1
+// const input = document.getElementById('placesSearch');
+const placesSearchBox = G.placesSearchBox();
+placesSearchBox.input = '#placesSearch';
+placesSearchBox.init().then(() => {
+    placesSearchBox.on('places_changed', () => {
+        const place = placesSearchBox.getPlace();
+        G.marker({
+            map: map1,
+            position: place.geometry.location,
+            tooltip: place.name,
+        });
+        map1.fitBounds(placesSearchBox.getPlacesBounds());
+    });
+});
+
 
 const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
 map2.show();
