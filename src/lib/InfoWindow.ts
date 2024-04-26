@@ -8,6 +8,7 @@
 /* eslint-disable no-use-before-define */
 
 import { checkForGoogleMaps, isNumber, isNumberString, isObject, isStringWithValue } from './helpers';
+import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
@@ -52,6 +53,16 @@ export type InfoWindowOptions = GMInfoWindowOptions & {
     // Whether or not clicking the thing that triggered the info window to open should also close the info window.
     toggleDisplay?: boolean;
 };
+
+// Google Maps library infowindow events
+type InfoWindowEvent =
+    | 'close'
+    | 'closeclick'
+    | 'content_changed'
+    | 'domready'
+    | 'position_changed'
+    | 'visible'
+    | 'zindex_changed';
 
 /**
  * InfoWindow class
@@ -440,6 +451,62 @@ export class InfoWindow extends Layer {
      */
     isOpen(): boolean {
         return this.#isOpen;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    hasListener(type: InfoWindowEvent, callback?: EventCallback): boolean {
+        return super.hasListener(type, callback);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    off(type?: InfoWindowEvent, callback?: EventCallback, options?: EventListenerOptions): void {
+        super.off(type, callback, options);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    on(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void {
+        super.on(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    once(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.once(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.onceImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    only(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void {
+        super.only(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onlyOnce(type, callback, config);
     }
 
     /**

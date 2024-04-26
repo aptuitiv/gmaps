@@ -8,7 +8,7 @@
 /* global google */
 /* eslint-disable no-use-before-define -- Done because the PolylineCollection is referenced before it's created */
 
-import { EventCallback, EventConfig } from './Evented';
+import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { loader } from './Loader';
@@ -22,6 +22,20 @@ import {
     isObject,
     isStringWithValue,
 } from './helpers';
+
+// Google Maps library polyline events
+type PolylineEvent =
+    | 'click'
+    | 'contextmenu'
+    | 'dblclick'
+    | 'drag'
+    | 'dragend'
+    | 'dragstart'
+    | 'mousedown'
+    | 'mousemove'
+    | 'mouseout'
+    | 'mouseover'
+    | 'mouseup';
 
 export type PolylineOptions = {
     // Whether the polyline handles click events. Defaults to true.
@@ -420,18 +434,63 @@ export class Polyline extends Layer {
     }
 
     /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
+     * @inheritdoc
      */
-    on(type: string, callback: EventCallback, config?: EventConfig): void {
+    hasListener(type: PolylineEvent, callback?: EventCallback): boolean {
+        return super.hasListener(type, callback);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    off(type?: PolylineEvent, callback?: EventCallback, options?: EventListenerOptions): void {
+        super.off(type, callback, options);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    on(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void {
         if (this.#highlightPolyline) {
             // Add the event to the highlight polyline as well
             this.#highlightPolyline.on(type, callback, config);
         }
-        this.setupEventListener(type, callback, config);
+        super.on(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    once(type: PolylineEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.once(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: PolylineEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.onceImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    only(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void {
+        super.only(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onlyOnce(type, callback, config);
     }
 
     /**

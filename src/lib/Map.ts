@@ -31,12 +31,41 @@ import {
     isStringWithValue,
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
-import { Evented, EventCallback, EventConfig } from './Evented';
+import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
+
+// Map events that are not part of the Google Maps API
+type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
+// Google Maps library map events
+type GMEvent =
+    | 'bounds_changed'
+    | 'center_changed'
+    | 'click'
+    | 'contextmenu'
+    | 'dblclick'
+    | 'drag'
+    | 'dragend'
+    | 'dragstart'
+    | 'heading_changed'
+    | 'idle'
+    | 'isfractionalzoomenabled_changed'
+    | 'mapcapabilities_changed'
+    | 'maptypeid_changed'
+    | 'mousemove'
+    | 'mouseout'
+    | 'mouseover'
+    | 'projection_changed'
+    | 'renderingtype_changed'
+    | 'tilesloaded'
+    | 'tilt_changed'
+    | 'zoom_changed';
+
+// All possible map events
+type MapEvent = GMEvent | InternalEvent;
 
 /**
  * The map class
@@ -551,14 +580,59 @@ export class Map extends Evented {
     }
 
     /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
+     * @inheritdoc
      */
-    on(type: string, callback: EventCallback, config?: EventConfig): void {
-        this.setupEventListener(type, callback, config);
+    hasListener(type: MapEvent, callback?: EventCallback): boolean {
+        return super.hasListener(type, callback);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    off(type?: MapEvent, callback?: EventCallback, options?: EventListenerOptions): void {
+        super.off(type, callback, options);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    on(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.on(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    once(type: MapEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.once(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: MapEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.onceImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    only(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.only(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onlyOnce(type, callback, config);
     }
 
     /**

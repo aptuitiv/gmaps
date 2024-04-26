@@ -9,7 +9,7 @@
 
 /* global google */
 
-import { EventCallback, EventConfig } from './Evented';
+import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { icon, Icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
@@ -74,6 +74,30 @@ export type MarkerOptions = GMMarkerOptions & {
     // The tooltip for the marker. This will show when hovering over the marker.
     tooltip?: TooltipValue;
 };
+
+// Google Maps library marker events
+type MarkerEvent =
+    | 'animation_changed'
+    | 'click'
+    | 'clickable_changed'
+    | 'contextmenu'
+    | 'cursor_changed'
+    | 'dblclick'
+    | 'drag'
+    | 'dragend'
+    | 'draggable_changed'
+    | 'dragstart'
+    | 'flat_changed'
+    | 'icon_changed'
+    | 'mousedown'
+    | 'mouseout'
+    | 'mouseover'
+    | 'mouseup'
+    | 'position_changed'
+    | 'shape_changed'
+    | 'title_changed'
+    | 'visible_changed'
+    | 'zindex_changed';
 
 /**
  * Marker class to set up a single marker and add it to the map
@@ -328,14 +352,59 @@ export class Marker extends Layer {
     }
 
     /**
-     * Add an event listener to the Google maps object
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener function
-     * @param {EventConfig} [config] Configuration for the event.
+     * @inheritdoc
      */
-    on(type: string, callback: EventCallback, config?: EventConfig): void {
-        this.setupEventListener(type, callback, config);
+    hasListener(type: MarkerEvent, callback?: EventCallback): boolean {
+        return super.hasListener(type, callback);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    off(type?: MarkerEvent, callback?: EventCallback, options?: EventListenerOptions): void {
+        super.off(type, callback, options);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    on(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void {
+        super.on(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    once(type: MarkerEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.once(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: MarkerEvent, callback?: EventCallback, config?: EventConfig): void {
+        super.onceImmediate(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    only(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void {
+        super.only(type, callback, config);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void {
+        super.onlyOnce(type, callback, config);
     }
 
     /**
