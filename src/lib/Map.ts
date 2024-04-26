@@ -513,6 +513,15 @@ export class Map extends Evented {
     }
 
     /**
+     * Gets whether the map is visible. This also means that the map library is loaded.
+     *
+     * @returns {boolean}
+     */
+    getIsVisible(): boolean {
+        return this.#isVisible;
+    }
+
+    /**
      * Gets the current projection for the map.
      *
      * If the map is not yet initialized, this will return undefined.
