@@ -167,23 +167,18 @@ export class Polyline extends Layer {
                 this.#highlightPolyline.setMap(this.getMap());
 
                 // Set the hover events on this polyline to show and hide the highlight polyline.
-                // Use setupEventListener instead of "on" so that this isn't added to the highlight polyline.
-                this.setupEventListener('mouseover', () => {
+                // Use super.on instead of "on" so that this isn't added to the highlight polyline.
+                super.on('mouseover', () => {
                     if (!this.#isHighlighted) {
                         this.#highlightPolyline.visible = true;
                     }
                 });
-                this.setupEventListener('mousemove', () => {
+                super.on('mousemove', () => {
                     if (!this.#isHighlighted) {
                         this.#highlightPolyline.visible = true;
                     }
                 });
-                this.setupEventListener('mouseout', () => {
-                    if (!this.#isHighlighted) {
-                        this.#highlightPolyline.visible = false;
-                    }
-                });
-                this.setupEventListener('mouseleave', () => {
+                super.on('mouseout', () => {
                     if (!this.#isHighlighted) {
                         this.#highlightPolyline.visible = false;
                     }
