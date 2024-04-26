@@ -9,7 +9,7 @@ const mapObject = {
     apiKey: apiKey,
     center: { latitude: 48.864716, longitude: 2.3522 },
     zoom: 11,
-    mapContainer: 'map1',
+    mapContainer: '#map1',
     init: function () {
         this.map = G.map(this.mapContainer, { center: this.center, zoom: this.zoom, apiKey: this.apiKey });
         this.map.load();
@@ -56,7 +56,7 @@ const mapTypeControl = G.mapTypeControl({
 });
 // mapTypeControl.setMapTypeIds([G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN]);
 
-const map1 = G.map('map1', {
+const map1 = G.map('#map1', {
     center: [40.7128, -74.0060],
     mapTypeControl: mapTypeControl,
     maxZoom: 12,
@@ -119,7 +119,7 @@ function getMapData() {
     console.log('Map 1 center: ', map1.getCenter());
 }
 
-// const map = G.map('map1', {
+// const map = G.map('#map1', {
 //     apiKey: apiKey,
 //     center: { lat: 36.224, lng: -81.688 },
 //     zoom: 11
@@ -141,7 +141,7 @@ function getMapData() {
 // });
 
 
-// const map2 = G.map('map2');
+// const map2 = G.map('#map2');
 
 // map2.show(() => {
 //     console.log('Displayd xs 2')

@@ -11,7 +11,7 @@ function randomNumber(min, max) {
 /* TEST 1  */
 G.loader().setApiKey(apiKey).load();
 
-// const map = G.map('map1', {
+// const map = G.map('#map1', {
 //     latitude: 40.730610,
 //     longitude: -73.935242,
 //     zoom: 8
@@ -25,7 +25,7 @@ G.loader().setApiKey(apiKey).load();
 // });
 
 /* TEST 2 */
-const map = G.map('map1', { center: { latitude: 48.864716, longitude: 2.3522 } });
+const map = G.map('#map1', { center: { latitude: 48.864716, longitude: 2.3522 } });
 map.show().then(() => {
     // Dispatch a custom event
     marker.dispatch('custom', { data: 'test' });
@@ -65,7 +65,7 @@ marker.on('click', otherCallback);
 // loader.on('load', () => { console.log('loaded event'); });
 // loader.on('map_loaded', () => { console.log('map loaded event'); });
 // loader.load();
-// const map = G.map('map1', {
+// const map = G.map('#map1', {
 //     apiKey: apiKey,
 //     center: { lat: 36.224, lng: -81.688 },
 // });

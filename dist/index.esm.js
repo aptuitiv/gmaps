@@ -2750,7 +2750,7 @@ var Map = class extends Evented {
    * Class constructor
    *
    * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-   *      The selector can be a class name, an id, or an HTML element. If you need something beyond an id or class name as the selector then pass the element itself.
+   *      The selector can be any valid selector for document.querySelector() can be used. Or, it can be an HTML element
    * @param {MapOptions} [options] The options object for the map
    */
   constructor(selector, options) {
@@ -3547,11 +3547,7 @@ showMap_fn = function(callback) {
     __privateSet(this, _isGettingMapOptions, true);
     let element = null;
     if (typeof __privateGet(this, _selector) === "string") {
-      if (__privateGet(this, _selector).startsWith(".")) {
-        element = document.querySelector(__privateGet(this, _selector));
-      } else {
-        element = document.getElementById(__privateGet(this, _selector).replace("#", ""));
-      }
+      element = document.querySelector(__privateGet(this, _selector));
     } else if (__privateGet(this, _selector) instanceof HTMLElement) {
       element = __privateGet(this, _selector);
     }
