@@ -86,7 +86,7 @@ export class LatLngBounds extends Base {
         if (Array.isArray(latLngValue)) {
             // Don't throw an error if the array is empty
             if (latLngValue.length > 0) {
-                if (Array.isArray(latLngValue[0])) {
+                if (latLng(latLngValue[0]).isValid()) {
                     // The value is likely an array of LatLngValues.
                     const value = latLngValue as LatLngValue[];
                     value.forEach((latLngVal: LatLngValue) => {
