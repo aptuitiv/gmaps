@@ -46,8 +46,11 @@ export class MarkerCollection {
 
     /**
      * Clears the collection
+     *
+     * This also hides all the markers in the collection.
      */
     clear(): void {
+        this.hideAll();
         this.markers = {};
     }
 

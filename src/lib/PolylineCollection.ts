@@ -45,8 +45,11 @@ export class PolylineCollection {
 
     /**
      * Clears the collection
+     *
+     * This also hides all the polylines in the collection.
      */
     clear(): void {
+        this.hideAll();
         this.polylines = {};
     }
 
