@@ -72,6 +72,14 @@ type MapEvent = GMEvent | InternalEvent;
  */
 export class Map extends Evented {
     /**
+     * The bounds to fit the map to
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    #bounds: LatLngBounds;
+
+    /**
      * Holds the latitude portion of the center point for the map
      *
      * @private
@@ -406,6 +414,30 @@ export class Map extends Evented {
     }
 
     /**
+     * Add a value to the map bounds
+     *
+     * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
+     * @returns {Map}
+     */
+    addToBounds(value: LatLngValue | LatLngValue[]): Map {
+        if (!this.#bounds) {
+            this.#bounds = latLngBounds();
+        }
+        this.#bounds.extend(value);
+        return this;
+    }
+
+    /**
+     * Clear the existing bounds
+     *
+     * @returns {Map}
+     */
+    clearBounds(): Map {
+        this.#bounds = latLngBounds();
+        return this;
+    }
+
+    /**
      * Show the map
      *
      * Alias to show()
@@ -437,11 +469,12 @@ export class Map extends Evented {
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @returns {Map}
      */
-    fitBounds(bounds: LatLngBoundsValue): Map {
-        if (bounds instanceof LatLngBounds) {
-            this.#map.fitBounds(bounds.toGoogle());
+    fitBounds(bounds?: LatLngBoundsValue): Map {
+        if (bounds) {
+            this.#map.fitBounds(latLngBounds(bounds).toGoogle());
+        } else if (this.#bounds) {
+            this.#map.fitBounds(this.#bounds.toGoogle());
         }
-        this.#map.fitBounds(latLngBounds(bounds).toGoogle());
         return this;
     }
 
