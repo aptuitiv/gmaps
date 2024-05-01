@@ -125,6 +125,9 @@ export class Polyline extends Layer {
     set clickable(value: boolean) {
         if (typeof value === 'boolean') {
             this.#options.clickable = value;
+            if (this.#polyline) {
+                this.#polyline.setOptions({ clickable: value });
+            }
         }
     }
 
@@ -280,6 +283,9 @@ export class Polyline extends Layer {
     set strokeColor(value: string) {
         if (isStringWithValue(value)) {
             this.#options.strokeColor = value;
+            if (this.#polyline) {
+                this.#polyline.setOptions({ strokeColor: value });
+            }
         }
     }
 
@@ -299,10 +305,15 @@ export class Polyline extends Layer {
      * @param {number|string} value The opacity of the stroke.
      */
     set strokeOpacity(value: number | string) {
-        if (isNumber(value)) {
-            this.#options.strokeOpacity = value;
-        } else if (isNumberString(value)) {
-            this.#options.strokeOpacity = Number(value);
+        if (isNumberOrNumberString(value)) {
+            if (isNumber(value)) {
+                this.#options.strokeOpacity = value;
+            } else if (isNumberString(value)) {
+                this.#options.strokeOpacity = Number(value);
+            }
+            if (this.#polyline) {
+                this.#polyline.setOptions({ strokeOpacity: Number(value) });
+            }
         }
     }
 
@@ -321,10 +332,15 @@ export class Polyline extends Layer {
      * @param {number|string} value The weight of the stroke.
      */
     set strokeWeight(value: number | string) {
-        if (isNumber(value)) {
-            this.#options.strokeWeight = value;
-        } else if (isNumberString(value)) {
-            this.#options.strokeWeight = Number(value);
+        if (isNumberOrNumberString(value)) {
+            if (isNumber(value)) {
+                this.#options.strokeWeight = value;
+            } else if (isNumberString(value)) {
+                this.#options.strokeWeight = Number(value);
+            }
+            if (this.#polyline) {
+                this.#polyline.setOptions({ strokeWeight: Number(value) });
+            }
         }
     }
 
@@ -367,10 +383,15 @@ export class Polyline extends Layer {
      * @param {number|string} value The zIndex of the polyline.
      */
     set zIndex(value: number | string) {
-        if (isNumber(value)) {
-            this.#options.zIndex = value;
-        } else if (isNumberString(value)) {
-            this.#options.zIndex = Number(value);
+        if (isNumberOrNumberString(value)) {
+            if (isNumber(value)) {
+                this.#options.zIndex = value;
+            } else if (isNumberString(value)) {
+                this.#options.zIndex = Number(value);
+            }
+            if (this.#polyline) {
+                this.#polyline.setOptions({ zIndex: Number(value) });
+            }
         }
     }
 
