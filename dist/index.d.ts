@@ -109,113 +109,113 @@ declare const ControlPosition: Readonly<{
     /**
      * Equivalent to BOTTOM_CENTER in both LTR and RTL.
      */
-    BLOCK_END_INLINE_CENTER: '0.0';
+    BLOCK_END_INLINE_CENTER: "0.0";
     /**
      * Equivalent to BOTTOM_RIGHT in LTR, or BOTTOM_LEFT in RTL.
      */
-    BLOCK_END_INLINE_END: '1.0';
+    BLOCK_END_INLINE_END: "1.0";
     /**
      * Equivalent to BOTTOM_LEFT in LTR, or BOTTOM_RIGHT in RTL.
      */
-    BLOCK_END_INLINE_START: '2.0';
+    BLOCK_END_INLINE_START: "2.0";
     /**
      * Equivalent to TOP_CENTER in both LTR and RTL.
      */
-    BLOCK_START_INLINE_CENTER: '3.0';
+    BLOCK_START_INLINE_CENTER: "3.0";
     /**
      * Equivalent to TOP_RIGHT in LTR, or TOP_LEFT in RTL.
      */
-    BLOCK_START_INLINE_END: '4.0';
+    BLOCK_START_INLINE_END: "4.0";
     /**
      * Equivalent to TOP_LEFT in LTR, or TOP_RIGHT in RTL.
      */
-    BLOCK_START_INLINE_START: '5.0';
+    BLOCK_START_INLINE_START: "5.0";
     /**
      * Elements are positioned in the center of the bottom row. Consider using
      * BLOCK_END_INLINE_CENTER instead.
      */
-    BOTTOM_CENTER: '6.0';
+    BOTTOM_CENTER: "6.0";
     /**
      * Elements are positioned in the bottom left and flow towards the middle.
      * Elements are positioned to the right of the Google logo. Consider using
      * BLOCK_END_INLINE_START instead.
      */
-    BOTTOM_LEFT: '7.0';
+    BOTTOM_LEFT: "7.0";
     /**
      * Elements are positioned in the bottom right and flow towards the middle.
      * Elements are positioned to the left of the copyrights. Consider using
      * BLOCK_END_INLINE_END instead.
      */
-    BOTTOM_RIGHT: '8.0';
+    BOTTOM_RIGHT: "8.0";
     /**
      * Equivalent to RIGHT_CENTER in LTR, or LEFT_CENTER in RTL.
      */
-    INLINE_END_BLOCK_CENTER: '9.0';
+    INLINE_END_BLOCK_CENTER: "9.0";
     /**
      * Equivalent to RIGHT_BOTTOM in LTR, or LEFT_BOTTOM in RTL.
      */
-    INLINE_END_BLOCK_END: '10.0';
+    INLINE_END_BLOCK_END: "10.0";
     /**
      * Equivalent to RIGHT_TOP in LTR, or LEFT_TOP in RTL.
      */
-    INLINE_END_BLOCK_START: '11.0';
+    INLINE_END_BLOCK_START: "11.0";
     /**
      * Equivalent to LEFT_CENTER in LTR, or RIGHT_CENTER in RTL.
      */
-    INLINE_START_BLOCK_CENTER: '12.0';
+    INLINE_START_BLOCK_CENTER: "12.0";
     /**
      * Equivalent to LEFT_BOTTOM in LTR, or RIGHT_BOTTOM in RTL.
      */
-    INLINE_START_BLOCK_END: '13.0';
+    INLINE_START_BLOCK_END: "13.0";
     /**
      * Equivalent to LEFT_TOP in LTR, or RIGHT_TOP in RTL.
      */
-    INLINE_START_BLOCK_START: '14.0';
+    INLINE_START_BLOCK_START: "14.0";
     /**
      * Elements are positioned on the left, above bottom-left elements, and flow
      * upwards. Consider using INLINE_START_BLOCK_END instead.
      */
-    LEFT_BOTTOM: '15.0';
+    LEFT_BOTTOM: "15.0";
     /**
      * Elements are positioned in the center of the left side. Consider using
      * INLINE_START_BLOCK_CENTER instead.
      */
-    LEFT_CENTER: '16.0';
+    LEFT_CENTER: "16.0";
     /**
      * Elements are positioned on the left, below top-left elements, and flow
      * downwards. Consider using INLINE_START_BLOCK_START instead.
      */
-    LEFT_TOP: '17.0';
+    LEFT_TOP: "17.0";
     /**
      * Elements are positioned on the right, above bottom-right elements, and
      * flow upwards. Consider using INLINE_END_BLOCK_END instead.
      */
-    RIGHT_BOTTOM: '18.0';
+    RIGHT_BOTTOM: "18.0";
     /**
      * Elements are positioned in the center of the right side. Consider using
      * INLINE_END_BLOCK_CENTER instead.
      */
-    RIGHT_CENTER: '19.0';
+    RIGHT_CENTER: "19.0";
     /**
      * Elements are positioned on the right, below top-right elements, and flow
      * downwards. Consider using INLINE_END_BLOCK_START instead.
      */
-    RIGHT_TOP: '20.0';
+    RIGHT_TOP: "20.0";
     /**
      * Elements are positioned in the center of the top row. Consider using
      * BLOCK_START_INLINE_CENTER instead.
      */
-    TOP_CENTER: '21.0';
+    TOP_CENTER: "21.0";
     /**
      * Elements are positioned in the top left and flow towards the middle.
      * Consider using BLOCK_START_INLINE_START instead.
      */
-    TOP_LEFT: '22.0';
+    TOP_LEFT: "22.0";
     /**
      * Elements are positioned in the top right and flow towards the middle.
      * Consider using BLOCK_START_INLINE_END instead.
      */
-    TOP_RIGHT: '23.0';
+    TOP_RIGHT: "23.0";
 }>;
 type ControlPositionValue = (typeof ControlPosition)[keyof typeof ControlPosition];
 /**
@@ -239,15 +239,15 @@ declare const MapTypeControlStyle: Readonly<{
      * is shown, it will vary according to window size and other factors. The
      * <code>DEFAULT</code> control may change in future versions of the API.
      */
-    DEFAULT: '0.0';
+    DEFAULT: "0.0";
     /**
      * A dropdown menu for the screen realestate conscious.
      */
-    DROPDOWN_MENU: '1.0';
+    DROPDOWN_MENU: "1.0";
     /**
      * The standard horizontal radio buttons bar.
      */
-    HORIZONTAL_BAR: '2.0';
+    HORIZONTAL_BAR: "2.0";
 }>;
 type MapTypeControlStyleValue = (typeof MapTypeControlStyle)[keyof typeof MapTypeControlStyle];
 /**
@@ -270,20 +270,20 @@ declare const MapTypeId: Readonly<{
      * This map type displays a transparent layer of major streets on satellite
      * images.
      */
-    HYBRID: 'hybrid';
+    HYBRID: "hybrid";
     /**
      * This map type displays a normal street map.
      */
-    ROADMAP: 'roadmap';
+    ROADMAP: "roadmap";
     /**
      * This map type displays satellite images.
      */
-    SATELLITE: 'satellite';
+    SATELLITE: "satellite";
     /**
      * This map type displays maps with physical features such as terrain and
      * vegetation.
      */
-    TERRAIN: 'terrain';
+    TERRAIN: "terrain";
 }>;
 type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
 
@@ -1499,28 +1499,7 @@ type LocationOnSuccess = (position: LocationPosition) => void;
 
 type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
-type GMEvent =
-    | 'bounds_changed'
-    | 'center_changed'
-    | 'click'
-    | 'contextmenu'
-    | 'dblclick'
-    | 'drag'
-    | 'dragend'
-    | 'dragstart'
-    | 'heading_changed'
-    | 'idle'
-    | 'isfractionalzoomenabled_changed'
-    | 'mapcapabilities_changed'
-    | 'maptypeid_changed'
-    | 'mousemove'
-    | 'mouseout'
-    | 'mouseover'
-    | 'projection_changed'
-    | 'renderingtype_changed'
-    | 'tilesloaded'
-    | 'tilt_changed'
-    | 'zoom_changed';
+type GMEvent = 'bounds_changed' | 'center_changed' | 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'heading_changed' | 'idle' | 'isfractionalzoomenabled_changed' | 'mapcapabilities_changed' | 'maptypeid_changed' | 'mousemove' | 'mouseout' | 'mouseover' | 'projection_changed' | 'renderingtype_changed' | 'tilesloaded' | 'tilt_changed' | 'zoom_changed';
 type MapEvent = GMEvent | InternalEvent;
 /**
  * The map class
@@ -1631,6 +1610,14 @@ declare class Map extends Evented {
      * @param {number|string} value The zoom level
      */
     set zoom(value: number | string);
+    /**
+     * Adds a custom control to the map
+     *
+     * @param {ControlPositionValue} position The position to add the custom control
+     * @param {HTMLElement} element The HTML element for the custom control
+     * @returns {Map}
+     */
+    addCustomControl(position: ControlPositionValue, element: HTMLElement): Map;
     /**
      * Add a value to the map bounds
      *
@@ -1953,14 +1940,7 @@ type InfoWindowOptions = GMInfoWindowOptions & {
     position?: LatLngValue;
     toggleDisplay?: boolean;
 };
-type InfoWindowEvent =
-    | 'close'
-    | 'closeclick'
-    | 'content_changed'
-    | 'domready'
-    | 'position_changed'
-    | 'visible'
-    | 'zindex_changed';
+type InfoWindowEvent = 'close' | 'closeclick' | 'content_changed' | 'domready' | 'position_changed' | 'visible' | 'zindex_changed';
 /**
  * InfoWindow class
  */
@@ -2995,28 +2975,7 @@ type MarkerOptions = GMMarkerOptions & {
     svgIcon?: SvgSymbolValue | string;
     tooltip?: TooltipValue;
 };
-type MarkerEvent =
-    | 'animation_changed'
-    | 'click'
-    | 'clickable_changed'
-    | 'contextmenu'
-    | 'cursor_changed'
-    | 'dblclick'
-    | 'drag'
-    | 'dragend'
-    | 'draggable_changed'
-    | 'dragstart'
-    | 'flat_changed'
-    | 'icon_changed'
-    | 'mousedown'
-    | 'mouseout'
-    | 'mouseover'
-    | 'mouseup'
-    | 'position_changed'
-    | 'shape_changed'
-    | 'title_changed'
-    | 'visible_changed'
-    | 'zindex_changed';
+type MarkerEvent = 'animation_changed' | 'click' | 'clickable_changed' | 'contextmenu' | 'cursor_changed' | 'dblclick' | 'drag' | 'dragend' | 'draggable_changed' | 'dragstart' | 'flat_changed' | 'icon_changed' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'position_changed' | 'shape_changed' | 'title_changed' | 'visible_changed' | 'zindex_changed';
 /**
  * Marker class to set up a single marker and add it to the map
  */
@@ -3569,11 +3528,7 @@ declare class MarkerCluster extends Base {
  * @param {MarkerClusterOptions} [options] Options for the marker clusterer
  * @returns {MarkerCluster}
  */
-declare const markerCluster: (
-    map: Map,
-    markers?: MarkerClusterOptions | Marker[],
-    options?: MarkerClusterOptions
-) => MarkerCluster;
+declare const markerCluster: (map: Map, markers?: MarkerClusterOptions | Marker[], options?: MarkerClusterOptions) => MarkerCluster;
 
 type MarkersByTag = {
     [key: string]: Set<Marker>;
@@ -3789,18 +3744,7 @@ type PlacesSearchBoxValue = HTMLInputElement | string | PlacesSearchBox | Places
  */
 declare const placesSearchBox: (input?: PlacesSearchBoxValue, options?: PlacesSearchBoxOptions) => PlacesSearchBox;
 
-type PolylineEvent =
-    | 'click'
-    | 'contextmenu'
-    | 'dblclick'
-    | 'drag'
-    | 'dragend'
-    | 'dragstart'
-    | 'mousedown'
-    | 'mousemove'
-    | 'mouseout'
-    | 'mouseover'
-    | 'mouseup';
+type PolylineEvent = 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'mousedown' | 'mousemove' | 'mouseout' | 'mouseover' | 'mouseup';
 type PolylineOptions = {
     clickable?: boolean;
     highlightPolyline?: PolylineOptions | Polyline;
@@ -4372,113 +4316,4 @@ type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
  */
 declare const popup: (options?: PopupValue) => Popup;
 
-export {
-    Base,
-    ControlPosition,
-    type ControlPositionValue,
-    type DefaultRenderOptions,
-    type Event,
-    type EventCallback,
-    type EventConfig,
-    type EventListenerOptions,
-    Evented,
-    Icon,
-    type IconOptions,
-    type IconValue,
-    type ImageRendererOptions,
-    InfoWindow,
-    type InfoWindowOptions,
-    type InfoWindowValue,
-    LatLng,
-    LatLngBounds,
-    type LatLngBoundsValue,
-    type LatLngLiteral,
-    type LatLngLiteralExpanded,
-    type LatLngValue,
-    Layer,
-    Loader,
-    type LoaderOptions,
-    type LocateOptions,
-    type LocationOnSuccess,
-    type LocationPosition,
-    Map,
-    type MapOptions,
-    type MapType,
-    MapTypeControl,
-    type MapTypeControlOptions,
-    MapTypeControlStyle,
-    type MapTypeControlStyleValue,
-    MapTypeId,
-    type MapTypeIdValue,
-    Marker,
-    MarkerCluster,
-    type MarkerClusterOptions,
-    MarkerCollection,
-    type MarkerLabel,
-    type MarkerOptions,
-    type MarkerValue,
-    Overlay,
-    PlacesSearchBox,
-    type PlacesSearchBoxOptions,
-    type PlacesSearchBoxValue,
-    Point,
-    type PointObject,
-    type PointValue,
-    Polyline,
-    PolylineCollection,
-    type PolylineOptions,
-    type PolylineValue,
-    Popup,
-    type PopupOptions,
-    type PopupValue,
-    Size,
-    type SizeObject,
-    type SizeValue,
-    SvgSymbol,
-    type SvgSymbolOptions,
-    type SvgSymbolValue,
-    Tooltip,
-    type TooltipOptions,
-    type TooltipValue,
-    callCallback,
-    checkForGoogleMaps,
-    convertControlPosition,
-    convertMapTypeControlStyle,
-    getBoolean,
-    getNumber,
-    getPixelsFromLatLng,
-    icon,
-    infoWindow,
-    isBoolean,
-    isFunction,
-    isNull,
-    isNullOrUndefined,
-    isNumber,
-    isNumberOrNumberString,
-    isNumberString,
-    isObject,
-    isObjectWithValues,
-    isPromise,
-    isString,
-    isStringOrNumber,
-    isStringWithValue,
-    isUndefined,
-    latLng,
-    latLngBounds,
-    loader,
-    map,
-    mapTypeControl,
-    marker,
-    markerCluster,
-    markerCollection,
-    objectEquals,
-    overlay,
-    placesSearchBox,
-    point,
-    polyline,
-    polylineCollection,
-    popup,
-    size,
-    svgSymbol,
-    tooltip,
-};
+export { Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, callCallback, checkForGoogleMaps, convertControlPosition, convertMapTypeControlStyle, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };

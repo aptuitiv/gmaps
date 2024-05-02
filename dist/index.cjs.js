@@ -2831,7 +2831,7 @@ var mapTypeControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds2, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds2, _customControls, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -2872,6 +2872,13 @@ var Map = class extends Evented {
      * @type {LatLngBounds}
      */
     __privateAdd(this, _bounds2, void 0);
+    /**
+     * Holds the custom controls that need to be added to the map
+     *
+     * @private
+     * @type {CustomControl[]}
+     */
+    __privateAdd(this, _customControls, []);
     /**
      * Holds the latitude portion of the center point for the map
      *
@@ -3165,6 +3172,21 @@ var Map = class extends Evented {
     if (__privateGet(this, _map2)) {
       __privateGet(this, _map2).setZoom(Number(value));
     }
+  }
+  /**
+   * Adds a custom control to the map
+   *
+   * @param {ControlPositionValue} position The position to add the custom control
+   * @param {HTMLElement} element The HTML element for the custom control
+   * @returns {Map}
+   */
+  addCustomControl(position, element) {
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _map2).controls[convertControlPosition(position)].push(element);
+    } else {
+      __privateGet(this, _customControls).push({ position, element });
+    }
+    return this;
   }
   /**
    * Add a value to the map bounds
@@ -3618,6 +3640,7 @@ var Map = class extends Evented {
   }
 };
 _bounds2 = new WeakMap();
+_customControls = new WeakMap();
 _latitude2 = new WeakMap();
 _longitude2 = new WeakMap();
 _isGettingMapOptions = new WeakMap();
@@ -3677,6 +3700,12 @@ showMap_fn = function(callback) {
     __privateMethod(this, _getMapOptions, getMapOptions_fn).call(this).then((mapOptions) => {
       __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
       this.setEventGoogleObject(__privateGet(this, _map2));
+      if (__privateGet(this, _customControls).length > 0) {
+        __privateGet(this, _customControls).forEach((control) => {
+          __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
+        });
+      }
+      __privateSet(this, _customControls, []);
       this.dispatch("visible");
       loader().dispatch("map_loaded");
       __privateSet(this, _isInitialized, true);

@@ -1611,6 +1611,14 @@ declare class Map extends Evented {
      */
     set zoom(value: number | string);
     /**
+     * Adds a custom control to the map
+     *
+     * @param {ControlPositionValue} position The position to add the custom control
+     * @param {HTMLElement} element The HTML element for the custom control
+     * @returns {Map}
+     */
+    addCustomControl(position: ControlPositionValue, element: HTMLElement): Map;
+    /**
      * Add a value to the map bounds
      *
      * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
