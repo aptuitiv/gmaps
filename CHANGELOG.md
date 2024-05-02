@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 (May 1, 2024)
+
+- Minor bug fixes.
+- Added support for setting the map bounds on the map object.
+- Added tooltip option to the Polyline object.
+
 ## 0.7.0 (April 26, 2024)
 
 - Added support for using the library in nodejs.

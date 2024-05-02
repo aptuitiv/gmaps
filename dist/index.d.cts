@@ -1611,6 +1611,19 @@ declare class Map extends Evented {
      */
     set zoom(value: number | string);
     /**
+     * Add a value to the map bounds
+     *
+     * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
+     * @returns {Map}
+     */
+    addToBounds(value: LatLngValue | LatLngValue[]): Map;
+    /**
+     * Clear the existing bounds
+     *
+     * @returns {Map}
+     */
+    clearBounds(): Map;
+    /**
      * Show the map
      *
      * Alias to show()
@@ -1639,7 +1652,7 @@ declare class Map extends Evented {
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @returns {Map}
      */
-    fitBounds(bounds: LatLngBoundsValue): Map;
+    fitBounds(bounds?: LatLngBoundsValue): Map;
     /**
      * Initialize the map if necessary
      *
@@ -3530,6 +3543,8 @@ declare class MarkerCollection {
     add(marker: Marker, ...tags: string[]): void;
     /**
      * Clears the collection
+     *
+     * This also hides all the markers in the collection.
      */
     clear(): void;
     /**
@@ -3730,6 +3745,7 @@ type PolylineOptions = {
     strokeColor?: string;
     strokeOpacity?: number;
     strokeWeight?: number;
+    tooltip?: TooltipValue;
     visible?: boolean;
     zIndex?: number;
 };
@@ -4037,6 +4053,8 @@ declare class PolylineCollection {
     add(p: Polyline, ...tags: string[]): void;
     /**
      * Clears the collection
+     *
+     * This also hides all the polylines in the collection.
      */
     clear(): void;
     /**

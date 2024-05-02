@@ -2362,7 +2362,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
   extend(latLngValue) {
     if (Array.isArray(latLngValue)) {
       if (latLngValue.length > 0) {
-        if (Array.isArray(latLngValue[0])) {
+        if (latLng(latLngValue[0]).isValid()) {
           const value = latLngValue;
           value.forEach((latLngVal) => {
             this.extend(latLngVal);
@@ -2831,7 +2831,7 @@ var mapTypeControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds2, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -2865,6 +2865,13 @@ var Map = class extends Evented {
      * @param {Function} callback The callback function to call after the map loads
      */
     __privateAdd(this, _showMap);
+    /**
+     * The bounds to fit the map to
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _bounds2, void 0);
     /**
      * Holds the latitude portion of the center point for the map
      *
@@ -3160,6 +3167,28 @@ var Map = class extends Evented {
     }
   }
   /**
+   * Add a value to the map bounds
+   *
+   * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
+   * @returns {Map}
+   */
+  addToBounds(value) {
+    if (!__privateGet(this, _bounds2)) {
+      __privateSet(this, _bounds2, latLngBounds());
+    }
+    __privateGet(this, _bounds2).extend(value);
+    return this;
+  }
+  /**
+   * Clear the existing bounds
+   *
+   * @returns {Map}
+   */
+  clearBounds() {
+    __privateSet(this, _bounds2, latLngBounds());
+    return this;
+  }
+  /**
    * Show the map
    *
    * Alias to show()
@@ -3191,10 +3220,11 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   fitBounds(bounds) {
-    if (bounds instanceof LatLngBounds) {
-      __privateGet(this, _map2).fitBounds(bounds.toGoogle());
+    if (bounds) {
+      __privateGet(this, _map2).fitBounds(latLngBounds(bounds).toGoogle());
+    } else if (__privateGet(this, _bounds2)) {
+      __privateGet(this, _map2).fitBounds(__privateGet(this, _bounds2).toGoogle());
     }
-    __privateGet(this, _map2).fitBounds(latLngBounds(bounds).toGoogle());
     return this;
   }
   /**
@@ -3587,6 +3617,7 @@ var Map = class extends Evented {
     return __privateGet(this, _map2);
   }
 };
+_bounds2 = new WeakMap();
 _latitude2 = new WeakMap();
 _longitude2 = new WeakMap();
 _isGettingMapOptions = new WeakMap();
@@ -6361,8 +6392,11 @@ var MarkerCollection = class {
   }
   /**
    * Clears the collection
+   *
+   * This also hides all the markers in the collection.
    */
   clear() {
+    this.hideAll();
     this.markers = {};
   }
   /**
@@ -7347,6 +7381,9 @@ var _Polyline = class _Polyline extends Layer_default {
   set clickable(value) {
     if (typeof value === "boolean") {
       __privateGet(this, _options7).clickable = value;
+      if (__privateGet(this, _polyline)) {
+        __privateGet(this, _polyline).setOptions({ clickable: value });
+      }
     }
   }
   /**
@@ -7473,6 +7510,9 @@ var _Polyline = class _Polyline extends Layer_default {
   set strokeColor(value) {
     if (isStringWithValue(value)) {
       __privateGet(this, _options7).strokeColor = value;
+      if (__privateGet(this, _polyline)) {
+        __privateGet(this, _polyline).setOptions({ strokeColor: value });
+      }
     }
   }
   /**
@@ -7490,10 +7530,15 @@ var _Polyline = class _Polyline extends Layer_default {
    * @param {number|string} value The opacity of the stroke.
    */
   set strokeOpacity(value) {
-    if (isNumber(value)) {
-      __privateGet(this, _options7).strokeOpacity = value;
-    } else if (isNumberString(value)) {
-      __privateGet(this, _options7).strokeOpacity = Number(value);
+    if (isNumberOrNumberString(value)) {
+      if (isNumber(value)) {
+        __privateGet(this, _options7).strokeOpacity = value;
+      } else if (isNumberString(value)) {
+        __privateGet(this, _options7).strokeOpacity = Number(value);
+      }
+      if (__privateGet(this, _polyline)) {
+        __privateGet(this, _polyline).setOptions({ strokeOpacity: Number(value) });
+      }
     }
   }
   /**
@@ -7510,10 +7555,15 @@ var _Polyline = class _Polyline extends Layer_default {
    * @param {number|string} value The weight of the stroke.
    */
   set strokeWeight(value) {
-    if (isNumber(value)) {
-      __privateGet(this, _options7).strokeWeight = value;
-    } else if (isNumberString(value)) {
-      __privateGet(this, _options7).strokeWeight = Number(value);
+    if (isNumberOrNumberString(value)) {
+      if (isNumber(value)) {
+        __privateGet(this, _options7).strokeWeight = value;
+      } else if (isNumberString(value)) {
+        __privateGet(this, _options7).strokeWeight = Number(value);
+      }
+      if (__privateGet(this, _polyline)) {
+        __privateGet(this, _polyline).setOptions({ strokeWeight: Number(value) });
+      }
     }
   }
   /**
@@ -7552,10 +7602,15 @@ var _Polyline = class _Polyline extends Layer_default {
    * @param {number|string} value The zIndex of the polyline.
    */
   set zIndex(value) {
-    if (isNumber(value)) {
-      __privateGet(this, _options7).zIndex = value;
-    } else if (isNumberString(value)) {
-      __privateGet(this, _options7).zIndex = Number(value);
+    if (isNumberOrNumberString(value)) {
+      if (isNumber(value)) {
+        __privateGet(this, _options7).zIndex = value;
+      } else if (isNumberString(value)) {
+        __privateGet(this, _options7).zIndex = Number(value);
+      }
+      if (__privateGet(this, _polyline)) {
+        __privateGet(this, _polyline).setOptions({ zIndex: Number(value) });
+      }
     }
   }
   /**
@@ -7731,6 +7786,9 @@ var _Polyline = class _Polyline extends Layer_default {
       }
       if (isNumberOrNumberString(options.zIndex)) {
         this.zIndex = options.zIndex;
+      }
+      if (options.tooltip) {
+        this.attachTooltip(options.tooltip);
       }
       if (options.highlightPolyline) {
         this.setHighlightPolyline(options.highlightPolyline);
@@ -7944,8 +8002,11 @@ var PolylineCollection = class {
   }
   /**
    * Clears the collection
+   *
+   * This also hides all the polylines in the collection.
    */
   clear() {
+    this.hideAll();
     this.polylines = {};
   }
   /**
