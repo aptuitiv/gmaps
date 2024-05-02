@@ -3745,6 +3745,7 @@ type PolylineOptions = {
     strokeColor?: string;
     strokeOpacity?: number;
     strokeWeight?: number;
+    tooltip?: TooltipValue;
     visible?: boolean;
     zIndex?: number;
 };

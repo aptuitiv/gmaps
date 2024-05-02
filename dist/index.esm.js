@@ -7705,6 +7705,9 @@ var _Polyline = class _Polyline extends Layer_default {
       if (isNumberOrNumberString(options.zIndex)) {
         this.zIndex = options.zIndex;
       }
+      if (options.tooltip) {
+        this.attachTooltip(options.tooltip);
+      }
       if (options.highlightPolyline) {
         this.setHighlightPolyline(options.highlightPolyline);
       }
