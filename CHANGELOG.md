@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 (May 2, 2024)
+
+- Added support for adding a custom control to the map.
+- Added layer `hasMap()` method.
+- Restricted tooltips, popups, and InfoWindows to only be attached to an element if they aren't already attached to something. This is intended to prevent attaching them to an element multiple times.
+
 ## 0.8.0 (May 1, 2024)
 
 - Minor bug fixes.
