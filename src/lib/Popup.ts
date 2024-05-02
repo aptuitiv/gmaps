@@ -78,6 +78,14 @@ export class Popup extends Overlay {
     #content: string | HTMLElement | Text;
 
     /**
+     * Whether the popup is attached to an element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isAttached: boolean = false;
+
+    /**
      * Holds if the Popup is open or not
      *
      * @private
@@ -253,50 +261,52 @@ export class Popup extends Overlay {
      * @returns {Promise<Popup>}
      */
     async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<Popup> {
-        await element.init().then(() => {
-            if (event === 'clickon' || event === 'hover') {
-                // Don't toggle the display of the InfoWindow for the clickon and hover events.
-                // If it's toggled for hover then it'll appear like it's flickering.
-                // If it's toggled with clickon then it will behave like "click" and hide on the second click.
-                this.#toggleDisplay = false;
-            }
+        if (!this.#isAttached) {
+            await element.init().then(() => {
+                if (event === 'clickon' || event === 'hover') {
+                    // Don't toggle the display of the InfoWindow for the clickon and hover events.
+                    // If it's toggled for hover then it'll appear like it's flickering.
+                    // If it's toggled with clickon then it will behave like "click" and hide on the second click.
+                    this.#toggleDisplay = false;
+                }
 
-            // Show the popup when hovering over the element
-            if (event === 'hover') {
-                element.on('mouseover', (e) => {
+                // Show the popup when hovering over the element
+                if (event === 'hover') {
+                    element.on('mouseover', (e) => {
+                        if (element instanceof Map) {
+                            this.move(e.latLng, element);
+                        } else {
+                            this.move(e.latLng, element.getMap());
+                        }
+                    });
                     if (element instanceof Map) {
-                        this.move(e.latLng, element);
-                    } else {
-                        this.move(e.latLng, element.getMap());
+                        element.on('mousemove', (e) => {
+                            this.move(e.latLng, element);
+                        });
                     }
-                });
-                if (element instanceof Map) {
-                    element.on('mousemove', (e) => {
-                        this.move(e.latLng, element);
+                    element.on('mouseout', () => {
+                        this.hide();
+                    });
+                } else if (event === 'clickon') {
+                    // Show the popup when clicking on the element
+                    element.on('click', (e) => {
+                        if (element instanceof Map) {
+                            this.move(e.latLng, element);
+                        } else {
+                            this.move(e.latLng, element.getMap());
+                        }
+                    });
+                } else {
+                    // Show the popup when clicking on the element
+                    element.on('click', (e) => {
+                        if (element instanceof Map || element instanceof Polyline) {
+                            this.position = e.latLng;
+                        }
+                        this.toggle(element);
                     });
                 }
-                element.on('mouseout', () => {
-                    this.hide();
-                });
-            } else if (event === 'clickon') {
-                // Show the popup when clicking on the element
-                element.on('click', (e) => {
-                    if (element instanceof Map) {
-                        this.move(e.latLng, element);
-                    } else {
-                        this.move(e.latLng, element.getMap());
-                    }
-                });
-            } else {
-                // Show the popup when clicking on the element
-                element.on('click', (e) => {
-                    if (element instanceof Map || element instanceof Polyline) {
-                        this.position = e.latLng;
-                    }
-                    this.toggle(element);
-                });
-            }
-        });
+            });
+        }
 
         return this;
     }

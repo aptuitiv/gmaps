@@ -55,6 +55,14 @@ export class Tooltip extends Overlay {
     #content: string | HTMLElement | Text;
 
     /**
+     * Whether the tooltip is attached to an element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isAttached: boolean = false;
+
+    /**
      * The theme to use for the tooltip.
      *
      * @private
@@ -160,43 +168,52 @@ export class Tooltip extends Overlay {
      * @returns {Promise<Tooltip>}
      */
     async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'hover'): Promise<Tooltip> {
-        await element.init().then(() => {
-            let map: Map;
-            if (element instanceof Map) {
-                map = element;
-            } else {
-                map = element.getMap();
-            }
-            // Show the tooltip when hovering over the element
-            if (event === 'click') {
-                // Show the tooltip when clicking on the element
-                element.on('click', (e) => {
-                    this.setPosition(e.latLng);
-                    this.toggle(map);
-                });
-            } else if (event === 'clickon') {
-                // Show the tooltip when clicking on the element
-                element.on('click', (e) => {
-                    this.setPosition(e.latLng);
-                    this.show(map);
-                });
-            } else {
-                // Default to hover
-                element.on('mouseover', (e) => {
-                    this.setPosition(e.latLng);
-                    this.show(map);
-                });
-                if (element instanceof Map) {
-                    element.on('mousemove', (e) => {
+        if (!this.#isAttached) {
+            await element.init().then(() => {
+                this.#isAttached = true;
+                // Show the tooltip when hovering over the element
+                if (event === 'click') {
+                    // Show the tooltip when clicking on the element
+                    element.on('click', (e) => {
                         this.setPosition(e.latLng);
-                        this.show(map);
+                        if (element instanceof Map) {
+                            this.toggle(element);
+                        } else {
+                            this.toggle(element.getMap());
+                        }
+                    });
+                } else if (event === 'clickon') {
+                    // Show the tooltip when clicking on the element
+                    element.on('click', (e) => {
+                        this.setPosition(e.latLng);
+                        if (element instanceof Map) {
+                            this.show(element);
+                        } else {
+                            this.show(element.getMap());
+                        }
+                    });
+                } else {
+                    // Default to hover
+                    element.on('mouseover', (e) => {
+                        this.setPosition(e.latLng);
+                        if (element instanceof Map) {
+                            this.show(element);
+                        } else {
+                            this.show(element.getMap());
+                        }
+                    });
+                    if (element instanceof Map) {
+                        element.on('mousemove', (e) => {
+                            this.setPosition(e.latLng);
+                            this.show(element);
+                        });
+                    }
+                    element.on('mouseout', () => {
+                        this.hide();
                     });
                 }
-                element.on('mouseout', () => {
-                    this.hide();
-                });
-            }
-        });
+            });
+        }
 
         return this;
     }

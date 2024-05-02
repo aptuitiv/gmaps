@@ -1611,6 +1611,14 @@ declare class Map extends Evented {
      */
     set zoom(value: number | string);
     /**
+     * Adds a custom control to the map
+     *
+     * @param {ControlPositionValue} position The position to add the custom control
+     * @param {HTMLElement} element The HTML element for the custom control
+     * @returns {Map}
+     */
+    addCustomControl(position: ControlPositionValue, element: HTMLElement): Map;
+    /**
      * Add a value to the map bounds
      *
      * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
@@ -1886,6 +1894,12 @@ declare class Layer extends Evented {
      * @returns {Map|null}
      */
     getMap(): Map | null;
+    /**
+     * Return if the layer has a Map object set
+     *
+     * @returns {boolean}
+     */
+    hasMap(): boolean;
     /**
      * Initialize the layer
      *

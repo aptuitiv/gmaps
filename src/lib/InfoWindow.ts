@@ -85,6 +85,14 @@ export class InfoWindow extends Layer {
     #focus: boolean = false;
 
     /**
+     * Whether the InfoWindow is attached to an element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isAttached: boolean = false;
+
+    /**
      * Holds if the InfoWindow is open or not
      *
      * @private
@@ -359,47 +367,49 @@ export class InfoWindow extends Layer {
      * @returns {Promise<InfoWindow>}
      */
     async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<InfoWindow> {
-        await element.init().then(() => {
-            if (event === 'clickon' || event === 'hover') {
-                // Don't toggle the display of the InfoWindow for the clickon and hover events.
-                // If it's toggled for hover then it'll appear like it's flickering.
-                // If it's toggled with clickon then it will behave like "click" and hide on the second click.
-                this.#toggleDisplay = false;
-            }
+        if (!this.#isAttached) {
+            await element.init().then(() => {
+                if (event === 'clickon' || event === 'hover') {
+                    // Don't toggle the display of the InfoWindow for the clickon and hover events.
+                    // If it's toggled for hover then it'll appear like it's flickering.
+                    // If it's toggled with clickon then it will behave like "click" and hide on the second click.
+                    this.#toggleDisplay = false;
+                }
 
-            // Show the InfoWindow when hovering over the element
-            if (event === 'hover') {
-                element.on('mouseover', (e) => {
-                    this.position = e.latLng;
-                    this.show(element);
-                });
-                if (element instanceof Map) {
-                    element.on('mousemove', (e) => {
+                // Show the InfoWindow when hovering over the element
+                if (event === 'hover') {
+                    element.on('mouseover', (e) => {
                         this.position = e.latLng;
                         this.show(element);
                     });
+                    if (element instanceof Map) {
+                        element.on('mousemove', (e) => {
+                            this.position = e.latLng;
+                            this.show(element);
+                        });
+                    }
+                    element.on('mouseout', () => {
+                        this.hide();
+                    });
+                } else if (event === 'clickon') {
+                    // Show the InfoWindow when clicking on the element
+                    element.on('click', (e) => {
+                        if (element instanceof Map) {
+                            this.position = e.latLng;
+                        }
+                        this.show(element);
+                    });
+                } else {
+                    // Show the InfoWindow when clicking on the element
+                    element.on('click', (e) => {
+                        if (element instanceof Map) {
+                            this.position = e.latLng;
+                        }
+                        this.show(element);
+                    });
                 }
-                element.on('mouseout', () => {
-                    this.hide();
-                });
-            } else if (event === 'clickon') {
-                // Show the InfoWindow when clicking on the element
-                element.on('click', (e) => {
-                    if (element instanceof Map) {
-                        this.position = e.latLng;
-                    }
-                    this.show(element);
-                });
-            } else {
-                // Show the InfoWindow when clicking on the element
-                element.on('click', (e) => {
-                    if (element instanceof Map) {
-                        this.position = e.latLng;
-                    }
-                    this.show(element);
-                });
-            }
-        });
+            });
+        }
 
         return this;
     }
