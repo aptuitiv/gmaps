@@ -13,6 +13,7 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { loader } from './Loader';
 import { Map } from './Map';
+import { TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
     isNullOrUndefined,
@@ -52,6 +53,8 @@ export type PolylineOptions = {
     strokeOpacity?: number;
     // The stroke width in pixels.
     strokeWeight?: number;
+    // The tooltip for the polyline. This will show when hovering over the polyline.
+    tooltip?: TooltipValue;
     // Whether the polyline is visible on the map. Defaults to true.
     visible?: boolean;
     // The zIndex value compared to other polygons.
@@ -583,6 +586,11 @@ export class Polyline extends Layer {
             }
             if (isNumberOrNumberString(options.zIndex)) {
                 this.zIndex = options.zIndex;
+            }
+
+            // Attach a tooltip value
+            if (options.tooltip) {
+                this.attachTooltip(options.tooltip);
             }
 
             // Set up the highlight polyline last so that it can use the options set above.
