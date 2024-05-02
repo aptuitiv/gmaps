@@ -1984,6 +1984,14 @@ var Layer = class extends Evented {
     return __privateGet(this, _map);
   }
   /**
+   * Return if the layer has a Map object set
+   *
+   * @returns {boolean}
+   */
+  hasMap() {
+    return __privateGet(this, _map) !== null;
+  }
+  /**
    * Initialize the layer
    *
    * This is intended to be overridden by subclasses to perform any initialization that is needed.
@@ -4945,7 +4953,7 @@ var marker = (position, options) => {
 };
 
 // src/lib/InfoWindow.ts
-var _autoClose, _focus, _isOpen, _options5, _toggleDisplay, _infoWindow, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn;
+var _autoClose, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn;
 var InfoWindow = class extends Layer_default {
   /**
    * Constructor
@@ -4974,6 +4982,13 @@ var InfoWindow = class extends Layer_default {
      * @type {boolean}
      */
     __privateAdd(this, _focus, false);
+    /**
+     * Whether the InfoWindow is attached to an element
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isAttached, false);
     /**
      * Holds if the InfoWindow is open or not
      *
@@ -5217,40 +5232,42 @@ var InfoWindow = class extends Layer_default {
    */
   attachTo(element, event = "click") {
     return __async(this, null, function* () {
-      yield element.init().then(() => {
-        if (event === "clickon" || event === "hover") {
-          __privateSet(this, _toggleDisplay, false);
-        }
-        if (event === "hover") {
-          element.on("mouseover", (e) => {
-            this.position = e.latLng;
-            this.show(element);
-          });
-          if (element instanceof Map) {
-            element.on("mousemove", (e) => {
+      if (!__privateGet(this, _isAttached)) {
+        yield element.init().then(() => {
+          if (event === "clickon" || event === "hover") {
+            __privateSet(this, _toggleDisplay, false);
+          }
+          if (event === "hover") {
+            element.on("mouseover", (e) => {
               this.position = e.latLng;
               this.show(element);
             });
+            if (element instanceof Map) {
+              element.on("mousemove", (e) => {
+                this.position = e.latLng;
+                this.show(element);
+              });
+            }
+            element.on("mouseout", () => {
+              this.hide();
+            });
+          } else if (event === "clickon") {
+            element.on("click", (e) => {
+              if (element instanceof Map) {
+                this.position = e.latLng;
+              }
+              this.show(element);
+            });
+          } else {
+            element.on("click", (e) => {
+              if (element instanceof Map) {
+                this.position = e.latLng;
+              }
+              this.show(element);
+            });
           }
-          element.on("mouseout", () => {
-            this.hide();
-          });
-        } else if (event === "clickon") {
-          element.on("click", (e) => {
-            if (element instanceof Map) {
-              this.position = e.latLng;
-            }
-            this.show(element);
-          });
-        } else {
-          element.on("click", (e) => {
-            if (element instanceof Map) {
-              this.position = e.latLng;
-            }
-            this.show(element);
-          });
-        }
-      });
+        });
+      }
       return this;
     });
   }
@@ -5501,6 +5518,7 @@ var InfoWindow = class extends Layer_default {
 };
 _autoClose = new WeakMap();
 _focus = new WeakMap();
+_isAttached = new WeakMap();
 _isOpen = new WeakMap();
 _options5 = new WeakMap();
 _toggleDisplay = new WeakMap();
@@ -8157,7 +8175,7 @@ var PolylineCollection = class {
 var polylineCollection = () => new PolylineCollection();
 
 // src/lib/Popup.ts
-var _autoClose2, _center, _closeElement, _content, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _handleCloseClick, _setupCloseClick;
+var _autoClose2, _center, _closeElement, _content, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _handleCloseClick, _setupCloseClick;
 var Popup = class extends Overlay {
   /**
    * Constructor
@@ -8195,6 +8213,13 @@ var Popup = class extends Overlay {
      * @type {string|HTMLElement}
      */
     __privateAdd(this, _content, void 0);
+    /**
+     * Whether the popup is attached to an element
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isAttached2, false);
     /**
      * Holds if the Popup is open or not
      *
@@ -8361,43 +8386,45 @@ var Popup = class extends Overlay {
    */
   attachTo(element, event = "click") {
     return __async(this, null, function* () {
-      yield element.init().then(() => {
-        if (event === "clickon" || event === "hover") {
-          __privateSet(this, _toggleDisplay2, false);
-        }
-        if (event === "hover") {
-          element.on("mouseover", (e) => {
+      if (!__privateGet(this, _isAttached2)) {
+        yield element.init().then(() => {
+          if (event === "clickon" || event === "hover") {
+            __privateSet(this, _toggleDisplay2, false);
+          }
+          if (event === "hover") {
+            element.on("mouseover", (e) => {
+              if (element instanceof Map) {
+                this.move(e.latLng, element);
+              } else {
+                this.move(e.latLng, element.getMap());
+              }
+            });
             if (element instanceof Map) {
-              this.move(e.latLng, element);
-            } else {
-              this.move(e.latLng, element.getMap());
+              element.on("mousemove", (e) => {
+                this.move(e.latLng, element);
+              });
             }
-          });
-          if (element instanceof Map) {
-            element.on("mousemove", (e) => {
-              this.move(e.latLng, element);
+            element.on("mouseout", () => {
+              this.hide();
+            });
+          } else if (event === "clickon") {
+            element.on("click", (e) => {
+              if (element instanceof Map) {
+                this.move(e.latLng, element);
+              } else {
+                this.move(e.latLng, element.getMap());
+              }
+            });
+          } else {
+            element.on("click", (e) => {
+              if (element instanceof Map || element instanceof Polyline) {
+                this.position = e.latLng;
+              }
+              this.toggle(element);
             });
           }
-          element.on("mouseout", () => {
-            this.hide();
-          });
-        } else if (event === "clickon") {
-          element.on("click", (e) => {
-            if (element instanceof Map) {
-              this.move(e.latLng, element);
-            } else {
-              this.move(e.latLng, element.getMap());
-            }
-          });
-        } else {
-          element.on("click", (e) => {
-            if (element instanceof Map || element instanceof Polyline) {
-              this.position = e.latLng;
-            }
-            this.toggle(element);
-          });
-        }
-      });
+        });
+      }
       return this;
     });
   }
@@ -8629,6 +8656,7 @@ _autoClose2 = new WeakMap();
 _center = new WeakMap();
 _closeElement = new WeakMap();
 _content = new WeakMap();
+_isAttached2 = new WeakMap();
 _isOpen2 = new WeakMap();
 _popupOffset = new WeakMap();
 _theme = new WeakMap();
@@ -8733,7 +8761,7 @@ var PopupCollection = /* @__PURE__ */ (() => {
 })();
 
 // src/lib/Tooltip.ts
-var _center2, _content2, _theme2;
+var _center2, _content2, _isAttached3, _theme2;
 var Tooltip = class extends Overlay {
   /**
    * Constructor
@@ -8757,6 +8785,13 @@ var Tooltip = class extends Overlay {
      * @type {string|HTMLElement}
      */
     __privateAdd(this, _content2, void 0);
+    /**
+     * Whether the tooltip is attached to an element
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isAttached3, false);
     /**
      * The theme to use for the tooltip.
      *
@@ -8847,39 +8882,48 @@ var Tooltip = class extends Overlay {
    */
   attachTo(element, event = "hover") {
     return __async(this, null, function* () {
-      yield element.init().then(() => {
-        let map2;
-        if (element instanceof Map) {
-          map2 = element;
-        } else {
-          map2 = element.getMap();
-        }
-        if (event === "click") {
-          element.on("click", (e) => {
-            this.setPosition(e.latLng);
-            this.toggle(map2);
-          });
-        } else if (event === "clickon") {
-          element.on("click", (e) => {
-            this.setPosition(e.latLng);
-            this.show(map2);
-          });
-        } else {
-          element.on("mouseover", (e) => {
-            this.setPosition(e.latLng);
-            this.show(map2);
-          });
-          if (element instanceof Map) {
-            element.on("mousemove", (e) => {
+      if (!__privateGet(this, _isAttached3)) {
+        yield element.init().then(() => {
+          __privateSet(this, _isAttached3, true);
+          if (event === "click") {
+            element.on("click", (e) => {
               this.setPosition(e.latLng);
-              this.show(map2);
+              if (element instanceof Map) {
+                this.toggle(element);
+              } else {
+                this.toggle(element.getMap());
+              }
+            });
+          } else if (event === "clickon") {
+            element.on("click", (e) => {
+              this.setPosition(e.latLng);
+              if (element instanceof Map) {
+                this.show(element);
+              } else {
+                this.show(element.getMap());
+              }
+            });
+          } else {
+            element.on("mouseover", (e) => {
+              this.setPosition(e.latLng);
+              if (element instanceof Map) {
+                this.show(element);
+              } else {
+                this.show(element.getMap());
+              }
+            });
+            if (element instanceof Map) {
+              element.on("mousemove", (e) => {
+                this.setPosition(e.latLng);
+                this.show(element);
+              });
+            }
+            element.on("mouseout", () => {
+              this.hide();
             });
           }
-          element.on("mouseout", () => {
-            this.hide();
-          });
-        }
-      });
+        });
+      }
       return this;
     });
   }
@@ -8981,6 +9025,7 @@ var Tooltip = class extends Overlay {
 };
 _center2 = new WeakMap();
 _content2 = new WeakMap();
+_isAttached3 = new WeakMap();
 _theme2 = new WeakMap();
 var tooltip = (options) => {
   if (options instanceof Tooltip) {

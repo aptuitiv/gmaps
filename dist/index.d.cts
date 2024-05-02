@@ -1895,6 +1895,12 @@ declare class Layer extends Evented {
      */
     getMap(): Map | null;
     /**
+     * Return if the layer has a Map object set
+     *
+     * @returns {boolean}
+     */
+    hasMap(): boolean;
+    /**
      * Initialize the layer
      *
      * This is intended to be overridden by subclasses to perform any initialization that is needed.
