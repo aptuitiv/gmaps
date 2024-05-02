@@ -170,49 +170,47 @@ export class Tooltip extends Overlay {
     async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'hover'): Promise<Tooltip> {
         if (!this.#isAttached) {
             await element.init().then(() => {
-                let map: Map;
-                if (element instanceof Map) {
-                    map = element;
-                } else {
-                    map = element.getMap();
-                }
-                // The map object could be null if the element hasn't been assigned to a map yet.
-                // For example, if a marker has been created but it hasn't been added to a map yet.
-                if (map !== null) {
-                    // Show the tooltip when hovering over the element
-                    if (event === 'click') {
-                        // Show the tooltip when clicking on the element
-                        element.on('click', (e) => {
-                            this.setPosition(e.latLng);
-                            this.toggle(map);
-                        });
-                    } else if (event === 'clickon') {
-                        // Show the tooltip when clicking on the element
-                        element.on('click', (e) => {
-                            this.setPosition(e.latLng);
-                            this.show(map);
-                        });
-                    } else {
-                        // Default to hover
-                        element.on('mouseover', (e) => {
-                            this.setPosition(e.latLng);
-                            this.show(map);
-                        });
+                this.#isAttached = true;
+                // Show the tooltip when hovering over the element
+                if (event === 'click') {
+                    // Show the tooltip when clicking on the element
+                    element.on('click', (e) => {
+                        this.setPosition(e.latLng);
                         if (element instanceof Map) {
-                            element.on('mousemove', (e) => {
-                                this.setPosition(e.latLng);
-                                this.show(map);
-                            });
+                            this.toggle(element);
+                        } else {
+                            this.toggle(element.getMap());
                         }
-                        element.on('mouseout', () => {
-                            this.hide();
+                    });
+                } else if (event === 'clickon') {
+                    // Show the tooltip when clicking on the element
+                    element.on('click', (e) => {
+                        this.setPosition(e.latLng);
+                        if (element instanceof Map) {
+                            this.show(element);
+                        } else {
+                            this.show(element.getMap());
+                        }
+                    });
+                } else {
+                    // Default to hover
+                    element.on('mouseover', (e) => {
+                        this.setPosition(e.latLng);
+                        if (element instanceof Map) {
+                            this.show(element);
+                        } else {
+                            this.show(element.getMap());
+                        }
+                    });
+                    if (element instanceof Map) {
+                        element.on('mousemove', (e) => {
+                            this.setPosition(e.latLng);
+                            this.show(element);
                         });
                     }
-                } else {
-                    // The element hasn't been added to a map yet. Set up the tooltip when it is added to the map.
-                    if (element instanceof Layer) {
-                        element.setTooltip(this);
-                    }
+                    element.on('mouseout', () => {
+                        this.hide();
+                    });
                 }
             });
         }

@@ -6,7 +6,9 @@
 =========================================================================== */
 
 import { Evented } from './Evented';
+import { InfoWindowValue } from './InfoWindow';
 import { Map } from './Map';
+import { PopupValue } from './Popup';
 import { TooltipValue } from './Tooltip';
 
 /**
@@ -39,16 +41,6 @@ class Layer extends Evented {
      * @type {Map|null}
      */
     #map: Map | null = null;
-
-    /**
-     * Holds the tooltip object to show when hovering over the marker
-     *
-     * This is here so that the tooltip can be added to the map container when the marker is added to the map.
-     *
-     * @private
-     * @type {TooltipValue}
-     */
-    #tooltip: TooltipValue;
 
     /**
      * Get if the layer is visible or not
@@ -127,34 +119,8 @@ class Layer extends Evented {
         this.#map = map;
         if (map) {
             this.isVisible = true;
-            this.#setupTooltip();
         } else {
             this.isVisible = false;
-        }
-    }
-
-    /**
-     * Set the tooltip object to set up when the layer is added to the map
-     *
-     * This is intended to be used to hold on to the tooltip value so that it can be added
-     * when the layer is added to the map. This is not intended to be called outside of this library.
-     * This is useful when a marker isn't assigned to a map yet, or when the tooltip is set before the marker is added to the map.
-     *
-     * @internal
-     * @param {TooltipValue} tooltip The tooltip object to show when hovering over the layer
-     */
-    setTooltip(tooltip: TooltipValue) {
-        this.#tooltip = tooltip;
-    }
-
-    /**
-     * Attach the tooltip to the layer
-     *
-     * @private
-     */
-    #setupTooltip() {
-        if (this.#tooltip) {
-            this.attachTooltip(this.#tooltip);
         }
     }
 }
