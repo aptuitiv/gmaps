@@ -15,7 +15,7 @@
 
 /* global google, HTMLElement */
 
-import { MapTypeId } from './constants';
+import { convertControlPosition, ControlPositionValue, MapTypeId } from './constants';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
@@ -67,6 +67,11 @@ type GMEvent =
 // All possible map events
 type MapEvent = GMEvent | InternalEvent;
 
+type CustomControl = {
+    position: ControlPositionValue;
+    element: HTMLElement;
+};
+
 /**
  * The map class
  */
@@ -78,6 +83,14 @@ export class Map extends Evented {
      * @type {LatLngBounds}
      */
     #bounds: LatLngBounds;
+
+    /**
+     * Holds the custom controls that need to be added to the map
+     *
+     * @private
+     * @type {CustomControl[]}
+     */
+    #customControls: CustomControl[] = [];
 
     /**
      * Holds the latitude portion of the center point for the map
@@ -411,6 +424,22 @@ export class Map extends Evented {
         if (this.#map) {
             this.#map.setZoom(Number(value));
         }
+    }
+
+    /**
+     * Adds a custom control to the map
+     *
+     * @param {ControlPositionValue} position The position to add the custom control
+     * @param {HTMLElement} element The HTML element for the custom control
+     * @returns {Map}
+     */
+    addCustomControl(position: ControlPositionValue, element: HTMLElement): Map {
+        if (this.#map) {
+            this.#map.controls[convertControlPosition(position)].push(element);
+        } else {
+            this.#customControls.push({ position, element });
+        }
+        return this;
     }
 
     /**
@@ -965,6 +994,15 @@ export class Map extends Evented {
             this.#getMapOptions().then((mapOptions) => {
                 this.#map = new google.maps.Map(element, mapOptions);
                 this.setEventGoogleObject(this.#map);
+
+                // Add any custom controls to the map
+                if (this.#customControls.length > 0) {
+                    this.#customControls.forEach((control) => {
+                        this.#map.controls[convertControlPosition(control.position)].push(control.element);
+                    });
+                }
+                this.#customControls = [];
+
                 // Dispatch the event to say that the map is visible
                 this.dispatch('visible');
                 // Dispatch the event on the loader to say that the map is fully loaded.

@@ -63,6 +63,17 @@ const map1 = G.map('#map1', {
     minZoom: 10,
 });
 map1.show();
+const customBtn = document.createElement('button');
+customBtn.textContent = 'Custom Control 2';
+customBtn.className = 'customButton';
+customBtn.style.backgroundColor = '#fff';
+customBtn.style.border = '2px solid #ff0000';
+customBtn.style.padding = '5px';
+customBtn.style.display = 'inline-block';
+customBtn.addEventListener('click', () => {
+    console.log('Custom Control clicked');
+});
+map1.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
 map1.on('click', (e) => {
     console.log(`The event type is ${e.type}`);
 
