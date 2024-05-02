@@ -6,10 +6,7 @@
 =========================================================================== */
 
 import { Evented } from './Evented';
-import { InfoWindowValue } from './InfoWindow';
 import { Map } from './Map';
-import { PopupValue } from './Popup';
-import { TooltipValue } from './Tooltip';
 
 /**
  * Base class to help with drawing stuff on the map.
