@@ -4136,7 +4136,7 @@ var _Marker = class _Marker extends Layer_default {
      */
     __privateAdd(this, _setAnchorPoint);
     /**
-     * Set the anchor point for the marker
+     * Set the cursor for the marker
      *
      * @param {string} value The cursor type to show on hover
      */
@@ -4953,7 +4953,7 @@ var marker = (position, options) => {
 };
 
 // src/lib/InfoWindow.ts
-var _autoClose, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn;
+var _autoClose, _event, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn;
 var InfoWindow = class extends Layer_default {
   /**
    * Constructor
@@ -4975,6 +4975,13 @@ var InfoWindow = class extends Layer_default {
      * @type {boolean}
      */
     __privateAdd(this, _autoClose, true);
+    /**
+     * The event to trigger the popup
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    __privateAdd(this, _event, "click");
     /**
      * Whether focus should be moved to the InfoWindow when it is opened
      *
@@ -5092,6 +5099,26 @@ var InfoWindow = class extends Layer_default {
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ disableAutoPan: __privateGet(this, _options5).disableAutoPan });
       }
+    }
+  }
+  /**
+   * Returns the event to trigger the popup
+   *
+   * @returns {string}
+   */
+  get event() {
+    return __privateGet(this, _event);
+  }
+  /**
+   * Set the event to trigger the popup
+   *
+   * @param {string} event The event to trigger the popup
+   */
+  set event(event) {
+    if (isStringWithValue(event) && ["click", "clickon", "hover"].includes(event.toLowerCase())) {
+      __privateSet(this, _event, event.toLowerCase());
+    } else {
+      throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
     }
   }
   /**
@@ -5230,14 +5257,16 @@ var InfoWindow = class extends Layer_default {
    *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
    * @returns {Promise<InfoWindow>}
    */
-  attachTo(element, event = "click") {
+  attachTo(element, event) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached)) {
+        __privateSet(this, _isAttached, true);
         yield element.init().then(() => {
-          if (event === "clickon" || event === "hover") {
+          const triggerEvent = event || __privateGet(this, _event);
+          if (triggerEvent === "clickon" || triggerEvent === "hover") {
             __privateSet(this, _toggleDisplay, false);
           }
-          if (event === "hover") {
+          if (triggerEvent === "hover") {
             element.on("mouseover", (e) => {
               this.position = e.latLng;
               this.show(element);
@@ -5251,7 +5280,7 @@ var InfoWindow = class extends Layer_default {
             element.on("mouseout", () => {
               this.hide();
             });
-          } else if (event === "clickon") {
+          } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
               if (element instanceof Map) {
                 this.position = e.latLng;
@@ -5385,6 +5414,9 @@ var InfoWindow = class extends Layer_default {
     if (options.disableAutoPan) {
       this.disableAutoPan = options.disableAutoPan;
     }
+    if (options.event) {
+      this.event = options.event;
+    }
     if (options.maxWidth) {
       this.maxWidth = options.maxWidth;
     }
@@ -5517,6 +5549,7 @@ var InfoWindow = class extends Layer_default {
   }
 };
 _autoClose = new WeakMap();
+_event = new WeakMap();
 _focus = new WeakMap();
 _isAttached = new WeakMap();
 _isOpen = new WeakMap();
@@ -5570,9 +5603,9 @@ var infoWindowMixin = {
    * Attach an InfoWindow to the layer
    *
    * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
-   * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
    */
-  attachInfoWindow(infoWindowValue, event = "click") {
+  attachInfoWindow(infoWindowValue, event) {
     infoWindow(infoWindowValue).attachTo(this, event);
   }
 };
@@ -8175,7 +8208,7 @@ var PolylineCollection = class {
 var polylineCollection = () => new PolylineCollection();
 
 // src/lib/Popup.ts
-var _autoClose2, _center, _closeElement, _content, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _handleCloseClick, _setupCloseClick;
+var _autoClose2, _center, _closeElement, _content, _event2, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _handleCloseClick, _setupCloseClick;
 var Popup = class extends Overlay {
   /**
    * Constructor
@@ -8213,6 +8246,13 @@ var Popup = class extends Overlay {
      * @type {string|HTMLElement}
      */
     __privateAdd(this, _content, void 0);
+    /**
+     * The event to trigger the popup
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    __privateAdd(this, _event2, "click");
     /**
      * Whether the popup is attached to an element
      *
@@ -8357,6 +8397,26 @@ var Popup = class extends Overlay {
     }
   }
   /**
+   * Returns the event to trigger the popup
+   *
+   * @returns {string}
+   */
+  get event() {
+    return __privateGet(this, _event2);
+  }
+  /**
+   * Set the event to trigger the popup
+   *
+   * @param {string} event The event to trigger the popup
+   */
+  set event(event) {
+    if (isStringWithValue(event) && ["click", "clickon", "hover"].includes(event.toLowerCase())) {
+      __privateSet(this, _event2, event.toLowerCase());
+    } else {
+      throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
+    }
+  }
+  /**
    * Returns the theme to use for the popup
    *
    * @returns {string}
@@ -8384,14 +8444,16 @@ var Popup = class extends Overlay {
    *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
    * @returns {Promise<Popup>}
    */
-  attachTo(element, event = "click") {
+  attachTo(element, event) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached2)) {
+        __privateSet(this, _isAttached2, true);
         yield element.init().then(() => {
           if (event === "clickon" || event === "hover") {
             __privateSet(this, _toggleDisplay2, false);
           }
-          if (event === "hover") {
+          const triggerEvent = event || __privateGet(this, _event2);
+          if (triggerEvent === "hover") {
             element.on("mouseover", (e) => {
               if (element instanceof Map) {
                 this.move(e.latLng, element);
@@ -8407,7 +8469,7 @@ var Popup = class extends Overlay {
             element.on("mouseout", () => {
               this.hide();
             });
-          } else if (event === "clickon") {
+          } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
               if (element instanceof Map) {
                 this.move(e.latLng, element);
@@ -8518,6 +8580,9 @@ var Popup = class extends Overlay {
     }
     if (options.content) {
       this.content = options.content;
+    }
+    if (options.event) {
+      this.event = options.event;
     }
     if (typeof options.offset !== "undefined") {
       this.setOffset(options.offset);
@@ -8656,6 +8721,7 @@ _autoClose2 = new WeakMap();
 _center = new WeakMap();
 _closeElement = new WeakMap();
 _content = new WeakMap();
+_event2 = new WeakMap();
 _isAttached2 = new WeakMap();
 _isOpen2 = new WeakMap();
 _popupOffset = new WeakMap();
@@ -8673,9 +8739,9 @@ var popupMixin = {
   /**
    *
    * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
-   * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
    */
-  attachPopup(popupValue, event = "click") {
+  attachPopup(popupValue, event) {
     popup(popupValue).attachTo(this, event);
   }
 };
@@ -8761,7 +8827,7 @@ var PopupCollection = /* @__PURE__ */ (() => {
 })();
 
 // src/lib/Tooltip.ts
-var _center2, _content2, _isAttached3, _theme2;
+var _center2, _content2, _event3, _isAttached3, _theme2;
 var Tooltip = class extends Overlay {
   /**
    * Constructor
@@ -8785,6 +8851,13 @@ var Tooltip = class extends Overlay {
      * @type {string|HTMLElement}
      */
     __privateAdd(this, _content2, void 0);
+    /**
+     * The event to trigger the tooltip
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    __privateAdd(this, _event3, "hover");
     /**
      * Whether the tooltip is attached to an element
      *
@@ -8853,6 +8926,26 @@ var Tooltip = class extends Overlay {
     }
   }
   /**
+   * Returns the event to trigger the tooltip
+   *
+   * @returns {string}
+   */
+  get event() {
+    return __privateGet(this, _event3);
+  }
+  /**
+   * Set the event to trigger the tooltip
+   *
+   * @param {string} event The event to trigger the tooltip
+   */
+  set event(event) {
+    if (isStringWithValue(event) && ["click", "clickon", "hover"].includes(event.toLowerCase())) {
+      __privateSet(this, _event3, event.toLowerCase());
+    } else {
+      throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
+    }
+  }
+  /**
    * Returns the theme to use for the tooltip
    *
    * @returns {string}
@@ -8880,12 +8973,13 @@ var Tooltip = class extends Overlay {
    *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
    * @returns {Promise<Tooltip>}
    */
-  attachTo(element, event = "hover") {
+  attachTo(element, event) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached3)) {
+        __privateSet(this, _isAttached3, true);
         yield element.init().then(() => {
-          __privateSet(this, _isAttached3, true);
-          if (event === "click") {
+          const triggerEvent = event || __privateGet(this, _event3);
+          if (triggerEvent === "click") {
             element.on("click", (e) => {
               this.setPosition(e.latLng);
               if (element instanceof Map) {
@@ -8894,7 +8988,7 @@ var Tooltip = class extends Overlay {
                 this.toggle(element.getMap());
               }
             });
-          } else if (event === "clickon") {
+          } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
               this.setPosition(e.latLng);
               if (element instanceof Map) {
@@ -8962,6 +9056,9 @@ var Tooltip = class extends Overlay {
       this.removeClassName("tooltip");
       this.setClassName(options.className);
     }
+    if (options.event) {
+      this.event = options.event;
+    }
     if (options.map) {
       this.setMap(options.map);
     }
@@ -9025,6 +9122,7 @@ var Tooltip = class extends Overlay {
 };
 _center2 = new WeakMap();
 _content2 = new WeakMap();
+_event3 = new WeakMap();
 _isAttached3 = new WeakMap();
 _theme2 = new WeakMap();
 var tooltip = (options) => {
@@ -9038,9 +9136,9 @@ var tooltipMixin = {
    * Attach an Tooltip to the layer
    *
    * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
-   * @param {'click' | 'clickon' | 'hover'} event The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
    */
-  attachTooltip(tooltipValue, event = "hover") {
+  attachTooltip(tooltipValue, event) {
     tooltip(tooltipValue).attachTo(this, event);
   }
 };

@@ -1933,6 +1933,7 @@ type GMInfoWindowOptions = {
     ariaLabel?: string;
     content?: string | HTMLElement | Text;
     disableAutoPan?: boolean;
+    event?: string;
     maxWidth?: number;
     minWidth?: number;
     pixelOffset?: Size;
@@ -1994,6 +1995,18 @@ declare class InfoWindow extends Layer {
      * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
      */
     set disableAutoPan(disableAutoPan: boolean);
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string);
     /**
      * Get the maxWidth option for the InfoWindow
      *
@@ -2849,6 +2862,7 @@ type TooltipOptions = {
     center?: boolean;
     className?: string;
     content?: string | HTMLElement | Text;
+    event?: string;
     map?: Map;
     offset?: PointValue;
     position?: LatLngValue;
@@ -2890,6 +2904,18 @@ declare class Tooltip extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the tooltip
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the event to trigger the tooltip
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the tooltip
+     *
+     * @param {string} event The event to trigger the tooltip
+     */
+    set event(event: string);
     /**
      * Returns the theme to use for the tooltip
      *
@@ -4132,6 +4158,7 @@ type PopupOptions = {
     className?: string;
     closeElement?: HTMLElement | string;
     content: string | HTMLElement | Text;
+    event?: string;
     offset?: PointValue;
     styles?: object;
     theme?: string;
@@ -4195,6 +4222,18 @@ declare class Popup extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the popup
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string);
     /**
      * Returns the theme to use for the popup
      *
