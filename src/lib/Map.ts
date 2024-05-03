@@ -807,6 +807,23 @@ export class Map extends Evented {
     }
 
     /**
+     * Changes the center of the map to the lat/lng value.
+     *
+     * If the change is less than both the width and height of the map, the transition will be smoothly animated.
+     *
+     * @param {LatLngValue} value The latitude/longitude value to pan to
+     */
+    panTo(value: LatLngValue): void {
+        if (this.#map) {
+            this.#map.panTo(latLng(value).toGoogle());
+        } else {
+            this.init().then(() => {
+                this.#map.panTo(latLng(value).toGoogle());
+            });
+        }
+    }
+
+    /**
      * Set the API key
      *
      * @param {string} key The API key
