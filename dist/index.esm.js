@@ -7740,6 +7740,7 @@ var _Polyline = class _Polyline extends Layer_default {
       }
       yield __privateMethod(this, _setupGooglePolyline, setupGooglePolyline_fn).call(this, value);
       if (value instanceof Map) {
+        this.visible = true;
         __privateGet(this, _options7).map = value;
         __superGet(_Polyline.prototype, this, "setMap").call(this, value);
         __privateGet(this, _polyline).setMap(value.toGoogle());
@@ -8077,24 +8078,27 @@ var PolylineCollection = class {
   /**
    * Show the Polylines in the collection that have the tag(s) passed
    *
+   * @param {Map} map The map object
    * @param {string[]} tags The tag(s) to show polylines for
    */
-  show(...tags) {
+  show(map2, ...tags) {
     tags.forEach((tag) => {
       if (this.polylines[tag]) {
         this.polylines[tag].forEach((p) => {
-          p.show();
+          p.show(map2);
         });
       }
     });
   }
   /**
    * Show all the Polylines in the collection
+   *
+   * @param {Map} map The map object
    */
-  showAll() {
+  showAll(map2) {
     Object.keys(this.polylines).forEach((tag) => {
       this.polylines[tag].forEach((p) => {
-        p.show();
+        p.show(map2);
       });
     });
   }

@@ -4127,13 +4127,16 @@ declare class PolylineCollection {
     /**
      * Show the Polylines in the collection that have the tag(s) passed
      *
+     * @param {Map} map The map object
      * @param {string[]} tags The tag(s) to show polylines for
      */
-    show(...tags: string[]): void;
+    show(map: Map, ...tags: string[]): void;
     /**
      * Show all the Polylines in the collection
+     *
+     * @param {Map} map The map object
      */
-    showAll(): void;
+    showAll(map: Map): void;
     /**
      * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
      *
