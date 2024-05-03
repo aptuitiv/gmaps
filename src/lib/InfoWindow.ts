@@ -368,6 +368,7 @@ export class InfoWindow extends Layer {
      */
     async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<InfoWindow> {
         if (!this.#isAttached) {
+            this.#isAttached = true;
             await element.init().then(() => {
                 if (event === 'clickon' || event === 'hover') {
                     // Don't toggle the display of the InfoWindow for the clickon and hover events.

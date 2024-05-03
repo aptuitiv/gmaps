@@ -169,8 +169,8 @@ export class Tooltip extends Overlay {
      */
     async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'hover'): Promise<Tooltip> {
         if (!this.#isAttached) {
+            this.#isAttached = true;
             await element.init().then(() => {
-                this.#isAttached = true;
                 // Show the tooltip when hovering over the element
                 if (event === 'click') {
                     // Show the tooltip when clicking on the element
