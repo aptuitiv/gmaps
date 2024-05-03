@@ -1210,9 +1210,9 @@ declare class LatLngBounds extends Base {
      * Returns whether this bounds approximately equals the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
-    equals(other: LatLngBounds): boolean;
+    equals(other: LatLngBounds): Promise<boolean>;
     /**
      * Extends this bounds to contain the given point
      *
@@ -1248,12 +1248,21 @@ declare class LatLngBounds extends Base {
      */
     getSouthWest(): LatLng;
     /**
+     * Initialize the lat/lng bounds object so that the Google maps library is available
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
      * Returns whether this bounds shares any points with the other bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
-    intersects(other: LatLngBounds): boolean;
+    intersects(other: LatLngBounds): Promise<boolean>;
     /**
      * Returns whether this bounds is empty
      *
@@ -1263,21 +1272,17 @@ declare class LatLngBounds extends Base {
     /**
      * Get the Google maps LatLngBounds object
      *
-     * @returns {google.maps.LatLngBounds}
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
+     *
+     * @returns {Promise<google.maps.LatLngBounds>}
      */
-    toGoogle(): google.maps.LatLngBounds;
+    toGoogle(): Promise<google.maps.LatLngBounds>;
     /**
      * Converts the LatLngBounds object to a JSON object
      *
      * @returns {google.maps.LatLngBoundsLiteral}
      */
     toJson(): google.maps.LatLngBoundsLiteral;
-    /**
-     * Converts the LatLngBounds object to a lat/lng span
-     *
-     * @returns {LatLng}
-     */
-    toSpan(): LatLng;
     /**
      * Converts the LatLngBounds object to a string
      *
@@ -1295,9 +1300,9 @@ declare class LatLngBounds extends Base {
      * Extends this bounds to contain the union of this and the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {LatLngBounds}
+     * @returns {void}
      */
-    union(other: LatLngBounds | google.maps.LatLngBounds): LatLngBounds;
+    union(other: LatLngBounds | google.maps.LatLngBounds): void;
 }
 type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
 /**
@@ -1661,6 +1666,13 @@ declare class Map extends Evented {
      * @returns {Map}
      */
     fitBounds(bounds?: LatLngBoundsValue): Map;
+    /**
+     * Alias to fitBounds
+     *
+     * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @returns {Map}
+     */
+    fitToBounds(bounds?: LatLngBoundsValue): Map;
     /**
      * Initialize the map if necessary
      *

@@ -2303,7 +2303,7 @@ var loader = (config) => {
 };
 
 // src/lib/LatLngBounds.ts
-var _bounds;
+var _bounds, _boundValues, _northEast, _southWest, _extendGoogle, extendGoogle_fn, _extend, extend_fn, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn, _createLatLngBoundsObject, createLatLngBoundsObject_fn, _union, union_fn;
 var _LatLngBounds = class _LatLngBounds extends Base_default {
   /**
    * Constructor
@@ -2314,11 +2314,70 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
   constructor(latLngValue) {
     super("latlngbounds");
     /**
+     * Extends this bounds using the Google Maps LatLngBounds object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+     *
+     * @param {LatLng} latLngObject The LatLng object
+     * @returns {void}
+     */
+    __privateAdd(this, _extendGoogle);
+    /**
+     * Extends this bounds using the internal method
+     *
+     * Based on the Leaflet library
+     *
+     * @param {LatLng} latLngObject The LatLng object
+     * @returns {void}
+     */
+    __privateAdd(this, _extend);
+    /**
+     * Set up the Google maps LatLngBounds object if necessary
+     *
+     * @private
+     * @returns {Promise<void>}
+     */
+    __privateAdd(this, _setupGoogleLatLngBounds);
+    /**
+     * Create the LatLngBounds object
+     *
+     * @private
+     */
+    __privateAdd(this, _createLatLngBoundsObject);
+    /**
+     * Extends this bounds to contain the union of this and the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to join with
+     * @returns {void}
+     */
+    __privateAdd(this, _union);
+    /**
      * Holds the Google maps LatLngBounds object
      */
     __privateAdd(this, _bounds, void 0);
-    checkForGoogleMaps("LatLngBounds", "LatLngBounds");
-    __privateSet(this, _bounds, new google.maps.LatLngBounds());
+    /**
+     * Holds the values to extend the bounds with
+     *
+     * This is used to set up the Google Maps LatLngBounds object when the Google Maps object is loaded.
+     *
+     * @private
+     * @type {LatLng[]}
+     */
+    __privateAdd(this, _boundValues, []);
+    /**
+     * Holds the north-east corner of the LatLngBounds
+     *
+     * @private
+     * @type {LatLng}
+     */
+    __privateAdd(this, _northEast, void 0);
+    /**
+     * Holds the south-west corner of the LatLngBounds
+     *
+     * @private
+     * @type {LatLng}
+     */
+    __privateAdd(this, _southWest, void 0);
     if (latLngValue) {
       this.extend(latLngValue);
     }
@@ -2338,19 +2397,36 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
         )}`
       );
     }
-    return __privateGet(this, _bounds).contains(latLng(latLngValue).toGoogle());
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).contains(latLng(latLngValue).toGoogle());
+    }
+    if (__privateGet(this, _southWest) && __privateGet(this, _northEast)) {
+      return latLngObject.latitude >= __privateGet(this, _southWest).latitude && latLngObject.latitude <= __privateGet(this, _northEast).latitude && latLngObject.longitude >= __privateGet(this, _southWest).longitude && latLngObject.longitude <= __privateGet(this, _northEast).longitude;
+    }
+    return false;
   }
   /**
    * Returns whether this bounds approximately equals the given bounds
    *
    * @param {LatLngBounds} other The LatLngBounds object to compare
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
   equals(other) {
-    if (other instanceof _LatLngBounds) {
-      return __privateGet(this, _bounds).equals(other.toGoogle());
-    }
-    return false;
+    return new Promise((resolve) => {
+      if (other instanceof _LatLngBounds) {
+        if (__privateGet(this, _bounds)) {
+          other.toGoogle().then((googleLatLngBounds) => {
+            resolve(__privateGet(this, _bounds).equals(googleLatLngBounds));
+          });
+        } else {
+          resolve(
+            __privateGet(this, _northEast).latitude === other.getNorthEast().latitude && __privateGet(this, _northEast).longitude === other.getNorthEast().longitude && __privateGet(this, _southWest).latitude === other.getSouthWest().latitude && __privateGet(this, _southWest).longitude === other.getSouthWest().longitude
+          );
+        }
+      } else {
+        resolve(false);
+      }
+    });
   }
   /**
    * Extends this bounds to contain the given point
@@ -2378,7 +2454,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
         } else {
           const latLngObject = latLng(latLngValue);
           if (latLngObject.isValid()) {
-            __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+            this.extend(latLngObject);
           } else {
             throw new Error(
               `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(
@@ -2393,7 +2469,11 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     } else {
       const latLngObject = latLng(latLngValue);
       if (latLngObject.isValid()) {
-        __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+        if (__privateGet(this, _bounds)) {
+          __privateMethod(this, _extendGoogle, extendGoogle_fn).call(this, latLngObject);
+        } else {
+          __privateMethod(this, _extend, extend_fn).call(this, latLngObject);
+        }
       } else {
         throw new Error(
           `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(latLngValue)}`
@@ -2408,7 +2488,15 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getCenter() {
-    return latLngConvert(__privateGet(this, _bounds).getCenter());
+    if (__privateGet(this, _bounds)) {
+      return latLngConvert(__privateGet(this, _bounds).getCenter());
+    }
+    const lat = (__privateGet(this, _northEast).latitude + __privateGet(this, _southWest).latitude) / 2;
+    let lng = (__privateGet(this, _northEast).longitude + __privateGet(this, _southWest).longitude) / 2;
+    if (__privateGet(this, _northEast).longitude < __privateGet(this, _southWest).longitude) {
+      lng = (lng + 180) % 360 - 180;
+    }
+    return latLng([lat, lng]);
   }
   /**
    * Get the north-east corner of the LatLngBounds
@@ -2416,7 +2504,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getNorthEast() {
-    return latLngConvert(__privateGet(this, _bounds).getNorthEast());
+    if (__privateGet(this, _bounds)) {
+      return latLngConvert(__privateGet(this, _bounds).getNorthEast());
+    }
+    return __privateGet(this, _northEast);
   }
   /**
    * Get the south-west corner of the LatLngBounds
@@ -2424,21 +2515,58 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getSouthWest() {
-    return latLngConvert(__privateGet(this, _bounds).getSouthWest());
+    if (__privateGet(this, _bounds)) {
+      return latLngConvert(__privateGet(this, _bounds).getSouthWest());
+    }
+    return __privateGet(this, _southWest);
+  }
+  /**
+   * Initialize the lat/lng bounds object so that the Google maps library is available
+   *
+   * This is not intended to be called outside of this library.
+   *
+   * @internal
+   * @returns {Promise<void>}
+   */
+  init() {
+    return new Promise((resolve) => {
+      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+        resolve();
+      });
+    });
   }
   /**
    * Returns whether this bounds shares any points with the other bounds
    *
    * @param {LatLngBounds} other The LatLngBounds object to compare
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
   intersects(other) {
-    if (!(other instanceof _LatLngBounds)) {
-      throw new Error(
-        `Invalid LatLngBounds object passed to LatLngBounds.intersects. You passed: ${JSON.stringify(other)}`
-      );
-    }
-    return __privateGet(this, _bounds).intersects(other.toGoogle());
+    return new Promise((resolve, reject) => {
+      if (other instanceof _LatLngBounds) {
+        if (__privateGet(this, _bounds)) {
+          other.toGoogle().then((googleLatLngBounds) => {
+            resolve(__privateGet(this, _bounds).intersects(googleLatLngBounds));
+          });
+        } else {
+          const sw = this.getSouthWest();
+          const ne = this.getNorthEast();
+          const otherSw = other.getSouthWest();
+          const otherNe = other.getNorthEast();
+          resolve(
+            sw.latitude <= otherNe.latitude && ne.latitude >= otherSw.latitude && sw.longitude <= otherNe.longitude && ne.longitude >= otherSw.longitude
+          );
+        }
+      } else {
+        reject(
+          new Error(
+            `Invalid LatLngBounds object passed to LatLngBounds.intersects. You passed: ${JSON.stringify(
+              other
+            )}`
+          )
+        );
+      }
+    });
   }
   /**
    * Returns whether this bounds is empty
@@ -2446,15 +2574,24 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {boolean}
    */
   isEmpty() {
-    return __privateGet(this, _bounds).isEmpty();
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).isEmpty();
+    }
+    return !__privateGet(this, _northEast) || !__privateGet(this, _southWest);
   }
   /**
    * Get the Google maps LatLngBounds object
    *
-   * @returns {google.maps.LatLngBounds}
+   * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
+   *
+   * @returns {Promise<google.maps.LatLngBounds>}
    */
   toGoogle() {
-    return __privateGet(this, _bounds);
+    return new Promise((resolve) => {
+      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+        resolve(__privateGet(this, _bounds));
+      });
+    });
   }
   /**
    * Converts the LatLngBounds object to a JSON object
@@ -2462,15 +2599,15 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {google.maps.LatLngBoundsLiteral}
    */
   toJson() {
-    return __privateGet(this, _bounds).toJSON();
-  }
-  /**
-   * Converts the LatLngBounds object to a lat/lng span
-   *
-   * @returns {LatLng}
-   */
-  toSpan() {
-    return latLngConvert(__privateGet(this, _bounds).toSpan());
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).toJSON();
+    }
+    return {
+      east: __privateGet(this, _northEast).longitude,
+      north: __privateGet(this, _northEast).latitude,
+      south: __privateGet(this, _southWest).latitude,
+      west: __privateGet(this, _southWest).longitude
+    };
   }
   /**
    * Converts the LatLngBounds object to a string
@@ -2478,7 +2615,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toString() {
-    return __privateGet(this, _bounds).toString();
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).toString();
+    }
+    return `(${__privateGet(this, _southWest).latitude}, ${__privateGet(this, _southWest).longitude}) (${__privateGet(this, _northEast).latitude}, ${__privateGet(this, _northEast).longitude})`;
   }
   /**
    * Returns the LatLngBounds object as a string that can be used in a URL
@@ -2487,24 +2627,94 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toUrlValue(precision) {
-    return __privateGet(this, _bounds).toUrlValue(precision);
+    let prec = precision || 3;
+    if (!isNumber(prec)) {
+      prec = 3;
+    }
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).toUrlValue(prec);
+    }
+    return `${__privateGet(this, _southWest).latitude.toFixed(prec)},${__privateGet(this, _southWest).longitude.toFixed(
+      prec
+    )},${__privateGet(this, _northEast).latitude.toFixed(prec)},${__privateGet(this, _northEast).longitude.toFixed(prec)}`;
   }
   /**
    * Extends this bounds to contain the union of this and the given bounds
    *
    * @param {LatLngBounds} other The LatLngBounds object to join with
-   * @returns {LatLngBounds}
+   * @returns {void}
    */
   union(other) {
-    if (other instanceof _LatLngBounds) {
-      __privateGet(this, _bounds).union(other.toGoogle());
+    if (__privateGet(this, _bounds)) {
+      __privateMethod(this, _union, union_fn).call(this, other);
     } else {
-      __privateGet(this, _bounds).union(other);
+      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+        __privateMethod(this, _union, union_fn).call(this, other);
+      });
     }
-    return this;
   }
 };
 _bounds = new WeakMap();
+_boundValues = new WeakMap();
+_northEast = new WeakMap();
+_southWest = new WeakMap();
+_extendGoogle = new WeakSet();
+extendGoogle_fn = function(latLngObject) {
+  __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+};
+_extend = new WeakSet();
+extend_fn = function(latLngObject) {
+  __privateGet(this, _boundValues).push(latLngObject);
+  if (__privateGet(this, _northEast) && __privateGet(this, _southWest)) {
+    __privateGet(this, _northEast).latitude = Math.max(latLngObject.latitude, __privateGet(this, _northEast).latitude);
+    __privateGet(this, _northEast).longitude = Math.max(latLngObject.longitude, __privateGet(this, _northEast).longitude);
+    __privateGet(this, _southWest).latitude = Math.min(latLngObject.latitude, __privateGet(this, _southWest).latitude);
+    __privateGet(this, _southWest).longitude = Math.min(latLngObject.longitude, __privateGet(this, _southWest).longitude);
+  } else {
+    __privateSet(this, _northEast, latLngObject);
+    __privateSet(this, _southWest, latLngObject);
+  }
+};
+_setupGoogleLatLngBounds = new WeakSet();
+setupGoogleLatLngBounds_fn = function() {
+  return new Promise((resolve) => {
+    if (!isObject(__privateGet(this, _bounds))) {
+      if (checkForGoogleMaps("LatLngBounds", "LatLngBounds", false)) {
+        __privateMethod(this, _createLatLngBoundsObject, createLatLngBoundsObject_fn).call(this);
+        resolve();
+      } else {
+        loader().once("map_loaded", () => {
+          __privateMethod(this, _createLatLngBoundsObject, createLatLngBoundsObject_fn).call(this);
+          resolve();
+        });
+      }
+    } else {
+      resolve();
+    }
+  });
+};
+_createLatLngBoundsObject = new WeakSet();
+createLatLngBoundsObject_fn = function() {
+  if (!__privateGet(this, _bounds)) {
+    __privateSet(this, _bounds, new google.maps.LatLngBounds());
+    if (__privateGet(this, _boundValues)) {
+      __privateGet(this, _boundValues).forEach((latLngObject) => {
+        __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+      });
+    }
+  }
+};
+_union = new WeakSet();
+union_fn = function(other) {
+  if (other instanceof _LatLngBounds) {
+    other.toGoogle().then((googleLatLngBounds) => {
+      __privateGet(this, _bounds).union(googleLatLngBounds);
+    });
+  } else {
+    __privateGet(this, _bounds).union(other);
+  }
+  return this;
+};
 var LatLngBounds = _LatLngBounds;
 var latLngBounds = (latLngValue) => {
   if (latLngValue instanceof LatLngBounds) {
@@ -3251,11 +3461,24 @@ var Map = class extends Evented {
    */
   fitBounds(bounds) {
     if (bounds) {
-      __privateGet(this, _map2).fitBounds(latLngBounds(bounds).toGoogle());
+      latLngBounds(bounds).toGoogle().then((googleBounds) => {
+        __privateGet(this, _map2).fitBounds(googleBounds);
+      });
     } else if (__privateGet(this, _bounds2)) {
-      __privateGet(this, _map2).fitBounds(__privateGet(this, _bounds2).toGoogle());
+      __privateGet(this, _bounds2).toGoogle().then((googleBounds) => {
+        __privateGet(this, _map2).fitBounds(googleBounds);
+      });
     }
     return this;
+  }
+  /**
+   * Alias to fitBounds
+   *
+   * @param {LatLngBoundsValue} bounds The bounds to fit
+   * @returns {Map}
+   */
+  fitToBounds(bounds) {
+    return this.fitBounds(bounds);
   }
   /**
    * Initialize the map if necessary
@@ -7120,11 +7343,11 @@ var PlacesSearchBox = class extends Evented {
      *
      * @private
      */
-    __privateAdd(this, _createPlacesSearchBox, () => {
+    __privateAdd(this, _createPlacesSearchBox, () => __async(this, null, function* () {
       if (!__privateGet(this, _searchBox)) {
         const options = {};
         if (options.bounds) {
-          options.bounds = __privateGet(this, _options6).bounds.toGoogle();
+          options.bounds = yield __privateGet(this, _options6).bounds.toGoogle();
         }
         __privateSet(this, _searchBox, new google.maps.places.SearchBox(__privateGet(this, _input), options));
         __privateGet(this, _searchBox).addListener("places_changed", () => {
@@ -7144,7 +7367,7 @@ var PlacesSearchBox = class extends Evented {
           this.dispatch("places_changed", { places, bounds });
         });
       }
-    });
+    }));
     if (input instanceof HTMLInputElement) {
       __privateSet(this, _input, input);
       this.setOptions(options);
@@ -7181,7 +7404,9 @@ var PlacesSearchBox = class extends Evented {
     const boundsValue = latLngBounds(value);
     __privateGet(this, _options6).bounds = boundsValue;
     if (__privateGet(this, _searchBox)) {
-      __privateGet(this, _searchBox).setBounds(boundsValue.toGoogle());
+      boundsValue.toGoogle().then((bounds) => {
+        __privateGet(this, _searchBox).setBounds(bounds);
+      });
     }
   }
   /**
@@ -7255,11 +7480,14 @@ var PlacesSearchBox = class extends Evented {
       return new Promise((resolve) => {
         if (!isObject(__privateGet(this, _searchBox))) {
           if (checkForGoogleMaps("PlacesSearchBox", "places", false)) {
-            __privateGet(this, _createPlacesSearchBox).call(this);
+            __privateGet(this, _createPlacesSearchBox).call(this).then(() => {
+              resolve();
+            });
           } else {
             loader().once("map_loaded", () => {
-              __privateGet(this, _createPlacesSearchBox).call(this);
-              resolve();
+              __privateGet(this, _createPlacesSearchBox).call(this).then(() => {
+                resolve();
+              });
             });
           }
         } else {
