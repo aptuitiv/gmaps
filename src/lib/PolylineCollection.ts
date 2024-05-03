@@ -4,6 +4,7 @@
     This allows some bulk operations to be done on polylines based on their tags.
 =========================================================================== */
 
+import { Map } from './Map';
 import { Polyline } from './Polyline';
 
 type PolylinesByTag = { [key: string]: Set<Polyline> };
@@ -129,13 +130,14 @@ export class PolylineCollection {
     /**
      * Show the Polylines in the collection that have the tag(s) passed
      *
+     * @param {Map} map The map object
      * @param {string[]} tags The tag(s) to show polylines for
      */
-    show(...tags: string[]): void {
+    show(map: Map, ...tags: string[]): void {
         tags.forEach((tag) => {
             if (this.polylines[tag]) {
                 this.polylines[tag].forEach((p: Polyline) => {
-                    p.show();
+                    p.show(map);
                 });
             }
         });
@@ -143,11 +145,13 @@ export class PolylineCollection {
 
     /**
      * Show all the Polylines in the collection
+     *
+     * @param {Map} map The map object
      */
-    showAll(): void {
+    showAll(map: Map): void {
         Object.keys(this.polylines).forEach((tag) => {
             this.polylines[tag].forEach((p: Polyline) => {
-                p.show();
+                p.show(map);
             });
         });
     }
