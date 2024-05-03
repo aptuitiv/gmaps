@@ -479,7 +479,7 @@ export class Marker extends Layer {
     }
 
     /**
-     * Set the anchor point for the marker
+     * Set the cursor for the marker
      *
      * @param {string} value The cursor type to show on hover
      */
