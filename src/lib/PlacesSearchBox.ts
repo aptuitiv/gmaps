@@ -120,7 +120,9 @@ export class PlacesSearchBox extends Evented {
         const boundsValue = latLngBounds(value);
         this.#options.bounds = boundsValue;
         if (this.#searchBox) {
-            this.#searchBox.setBounds(boundsValue.toGoogle());
+            boundsValue.toGoogle().then((bounds) => {
+                this.#searchBox.setBounds(bounds);
+            });
         }
     }
 
@@ -200,13 +202,16 @@ export class PlacesSearchBox extends Evented {
         return new Promise((resolve) => {
             if (!isObject(this.#searchBox)) {
                 if (checkForGoogleMaps('PlacesSearchBox', 'places', false)) {
-                    this.#createPlacesSearchBox();
+                    this.#createPlacesSearchBox().then(() => {
+                        resolve();
+                    });
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().once('map_loaded', () => {
-                        this.#createPlacesSearchBox();
-                        resolve();
+                        this.#createPlacesSearchBox().then(() => {
+                            resolve();
+                        });
                     });
                 }
             } else {
@@ -220,11 +225,11 @@ export class PlacesSearchBox extends Evented {
      *
      * @private
      */
-    #createPlacesSearchBox = () => {
+    #createPlacesSearchBox = async () => {
         if (!this.#searchBox) {
             const options: google.maps.places.SearchBoxOptions = {};
             if (options.bounds) {
-                options.bounds = this.#options.bounds.toGoogle();
+                options.bounds = await this.#options.bounds.toGoogle();
             }
             this.#searchBox = new google.maps.places.SearchBox(this.#input, options);
             // Add the listener for when the user selects a place

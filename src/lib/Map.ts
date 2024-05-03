@@ -500,9 +500,15 @@ export class Map extends Evented {
      */
     fitBounds(bounds?: LatLngBoundsValue): Map {
         if (bounds) {
-            this.#map.fitBounds(latLngBounds(bounds).toGoogle());
+            latLngBounds(bounds)
+                .toGoogle()
+                .then((googleBounds) => {
+                    this.#map.fitBounds(googleBounds);
+                });
         } else if (this.#bounds) {
-            this.#map.fitBounds(this.#bounds.toGoogle());
+            this.#bounds.toGoogle().then((googleBounds) => {
+                this.#map.fitBounds(googleBounds);
+            });
         }
         return this;
     }
