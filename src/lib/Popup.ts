@@ -26,6 +26,9 @@ export type PopupOptions = {
     closeElement?: HTMLElement | string;
     // The popup content
     content: string | HTMLElement | Text;
+    // The event to trigger the popup. Defaults to 'click'
+    // Allowed values are: 'click',  'clickon', and 'hover'
+    event?: string;
     // The amount to offset the popup from the element it is displayed at.
     // If the element is a marker, then this is added to the marker's anchorPoint value.
     // For example, if the marker is 40px tall and no anchorPoint value was set for the marker, then
@@ -76,6 +79,14 @@ export class Popup extends Overlay {
      * @type {string|HTMLElement}
      */
     #content: string | HTMLElement | Text;
+
+    /**
+     * The event to trigger the popup
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    #event: string = 'click';
 
     /**
      * Whether the popup is attached to an element
@@ -231,6 +242,28 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string {
+        return this.#event;
+    }
+
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string) {
+        if (isStringWithValue(event) && ['click', 'clickon', 'hover'].includes(event.toLowerCase())) {
+            this.#event = event.toLowerCase();
+        } else {
+            throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
+        }
+    }
+
+    /**
      * Returns the theme to use for the popup
      *
      * @returns {string}
@@ -260,7 +293,7 @@ export class Popup extends Overlay {
      *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
      * @returns {Promise<Popup>}
      */
-    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<Popup> {
+    async attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup> {
         if (!this.#isAttached) {
             this.#isAttached = true;
             await element.init().then(() => {
@@ -271,8 +304,10 @@ export class Popup extends Overlay {
                     this.#toggleDisplay = false;
                 }
 
+                const triggerEvent = event || this.#event;
+
                 // Show the popup when hovering over the element
-                if (event === 'hover') {
+                if (triggerEvent === 'hover') {
                     element.on('mouseover', (e) => {
                         if (element instanceof Map) {
                             this.move(e.latLng, element);
@@ -288,7 +323,7 @@ export class Popup extends Overlay {
                     element.on('mouseout', () => {
                         this.hide();
                     });
-                } else if (event === 'clickon') {
+                } else if (triggerEvent === 'clickon') {
                     // Show the popup when clicking on the element
                     element.on('click', (e) => {
                         if (element instanceof Map) {
@@ -411,6 +446,9 @@ export class Popup extends Overlay {
         }
         if (options.content) {
             this.content = options.content;
+        }
+        if (options.event) {
+            this.event = options.event;
         }
         if (typeof options.offset !== 'undefined') {
             this.setOffset(options.offset);
@@ -536,7 +574,7 @@ export class Popup extends Overlay {
             }
 
             if (this.center) {
-                // Center the tooltip horizontally on the element.
+                // Center the popup horizontally on the element.
                 // The -100% Y value is to position the popup above the element.
                 this.style('transform', 'translate(-50%, -100%)');
             } else {
@@ -614,9 +652,9 @@ const popupMixin = {
     /**
      *
      * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
-     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      */
-    attachPopup(popupValue: PopupValue, event: 'click' | 'clickon' | 'hover' = 'click') {
+    attachPopup(popupValue: PopupValue, event?: 'click' | 'clickon' | 'hover') {
         popup(popupValue).attachTo(this, event);
     },
 };

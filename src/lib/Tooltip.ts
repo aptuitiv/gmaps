@@ -20,6 +20,9 @@ export type TooltipOptions = {
     className?: string;
     // The content for the tooltip
     content?: string | HTMLElement | Text;
+    // The event to trigger the tooltip. Defaults to 'hover'
+    // Allowed values are: 'click',  'clickon', and 'hover'
+    event?: string;
     // The map to attach the tooltip to
     map?: Map;
     // The offset for the tooltip. This is applied to the tooltip container.
@@ -53,6 +56,14 @@ export class Tooltip extends Overlay {
      * @type {string|HTMLElement}
      */
     #content: string | HTMLElement | Text;
+
+    /**
+     * The event to trigger the tooltip
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    #event: string = 'hover';
 
     /**
      * Whether the tooltip is attached to an element
@@ -138,6 +149,28 @@ export class Tooltip extends Overlay {
     }
 
     /**
+     * Returns the event to trigger the tooltip
+     *
+     * @returns {string}
+     */
+    get event(): string {
+        return this.#event;
+    }
+
+    /**
+     * Set the event to trigger the tooltip
+     *
+     * @param {string} event The event to trigger the tooltip
+     */
+    set event(event: string) {
+        if (isStringWithValue(event) && ['click', 'clickon', 'hover'].includes(event.toLowerCase())) {
+            this.#event = event.toLowerCase();
+        } else {
+            throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
+        }
+    }
+
+    /**
      * Returns the theme to use for the tooltip
      *
      * @returns {string}
@@ -167,12 +200,13 @@ export class Tooltip extends Overlay {
      *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
      * @returns {Promise<Tooltip>}
      */
-    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'hover'): Promise<Tooltip> {
+    async attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Tooltip> {
         if (!this.#isAttached) {
             this.#isAttached = true;
             await element.init().then(() => {
+                const triggerEvent = event || this.#event;
                 // Show the tooltip when hovering over the element
-                if (event === 'click') {
+                if (triggerEvent === 'click') {
                     // Show the tooltip when clicking on the element
                     element.on('click', (e) => {
                         this.setPosition(e.latLng);
@@ -182,7 +216,7 @@ export class Tooltip extends Overlay {
                             this.toggle(element.getMap());
                         }
                     });
-                } else if (event === 'clickon') {
+                } else if (triggerEvent === 'clickon') {
                     // Show the tooltip when clicking on the element
                     element.on('click', (e) => {
                         this.setPosition(e.latLng);
@@ -256,6 +290,9 @@ export class Tooltip extends Overlay {
         if (isString(options.className)) {
             this.removeClassName('tooltip');
             this.setClassName(options.className);
+        }
+        if (options.event) {
+            this.event = options.event;
         }
         if (options.map) {
             this.setMap(options.map);
@@ -353,9 +390,9 @@ const tooltipMixin = {
      * Attach an Tooltip to the layer
      *
      * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
-     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
      */
-    attachTooltip(tooltipValue: TooltipValue, event: 'click' | 'clickon' | 'hover' = 'hover') {
+    attachTooltip(tooltipValue: TooltipValue, event?: 'click' | 'clickon' | 'hover') {
         tooltip(tooltipValue).attachTo(this, event);
     },
 };
