@@ -1790,6 +1790,14 @@ declare class Map extends Evented {
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
     /**
+     * Changes the center of the map to the lat/lng value.
+     *
+     * If the change is less than both the width and height of the map, the transition will be smoothly animated.
+     *
+     * @param {LatLngValue} value The latitude/longitude value to pan to
+     */
+    panTo(value: LatLngValue): void;
+    /**
      * Set the API key
      *
      * @param {string} key The API key

@@ -3693,6 +3693,22 @@ var Map = class extends Evented {
     super.onlyOnce(type, callback, config);
   }
   /**
+   * Changes the center of the map to the lat/lng value.
+   *
+   * If the change is less than both the width and height of the map, the transition will be smoothly animated.
+   *
+   * @param {LatLngValue} value The latitude/longitude value to pan to
+   */
+  panTo(value) {
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _map2).panTo(latLng(value).toGoogle());
+    } else {
+      this.init().then(() => {
+        __privateGet(this, _map2).panTo(latLng(value).toGoogle());
+      });
+    }
+  }
+  /**
    * Set the API key
    *
    * @param {string} key The API key
