@@ -508,6 +508,16 @@ export class Map extends Evented {
     }
 
     /**
+     * Alias to fitBounds
+     *
+     * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @returns {Map}
+     */
+    fitToBounds(bounds?: LatLngBoundsValue): Map {
+        return this.fitBounds(bounds);
+    }
+
+    /**
      * Initialize the map if necessary
      *
      * This is not intended to be called outside of this library.
