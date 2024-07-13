@@ -6,26 +6,36 @@
 /* global globalThis, NodeJS, Window */
 
 // Import the class helpers
+// The classes (i.e. Marker, Polyline, etc.) are imported here so that they can be used
+// to add plugins to the classes for custom functionality.
+// For example:
+// G.Marker.include({
+//     myCustomFunction: function() {
+//         console.log('Hello from my custom function');
+//     }
+// });
+// The classes should not be used for other purposes. For all other functionality
+// the lowercase objects should be used (i.e. marker, polyline, etc.).
 import { ControlPosition, MapTypeControlStyle, MapTypeId } from './lib/constants';
-import { icon } from './lib/Icon';
-import { infoWindow } from './lib/InfoWindow';
-import { latLng } from './lib/LatLng';
-import { latLngBounds } from './lib/LatLngBounds';
-import { loader } from './lib/Loader';
-import { map } from './lib/Map';
-import { mapTypeControl } from './lib/Map/MapTypeControl';
-import { marker } from './lib/Marker';
-import { markerCluster } from './lib/MarkerCluster';
-import { markerCollection } from './lib/MarkerCollection';
-import { overlay } from './lib/Overlay';
-import { placesSearchBox } from './lib/PlacesSearchBox';
-import { point } from './lib/Point';
-import { polyline } from './lib/Polyline';
-import { polylineCollection } from './lib/PolylineCollection';
-import { popup } from './lib/Popup';
-import { size } from './lib/Size';
-import { svgSymbol } from './lib/SvgSymbol';
-import { tooltip } from './lib/Tooltip';
+import { icon, Icon } from './lib/Icon';
+import { infoWindow, InfoWindow } from './lib/InfoWindow';
+import { latLng, LatLng } from './lib/LatLng';
+import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
+import { loader, Loader } from './lib/Loader';
+import { map, Map } from './lib/Map';
+import { mapTypeControl, MapTypeControl } from './lib/Map/MapTypeControl';
+import { marker, Marker } from './lib/Marker';
+import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
+import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
+import { overlay, Overlay } from './lib/Overlay';
+import { placesSearchBox, PlacesSearchBox } from './lib/PlacesSearchBox';
+import { point, Point } from './lib/Point';
+import { polyline, Polyline } from './lib/Polyline';
+import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
+import { popup, Popup } from './lib/Popup';
+import { size, Size } from './lib/Size';
+import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
+import { tooltip, Tooltip } from './lib/Tooltip';
 
 // Types
 type GlobalObj = {
@@ -33,24 +43,43 @@ type GlobalObj = {
     MapTypeControlStyle: typeof MapTypeControlStyle;
     MapTypeId: typeof MapTypeId;
     icon: typeof icon;
+    Icon: typeof Icon;
     infoWindow: typeof infoWindow;
+    InfoWindow: typeof InfoWindow;
     latLng: typeof latLng;
+    LatLng: typeof LatLng;
     latLngBounds: typeof latLngBounds;
+    LatLngBounds: typeof LatLngBounds;
     loader: typeof loader;
+    Loader: typeof Loader;
     map: typeof map;
+    Map: typeof Map;
     mapTypeControl: typeof mapTypeControl;
+    MapTypeControl: typeof MapTypeControl;
     marker: typeof marker;
+    Marker: typeof Marker;
     markerCluster: typeof markerCluster;
+    MarkerCluster: typeof MarkerCluster;
     markerCollection: typeof markerCollection;
+    MarkerCollection: typeof MarkerCollection;
     overlay: typeof overlay;
+    Overlay: typeof Overlay;
     placesSearchBox: typeof placesSearchBox;
+    PlacesSearchBox: typeof PlacesSearchBox;
     point: typeof point;
+    Point: typeof Point;
     polyline: typeof polyline;
+    Polyline: typeof Polyline;
     polylineCollection: typeof polylineCollection;
+    PolylineCollection: typeof PolylineCollection;
     popup: typeof popup;
+    Popup: typeof Popup;
     size: typeof size;
+    Size: typeof Size;
     svgSymbol: typeof svgSymbol;
+    SvgSymbol: typeof SvgSymbol;
     tooltip: typeof tooltip;
+    Tooltip: typeof Tooltip;
 };
 
 // Set up the global namespace object
@@ -59,24 +88,43 @@ const G: GlobalObj = {
     MapTypeControlStyle,
     MapTypeId,
     icon,
+    Icon,
     infoWindow,
+    InfoWindow,
     latLng,
+    LatLng,
     latLngBounds,
+    LatLngBounds,
     loader,
+    Loader,
     map,
+    Map,
     mapTypeControl,
+    MapTypeControl,
     marker,
+    Marker,
     markerCluster,
+    MarkerCluster,
     markerCollection,
+    MarkerCollection,
     overlay,
+    Overlay,
     placesSearchBox,
+    PlacesSearchBox,
     point,
+    Point,
     polyline,
+    Polyline,
     polylineCollection,
+    PolylineCollection,
     popup,
+    Popup,
     size,
+    Size,
     svgSymbol,
+    SvgSymbol,
     tooltip,
+    Tooltip,
 };
 
 /**
