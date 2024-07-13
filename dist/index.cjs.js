@@ -2303,7 +2303,7 @@ var loader = (config) => {
 };
 
 // src/lib/LatLngBounds.ts
-var _bounds;
+var _bounds, _boundValues, _northEast, _southWest, _extendGoogle, extendGoogle_fn, _extend, extend_fn, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn, _createLatLngBoundsObject, createLatLngBoundsObject_fn, _union, union_fn;
 var _LatLngBounds = class _LatLngBounds extends Base_default {
   /**
    * Constructor
@@ -2314,11 +2314,70 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
   constructor(latLngValue) {
     super("latlngbounds");
     /**
+     * Extends this bounds using the Google Maps LatLngBounds object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+     *
+     * @param {LatLng} latLngObject The LatLng object
+     * @returns {void}
+     */
+    __privateAdd(this, _extendGoogle);
+    /**
+     * Extends this bounds using the internal method
+     *
+     * Based on the Leaflet library
+     *
+     * @param {LatLng} latLngObject The LatLng object
+     * @returns {void}
+     */
+    __privateAdd(this, _extend);
+    /**
+     * Set up the Google maps LatLngBounds object if necessary
+     *
+     * @private
+     * @returns {Promise<void>}
+     */
+    __privateAdd(this, _setupGoogleLatLngBounds);
+    /**
+     * Create the LatLngBounds object
+     *
+     * @private
+     */
+    __privateAdd(this, _createLatLngBoundsObject);
+    /**
+     * Extends this bounds to contain the union of this and the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to join with
+     * @returns {void}
+     */
+    __privateAdd(this, _union);
+    /**
      * Holds the Google maps LatLngBounds object
      */
     __privateAdd(this, _bounds, void 0);
-    checkForGoogleMaps("LatLngBounds", "LatLngBounds");
-    __privateSet(this, _bounds, new google.maps.LatLngBounds());
+    /**
+     * Holds the values to extend the bounds with
+     *
+     * This is used to set up the Google Maps LatLngBounds object when the Google Maps object is loaded.
+     *
+     * @private
+     * @type {LatLng[]}
+     */
+    __privateAdd(this, _boundValues, []);
+    /**
+     * Holds the north-east corner of the LatLngBounds
+     *
+     * @private
+     * @type {LatLng}
+     */
+    __privateAdd(this, _northEast, void 0);
+    /**
+     * Holds the south-west corner of the LatLngBounds
+     *
+     * @private
+     * @type {LatLng}
+     */
+    __privateAdd(this, _southWest, void 0);
     if (latLngValue) {
       this.extend(latLngValue);
     }
@@ -2338,19 +2397,36 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
         )}`
       );
     }
-    return __privateGet(this, _bounds).contains(latLng(latLngValue).toGoogle());
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).contains(latLng(latLngValue).toGoogle());
+    }
+    if (__privateGet(this, _southWest) && __privateGet(this, _northEast)) {
+      return latLngObject.latitude >= __privateGet(this, _southWest).latitude && latLngObject.latitude <= __privateGet(this, _northEast).latitude && latLngObject.longitude >= __privateGet(this, _southWest).longitude && latLngObject.longitude <= __privateGet(this, _northEast).longitude;
+    }
+    return false;
   }
   /**
    * Returns whether this bounds approximately equals the given bounds
    *
    * @param {LatLngBounds} other The LatLngBounds object to compare
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
   equals(other) {
-    if (other instanceof _LatLngBounds) {
-      return __privateGet(this, _bounds).equals(other.toGoogle());
-    }
-    return false;
+    return new Promise((resolve) => {
+      if (other instanceof _LatLngBounds) {
+        if (__privateGet(this, _bounds)) {
+          other.toGoogle().then((googleLatLngBounds) => {
+            resolve(__privateGet(this, _bounds).equals(googleLatLngBounds));
+          });
+        } else {
+          resolve(
+            __privateGet(this, _northEast).latitude === other.getNorthEast().latitude && __privateGet(this, _northEast).longitude === other.getNorthEast().longitude && __privateGet(this, _southWest).latitude === other.getSouthWest().latitude && __privateGet(this, _southWest).longitude === other.getSouthWest().longitude
+          );
+        }
+      } else {
+        resolve(false);
+      }
+    });
   }
   /**
    * Extends this bounds to contain the given point
@@ -2378,7 +2454,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
         } else {
           const latLngObject = latLng(latLngValue);
           if (latLngObject.isValid()) {
-            __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+            this.extend(latLngObject);
           } else {
             throw new Error(
               `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(
@@ -2393,7 +2469,11 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     } else {
       const latLngObject = latLng(latLngValue);
       if (latLngObject.isValid()) {
-        __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+        if (__privateGet(this, _bounds)) {
+          __privateMethod(this, _extendGoogle, extendGoogle_fn).call(this, latLngObject);
+        } else {
+          __privateMethod(this, _extend, extend_fn).call(this, latLngObject);
+        }
       } else {
         throw new Error(
           `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(latLngValue)}`
@@ -2408,7 +2488,15 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getCenter() {
-    return latLngConvert(__privateGet(this, _bounds).getCenter());
+    if (__privateGet(this, _bounds)) {
+      return latLngConvert(__privateGet(this, _bounds).getCenter());
+    }
+    const lat = (__privateGet(this, _northEast).latitude + __privateGet(this, _southWest).latitude) / 2;
+    let lng = (__privateGet(this, _northEast).longitude + __privateGet(this, _southWest).longitude) / 2;
+    if (__privateGet(this, _northEast).longitude < __privateGet(this, _southWest).longitude) {
+      lng = (lng + 180) % 360 - 180;
+    }
+    return latLng([lat, lng]);
   }
   /**
    * Get the north-east corner of the LatLngBounds
@@ -2416,7 +2504,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getNorthEast() {
-    return latLngConvert(__privateGet(this, _bounds).getNorthEast());
+    if (__privateGet(this, _bounds)) {
+      return latLngConvert(__privateGet(this, _bounds).getNorthEast());
+    }
+    return __privateGet(this, _northEast);
   }
   /**
    * Get the south-west corner of the LatLngBounds
@@ -2424,21 +2515,58 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getSouthWest() {
-    return latLngConvert(__privateGet(this, _bounds).getSouthWest());
+    if (__privateGet(this, _bounds)) {
+      return latLngConvert(__privateGet(this, _bounds).getSouthWest());
+    }
+    return __privateGet(this, _southWest);
+  }
+  /**
+   * Initialize the lat/lng bounds object so that the Google maps library is available
+   *
+   * This is not intended to be called outside of this library.
+   *
+   * @internal
+   * @returns {Promise<void>}
+   */
+  init() {
+    return new Promise((resolve) => {
+      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+        resolve();
+      });
+    });
   }
   /**
    * Returns whether this bounds shares any points with the other bounds
    *
    * @param {LatLngBounds} other The LatLngBounds object to compare
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
   intersects(other) {
-    if (!(other instanceof _LatLngBounds)) {
-      throw new Error(
-        `Invalid LatLngBounds object passed to LatLngBounds.intersects. You passed: ${JSON.stringify(other)}`
-      );
-    }
-    return __privateGet(this, _bounds).intersects(other.toGoogle());
+    return new Promise((resolve, reject) => {
+      if (other instanceof _LatLngBounds) {
+        if (__privateGet(this, _bounds)) {
+          other.toGoogle().then((googleLatLngBounds) => {
+            resolve(__privateGet(this, _bounds).intersects(googleLatLngBounds));
+          });
+        } else {
+          const sw = this.getSouthWest();
+          const ne = this.getNorthEast();
+          const otherSw = other.getSouthWest();
+          const otherNe = other.getNorthEast();
+          resolve(
+            sw.latitude <= otherNe.latitude && ne.latitude >= otherSw.latitude && sw.longitude <= otherNe.longitude && ne.longitude >= otherSw.longitude
+          );
+        }
+      } else {
+        reject(
+          new Error(
+            `Invalid LatLngBounds object passed to LatLngBounds.intersects. You passed: ${JSON.stringify(
+              other
+            )}`
+          )
+        );
+      }
+    });
   }
   /**
    * Returns whether this bounds is empty
@@ -2446,15 +2574,24 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {boolean}
    */
   isEmpty() {
-    return __privateGet(this, _bounds).isEmpty();
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).isEmpty();
+    }
+    return !__privateGet(this, _northEast) || !__privateGet(this, _southWest);
   }
   /**
    * Get the Google maps LatLngBounds object
    *
-   * @returns {google.maps.LatLngBounds}
+   * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
+   *
+   * @returns {Promise<google.maps.LatLngBounds>}
    */
   toGoogle() {
-    return __privateGet(this, _bounds);
+    return new Promise((resolve) => {
+      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+        resolve(__privateGet(this, _bounds));
+      });
+    });
   }
   /**
    * Converts the LatLngBounds object to a JSON object
@@ -2462,15 +2599,15 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {google.maps.LatLngBoundsLiteral}
    */
   toJson() {
-    return __privateGet(this, _bounds).toJSON();
-  }
-  /**
-   * Converts the LatLngBounds object to a lat/lng span
-   *
-   * @returns {LatLng}
-   */
-  toSpan() {
-    return latLngConvert(__privateGet(this, _bounds).toSpan());
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).toJSON();
+    }
+    return {
+      east: __privateGet(this, _northEast).longitude,
+      north: __privateGet(this, _northEast).latitude,
+      south: __privateGet(this, _southWest).latitude,
+      west: __privateGet(this, _southWest).longitude
+    };
   }
   /**
    * Converts the LatLngBounds object to a string
@@ -2478,7 +2615,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toString() {
-    return __privateGet(this, _bounds).toString();
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).toString();
+    }
+    return `(${__privateGet(this, _southWest).latitude}, ${__privateGet(this, _southWest).longitude}) (${__privateGet(this, _northEast).latitude}, ${__privateGet(this, _northEast).longitude})`;
   }
   /**
    * Returns the LatLngBounds object as a string that can be used in a URL
@@ -2487,24 +2627,94 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toUrlValue(precision) {
-    return __privateGet(this, _bounds).toUrlValue(precision);
+    let prec = precision || 3;
+    if (!isNumber(prec)) {
+      prec = 3;
+    }
+    if (__privateGet(this, _bounds)) {
+      return __privateGet(this, _bounds).toUrlValue(prec);
+    }
+    return `${__privateGet(this, _southWest).latitude.toFixed(prec)},${__privateGet(this, _southWest).longitude.toFixed(
+      prec
+    )},${__privateGet(this, _northEast).latitude.toFixed(prec)},${__privateGet(this, _northEast).longitude.toFixed(prec)}`;
   }
   /**
    * Extends this bounds to contain the union of this and the given bounds
    *
    * @param {LatLngBounds} other The LatLngBounds object to join with
-   * @returns {LatLngBounds}
+   * @returns {void}
    */
   union(other) {
-    if (other instanceof _LatLngBounds) {
-      __privateGet(this, _bounds).union(other.toGoogle());
+    if (__privateGet(this, _bounds)) {
+      __privateMethod(this, _union, union_fn).call(this, other);
     } else {
-      __privateGet(this, _bounds).union(other);
+      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+        __privateMethod(this, _union, union_fn).call(this, other);
+      });
     }
-    return this;
   }
 };
 _bounds = new WeakMap();
+_boundValues = new WeakMap();
+_northEast = new WeakMap();
+_southWest = new WeakMap();
+_extendGoogle = new WeakSet();
+extendGoogle_fn = function(latLngObject) {
+  __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+};
+_extend = new WeakSet();
+extend_fn = function(latLngObject) {
+  __privateGet(this, _boundValues).push(latLngObject);
+  if (__privateGet(this, _northEast) && __privateGet(this, _southWest)) {
+    __privateGet(this, _northEast).latitude = Math.max(latLngObject.latitude, __privateGet(this, _northEast).latitude);
+    __privateGet(this, _northEast).longitude = Math.max(latLngObject.longitude, __privateGet(this, _northEast).longitude);
+    __privateGet(this, _southWest).latitude = Math.min(latLngObject.latitude, __privateGet(this, _southWest).latitude);
+    __privateGet(this, _southWest).longitude = Math.min(latLngObject.longitude, __privateGet(this, _southWest).longitude);
+  } else {
+    __privateSet(this, _northEast, latLngObject);
+    __privateSet(this, _southWest, latLngObject);
+  }
+};
+_setupGoogleLatLngBounds = new WeakSet();
+setupGoogleLatLngBounds_fn = function() {
+  return new Promise((resolve) => {
+    if (!isObject(__privateGet(this, _bounds))) {
+      if (checkForGoogleMaps("LatLngBounds", "LatLngBounds", false)) {
+        __privateMethod(this, _createLatLngBoundsObject, createLatLngBoundsObject_fn).call(this);
+        resolve();
+      } else {
+        loader().once("map_loaded", () => {
+          __privateMethod(this, _createLatLngBoundsObject, createLatLngBoundsObject_fn).call(this);
+          resolve();
+        });
+      }
+    } else {
+      resolve();
+    }
+  });
+};
+_createLatLngBoundsObject = new WeakSet();
+createLatLngBoundsObject_fn = function() {
+  if (!__privateGet(this, _bounds)) {
+    __privateSet(this, _bounds, new google.maps.LatLngBounds());
+    if (__privateGet(this, _boundValues)) {
+      __privateGet(this, _boundValues).forEach((latLngObject) => {
+        __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+      });
+    }
+  }
+};
+_union = new WeakSet();
+union_fn = function(other) {
+  if (other instanceof _LatLngBounds) {
+    other.toGoogle().then((googleLatLngBounds) => {
+      __privateGet(this, _bounds).union(googleLatLngBounds);
+    });
+  } else {
+    __privateGet(this, _bounds).union(other);
+  }
+  return this;
+};
 var LatLngBounds = _LatLngBounds;
 var latLngBounds = (latLngValue) => {
   if (latLngValue instanceof LatLngBounds) {
@@ -3251,11 +3461,24 @@ var Map = class extends Evented {
    */
   fitBounds(bounds) {
     if (bounds) {
-      __privateGet(this, _map2).fitBounds(latLngBounds(bounds).toGoogle());
+      latLngBounds(bounds).toGoogle().then((googleBounds) => {
+        __privateGet(this, _map2).fitBounds(googleBounds);
+      });
     } else if (__privateGet(this, _bounds2)) {
-      __privateGet(this, _map2).fitBounds(__privateGet(this, _bounds2).toGoogle());
+      __privateGet(this, _bounds2).toGoogle().then((googleBounds) => {
+        __privateGet(this, _map2).fitBounds(googleBounds);
+      });
     }
     return this;
+  }
+  /**
+   * Alias to fitBounds
+   *
+   * @param {LatLngBoundsValue} bounds The bounds to fit
+   * @returns {Map}
+   */
+  fitToBounds(bounds) {
+    return this.fitBounds(bounds);
   }
   /**
    * Initialize the map if necessary
@@ -3468,6 +3691,22 @@ var Map = class extends Evented {
    */
   onlyOnce(type, callback, config) {
     super.onlyOnce(type, callback, config);
+  }
+  /**
+   * Changes the center of the map to the lat/lng value.
+   *
+   * If the change is less than both the width and height of the map, the transition will be smoothly animated.
+   *
+   * @param {LatLngValue} value The latitude/longitude value to pan to
+   */
+  panTo(value) {
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _map2).panTo(latLng(value).toGoogle());
+    } else {
+      this.init().then(() => {
+        __privateGet(this, _map2).panTo(latLng(value).toGoogle());
+      });
+    }
   }
   /**
    * Set the API key
@@ -4136,7 +4375,7 @@ var _Marker = class _Marker extends Layer_default {
      */
     __privateAdd(this, _setAnchorPoint);
     /**
-     * Set the anchor point for the marker
+     * Set the cursor for the marker
      *
      * @param {string} value The cursor type to show on hover
      */
@@ -4953,7 +5192,7 @@ var marker = (position, options) => {
 };
 
 // src/lib/InfoWindow.ts
-var _autoClose, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn;
+var _autoClose, _event, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn;
 var InfoWindow = class extends Layer_default {
   /**
    * Constructor
@@ -4975,6 +5214,13 @@ var InfoWindow = class extends Layer_default {
      * @type {boolean}
      */
     __privateAdd(this, _autoClose, true);
+    /**
+     * The event to trigger the popup
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    __privateAdd(this, _event, "click");
     /**
      * Whether focus should be moved to the InfoWindow when it is opened
      *
@@ -5092,6 +5338,26 @@ var InfoWindow = class extends Layer_default {
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ disableAutoPan: __privateGet(this, _options5).disableAutoPan });
       }
+    }
+  }
+  /**
+   * Returns the event to trigger the popup
+   *
+   * @returns {string}
+   */
+  get event() {
+    return __privateGet(this, _event);
+  }
+  /**
+   * Set the event to trigger the popup
+   *
+   * @param {string} event The event to trigger the popup
+   */
+  set event(event) {
+    if (isStringWithValue(event) && ["click", "clickon", "hover"].includes(event.toLowerCase())) {
+      __privateSet(this, _event, event.toLowerCase());
+    } else {
+      throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
     }
   }
   /**
@@ -5230,14 +5496,16 @@ var InfoWindow = class extends Layer_default {
    *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
    * @returns {Promise<InfoWindow>}
    */
-  attachTo(element, event = "click") {
+  attachTo(element, event) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached)) {
+        __privateSet(this, _isAttached, true);
         yield element.init().then(() => {
-          if (event === "clickon" || event === "hover") {
+          const triggerEvent = event || __privateGet(this, _event);
+          if (triggerEvent === "clickon" || triggerEvent === "hover") {
             __privateSet(this, _toggleDisplay, false);
           }
-          if (event === "hover") {
+          if (triggerEvent === "hover") {
             element.on("mouseover", (e) => {
               this.position = e.latLng;
               this.show(element);
@@ -5251,7 +5519,7 @@ var InfoWindow = class extends Layer_default {
             element.on("mouseout", () => {
               this.hide();
             });
-          } else if (event === "clickon") {
+          } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
               if (element instanceof Map) {
                 this.position = e.latLng;
@@ -5385,6 +5653,9 @@ var InfoWindow = class extends Layer_default {
     if (options.disableAutoPan) {
       this.disableAutoPan = options.disableAutoPan;
     }
+    if (options.event) {
+      this.event = options.event;
+    }
     if (options.maxWidth) {
       this.maxWidth = options.maxWidth;
     }
@@ -5517,6 +5788,7 @@ var InfoWindow = class extends Layer_default {
   }
 };
 _autoClose = new WeakMap();
+_event = new WeakMap();
 _focus = new WeakMap();
 _isAttached = new WeakMap();
 _isOpen = new WeakMap();
@@ -5570,9 +5842,9 @@ var infoWindowMixin = {
    * Attach an InfoWindow to the layer
    *
    * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
-   * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
    */
-  attachInfoWindow(infoWindowValue, event = "click") {
+  attachInfoWindow(infoWindowValue, event) {
     infoWindow(infoWindowValue).attachTo(this, event);
   }
 };
@@ -7087,11 +7359,11 @@ var PlacesSearchBox = class extends Evented {
      *
      * @private
      */
-    __privateAdd(this, _createPlacesSearchBox, () => {
+    __privateAdd(this, _createPlacesSearchBox, () => __async(this, null, function* () {
       if (!__privateGet(this, _searchBox)) {
         const options = {};
         if (options.bounds) {
-          options.bounds = __privateGet(this, _options6).bounds.toGoogle();
+          options.bounds = yield __privateGet(this, _options6).bounds.toGoogle();
         }
         __privateSet(this, _searchBox, new google.maps.places.SearchBox(__privateGet(this, _input), options));
         __privateGet(this, _searchBox).addListener("places_changed", () => {
@@ -7111,7 +7383,7 @@ var PlacesSearchBox = class extends Evented {
           this.dispatch("places_changed", { places, bounds });
         });
       }
-    });
+    }));
     if (input instanceof HTMLInputElement) {
       __privateSet(this, _input, input);
       this.setOptions(options);
@@ -7148,7 +7420,9 @@ var PlacesSearchBox = class extends Evented {
     const boundsValue = latLngBounds(value);
     __privateGet(this, _options6).bounds = boundsValue;
     if (__privateGet(this, _searchBox)) {
-      __privateGet(this, _searchBox).setBounds(boundsValue.toGoogle());
+      boundsValue.toGoogle().then((bounds) => {
+        __privateGet(this, _searchBox).setBounds(bounds);
+      });
     }
   }
   /**
@@ -7222,11 +7496,14 @@ var PlacesSearchBox = class extends Evented {
       return new Promise((resolve) => {
         if (!isObject(__privateGet(this, _searchBox))) {
           if (checkForGoogleMaps("PlacesSearchBox", "places", false)) {
-            __privateGet(this, _createPlacesSearchBox).call(this);
+            __privateGet(this, _createPlacesSearchBox).call(this).then(() => {
+              resolve();
+            });
           } else {
             loader().once("map_loaded", () => {
-              __privateGet(this, _createPlacesSearchBox).call(this);
-              resolve();
+              __privateGet(this, _createPlacesSearchBox).call(this).then(() => {
+                resolve();
+              });
             });
           }
         } else {
@@ -7789,6 +8066,7 @@ var _Polyline = class _Polyline extends Layer_default {
       }
       yield __privateMethod(this, _setupGooglePolyline, setupGooglePolyline_fn).call(this, value);
       if (value instanceof Map) {
+        this.visible = true;
         __privateGet(this, _options7).map = value;
         __superGet(_Polyline.prototype, this, "setMap").call(this, value);
         __privateGet(this, _polyline).setMap(value.toGoogle());
@@ -8126,24 +8404,27 @@ var PolylineCollection = class {
   /**
    * Show the Polylines in the collection that have the tag(s) passed
    *
+   * @param {Map} map The map object
    * @param {string[]} tags The tag(s) to show polylines for
    */
-  show(...tags) {
+  show(map2, ...tags) {
     tags.forEach((tag) => {
       if (this.polylines[tag]) {
         this.polylines[tag].forEach((p) => {
-          p.show();
+          p.show(map2);
         });
       }
     });
   }
   /**
    * Show all the Polylines in the collection
+   *
+   * @param {Map} map The map object
    */
-  showAll() {
+  showAll(map2) {
     Object.keys(this.polylines).forEach((tag) => {
       this.polylines[tag].forEach((p) => {
-        p.show();
+        p.show(map2);
       });
     });
   }
@@ -8175,7 +8456,7 @@ var PolylineCollection = class {
 var polylineCollection = () => new PolylineCollection();
 
 // src/lib/Popup.ts
-var _autoClose2, _center, _closeElement, _content, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _handleCloseClick, _setupCloseClick;
+var _autoClose2, _center, _closeElement, _content, _event2, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _handleCloseClick, _setupCloseClick;
 var Popup = class extends Overlay {
   /**
    * Constructor
@@ -8213,6 +8494,13 @@ var Popup = class extends Overlay {
      * @type {string|HTMLElement}
      */
     __privateAdd(this, _content, void 0);
+    /**
+     * The event to trigger the popup
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    __privateAdd(this, _event2, "click");
     /**
      * Whether the popup is attached to an element
      *
@@ -8357,6 +8645,26 @@ var Popup = class extends Overlay {
     }
   }
   /**
+   * Returns the event to trigger the popup
+   *
+   * @returns {string}
+   */
+  get event() {
+    return __privateGet(this, _event2);
+  }
+  /**
+   * Set the event to trigger the popup
+   *
+   * @param {string} event The event to trigger the popup
+   */
+  set event(event) {
+    if (isStringWithValue(event) && ["click", "clickon", "hover"].includes(event.toLowerCase())) {
+      __privateSet(this, _event2, event.toLowerCase());
+    } else {
+      throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
+    }
+  }
+  /**
    * Returns the theme to use for the popup
    *
    * @returns {string}
@@ -8384,14 +8692,16 @@ var Popup = class extends Overlay {
    *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
    * @returns {Promise<Popup>}
    */
-  attachTo(element, event = "click") {
+  attachTo(element, event) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached2)) {
+        __privateSet(this, _isAttached2, true);
         yield element.init().then(() => {
           if (event === "clickon" || event === "hover") {
             __privateSet(this, _toggleDisplay2, false);
           }
-          if (event === "hover") {
+          const triggerEvent = event || __privateGet(this, _event2);
+          if (triggerEvent === "hover") {
             element.on("mouseover", (e) => {
               if (element instanceof Map) {
                 this.move(e.latLng, element);
@@ -8407,7 +8717,7 @@ var Popup = class extends Overlay {
             element.on("mouseout", () => {
               this.hide();
             });
-          } else if (event === "clickon") {
+          } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
               if (element instanceof Map) {
                 this.move(e.latLng, element);
@@ -8518,6 +8828,9 @@ var Popup = class extends Overlay {
     }
     if (options.content) {
       this.content = options.content;
+    }
+    if (options.event) {
+      this.event = options.event;
     }
     if (typeof options.offset !== "undefined") {
       this.setOffset(options.offset);
@@ -8656,6 +8969,7 @@ _autoClose2 = new WeakMap();
 _center = new WeakMap();
 _closeElement = new WeakMap();
 _content = new WeakMap();
+_event2 = new WeakMap();
 _isAttached2 = new WeakMap();
 _isOpen2 = new WeakMap();
 _popupOffset = new WeakMap();
@@ -8673,9 +8987,9 @@ var popupMixin = {
   /**
    *
    * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
-   * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
    */
-  attachPopup(popupValue, event = "click") {
+  attachPopup(popupValue, event) {
     popup(popupValue).attachTo(this, event);
   }
 };
@@ -8761,7 +9075,7 @@ var PopupCollection = /* @__PURE__ */ (() => {
 })();
 
 // src/lib/Tooltip.ts
-var _center2, _content2, _isAttached3, _theme2;
+var _center2, _content2, _event3, _isAttached3, _theme2;
 var Tooltip = class extends Overlay {
   /**
    * Constructor
@@ -8785,6 +9099,13 @@ var Tooltip = class extends Overlay {
      * @type {string|HTMLElement}
      */
     __privateAdd(this, _content2, void 0);
+    /**
+     * The event to trigger the tooltip
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    __privateAdd(this, _event3, "hover");
     /**
      * Whether the tooltip is attached to an element
      *
@@ -8853,6 +9174,26 @@ var Tooltip = class extends Overlay {
     }
   }
   /**
+   * Returns the event to trigger the tooltip
+   *
+   * @returns {string}
+   */
+  get event() {
+    return __privateGet(this, _event3);
+  }
+  /**
+   * Set the event to trigger the tooltip
+   *
+   * @param {string} event The event to trigger the tooltip
+   */
+  set event(event) {
+    if (isStringWithValue(event) && ["click", "clickon", "hover"].includes(event.toLowerCase())) {
+      __privateSet(this, _event3, event.toLowerCase());
+    } else {
+      throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
+    }
+  }
+  /**
    * Returns the theme to use for the tooltip
    *
    * @returns {string}
@@ -8880,12 +9221,13 @@ var Tooltip = class extends Overlay {
    *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
    * @returns {Promise<Tooltip>}
    */
-  attachTo(element, event = "hover") {
+  attachTo(element, event) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached3)) {
+        __privateSet(this, _isAttached3, true);
         yield element.init().then(() => {
-          __privateSet(this, _isAttached3, true);
-          if (event === "click") {
+          const triggerEvent = event || __privateGet(this, _event3);
+          if (triggerEvent === "click") {
             element.on("click", (e) => {
               this.setPosition(e.latLng);
               if (element instanceof Map) {
@@ -8894,7 +9236,7 @@ var Tooltip = class extends Overlay {
                 this.toggle(element.getMap());
               }
             });
-          } else if (event === "clickon") {
+          } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
               this.setPosition(e.latLng);
               if (element instanceof Map) {
@@ -8962,6 +9304,9 @@ var Tooltip = class extends Overlay {
       this.removeClassName("tooltip");
       this.setClassName(options.className);
     }
+    if (options.event) {
+      this.event = options.event;
+    }
     if (options.map) {
       this.setMap(options.map);
     }
@@ -9025,6 +9370,7 @@ var Tooltip = class extends Overlay {
 };
 _center2 = new WeakMap();
 _content2 = new WeakMap();
+_event3 = new WeakMap();
 _isAttached3 = new WeakMap();
 _theme2 = new WeakMap();
 var tooltip = (options) => {
@@ -9038,9 +9384,9 @@ var tooltipMixin = {
    * Attach an Tooltip to the layer
    *
    * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
-   * @param {'click' | 'clickon' | 'hover'} event The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
    */
-  attachTooltip(tooltipValue, event = "hover") {
+  attachTooltip(tooltipValue, event) {
     tooltip(tooltipValue).attachTo(this, event);
   }
 };

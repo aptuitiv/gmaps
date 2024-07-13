@@ -5,6 +5,8 @@
 
 /* global G */
 
+G.loader().setApiKey(apiKey).load();
+
 // Add a custom function to the marker object
 G.Marker.include({
     pluginTest: function () {

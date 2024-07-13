@@ -24,6 +24,9 @@ type GMInfoWindowOptions = {
     content?: string | HTMLElement | Text;
     // Disable panning the map to make the InfoWindow fully visible when it opens.
     disableAutoPan?: boolean;
+    // The event to trigger the InfoWindow. Defaults to 'click'
+    // Allowed values are: 'click',  'clickon', and 'hover'
+    event?: string;
     // Maximum width of the InfoWindow, regardless of content's width.
     maxWidth?: number;
     // Minimum width of the InfoWindow, regardless of the content's width.
@@ -75,6 +78,14 @@ export class InfoWindow extends Layer {
      * @type {boolean}
      */
     #autoClose: boolean = true;
+
+    /**
+     * The event to trigger the popup
+     *
+     * @private
+     * @type {'click' | 'clickon' | 'hover'}
+     */
+    #event: string = 'click';
 
     /**
      * Whether focus should be moved to the InfoWindow when it is opened
@@ -217,6 +228,28 @@ export class InfoWindow extends Layer {
             if (this.#infoWindow) {
                 this.#infoWindow.setOptions({ disableAutoPan: this.#options.disableAutoPan });
             }
+        }
+    }
+
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string {
+        return this.#event;
+    }
+
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string) {
+        if (isStringWithValue(event) && ['click', 'clickon', 'hover'].includes(event.toLowerCase())) {
+            this.#event = event.toLowerCase();
+        } else {
+            throw new Error('Invalid event value. Allowed values are: "click", "clickon", and "hover"');
         }
     }
 
@@ -366,10 +399,13 @@ export class InfoWindow extends Layer {
      *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
      * @returns {Promise<InfoWindow>}
      */
-    async attachTo(element: Map | Layer, event: 'click' | 'clickon' | 'hover' = 'click'): Promise<InfoWindow> {
+    async attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<InfoWindow> {
         if (!this.#isAttached) {
+            this.#isAttached = true;
             await element.init().then(() => {
-                if (event === 'clickon' || event === 'hover') {
+                const triggerEvent = event || this.#event;
+
+                if (triggerEvent === 'clickon' || triggerEvent === 'hover') {
                     // Don't toggle the display of the InfoWindow for the clickon and hover events.
                     // If it's toggled for hover then it'll appear like it's flickering.
                     // If it's toggled with clickon then it will behave like "click" and hide on the second click.
@@ -377,7 +413,7 @@ export class InfoWindow extends Layer {
                 }
 
                 // Show the InfoWindow when hovering over the element
-                if (event === 'hover') {
+                if (triggerEvent === 'hover') {
                     element.on('mouseover', (e) => {
                         this.position = e.latLng;
                         this.show(element);
@@ -391,7 +427,7 @@ export class InfoWindow extends Layer {
                     element.on('mouseout', () => {
                         this.hide();
                     });
-                } else if (event === 'clickon') {
+                } else if (triggerEvent === 'clickon') {
                     // Show the InfoWindow when clicking on the element
                     element.on('click', (e) => {
                         if (element instanceof Map) {
@@ -546,6 +582,9 @@ export class InfoWindow extends Layer {
         }
         if (options.disableAutoPan) {
             this.disableAutoPan = options.disableAutoPan;
+        }
+        if (options.event) {
+            this.event = options.event;
         }
         if (options.maxWidth) {
             this.maxWidth = options.maxWidth;
@@ -765,9 +804,9 @@ const infoWindowMixin = {
      * Attach an InfoWindow to the layer
      *
      * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
-     * @param {'click' | 'clickon' | 'hover'} event The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      */
-    attachInfoWindow(infoWindowValue: InfoWindowValue, event: 'click' | 'clickon' | 'hover' = 'click') {
+    attachInfoWindow(infoWindowValue: InfoWindowValue, event?: 'click' | 'clickon' | 'hover') {
         infoWindow(infoWindowValue).attachTo(this, event);
     },
 };

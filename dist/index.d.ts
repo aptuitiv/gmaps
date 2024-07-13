@@ -1210,9 +1210,9 @@ declare class LatLngBounds extends Base {
      * Returns whether this bounds approximately equals the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
-    equals(other: LatLngBounds): boolean;
+    equals(other: LatLngBounds): Promise<boolean>;
     /**
      * Extends this bounds to contain the given point
      *
@@ -1248,12 +1248,21 @@ declare class LatLngBounds extends Base {
      */
     getSouthWest(): LatLng;
     /**
+     * Initialize the lat/lng bounds object so that the Google maps library is available
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
      * Returns whether this bounds shares any points with the other bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
-    intersects(other: LatLngBounds): boolean;
+    intersects(other: LatLngBounds): Promise<boolean>;
     /**
      * Returns whether this bounds is empty
      *
@@ -1263,21 +1272,17 @@ declare class LatLngBounds extends Base {
     /**
      * Get the Google maps LatLngBounds object
      *
-     * @returns {google.maps.LatLngBounds}
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
+     *
+     * @returns {Promise<google.maps.LatLngBounds>}
      */
-    toGoogle(): google.maps.LatLngBounds;
+    toGoogle(): Promise<google.maps.LatLngBounds>;
     /**
      * Converts the LatLngBounds object to a JSON object
      *
      * @returns {google.maps.LatLngBoundsLiteral}
      */
     toJson(): google.maps.LatLngBoundsLiteral;
-    /**
-     * Converts the LatLngBounds object to a lat/lng span
-     *
-     * @returns {LatLng}
-     */
-    toSpan(): LatLng;
     /**
      * Converts the LatLngBounds object to a string
      *
@@ -1295,9 +1300,9 @@ declare class LatLngBounds extends Base {
      * Extends this bounds to contain the union of this and the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {LatLngBounds}
+     * @returns {void}
      */
-    union(other: LatLngBounds | google.maps.LatLngBounds): LatLngBounds;
+    union(other: LatLngBounds | google.maps.LatLngBounds): void;
 }
 type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
 /**
@@ -1662,6 +1667,13 @@ declare class Map extends Evented {
      */
     fitBounds(bounds?: LatLngBoundsValue): Map;
     /**
+     * Alias to fitBounds
+     *
+     * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @returns {Map}
+     */
+    fitToBounds(bounds?: LatLngBoundsValue): Map;
+    /**
      * Initialize the map if necessary
      *
      * This is not intended to be called outside of this library.
@@ -1777,6 +1789,14 @@ declare class Map extends Evented {
      * @inheritdoc
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Changes the center of the map to the lat/lng value.
+     *
+     * If the change is less than both the width and height of the map, the transition will be smoothly animated.
+     *
+     * @param {LatLngValue} value The latitude/longitude value to pan to
+     */
+    panTo(value: LatLngValue): void;
     /**
      * Set the API key
      *
@@ -1933,6 +1953,7 @@ type GMInfoWindowOptions = {
     ariaLabel?: string;
     content?: string | HTMLElement | Text;
     disableAutoPan?: boolean;
+    event?: string;
     maxWidth?: number;
     minWidth?: number;
     pixelOffset?: Size;
@@ -1994,6 +2015,18 @@ declare class InfoWindow extends Layer {
      * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
      */
     set disableAutoPan(disableAutoPan: boolean);
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string);
     /**
      * Get the maxWidth option for the InfoWindow
      *
@@ -2849,6 +2882,7 @@ type TooltipOptions = {
     center?: boolean;
     className?: string;
     content?: string | HTMLElement | Text;
+    event?: string;
     map?: Map;
     offset?: PointValue;
     position?: LatLngValue;
@@ -2890,6 +2924,18 @@ declare class Tooltip extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the tooltip
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the event to trigger the tooltip
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the tooltip
+     *
+     * @param {string} event The event to trigger the tooltip
+     */
+    set event(event: string);
     /**
      * Returns the theme to use for the tooltip
      *
@@ -4101,13 +4147,16 @@ declare class PolylineCollection {
     /**
      * Show the Polylines in the collection that have the tag(s) passed
      *
+     * @param {Map} map The map object
      * @param {string[]} tags The tag(s) to show polylines for
      */
-    show(...tags: string[]): void;
+    show(map: Map, ...tags: string[]): void;
     /**
      * Show all the Polylines in the collection
+     *
+     * @param {Map} map The map object
      */
-    showAll(): void;
+    showAll(map: Map): void;
     /**
      * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
      *
@@ -4132,6 +4181,7 @@ type PopupOptions = {
     className?: string;
     closeElement?: HTMLElement | string;
     content: string | HTMLElement | Text;
+    event?: string;
     offset?: PointValue;
     styles?: object;
     theme?: string;
@@ -4195,6 +4245,18 @@ declare class Popup extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the popup
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string);
     /**
      * Returns the theme to use for the popup
      *

@@ -540,6 +540,7 @@ export class Polyline extends Layer {
         }
         await this.#setupGooglePolyline(value);
         if (value instanceof Map) {
+            this.visible = true;
             // Set the map
             this.#options.map = value;
             super.setMap(value);

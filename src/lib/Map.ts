@@ -500,11 +500,27 @@ export class Map extends Evented {
      */
     fitBounds(bounds?: LatLngBoundsValue): Map {
         if (bounds) {
-            this.#map.fitBounds(latLngBounds(bounds).toGoogle());
+            latLngBounds(bounds)
+                .toGoogle()
+                .then((googleBounds) => {
+                    this.#map.fitBounds(googleBounds);
+                });
         } else if (this.#bounds) {
-            this.#map.fitBounds(this.#bounds.toGoogle());
+            this.#bounds.toGoogle().then((googleBounds) => {
+                this.#map.fitBounds(googleBounds);
+            });
         }
         return this;
+    }
+
+    /**
+     * Alias to fitBounds
+     *
+     * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @returns {Map}
+     */
+    fitToBounds(bounds?: LatLngBoundsValue): Map {
+        return this.fitBounds(bounds);
     }
 
     /**
@@ -788,6 +804,23 @@ export class Map extends Evented {
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
         super.onlyOnce(type, callback, config);
+    }
+
+    /**
+     * Changes the center of the map to the lat/lng value.
+     *
+     * If the change is less than both the width and height of the map, the transition will be smoothly animated.
+     *
+     * @param {LatLngValue} value The latitude/longitude value to pan to
+     */
+    panTo(value: LatLngValue): void {
+        if (this.#map) {
+            this.#map.panTo(latLng(value).toGoogle());
+        } else {
+            this.init().then(() => {
+                this.#map.panTo(latLng(value).toGoogle());
+            });
+        }
     }
 
     /**
