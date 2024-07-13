@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0 (July 13, 2024)
+
+- Brought back the class exports for the browser library so that custom plugins can be used.
+- Added event option and property to InfoWindow, Popup, and Tooltip. This is an alternate way to set the trigger event to show the InfoWindow, Popup, or Tooltip.
+- Added Map fitToBounds as an alias to fitBounds.
+- Updated LatLngBounds to load the google object on demand. This allows the LatLngBounds object to be used before the Google Maps library has loaded. For example, adding marker positions to a map bounds before the Map libray was loaded.
+- Added map panTo() method.
+- Bug fixes.
+
 ## 0.9.0 (May 2, 2024)
 
 - Added support for adding a custom control to the map.
