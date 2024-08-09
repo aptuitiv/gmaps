@@ -1048,11 +1048,14 @@ export class Map extends Evented {
 
                 // Set that the map is visible
                 this.#isVisible = true;
-            });
-        }
 
-        // Call the callback function if necessary
-        callCallback(callback);
+                // Call the callback function if necessary
+                callCallback(callback);
+            });
+        } else {
+            // Call the callback function if necessary
+            callCallback(callback);
+        }
     }
 
     /**
