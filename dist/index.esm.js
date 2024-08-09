@@ -3870,9 +3870,11 @@ showMap_fn = function(callback) {
       loader().dispatch("map_loaded");
       __privateSet(this, _isInitialized, true);
       __privateSet(this, _isVisible2, true);
+      callCallback(callback);
     });
+  } else {
+    callCallback(callback);
   }
-  callCallback(callback);
 };
 var map = (selector, config) => new Map(selector, config);
 
@@ -6393,7 +6395,9 @@ var MarkerCluster = class extends Base_default {
    */
   addMarker(marker2, draw = true) {
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
-      __privateGet(this, _clusterer).addMarker(marker2.toGoogleSync(), !draw);
+      marker2.toGoogle().then((m) => {
+        __privateGet(this, _clusterer).addMarker(m, !draw);
+      });
     } else {
       __privateGet(this, _pendingMarkers).push(marker2);
       loader().on("map_loaded", () => {
@@ -6413,13 +6417,15 @@ var MarkerCluster = class extends Base_default {
    */
   addMarkers(markers, draw = true) {
     const add = (mks, drw = true) => {
-      const markersToAdd = [];
+      const markerPromises = [];
       mks.forEach((marker2) => {
         if (marker2 instanceof Marker) {
-          markersToAdd.push(marker2.toGoogleSync());
+          markerPromises.push(marker2.toGoogle());
         }
       });
-      __privateGet(this, _clusterer).addMarkers(markersToAdd, !drw);
+      Promise.all(markerPromises).then((googleMarkerObjects) => {
+        __privateGet(this, _clusterer).addMarkers(googleMarkerObjects, !drw);
+      });
     };
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
       add(markers, draw);
