@@ -840,6 +840,22 @@ export class Map extends Evented {
     }
 
     /**
+     * Changes the center of the map by the given distance in pixels.
+     *
+     * @param {number} x The number of pixels to move the map in the x direction
+     * @param {number} y The number of pixels to move the map in the y direction
+     */
+    panBy(x: number, y: number): void {
+        if (this.#map) {
+            this.#map.panBy(x, y);
+        } else {
+            this.init().then(() => {
+                this.#map.panBy(x, y);
+            });
+        }
+    }
+
+    /**
      * Changes the center of the map to the lat/lng value.
      *
      * If the change is less than both the width and height of the map, the transition will be smoothly animated.
