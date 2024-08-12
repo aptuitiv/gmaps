@@ -443,34 +443,43 @@ export class LatLngBounds extends Base {
      * Extends this bounds to contain the union of this and the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    union(other: LatLngBounds | google.maps.LatLngBounds): void {
-        if (this.#bounds) {
-            this.#union(other);
-        } else {
-            this.#setupGoogleLatLngBounds().then(() => {
-                this.#union(other);
-            });
-        }
+    union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void> {
+        return new Promise((resolve) => {
+            if (this.#bounds) {
+                this.#union(other).then(() => {
+                    resolve();
+                });
+            } else {
+                this.#setupGoogleLatLngBounds().then(() => {
+                    this.#union(other).then(() => {
+                        resolve();
+                    });
+                });
+            }
+        });
     }
 
     /**
      * Extends this bounds to contain the union of this and the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    #union(other: LatLngBounds | google.maps.LatLngBounds): LatLngBounds {
-        if (other instanceof LatLngBounds) {
-            other.toGoogle().then((googleLatLngBounds) => {
-                this.#bounds.union(googleLatLngBounds);
-            });
-        } else {
-            // Assume it's a Google Maps LatLngBounds object
-            this.#bounds.union(other);
-        }
-        return this;
+    #union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void> {
+        return new Promise((resolve) => {
+            if (other instanceof LatLngBounds) {
+                other.toGoogle().then((googleLatLngBounds) => {
+                    this.#bounds.union(googleLatLngBounds);
+                    resolve();
+                });
+            } else {
+                // Assume it's a Google Maps LatLngBounds object
+                this.#bounds.union(other);
+                resolve();
+            }
+        });
     }
 }
 
