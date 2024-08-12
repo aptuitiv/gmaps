@@ -38,7 +38,7 @@ export type PopupOptions = {
     offset?: PointValue;
     // Styles that will be set on the popup container div.
     styles?: object;
-    // A build-in theme to assign to the popup. By default the popup has a default theme. Set to 'none' to remove the theme.
+    // A build-in theme to assign to the popup. By default the popup has no styling. Set to 'default' to use the basic default theme.
     // 'default' | 'none'
     theme?: string;
 };
@@ -119,7 +119,7 @@ export class Popup extends Overlay {
      * @private
      * @type {string}
      */
-    #theme: string = 'default';
+    #theme: string = 'none';
 
     /**
      * Whether clicking the thing that triggered the popup to show should also hide the popup
