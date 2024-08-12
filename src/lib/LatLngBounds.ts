@@ -77,7 +77,7 @@ export class LatLngBounds extends Base {
             );
         }
         if (this.#bounds) {
-            return this.#bounds.contains(latLng(latLngValue).toGoogle());
+            return this.#bounds.contains(latLngObject.toGoogle());
         }
         // Calculate the containment manually
         if (this.#southWest && this.#northEast) {
