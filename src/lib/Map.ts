@@ -620,6 +620,19 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the div element that the map is rendered in.
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {HTMLElement|undefined}
+     */
+    getDiv(): HTMLElement | undefined {
+        if (this.#map) {
+            return this.#map.getDiv();
+        }
+        return undefined;
+    }
+
+    /**
      * Gets whether the map is visible. This also means that the map library is loaded.
      *
      * @returns {boolean}
