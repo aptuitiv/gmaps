@@ -591,6 +591,26 @@ export class Map extends Evented {
     }
 
     /**
+     * Gets the lat/lng bounds of the current map viewport
+     *
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {Promise<LatLngBounds | undefined>}
+     */
+    getBounds(): Promise<LatLngBounds | undefined> {
+        return new Promise((resolve) => {
+            if (this.#map) {
+                const bounds = new LatLngBounds();
+                bounds.union(this.#map.getBounds()).then(() => {
+                    resolve(bounds);
+                });
+            } else {
+                resolve(undefined);
+            }
+        });
+    }
+
+    /**
      * Get the center point for the map
      *
      * @returns {LatLng}
