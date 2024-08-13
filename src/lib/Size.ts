@@ -62,6 +62,8 @@ export class Size extends Base {
      */
     constructor(width?: WidthSize | Size, height?: number | string) {
         super('size');
+        this.#height = 0;
+        this.#width = 0;
         if (typeof width !== 'undefined') {
             this.set(width, height);
         }
