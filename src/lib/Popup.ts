@@ -738,7 +738,10 @@ export class Popup extends Overlay {
 
             // Check if the top of the popup is visible in the map viewport
             if (popupPosition.height < mapPosition.height) {
-                if (mapPosition.top > popupPosition.top) {
+                if (
+                    mapPosition.top > popupPosition.top ||
+                    mapPosition.top > popupPosition.top - this.#clearance.height
+                ) {
                     // The popup is above the map viewport. Move the map down and include the clearance value.
                     offsetY = popupPosition.top - mapPosition.top - this.#clearance.height;
                 }
@@ -759,10 +762,16 @@ export class Popup extends Overlay {
 
             // Check if the left or right side of the popup is visible in the map viewport
             if (popupPosition.width < mapPosition.width) {
-                if (mapPosition.left > popupPosition.left) {
+                if (
+                    mapPosition.left > popupPosition.left ||
+                    mapPosition.left > popupPosition.left - this.#clearance.width
+                ) {
                     // The popup is to the left of the map viewport. Move the map right and include the clearance value.
                     offsetX = popupPosition.left - mapPosition.left - this.#clearance.width;
-                } else if (mapPosition.right < popupPosition.right) {
+                } else if (
+                    mapPosition.right < popupPosition.right ||
+                    mapPosition.right < popupPosition.right + this.#clearance.width
+                ) {
                     // The popup is to the right of the map viewport. Move the map left and include the clearance value.
                     offsetX = (mapPosition.right - popupPosition.right - this.#clearance.width) * -1;
                 }
