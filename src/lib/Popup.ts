@@ -408,6 +408,17 @@ export class Popup extends Overlay {
                         // Since the popup is not toggled, we need to set the firstDraw value to false
                         // so that the popup is fit within the map viewport when it's displayed.
                         this.#firstDraw = false;
+                        // Make sure that the popup is included in the popup collection so that
+                        // it can be hidden if a different popup is opened.
+                        const collection = PopupCollection.getInstance();
+                        if (!collection.has(this)) {
+                            collection.add(this);
+                        }
+                        // Hide other popups if necessary
+                        if (this.#autoClose) {
+                            collection.hideOthers(this);
+                        }
+
                         if (element instanceof Map) {
                             this.move(e.latLng, element);
                         } else {
