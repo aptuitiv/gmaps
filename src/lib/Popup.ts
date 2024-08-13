@@ -907,7 +907,12 @@ const PopupCollection = (() => {
              * @param {Popup} p The Popup object to keep open
              */
             hideOthers(p: Popup) {
-                this.popups.forEach((infoW: Popup) => {
+                // Clone the popups to make sure that they are all looped through.
+                // If the popup is closed it's removed from the popup array, which
+                // can cause the loop to skip over the next popup and not test if it
+                // should be removed.
+                const popups = [...this.popups];
+                popups.forEach((infoW: Popup) => {
                     if (infoW !== p) {
                         infoW.hide();
                     }
