@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0 (August 14, 2024)
+
+- Map - Added methods to get the bounds, get the map div, and pan the map by a specfic amount.
+- Popup - Changed the popup to not have a theme by default.
+- Popup - Added support for panning the map to fit the popup.
+- Popup - Added support for setting the clearance from the map viewport.
+- Bug fixes.
+
 ## 0.10.0 (July 13, 2024)
 
 - Brought back the class exports for the browser library so that custom plugins can be used.
