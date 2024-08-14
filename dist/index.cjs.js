@@ -9140,7 +9140,7 @@ fitPopup_fn = function() {
     const mapPosition = map2.getDiv().getBoundingClientRect();
     const popupPosition = this.getOverlayElement().getBoundingClientRect();
     if (popupPosition.height < mapPosition.height) {
-      if (mapPosition.top > popupPosition.top) {
+      if (mapPosition.top > popupPosition.top || mapPosition.top > popupPosition.top - __privateGet(this, _clearance).height) {
         offsetY = popupPosition.top - mapPosition.top - __privateGet(this, _clearance).height;
       }
     } else if (popupPosition.bottom < mapPosition.bottom) {
@@ -9154,9 +9154,9 @@ fitPopup_fn = function() {
       }
     }
     if (popupPosition.width < mapPosition.width) {
-      if (mapPosition.left > popupPosition.left) {
+      if (mapPosition.left > popupPosition.left || mapPosition.left > popupPosition.left - __privateGet(this, _clearance).width) {
         offsetX = popupPosition.left - mapPosition.left - __privateGet(this, _clearance).width;
-      } else if (mapPosition.right < popupPosition.right) {
+      } else if (mapPosition.right < popupPosition.right || mapPosition.right < popupPosition.right + __privateGet(this, _clearance).width) {
         offsetX = (mapPosition.right - popupPosition.right - __privateGet(this, _clearance).width) * -1;
       }
     } else {
