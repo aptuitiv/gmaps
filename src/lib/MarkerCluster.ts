@@ -11,7 +11,6 @@
 import {
     Algorithm,
     GridAlgorithm,
-    Marker as MarkerClustererMarker,
     MarkerClusterer,
     MarkerClustererOptions,
     NoopAlgorithm,
@@ -355,7 +354,10 @@ export class MarkerCluster extends Base {
         // Check to see if the Google Maps library is loaded.
         // If it is, add the marker. If not, delay adding the marker.
         if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
-            this.#clusterer.addMarker(marker.toGoogleSync(), !draw);
+            // const mkr = marker.toGoogleSync();
+            marker.toGoogle().then((m) => {
+                this.#clusterer.addMarker(m, !draw);
+            });
         } else {
             this.#pendingMarkers.push(marker);
             loader().on('map_loaded', () => {
@@ -377,13 +379,20 @@ export class MarkerCluster extends Base {
     addMarkers(markers: Marker[], draw: boolean = true): MarkerCluster {
         // Inline function to add the markers
         const add = (mks: Marker[], drw: boolean = true) => {
-            const markersToAdd: MarkerClustererMarker[] = [];
+            // const markersToAdd: MarkerClustererMarker[] = [];
+            const markerPromises = [];
             mks.forEach((marker) => {
                 if (marker instanceof Marker) {
-                    markersToAdd.push(marker.toGoogleSync());
+                    markerPromises.push(marker.toGoogle());
+                    // const m = marker.toGoogleSync();
+                    // console.log('addMarkers m: ', JSON.stringify(m));
+                    // markersToAdd.push(m);
                 }
             });
-            this.#clusterer.addMarkers(markersToAdd, !drw);
+            Promise.all(markerPromises).then((googleMarkerObjects) => {
+                this.#clusterer.addMarkers(googleMarkerObjects, !drw);
+            });
+            // this.#clusterer.addMarkers(markersToAdd, !drw);
         };
 
         // Check to see if the Google Maps library is loaded.

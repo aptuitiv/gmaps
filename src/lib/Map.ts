@@ -591,12 +591,45 @@ export class Map extends Evented {
     }
 
     /**
+     * Gets the lat/lng bounds of the current map viewport
+     *
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {Promise<LatLngBounds | undefined>}
+     */
+    getBounds(): Promise<LatLngBounds | undefined> {
+        return new Promise((resolve) => {
+            if (this.#map) {
+                const bounds = new LatLngBounds();
+                bounds.union(this.#map.getBounds()).then(() => {
+                    resolve(bounds);
+                });
+            } else {
+                resolve(undefined);
+            }
+        });
+    }
+
+    /**
      * Get the center point for the map
      *
      * @returns {LatLng}
      */
     getCenter(): LatLng {
         return this.center;
+    }
+
+    /**
+     * Get the div element that the map is rendered in.
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {HTMLElement|undefined}
+     */
+    getDiv(): HTMLElement | undefined {
+        if (this.#map) {
+            return this.#map.getDiv();
+        }
+        return undefined;
     }
 
     /**
@@ -804,6 +837,22 @@ export class Map extends Evented {
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
         super.onlyOnce(type, callback, config);
+    }
+
+    /**
+     * Changes the center of the map by the given distance in pixels.
+     *
+     * @param {number} x The number of pixels to move the map in the x direction
+     * @param {number} y The number of pixels to move the map in the y direction
+     */
+    panBy(x: number, y: number): void {
+        if (this.#map) {
+            this.#map.panBy(x, y);
+        } else {
+            this.init().then(() => {
+                this.#map.panBy(x, y);
+            });
+        }
     }
 
     /**
@@ -1048,11 +1097,14 @@ export class Map extends Evented {
 
                 // Set that the map is visible
                 this.#isVisible = true;
-            });
-        }
 
-        // Call the callback function if necessary
-        callCallback(callback);
+                // Call the callback function if necessary
+                callCallback(callback);
+            });
+        } else {
+            // Call the callback function if necessary
+            callCallback(callback);
+        }
     }
 
     /**

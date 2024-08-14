@@ -7,7 +7,7 @@
     The following are equivalent:
 
     icon.origin([10, 32]);
-    icon.origin({x: 10, y: 32});
+    icon.origin({width: 10, height: 32});
 
     See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/size for documentation.
 =========================================================================== */
@@ -62,6 +62,8 @@ export class Size extends Base {
      */
     constructor(width?: WidthSize | Size, height?: number | string) {
         super('size');
+        this.#height = 0;
+        this.#width = 0;
         if (typeof width !== 'undefined') {
             this.set(width, height);
         }

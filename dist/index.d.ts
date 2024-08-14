@@ -1300,9 +1300,9 @@ declare class LatLngBounds extends Base {
      * Extends this bounds to contain the union of this and the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    union(other: LatLngBounds | google.maps.LatLngBounds): void;
+    union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void>;
 }
 type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
 /**
@@ -1687,11 +1687,26 @@ declare class Map extends Evented {
      */
     init(callback?: () => void): Promise<Map>;
     /**
+     * Gets the lat/lng bounds of the current map viewport
+     *
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {Promise<LatLngBounds | undefined>}
+     */
+    getBounds(): Promise<LatLngBounds | undefined>;
+    /**
      * Get the center point for the map
      *
      * @returns {LatLng}
      */
     getCenter(): LatLng;
+    /**
+     * Get the div element that the map is rendered in.
+     * If the map is not yet initialized, this will return undefined.
+     *
+     * @returns {HTMLElement|undefined}
+     */
+    getDiv(): HTMLElement | undefined;
     /**
      * Gets whether the map is visible. This also means that the map library is loaded.
      *
@@ -1789,6 +1804,13 @@ declare class Map extends Evented {
      * @inheritdoc
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Changes the center of the map by the given distance in pixels.
+     *
+     * @param {number} x The number of pixels to move the map in the x direction
+     * @param {number} y The number of pixels to move the map in the y direction
+     */
+    panBy(x: number, y: number): void;
     /**
      * Changes the center of the map to the lat/lng value.
      *
@@ -4179,9 +4201,11 @@ type PopupOptions = {
     autoClose?: boolean;
     center?: boolean;
     className?: string;
+    clearance?: SizeValue;
     closeElement?: HTMLElement | string;
     content: string | HTMLElement | Text;
     event?: string;
+    fit?: boolean;
     offset?: PointValue;
     styles?: object;
     theme?: string;
@@ -4222,6 +4246,20 @@ declare class Popup extends Overlay {
      */
     set center(center: boolean);
     /**
+     * Returns the amount of space between the popup and the map viewport edge.
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @returns {Size}
+     */
+    get clearance(): Size;
+    /**
+     * Set the amount of space between the popup and the map viewport edge
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @param {SizeValue} clearance The amount of space between the popup and the map viewport edge
+     */
+    set clearance(clearance: SizeValue);
+    /**
      * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
      *
      * @returns {HTMLElement|string}
@@ -4257,6 +4295,18 @@ declare class Popup extends Overlay {
      * @param {string} event The event to trigger the popup
      */
     set event(event: string);
+    /**
+     * Returns whether to fit the popup within the map viewport when it's displayed
+     *
+     * @returns {boolean}
+     */
+    get fit(): boolean;
+    /**
+     * Set whether to fit the popup within the map viewport when it's displayed
+     *
+     * @param {boolean} fit Whether to fit the popup within the map viewport when it's displayed
+     */
+    set fit(fit: boolean);
     /**
      * Returns the theme to use for the popup
      *

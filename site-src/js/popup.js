@@ -22,10 +22,11 @@ const content = `
     <p><button type="button" class="close">Close</button></p>
 `;
 marker.attachPopup({
-
+    clearance: { width: 10, height: 10 },
     closeElement: 'button.close',
     content: content,
-    styles: { maxWidth: '200px', textAlign: 'center', padding: '10px 20px' }
+    styles: { maxWidth: '200px', textAlign: 'center', padding: '10px 20px' },
+    theme: 'default'
 });
 
 
@@ -45,12 +46,17 @@ closeButton.textContent = 'Close popup';
 popupContent.appendChild(closeButton);
 // const popup = G.popup('This is a test with the content as the initial prop. <button>close</button> ');
 const popup = G.popup(popupContent);
+popup.center = false;
+popup.clearance = [20, 40];
 popup.closeElement = closeButton;
+popup.theme = 'default';
 popup.attachTo(marker2);
 
 
 const mapPopup = G.popup({
+    clearance: [100, 15],
     content: 'This is a test on the map <button class="close">close</button>',
+    theme: 'default'
 });
 mapPopup.setCloseElement('.close');
 map.attachPopup(mapPopup, 'clickon');

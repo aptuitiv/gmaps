@@ -13,6 +13,7 @@ import { Marker } from './Marker';
 import { Overlay } from './Overlay';
 import { point, Point, PointValue } from './Point';
 import { Polyline } from './Polyline';
+import { Size, size, SizeValue } from './Size';
 import { isObject, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
@@ -22,6 +23,9 @@ export type PopupOptions = {
     center?: boolean;
     // The popup wrapper class name
     className?: string;
+    // The amount of space between teh popup and the map viewport edge. This is used when the map is panned to bring the popup into view.
+    // Defaults to 0, 0.
+    clearance?: SizeValue;
     // The element to close the popup. This can be a CSS selector or an HTMLElement.
     closeElement?: HTMLElement | string;
     // The popup content
@@ -29,6 +33,8 @@ export type PopupOptions = {
     // The event to trigger the popup. Defaults to 'click'
     // Allowed values are: 'click',  'clickon', and 'hover'
     event?: string;
+    // Whether to fit the popup within the map viewport when it's displayed. Defaults to true.
+    fit?: boolean;
     // The amount to offset the popup from the element it is displayed at.
     // If the element is a marker, then this is added to the marker's anchorPoint value.
     // For example, if the marker is 40px tall and no anchorPoint value was set for the marker, then
@@ -38,7 +44,7 @@ export type PopupOptions = {
     offset?: PointValue;
     // Styles that will be set on the popup container div.
     styles?: object;
-    // A build-in theme to assign to the popup. By default the popup has a default theme. Set to 'none' to remove the theme.
+    // A build-in theme to assign to the popup. By default the popup has no styling. Set to 'default' to use the basic default theme.
     // 'default' | 'none'
     theme?: string;
 };
@@ -64,6 +70,16 @@ export class Popup extends Overlay {
     #center: boolean = true;
 
     /**
+     * The amount of space between the popup and the map viewport edge
+     *
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @private
+     * @type {Size}
+     */
+    #clearance: Size;
+
+    /**
      * The element to close the popup. This can be a CSS selector or an HTMLElement.
      *
      * @private
@@ -87,6 +103,26 @@ export class Popup extends Overlay {
      * @type {'click' | 'clickon' | 'hover'}
      */
     #event: string = 'click';
+
+    /**
+     * Whether the popup has been drawn on the map for the first time
+     *
+     * The popup overlay is redrawn anytime the map is moved or zoomed. This is used to determine if the popup
+     * has been drawn on the map for the first time. This is used to determine if the popup should be fit within
+     * the map viewport when it's displayed.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #firstDraw: boolean = false;
+
+    /**
+     * Whether to fit the popup within the map viewport when it's displayed
+     *
+     * @private
+     * @type {boolean}
+     */
+    #fit: boolean = true;
 
     /**
      * Whether the popup is attached to an element
@@ -119,7 +155,7 @@ export class Popup extends Overlay {
      * @private
      * @type {string}
      */
-    #theme: string = 'default';
+    #theme: string = 'none';
 
     /**
      * Whether clicking the thing that triggered the popup to show should also hide the popup
@@ -137,6 +173,7 @@ export class Popup extends Overlay {
     constructor(options: PopupOptions | string | HTMLElement | Text) {
         super('popup', 'Popup');
 
+        this.#clearance = size(0, 0);
         this.#popupOffset = point(0, 0);
 
         if (isObject(options)) {
@@ -190,6 +227,26 @@ export class Popup extends Overlay {
         if (typeof center === 'boolean') {
             this.#center = center;
         }
+    }
+
+    /**
+     * Returns the amount of space between the popup and the map viewport edge.
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @returns {Size}
+     */
+    get clearance(): Size {
+        return this.#clearance;
+    }
+
+    /**
+     * Set the amount of space between the popup and the map viewport edge
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @param {SizeValue} clearance The amount of space between the popup and the map viewport edge
+     */
+    set clearance(clearance: SizeValue) {
+        this.#clearance = size(clearance);
     }
 
     /**
@@ -264,6 +321,26 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns whether to fit the popup within the map viewport when it's displayed
+     *
+     * @returns {boolean}
+     */
+    get fit(): boolean {
+        return this.#fit;
+    }
+
+    /**
+     * Set whether to fit the popup within the map viewport when it's displayed
+     *
+     * @param {boolean} fit Whether to fit the popup within the map viewport when it's displayed
+     */
+    set fit(fit: boolean) {
+        if (typeof fit === 'boolean') {
+            this.#fit = fit;
+        }
+    }
+
+    /**
      * Returns the theme to use for the popup
      *
      * @returns {string}
@@ -305,6 +382,8 @@ export class Popup extends Overlay {
                 }
 
                 const triggerEvent = event || this.#event;
+                // Make sure that the event type is updated.
+                this.event = triggerEvent;
 
                 // Show the popup when hovering over the element
                 if (triggerEvent === 'hover') {
@@ -326,6 +405,20 @@ export class Popup extends Overlay {
                 } else if (triggerEvent === 'clickon') {
                     // Show the popup when clicking on the element
                     element.on('click', (e) => {
+                        // Since the popup is not toggled, we need to set the firstDraw value to false
+                        // so that the popup is fit within the map viewport when it's displayed.
+                        this.#firstDraw = false;
+                        // Make sure that the popup is included in the popup collection so that
+                        // it can be hidden if a different popup is opened.
+                        const collection = PopupCollection.getInstance();
+                        if (!collection.has(this)) {
+                            collection.add(this);
+                        }
+                        // Hide other popups if necessary
+                        if (this.#autoClose) {
+                            collection.hideOthers(this);
+                        }
+
                         if (element instanceof Map) {
                             this.move(e.latLng, element);
                         } else {
@@ -376,6 +469,7 @@ export class Popup extends Overlay {
      */
     hide(): Popup {
         super.hide();
+        this.#firstDraw = false;
         this.#isOpen = false;
         PopupCollection.getInstance().remove(this);
         return this;
@@ -441,6 +535,9 @@ export class Popup extends Overlay {
         if (isString(options.className)) {
             this.setClassName(options.className);
         }
+        if (options.clearance) {
+            this.#clearance = size(options.clearance);
+        }
         if (options.closeElement) {
             this.closeElement = options.closeElement;
         }
@@ -449,6 +546,9 @@ export class Popup extends Overlay {
         }
         if (options.event) {
             this.event = options.event;
+        }
+        if (typeof options.fit === 'boolean') {
+            this.#fit = options.fit;
         }
         if (typeof options.offset !== 'undefined') {
             this.setOffset(options.offset);
@@ -563,7 +663,7 @@ export class Popup extends Overlay {
         // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
         // up and the popup will be displayed.
         if (typeof projection !== 'undefined') {
-            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
+            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle());
 
             // Hide the popup when it is far out of view.
             const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
@@ -606,6 +706,94 @@ export class Popup extends Overlay {
                         this.#setupCloseClick(element as HTMLElement);
                     });
                 }
+            }
+
+            if (!this.#firstDraw) {
+                this.#firstDraw = true;
+                // Fit the popup to the map viewport if necessary.
+                // Ony do this the first time the popup is drawn on the map.
+                // The popup is redrawn anytime the map is moved or zoomed and we don't want to keep fitting the popup.
+                this.#fitPopup();
+            }
+        }
+    }
+
+    /**
+     * Fit the popup within the map viewport when it's displayed
+     *
+     * @returns {void}
+     */
+    #fitPopup(): void {
+        // Don't try to fit the popup within the map viewport if the event is hover because the map center could change, which
+        // would then cause the element to no longer be hovered over, which would close the popup.
+        if (this.event !== 'hover') {
+            const map = this.getMap();
+
+            let offsetY = 0;
+            let offsetX = 0;
+            // Get the map div position data
+            const mapPosition = map.getDiv().getBoundingClientRect();
+            // Get the popup element position data
+            const popupPosition = this.getOverlayElement().getBoundingClientRect();
+
+            // Check if the top of the popup is visible in the map viewport
+            if (popupPosition.height < mapPosition.height) {
+                if (
+                    mapPosition.top > popupPosition.top ||
+                    mapPosition.top > popupPosition.top - this.#clearance.height
+                ) {
+                    // The popup is above the map viewport. Move the map down and include the clearance value.
+                    offsetY = popupPosition.top - mapPosition.top - this.#clearance.height;
+                }
+            } else if (popupPosition.bottom < mapPosition.bottom) {
+                // The popup is taller than the map viewport. Move the map down but try to keep the
+                // marker or the thing that was clicked on in view.
+                offsetY = (mapPosition.bottom - popupPosition.bottom) * -1;
+                if (this.#popupOffset.y !== 0) {
+                    // Add the offset to the offsetY value
+                    offsetY += Math.abs(this.#popupOffset.y);
+                } else if (this.#clearance.height > 40) {
+                    offsetY += this.#clearance.height;
+                } else {
+                    // Keep a small part of the map viewport in view
+                    offsetY += 40;
+                }
+            }
+
+            // Check if the left or right side of the popup is visible in the map viewport
+            if (popupPosition.width < mapPosition.width) {
+                if (
+                    mapPosition.left > popupPosition.left ||
+                    mapPosition.left > popupPosition.left - this.#clearance.width
+                ) {
+                    // The popup is to the left of the map viewport. Move the map right and include the clearance value.
+                    offsetX = popupPosition.left - mapPosition.left - this.#clearance.width;
+                } else if (
+                    mapPosition.right < popupPosition.right ||
+                    mapPosition.right < popupPosition.right + this.#clearance.width
+                ) {
+                    // The popup is to the right of the map viewport. Move the map left and include the clearance value.
+                    offsetX = (mapPosition.right - popupPosition.right - this.#clearance.width) * -1;
+                }
+            } else {
+                // The popup is wider than the map viewport. Move the map left but try to keep the
+                // marker or the thing that was clicked on in view.
+                // offsetX = (mapPosition.right - popupPosition.right) * -1;
+                offsetX = popupPosition.left - mapPosition.left;
+                if (this.#popupOffset.x !== 0) {
+                    // Add the offset to the offsetX value
+                    offsetX -= Math.abs(this.#popupOffset.x);
+                } else if (this.#clearance.width > 40) {
+                    offsetX -= this.#clearance.width;
+                } else {
+                    // Keep a small part of the map viewport in view
+                    offsetX -= 40;
+                }
+            }
+
+            // Pan the map to bring the popup into view if necessary
+            if (offsetX !== 0 || offsetY !== 0) {
+                map.panBy(offsetX, offsetY);
             }
         }
     }
@@ -728,7 +916,12 @@ const PopupCollection = (() => {
              * @param {Popup} p The Popup object to keep open
              */
             hideOthers(p: Popup) {
-                this.popups.forEach((infoW: Popup) => {
+                // Clone the popups to make sure that they are all looped through.
+                // If the popup is closed it's removed from the popup array, which
+                // can cause the loop to skip over the next popup and not test if it
+                // should be removed.
+                const popups = [...this.popups];
+                popups.forEach((infoW: Popup) => {
                     if (infoW !== p) {
                         infoW.hide();
                     }

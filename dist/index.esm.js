@@ -1499,6 +1499,8 @@ var _Size = class _Size extends Base_default {
      * @type {number}
      */
     __privateAdd(this, _height, void 0);
+    __privateSet(this, _height, 0);
+    __privateSet(this, _width, 0);
     if (typeof width !== "undefined") {
       this.set(width, height);
     }
@@ -2261,7 +2263,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
      * Extends this bounds to contain the union of this and the given bounds
      *
      * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {void}
+     * @returns {Promise<void>}
      */
     __privateAdd(this, _union);
     /**
@@ -2311,7 +2313,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
       );
     }
     if (__privateGet(this, _bounds)) {
-      return __privateGet(this, _bounds).contains(latLng(latLngValue).toGoogle());
+      return __privateGet(this, _bounds).contains(latLngObject.toGoogle());
     }
     if (__privateGet(this, _southWest) && __privateGet(this, _northEast)) {
       return latLngObject.latitude >= __privateGet(this, _southWest).latitude && latLngObject.latitude <= __privateGet(this, _northEast).latitude && latLngObject.longitude >= __privateGet(this, _southWest).longitude && latLngObject.longitude <= __privateGet(this, _northEast).longitude;
@@ -2555,16 +2557,22 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    * Extends this bounds to contain the union of this and the given bounds
    *
    * @param {LatLngBounds} other The LatLngBounds object to join with
-   * @returns {void}
+   * @returns {Promise<void>}
    */
   union(other) {
-    if (__privateGet(this, _bounds)) {
-      __privateMethod(this, _union, union_fn).call(this, other);
-    } else {
-      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
-        __privateMethod(this, _union, union_fn).call(this, other);
-      });
-    }
+    return new Promise((resolve) => {
+      if (__privateGet(this, _bounds)) {
+        __privateMethod(this, _union, union_fn).call(this, other).then(() => {
+          resolve();
+        });
+      } else {
+        __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+          __privateMethod(this, _union, union_fn).call(this, other).then(() => {
+            resolve();
+          });
+        });
+      }
+    });
   }
 };
 _bounds = new WeakMap();
@@ -2619,14 +2627,17 @@ createLatLngBoundsObject_fn = function() {
 };
 _union = new WeakSet();
 union_fn = function(other) {
-  if (other instanceof _LatLngBounds) {
-    other.toGoogle().then((googleLatLngBounds) => {
-      __privateGet(this, _bounds).union(googleLatLngBounds);
-    });
-  } else {
-    __privateGet(this, _bounds).union(other);
-  }
-  return this;
+  return new Promise((resolve) => {
+    if (other instanceof _LatLngBounds) {
+      other.toGoogle().then((googleLatLngBounds) => {
+        __privateGet(this, _bounds).union(googleLatLngBounds);
+        resolve();
+      });
+    } else {
+      __privateGet(this, _bounds).union(other);
+      resolve();
+    }
+  });
 };
 var LatLngBounds = _LatLngBounds;
 var latLngBounds = (latLngValue) => {
@@ -3427,12 +3438,43 @@ var Map = class extends Evented {
     });
   }
   /**
+   * Gets the lat/lng bounds of the current map viewport
+   *
+   * If the map is not yet initialized, this will return undefined.
+   *
+   * @returns {Promise<LatLngBounds | undefined>}
+   */
+  getBounds() {
+    return new Promise((resolve) => {
+      if (__privateGet(this, _map2)) {
+        const bounds = new LatLngBounds();
+        bounds.union(__privateGet(this, _map2).getBounds()).then(() => {
+          resolve(bounds);
+        });
+      } else {
+        resolve(void 0);
+      }
+    });
+  }
+  /**
    * Get the center point for the map
    *
    * @returns {LatLng}
    */
   getCenter() {
     return this.center;
+  }
+  /**
+   * Get the div element that the map is rendered in.
+   * If the map is not yet initialized, this will return undefined.
+   *
+   * @returns {HTMLElement|undefined}
+   */
+  getDiv() {
+    if (__privateGet(this, _map2)) {
+      return __privateGet(this, _map2).getDiv();
+    }
+    return void 0;
   }
   /**
    * Gets whether the map is visible. This also means that the map library is loaded.
@@ -3604,6 +3646,21 @@ var Map = class extends Evented {
    */
   onlyOnce(type, callback, config) {
     super.onlyOnce(type, callback, config);
+  }
+  /**
+   * Changes the center of the map by the given distance in pixels.
+   *
+   * @param {number} x The number of pixels to move the map in the x direction
+   * @param {number} y The number of pixels to move the map in the y direction
+   */
+  panBy(x, y) {
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _map2).panBy(x, y);
+    } else {
+      this.init().then(() => {
+        __privateGet(this, _map2).panBy(x, y);
+      });
+    }
   }
   /**
    * Changes the center of the map to the lat/lng value.
@@ -3870,9 +3927,11 @@ showMap_fn = function(callback) {
       loader().dispatch("map_loaded");
       __privateSet(this, _isInitialized, true);
       __privateSet(this, _isVisible2, true);
+      callCallback(callback);
     });
+  } else {
+    callCallback(callback);
   }
-  callCallback(callback);
 };
 var map = (selector, config) => new Map(selector, config);
 
@@ -6393,7 +6452,9 @@ var MarkerCluster = class extends Base_default {
    */
   addMarker(marker2, draw = true) {
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
-      __privateGet(this, _clusterer).addMarker(marker2.toGoogleSync(), !draw);
+      marker2.toGoogle().then((m) => {
+        __privateGet(this, _clusterer).addMarker(m, !draw);
+      });
     } else {
       __privateGet(this, _pendingMarkers).push(marker2);
       loader().on("map_loaded", () => {
@@ -6413,13 +6474,15 @@ var MarkerCluster = class extends Base_default {
    */
   addMarkers(markers, draw = true) {
     const add = (mks, drw = true) => {
-      const markersToAdd = [];
+      const markerPromises = [];
       mks.forEach((marker2) => {
         if (marker2 instanceof Marker) {
-          markersToAdd.push(marker2.toGoogleSync());
+          markerPromises.push(marker2.toGoogle());
         }
       });
-      __privateGet(this, _clusterer).addMarkers(markersToAdd, !drw);
+      Promise.all(markerPromises).then((googleMarkerObjects) => {
+        __privateGet(this, _clusterer).addMarkers(googleMarkerObjects, !drw);
+      });
     };
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
       add(markers, draw);
@@ -8374,7 +8437,7 @@ var PolylineCollection = class {
 var polylineCollection = () => new PolylineCollection();
 
 // src/lib/Popup.ts
-var _autoClose2, _center, _closeElement, _content, _event2, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _handleCloseClick, _setupCloseClick;
+var _autoClose2, _center, _clearance, _closeElement, _content, _event2, _firstDraw, _fit, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _fitPopup, fitPopup_fn, _handleCloseClick, _setupCloseClick;
 var Popup = class extends Overlay {
   /**
    * Constructor
@@ -8383,6 +8446,12 @@ var Popup = class extends Overlay {
    */
   constructor(options) {
     super("popup", "Popup");
+    /**
+     * Fit the popup within the map viewport when it's displayed
+     *
+     * @returns {void}
+     */
+    __privateAdd(this, _fitPopup);
     /**
      * Whether to automatically close other open popups when opening this one
      *
@@ -8397,6 +8466,15 @@ var Popup = class extends Overlay {
      * @type {boolean}
      */
     __privateAdd(this, _center, true);
+    /**
+     * The amount of space between the popup and the map viewport edge
+     *
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @private
+     * @type {Size}
+     */
+    __privateAdd(this, _clearance, void 0);
     /**
      * The element to close the popup. This can be a CSS selector or an HTMLElement.
      *
@@ -8419,6 +8497,24 @@ var Popup = class extends Overlay {
      * @type {'click' | 'clickon' | 'hover'}
      */
     __privateAdd(this, _event2, "click");
+    /**
+     * Whether the popup has been drawn on the map for the first time
+     *
+     * The popup overlay is redrawn anytime the map is moved or zoomed. This is used to determine if the popup
+     * has been drawn on the map for the first time. This is used to determine if the popup should be fit within
+     * the map viewport when it's displayed.
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _firstDraw, false);
+    /**
+     * Whether to fit the popup within the map viewport when it's displayed
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _fit, true);
     /**
      * Whether the popup is attached to an element
      *
@@ -8447,7 +8543,7 @@ var Popup = class extends Overlay {
      * @private
      * @type {string}
      */
-    __privateAdd(this, _theme, "default");
+    __privateAdd(this, _theme, "none");
     /**
      * Whether clicking the thing that triggered the popup to show should also hide the popup
      *
@@ -8472,6 +8568,7 @@ var Popup = class extends Overlay {
       element.removeEventListener("click", __privateGet(this, _handleCloseClick));
       element.addEventListener("click", __privateGet(this, _handleCloseClick));
     });
+    __privateSet(this, _clearance, size(0, 0));
     __privateSet(this, _popupOffset, point(0, 0));
     if (isObject(options)) {
       if (options instanceof HTMLElement || options instanceof Text) {
@@ -8518,6 +8615,24 @@ var Popup = class extends Overlay {
     if (typeof center === "boolean") {
       __privateSet(this, _center, center);
     }
+  }
+  /**
+   * Returns the amount of space between the popup and the map viewport edge.
+   * This is used when the map is panned to bring the popup into view.
+   *
+   * @returns {Size}
+   */
+  get clearance() {
+    return __privateGet(this, _clearance);
+  }
+  /**
+   * Set the amount of space between the popup and the map viewport edge
+   * This is used when the map is panned to bring the popup into view.
+   *
+   * @param {SizeValue} clearance The amount of space between the popup and the map viewport edge
+   */
+  set clearance(clearance) {
+    __privateSet(this, _clearance, size(clearance));
   }
   /**
    * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
@@ -8583,6 +8698,24 @@ var Popup = class extends Overlay {
     }
   }
   /**
+   * Returns whether to fit the popup within the map viewport when it's displayed
+   *
+   * @returns {boolean}
+   */
+  get fit() {
+    return __privateGet(this, _fit);
+  }
+  /**
+   * Set whether to fit the popup within the map viewport when it's displayed
+   *
+   * @param {boolean} fit Whether to fit the popup within the map viewport when it's displayed
+   */
+  set fit(fit) {
+    if (typeof fit === "boolean") {
+      __privateSet(this, _fit, fit);
+    }
+  }
+  /**
    * Returns the theme to use for the popup
    *
    * @returns {string}
@@ -8619,6 +8752,7 @@ var Popup = class extends Overlay {
             __privateSet(this, _toggleDisplay2, false);
           }
           const triggerEvent = event || __privateGet(this, _event2);
+          this.event = triggerEvent;
           if (triggerEvent === "hover") {
             element.on("mouseover", (e) => {
               if (element instanceof Map) {
@@ -8637,6 +8771,14 @@ var Popup = class extends Overlay {
             });
           } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
+              __privateSet(this, _firstDraw, false);
+              const collection = PopupCollection.getInstance();
+              if (!collection.has(this)) {
+                collection.add(this);
+              }
+              if (__privateGet(this, _autoClose2)) {
+                collection.hideOthers(this);
+              }
               if (element instanceof Map) {
                 this.move(e.latLng, element);
               } else {
@@ -8681,6 +8823,7 @@ var Popup = class extends Overlay {
    */
   hide() {
     super.hide();
+    __privateSet(this, _firstDraw, false);
     __privateSet(this, _isOpen2, false);
     PopupCollection.getInstance().remove(this);
     return this;
@@ -8741,6 +8884,9 @@ var Popup = class extends Overlay {
     if (isString(options.className)) {
       this.setClassName(options.className);
     }
+    if (options.clearance) {
+      __privateSet(this, _clearance, size(options.clearance));
+    }
     if (options.closeElement) {
       this.closeElement = options.closeElement;
     }
@@ -8749,6 +8895,9 @@ var Popup = class extends Overlay {
     }
     if (options.event) {
       this.event = options.event;
+    }
+    if (typeof options.fit === "boolean") {
+      __privateSet(this, _fit, options.fit);
     }
     if (typeof options.offset !== "undefined") {
       this.setOffset(options.offset);
@@ -8880,19 +9029,69 @@ var Popup = class extends Overlay {
           });
         }
       }
+      if (!__privateGet(this, _firstDraw)) {
+        __privateSet(this, _firstDraw, true);
+        __privateMethod(this, _fitPopup, fitPopup_fn).call(this);
+      }
     }
   }
 };
 _autoClose2 = new WeakMap();
 _center = new WeakMap();
+_clearance = new WeakMap();
 _closeElement = new WeakMap();
 _content = new WeakMap();
 _event2 = new WeakMap();
+_firstDraw = new WeakMap();
+_fit = new WeakMap();
 _isAttached2 = new WeakMap();
 _isOpen2 = new WeakMap();
 _popupOffset = new WeakMap();
 _theme = new WeakMap();
 _toggleDisplay2 = new WeakMap();
+_fitPopup = new WeakSet();
+fitPopup_fn = function() {
+  if (this.event !== "hover") {
+    const map2 = this.getMap();
+    let offsetY = 0;
+    let offsetX = 0;
+    const mapPosition = map2.getDiv().getBoundingClientRect();
+    const popupPosition = this.getOverlayElement().getBoundingClientRect();
+    if (popupPosition.height < mapPosition.height) {
+      if (mapPosition.top > popupPosition.top || mapPosition.top > popupPosition.top - __privateGet(this, _clearance).height) {
+        offsetY = popupPosition.top - mapPosition.top - __privateGet(this, _clearance).height;
+      }
+    } else if (popupPosition.bottom < mapPosition.bottom) {
+      offsetY = (mapPosition.bottom - popupPosition.bottom) * -1;
+      if (__privateGet(this, _popupOffset).y !== 0) {
+        offsetY += Math.abs(__privateGet(this, _popupOffset).y);
+      } else if (__privateGet(this, _clearance).height > 40) {
+        offsetY += __privateGet(this, _clearance).height;
+      } else {
+        offsetY += 40;
+      }
+    }
+    if (popupPosition.width < mapPosition.width) {
+      if (mapPosition.left > popupPosition.left || mapPosition.left > popupPosition.left - __privateGet(this, _clearance).width) {
+        offsetX = popupPosition.left - mapPosition.left - __privateGet(this, _clearance).width;
+      } else if (mapPosition.right < popupPosition.right || mapPosition.right < popupPosition.right + __privateGet(this, _clearance).width) {
+        offsetX = (mapPosition.right - popupPosition.right - __privateGet(this, _clearance).width) * -1;
+      }
+    } else {
+      offsetX = popupPosition.left - mapPosition.left;
+      if (__privateGet(this, _popupOffset).x !== 0) {
+        offsetX -= Math.abs(__privateGet(this, _popupOffset).x);
+      } else if (__privateGet(this, _clearance).width > 40) {
+        offsetX -= __privateGet(this, _clearance).width;
+      } else {
+        offsetX -= 40;
+      }
+    }
+    if (offsetX !== 0 || offsetY !== 0) {
+      map2.panBy(offsetX, offsetY);
+    }
+  }
+};
 _handleCloseClick = new WeakMap();
 _setupCloseClick = new WeakMap();
 var popup = (options) => {
@@ -8949,7 +9148,8 @@ var PopupCollection = /* @__PURE__ */ (() => {
        * @param {Popup} p The Popup object to keep open
        */
       hideOthers(p) {
-        this.popups.forEach((infoW) => {
+        const popups = [...this.popups];
+        popups.forEach((infoW) => {
           if (infoW !== p) {
             infoW.hide();
           }
