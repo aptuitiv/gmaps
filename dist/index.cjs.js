@@ -106,6 +106,7 @@ __export(src_exports, {
   Tooltip: () => Tooltip,
   callCallback: () => callCallback,
   checkForGoogleMaps: () => checkForGoogleMaps,
+  closeAllPopups: () => closeAllPopups,
   convertControlPosition: () => convertControlPosition,
   convertMapTypeControlStyle: () => convertMapTypeControlStyle,
   getBoolean: () => getBoolean,
@@ -9182,6 +9183,9 @@ var popup = (options) => {
   }
   return new Popup(options);
 };
+var closeAllPopups = () => {
+  PopupCollection.getInstance().hideAll();
+};
 var popupMixin = {
   /**
    *
@@ -9621,6 +9625,7 @@ Map.include(tooltipMixin);
   Tooltip,
   callCallback,
   checkForGoogleMaps,
+  closeAllPopups,
   convertControlPosition,
   convertMapTypeControlStyle,
   getBoolean,

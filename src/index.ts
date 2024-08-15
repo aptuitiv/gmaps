@@ -34,7 +34,7 @@ export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchB
 export { point, Point, PointObject, PointValue } from './lib/Point';
 export { polyline, Polyline, PolylineOptions, PolylineValue } from './lib/Polyline';
 export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
-export { popup, Popup, PopupOptions, PopupValue } from './lib/Popup';
+export { closeAllPopups, popup, Popup, PopupOptions, PopupValue } from './lib/Popup';
 export { size, Size, SizeObject, SizeValue } from './lib/Size';
 export { svgSymbol, SvgSymbol, SvgSymbolOptions, SvgSymbolValue } from './lib/SvgSymbol';
 export { tooltip, Tooltip, TooltipOptions, TooltipValue } from './lib/Tooltip';

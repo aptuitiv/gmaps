@@ -32,7 +32,7 @@ import { placesSearchBox, PlacesSearchBox } from './lib/PlacesSearchBox';
 import { point, Point } from './lib/Point';
 import { polyline, Polyline } from './lib/Polyline';
 import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
-import { popup, Popup } from './lib/Popup';
+import { closeAllPopups, popup, Popup } from './lib/Popup';
 import { size, Size } from './lib/Size';
 import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
 import { tooltip, Tooltip } from './lib/Tooltip';
@@ -74,6 +74,7 @@ type GlobalObj = {
     PolylineCollection: typeof PolylineCollection;
     popup: typeof popup;
     Popup: typeof Popup;
+    closeAllPopups: typeof closeAllPopups;
     size: typeof size;
     Size: typeof Size;
     svgSymbol: typeof svgSymbol;
@@ -119,6 +120,7 @@ const G: GlobalObj = {
     PolylineCollection,
     popup,
     Popup,
+    closeAllPopups,
     size,
     Size,
     svgSymbol,

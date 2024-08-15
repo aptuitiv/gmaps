@@ -9100,6 +9100,9 @@ var popup = (options) => {
   }
   return new Popup(options);
 };
+var closeAllPopups = () => {
+  PopupCollection.getInstance().hideAll();
+};
 var popupMixin = {
   /**
    *
@@ -9538,6 +9541,7 @@ export {
   Tooltip,
   callCallback,
   checkForGoogleMaps,
+  closeAllPopups,
   convertControlPosition,
   convertMapTypeControlStyle,
   getBoolean,

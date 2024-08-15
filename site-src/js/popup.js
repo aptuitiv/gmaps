@@ -67,3 +67,10 @@ closePopupBtn.addEventListener('click', () => {
     mapPopup.close();
 });
 document.body.appendChild(closePopupBtn);
+
+const closeAllPopupBtn = document.createElement('button');
+closeAllPopupBtn.textContent = 'Close All Popups';
+closeAllPopupBtn.addEventListener('click', () => {
+    G.closeAllPopups();
+});
+document.body.appendChild(closeAllPopupBtn);
