@@ -1,5 +1,7 @@
 /* ===========================================================================
     Helps to set up a Places Search Box for Google Maps
+    https://developers.google.com/maps/documentation/javascript/examples/places-searchbox
+    https://developers.google.com/maps/documentation/javascript/reference/places-widget#SearchBox
 =========================================================================== */
 
 /* global google, HTMLInputElement */
