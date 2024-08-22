@@ -90,12 +90,8 @@ export class PlacesSearchBox extends Evented {
                 throw new Error(`The input element with the selector "${input}" was not found.`);
             }
             this.setOptions(options);
-        } else if (
-            // An object of options was passed. It should contain "input"
-            isObjectWithValues(input) &&
-            typeof input.input !== 'undefined' &&
-            (input.input instanceof HTMLInputElement || isString(input.input))
-        ) {
+        } else if (isObjectWithValues(input)) {
+            // An object of options was passed.
             this.setOptions(input);
         }
     }
