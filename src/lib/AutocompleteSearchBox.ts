@@ -413,23 +413,6 @@ export class AutocompleteSearchBox extends Evented {
     }
 
     /**
-     * Listen for the place changed event
-     *
-     * @example
-     * autocompleteSearchBox.onPlaceChanged((place, bounds) => {
-     *    console.log('Place: ', place);
-     *   console.log('Bounds: ', bounds);
-     * });
-     * @param {(place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void} callback The callback function
-     * @returns {void}
-     */
-    onPlaceChanged(callback: (place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void): void {
-        this.on('place_changed', (data) => {
-            callback(data.place, data.bounds);
-        });
-    }
-
-    /**
      * Create the places search box object
      *
      * @private
@@ -516,6 +499,23 @@ export class AutocompleteSearchBox extends Evented {
         config?: EventConfig
     ): void {
         super.onImmediate(type, callback, config);
+    }
+
+    /**
+     * Listen for the place changed event
+     *
+     * @example
+     * autocompleteSearchBox.onPlaceChanged((place, bounds) => {
+     *    console.log('Place: ', place);
+     *   console.log('Bounds: ', bounds);
+     * });
+     * @param {(place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void} callback The callback function
+     * @returns {void}
+     */
+    onPlaceChanged(callback: (place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void): void {
+        this.on('place_changed', (data) => {
+            callback(data.place, data.bounds);
+        });
     }
 
     /**
