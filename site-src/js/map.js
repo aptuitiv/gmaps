@@ -105,6 +105,10 @@ placesSearchBox.init().then(() => {
         });
         map1.fitBounds(placesSearchBox.getPlacesBounds());
     });
+    placesSearchBox.onPlacesChanged((places, bounds) => {
+        console.log('places: ', places);
+        console.log('bounds: ', bounds);
+    });
 });
 
 // Set up the autocomplete for map 1

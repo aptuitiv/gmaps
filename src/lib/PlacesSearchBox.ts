@@ -6,7 +6,7 @@
 
 /* global google, HTMLInputElement */
 
-import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
+import { Evented, EventConfig, EventListenerOptions } from './Evented';
 import { checkForGoogleMaps, isObject, isObjectWithValues, isString } from './helpers';
 import { latLng } from './LatLng';
 import { latLngBounds, LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
@@ -25,6 +25,14 @@ type GMPlacesSearchBoxOptions = {
 
 // Event types for the PlacesSearchBox class
 type PlacesSearchBoxEvent = 'places_changed';
+
+// The event data object for the PlacesSearchBox class events
+type PlacesSearchBoxEventObject = Event & {
+    places: google.maps.places.PlaceResult[];
+    bounds: LatLngBounds;
+};
+// The callback function for the PlacesSearchBox class events
+type PlacesSearchBoxEventCallback = (event: PlacesSearchBoxEventObject) => void;
 
 /**
  * The PlacesSearchBox class
@@ -265,56 +273,73 @@ export class PlacesSearchBox extends Evented {
     /**
      * @inheritdoc
      */
-    hasListener(type: PlacesSearchBoxEvent, callback?: EventCallback): boolean {
+    hasListener(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback): boolean {
         return super.hasListener(type, callback);
     }
 
     /**
      * @inheritdoc
      */
-    off(type?: PlacesSearchBoxEvent, callback?: EventCallback, options?: EventListenerOptions): void {
+    off(type?: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, options?: EventListenerOptions): void {
         super.off(type, callback, options);
     }
 
     /**
      * @inheritdoc
      */
-    on(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void {
+    on(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
         super.on(type, callback, config);
     }
 
     /**
      * @inheritdoc
      */
-    onImmediate(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void {
+    onImmediate(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
         super.onImmediate(type, callback, config);
+    }
+
+    /**
+     * Listen for the place changed event
+     *
+     * @example
+     * placesSearchBox.onPlacesChanged((places, bounds) => {
+     *    console.log('Places: ', places);
+     *   console.log('Bounds: ', bounds);
+     * });
+     * @param {(place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void} callback The callback function
+     * @returns {void}
+     */
+    onPlacesChanged(callback: (places: google.maps.places.PlaceResult[], bounds: LatLngBounds) => void): void {
+        this.on('places_changed', (data) => {
+            callback(data.places, data.bounds);
+        });
     }
 
     /**
      * @inheritdoc
      */
-    once(type: PlacesSearchBoxEvent, callback?: EventCallback, config?: EventConfig): void {
+    once(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void {
         super.once(type, callback, config);
     }
 
     /**
      * @inheritdoc
      */
-    onceImmediate(type: PlacesSearchBoxEvent, callback?: EventCallback, config?: EventConfig): void {
+    onceImmediate(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void {
         super.onceImmediate(type, callback, config);
     }
 
     /**
      * @inheritdoc
      */
-    only(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void {
+    only(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
         super.only(type, callback, config);
     }
 
     /**
      * @inheritdoc
      */
-    onlyOnce(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void {
+    onlyOnce(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
         super.onlyOnce(type, callback, config);
     }
 
