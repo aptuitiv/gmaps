@@ -11,6 +11,12 @@ export { default as Base } from './lib/Base';
 export * from './lib/constants';
 export { Event, EventCallback, EventConfig, EventListenerOptions, Evented } from './lib/Evented';
 export * from './lib/helpers';
+export {
+    autocompleteSearchBox,
+    AutocompleteSearchBox,
+    AutocompleteSearchBoxOptions,
+    AutocompleteSearchBoxValue,
+} from './lib/AutocompleteSearchBox';
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
 export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
 export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';

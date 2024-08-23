@@ -107,6 +107,50 @@ placesSearchBox.init().then(() => {
     });
 });
 
+// Set up the autocomplete for map 1
+const autocomplete = G.autocompleteSearchBox({
+    // countryRestriction: ['es', 'fr'],
+    fields: ['address_components', 'formatted_address', 'geometry', 'name'],
+    types: ['(cities)'],
+});
+autocomplete.setInput('#autocompleteSearch');
+// autocomplete.input = '#autocompleteSearch';
+// autocomplete.types = ['zoo', 'country'];
+autocomplete.init().then(() => {
+    autocomplete.onPlaceChanged((place, bounds) => {
+        console.log('Place: ', place);
+        G.marker({
+            map: map1,
+            position: place.geometry.location,
+            tooltip: place.name,
+        });
+        map1.fitBounds(bounds);
+    });
+    // autocomplete.on('place_changed', ({ place, bounds }) => {
+    //     console.log('Place: ', place);
+    //     G.marker({
+    //         map: map1,
+    //         position: place.geometry.location,
+    //         tooltip: place.name,
+    //     });
+    //     map1.fitBounds(bounds);
+    // });
+    // autocomplete.on('place_changed', () => {
+    //     const place = autocomplete.getPlace();
+    //     console.log('Box place: ', place);
+    //     G.marker({
+    //         map: map1,
+    //         position: place.geometry.location,
+    //         tooltip: place.name,
+    //     });
+    //     map1.fitBounds(autocomplete.getPlaceBounds());
+    // });
+});
+const autocompleteTypeReset = document.getElementById('autocompleteResetType');
+autocompleteTypeReset.addEventListener('click', () => {
+    autocomplete.types = [];
+});
+
 
 const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
 map2.show();

@@ -16,6 +16,7 @@
 // });
 // The classes should not be used for other purposes. For all other functionality
 // the lowercase objects should be used (i.e. marker, polyline, etc.).
+import { autocompleteSearchBox, AutocompleteSearchBox } from './lib/AutocompleteSearchBox';
 import { ControlPosition, MapTypeControlStyle, MapTypeId } from './lib/constants';
 import { icon, Icon } from './lib/Icon';
 import { infoWindow, InfoWindow } from './lib/InfoWindow';
@@ -42,6 +43,8 @@ type GlobalObj = {
     ControlPosition: typeof ControlPosition;
     MapTypeControlStyle: typeof MapTypeControlStyle;
     MapTypeId: typeof MapTypeId;
+    autocompleteSearchBox: typeof autocompleteSearchBox;
+    AutocompleteSearchBox: typeof AutocompleteSearchBox;
     icon: typeof icon;
     Icon: typeof Icon;
     infoWindow: typeof infoWindow;
@@ -88,6 +91,8 @@ const G: GlobalObj = {
     ControlPosition,
     MapTypeControlStyle,
     MapTypeId,
+    autocompleteSearchBox,
+    AutocompleteSearchBox,
     icon,
     Icon,
     infoWindow,
