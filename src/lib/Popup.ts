@@ -835,6 +835,18 @@ export const popup = (options?: PopupValue): Popup => {
     return new Popup(options);
 };
 
+/**
+ * Helper function to close all open popups
+ *
+ * Usage:
+ * G.closeAllPopups();
+ *
+ * @returns {void}
+ */
+export const closeAllPopups = (): void => {
+    PopupCollection.getInstance().hideAll();
+};
+
 // Set up the mixing for attaching the popup to other elements.
 const popupMixin = {
     /**

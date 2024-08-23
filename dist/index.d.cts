@@ -618,15 +618,15 @@ type PointValue = Point | number | number[] | string | string[] | PointObject;
  */
 declare const point: (x?: PointValue, y?: number | string) => Point;
 
-type Event = {
-    domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event;
+type Event$1 = {
+    domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event$1;
     latLng?: LatLng;
     placeId?: string;
     pixel?: Point;
     stop?: () => void;
     type: string;
 };
-type EventCallback = (event: Event) => void;
+type EventCallback = (event: Event$1) => void;
 type EventConfig = {
     callImmediate?: boolean;
     context?: object;
@@ -932,6 +932,413 @@ declare const objectEquals: (a: any, b: any) => boolean;
  */
 declare const callCallback: (callback: Function | undefined, ...args: any[]) => void;
 
+/**
+ * The LatLngBounds class to set up and manage latitude/longitude bounds
+ */
+declare class LatLngBounds extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
+     *      See comments on the extended method for the types of values that latLngValue can be.
+     */
+    constructor(latLngValue?: LatLngValue | LatLngValue[]);
+    /**
+     * Returns whether the the given LatLng value is within this bounds
+     *
+     * @param {LatLngValue} latLngValue The LatLng value to test
+     * @returns {boolean}
+     */
+    contains(latLngValue: LatLngValue): boolean;
+    /**
+     * Returns whether this bounds approximately equals the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {Promise<boolean>}
+     */
+    equals(other: LatLngBounds): Promise<boolean>;
+    /**
+     * Extends this bounds to contain the given point
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+     *
+     * The latLngValue parameter can be:
+     * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
+     * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
+     * - an array of LatLng objects: [LatLng, LatLng, ...]
+     * - a [lat, lng] pair
+     * - a {lat, lng} object (LatLngLiteral)
+     *
+     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
+     * @returns {LatLngBounds}
+     */
+    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds;
+    /**
+     * Get the center of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getCenter(): LatLng;
+    /**
+     * Get the north-east corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getNorthEast(): LatLng;
+    /**
+     * Get the south-west corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getSouthWest(): LatLng;
+    /**
+     * Initialize the lat/lng bounds object so that the Google maps library is available
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * Returns whether this bounds shares any points with the other bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {Promise<boolean>}
+     */
+    intersects(other: LatLngBounds): Promise<boolean>;
+    /**
+     * Returns whether this bounds is empty
+     *
+     * @returns {boolean}
+     */
+    isEmpty(): boolean;
+    /**
+     * Get the Google maps LatLngBounds object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
+     *
+     * @returns {Promise<google.maps.LatLngBounds>}
+     */
+    toGoogle(): Promise<google.maps.LatLngBounds>;
+    /**
+     * Converts the LatLngBounds object to a JSON object
+     *
+     * @returns {google.maps.LatLngBoundsLiteral}
+     */
+    toJson(): google.maps.LatLngBoundsLiteral;
+    /**
+     * Converts the LatLngBounds object to a string
+     *
+     * @returns {string}
+     */
+    toString(): string;
+    /**
+     * Returns the LatLngBounds object as a string that can be used in a URL
+     *
+     * @param {number} [precision] The number of decimal places to round the lat/lng values to
+     * @returns {string}
+     */
+    toUrlValue(precision?: number): string;
+    /**
+     * Extends this bounds to contain the union of this and the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to join with
+     * @returns {Promise<void>}
+     */
+    union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void>;
+}
+type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
+/**
+ * Helper function to set up the LatLngBounds object
+ *
+ * See comments on the extended method in the LatLngBounds class for the types of values
+ * that latLngValue can be.
+ *
+ * @param {LatLngBoundsValue} [latLngValue] The latitude/longitude bounds value
+ * @returns {LatLngBounds}
+ */
+declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
+
+type AutocompleteSearchBoxOptions = {
+    bounds?: LatLngBoundsValue;
+    input: string | HTMLInputElement;
+    countryRestriction?: string | string[];
+    fields?: string[];
+    strictBounds?: boolean;
+    types?: string[];
+};
+type AutocompleteSearchBoxEvent = 'place_changed';
+type AutocompleteSearchBoxEventObject = Event & {
+    place: google.maps.places.PlaceResult;
+    bounds: LatLngBounds;
+};
+type AutocompleteSearchBoxEventCallback = (event: AutocompleteSearchBoxEventObject) => void;
+/**
+ * The AutocompleteSearchBox class
+ */
+declare class AutocompleteSearchBox extends Evented {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} input The input reference or the options
+     * @param {AutocompleteSearchBoxOptions} [options] The places autocomplete search box options if the input is reference to the input element
+     */
+    constructor(input: string | HTMLInputElement | AutocompleteSearchBoxOptions, options?: AutocompleteSearchBoxOptions);
+    /**
+     * Get the bounds to which query predictions are biased.
+     *
+     * @returns {LatLngBounds | undefined}
+     */
+    get bounds(): LatLngBounds | undefined;
+    /**
+     * Sets the region to use for biasing query predictions.
+     *
+     * Results will only be biased towards this area and not be completely restricted to it.
+     *
+     * @param {LatLngBoundsValue} value The bounds to set
+     */
+    set bounds(value: LatLngBoundsValue);
+    /**
+     * Sets the country or countries to use for biasing query predictions.
+     *
+     * @param {string | string[] | null} value The country restriction to set
+     */
+    set countryRestriction(value: string | string[] | null);
+    /**
+     * Get the country or countries to use for biasing query predictions.
+     *
+     * @returns {string | string[] | null}
+     */
+    get countryRestriction(): string | string[] | null;
+    /**
+     * Set the fields to be included for the Place in the details response when the details are successfully retrieved.
+     *
+     * @param {string | string[]} value The fields to set
+     */
+    set fields(value: string | string[]);
+    /**
+     * Get the fields to be included for the Place in the details response when the details are successfully retrieved.
+     *
+     * @returns {string[]}
+     */
+    get fields(): string[];
+    /**
+     * Get the input reference
+     *
+     * @returns {HTMLInputElement | undefined}
+     */
+    get input(): HTMLInputElement | undefined;
+    /**
+     * Set the input reference
+     *
+     * @param {string | HTMLInputElement} value The input HTMLInputElement or the selector for the input element
+     */
+    set input(value: string | HTMLInputElement);
+    /**
+     * Get whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+     *
+     * @returns {boolean}
+     */
+    get strictBounds(): boolean;
+    /**
+     * Set that the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+     *
+     * Setting strictBounds to false (which is the default) will make the results biased towards, but not restricted to, places contained within the bounds.
+     *
+     * @param {boolean} value The value to set
+     */
+    set strictBounds(value: boolean);
+    /**
+     * Get the types of predictions to be returned.
+     *
+     * @returns {string[] | undefined}
+     */
+    get types(): string[] | undefined;
+    /**
+     * Set the types of predictions to be returned.
+     *
+     * To clear the types set it to null.
+     *
+     * @param {string | string[] | null} value The types to set
+     */
+    set types(value: null | string | string[]);
+    /**
+     * Get the bounds to which query predictions are biased.
+     *
+     * @returns {LatLngBounds | undefined}
+     */
+    getBounds(): LatLngBounds | undefined;
+    /**
+     * Get the country or countries to use for biasing query predictions.
+     *
+     * @returns {string | string[] | null}
+     */
+    getCountryRestriction(): string | string[] | null;
+    /**
+     * Get the fields to be included for the Place in the details response when the details are successfully retrieved.
+     *
+     * @returns {string[]}
+     */
+    getFields(): string[];
+    /**
+     * Get the HTML input element reference
+     *
+     * @returns {HTMLInputElement | undefined}
+     */
+    getInput(): HTMLInputElement | undefined;
+    /**
+     * Gets the place that has been found
+     *
+     * The results from the place_changed event is one place and it's the place that the user clicked on.
+     *
+     * @returns {google.maps.places.PlaceResult | undefined}
+     */
+    getPlace(): google.maps.places.PlaceResult | undefined;
+    /**
+     * Get the map bounds based on the place that has been found.
+     *
+     * @returns {LatLngBounds|undefined}
+     */
+    getPlaceBounds(): LatLngBounds | undefined;
+    /**
+     * Get whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+     *
+     * @returns {boolean}
+     */
+    getStrictBounds(): boolean;
+    /**
+     * Get the types of predictions to be returned.
+     *
+     * @returns {string[] | undefined}
+     */
+    getTypes(): string[] | undefined;
+    /**
+     * Initialize the places search box object
+     *
+     * This must be called in order for the places search box to work.
+     *
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * Returns whether the places search box object has been initialized
+     *
+     * @returns {boolean}
+     */
+    isInitialized(): boolean;
+    /**
+     * @inheritdoc
+     */
+    hasListener(type: AutocompleteSearchBoxEvent, callback?: AutocompleteSearchBoxEventCallback): boolean;
+    /**
+     * @inheritdoc
+     */
+    off(type?: AutocompleteSearchBoxEvent, callback?: AutocompleteSearchBoxEventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: AutocompleteSearchBoxEvent, callback: AutocompleteSearchBoxEventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: AutocompleteSearchBoxEvent, callback: AutocompleteSearchBoxEventCallback, config?: EventConfig): void;
+    /**
+     * Listen for the place changed event
+     *
+     * @example
+     * autocompleteSearchBox.onPlaceChanged((place, bounds) => {
+     *    console.log('Place: ', place);
+     *   console.log('Bounds: ', bounds);
+     * });
+     * @param {(place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void} callback The callback function
+     * @returns {void}
+     */
+    onPlaceChanged(callback: (place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: AutocompleteSearchBoxEvent, callback?: AutocompleteSearchBoxEventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: AutocompleteSearchBoxEvent, callback?: AutocompleteSearchBoxEventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    only(type: AutocompleteSearchBoxEvent, callback: AutocompleteSearchBoxEventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: AutocompleteSearchBoxEvent, callback: AutocompleteSearchBoxEventCallback, config?: EventConfig): void;
+    /**
+     * Sets the region to use for biasing query predictions.
+     *
+     * Results will only be biased towards this area and not be completely restricted to it.
+     *
+     * @param {LatLngBoundsValue} value The bounds to set
+     * @returns {AutocompleteSearchBox}
+     */
+    setBounds(value: LatLngBoundsValue): AutocompleteSearchBox;
+    /**
+     * Sets the country or countries to use for biasing query predictions.
+     *
+     * @param {string|string[]|null} value The country restriction to set
+     * @returns {AutocompleteSearchBox}
+     */
+    setCountryRestriction(value: string | string[] | null): AutocompleteSearchBox;
+    /**
+     * Set the fields to be included for the Place in the details response when the details are successfully retrieved.
+     *
+     * @param {string|string[]} value The fields to set
+     * @returns {AutocompleteSearchBox}
+     */
+    setFields(value: string | string[]): AutocompleteSearchBox;
+    /**
+     * Set the input reference
+     *
+     * @param {string|HTMLInputElement} input The input HTMLInputElement or the selector for the input element
+     * @returns {AutocompleteSearchBox}
+     */
+    setInput(input: string | HTMLInputElement): AutocompleteSearchBox;
+    /**
+     * Set the places search box options
+     *
+     * @param {AutocompleteSearchBoxOptions} options The options to set
+     * @returns {AutocompleteSearchBox}
+     */
+    setOptions(options: AutocompleteSearchBoxOptions): AutocompleteSearchBox;
+    /**
+     * Set whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+     *
+     * Setting strictBounds to false (which is the default) will make the results biased towards, but not restricted to, places contained within the bounds.
+     *
+     * @param {boolean} value The value to set
+     * @returns {AutocompleteSearchBox}
+     */
+    setStrictBounds(value: boolean): AutocompleteSearchBox;
+    /**
+     * Set the types of predictions to be returned.
+     *
+     * To clear the types set it to null.
+     *
+     * @param {string | string[] | null} value The types to set
+     * @returns {AutocompleteSearchBox}
+     */
+    setTypes(value: null | string | string[]): AutocompleteSearchBox;
+}
+type AutocompleteSearchBoxValue = HTMLInputElement | string | AutocompleteSearchBox | AutocompleteSearchBoxOptions;
+/**
+ * Helper function to set up the places search box object
+ *
+ * @param {AutocompleteSearchBoxValue} [input] The input reference or the options
+ * @param {AutocompleteSearchBoxOptions} [options] The places search box options
+ * @returns {AutocompleteSearchBox}
+ */
+declare const autocompleteSearchBox: (input?: AutocompleteSearchBoxValue, options?: AutocompleteSearchBoxOptions) => AutocompleteSearchBox;
+
 type SizeObject = {
     height: number | string;
     width: number | string;
@@ -1186,135 +1593,6 @@ type IconValue = Icon | string | IconOptions;
  * @returns {Icon}
  */
 declare const icon: (url?: IconValue, options?: IconOptions) => Icon;
-
-/**
- * The LatLngBounds class to set up and manage latitude/longitude bounds
- */
-declare class LatLngBounds extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
-     *      See comments on the extended method for the types of values that latLngValue can be.
-     */
-    constructor(latLngValue?: LatLngValue | LatLngValue[]);
-    /**
-     * Returns whether the the given LatLng value is within this bounds
-     *
-     * @param {LatLngValue} latLngValue The LatLng value to test
-     * @returns {boolean}
-     */
-    contains(latLngValue: LatLngValue): boolean;
-    /**
-     * Returns whether this bounds approximately equals the given bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {Promise<boolean>}
-     */
-    equals(other: LatLngBounds): Promise<boolean>;
-    /**
-     * Extends this bounds to contain the given point
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
-     *
-     * The latLngValue parameter can be:
-     * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
-     * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
-     * - an array of LatLng objects: [LatLng, LatLng, ...]
-     * - a [lat, lng] pair
-     * - a {lat, lng} object (LatLngLiteral)
-     *
-     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
-     * @returns {LatLngBounds}
-     */
-    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds;
-    /**
-     * Get the center of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getCenter(): LatLng;
-    /**
-     * Get the north-east corner of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getNorthEast(): LatLng;
-    /**
-     * Get the south-west corner of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getSouthWest(): LatLng;
-    /**
-     * Initialize the lat/lng bounds object so that the Google maps library is available
-     *
-     * This is not intended to be called outside of this library.
-     *
-     * @internal
-     * @returns {Promise<void>}
-     */
-    init(): Promise<void>;
-    /**
-     * Returns whether this bounds shares any points with the other bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {Promise<boolean>}
-     */
-    intersects(other: LatLngBounds): Promise<boolean>;
-    /**
-     * Returns whether this bounds is empty
-     *
-     * @returns {boolean}
-     */
-    isEmpty(): boolean;
-    /**
-     * Get the Google maps LatLngBounds object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
-     *
-     * @returns {Promise<google.maps.LatLngBounds>}
-     */
-    toGoogle(): Promise<google.maps.LatLngBounds>;
-    /**
-     * Converts the LatLngBounds object to a JSON object
-     *
-     * @returns {google.maps.LatLngBoundsLiteral}
-     */
-    toJson(): google.maps.LatLngBoundsLiteral;
-    /**
-     * Converts the LatLngBounds object to a string
-     *
-     * @returns {string}
-     */
-    toString(): string;
-    /**
-     * Returns the LatLngBounds object as a string that can be used in a URL
-     *
-     * @param {number} [precision] The number of decimal places to round the lat/lng values to
-     * @returns {string}
-     */
-    toUrlValue(precision?: number): string;
-    /**
-     * Extends this bounds to contain the union of this and the given bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {Promise<void>}
-     */
-    union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void>;
-}
-type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
-/**
- * Helper function to set up the LatLngBounds object
- *
- * See comments on the extended method in the LatLngBounds class for the types of values
- * that latLngValue can be.
- *
- * @param {LatLngBoundsValue} [latLngValue] The latitude/longitude bounds value
- * @returns {LatLngBounds}
- */
-declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
 
 type MapTypeControlOptions = {
     mapTypeIds?: MapTypeIdValue[];
@@ -3672,6 +3950,11 @@ type PlacesSearchBoxOptions = {
     input: HTMLInputElement;
 };
 type PlacesSearchBoxEvent = 'places_changed';
+type PlacesSearchBoxEventObject = Event & {
+    places: google.maps.places.PlaceResult[];
+    bounds: LatLngBounds;
+};
+type PlacesSearchBoxEventCallback = (event: PlacesSearchBoxEventObject) => void;
 /**
  * The PlacesSearchBox class
  */
@@ -3755,35 +4038,47 @@ declare class PlacesSearchBox extends Evented {
     /**
      * @inheritdoc
      */
-    hasListener(type: PlacesSearchBoxEvent, callback?: EventCallback): boolean;
+    hasListener(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback): boolean;
     /**
      * @inheritdoc
      */
-    off(type?: PlacesSearchBoxEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    off(type?: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, options?: EventListenerOptions): void;
     /**
      * @inheritdoc
      */
-    on(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    on(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void;
     /**
      * @inheritdoc
      */
-    onImmediate(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    onImmediate(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void;
+    /**
+     * Listen for the place changed event
+     *
+     * @example
+     * placesSearchBox.onPlacesChanged((places, bounds) => {
+     *    console.log('Places: ', places);
+     *   console.log('Bounds: ', bounds);
+     * });
+     * @param {(place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void} callback The callback function
+     * @returns {void}
+     */
+    onPlacesChanged(callback: (places: google.maps.places.PlaceResult[], bounds: LatLngBounds) => void): void;
     /**
      * @inheritdoc
      */
-    once(type: PlacesSearchBoxEvent, callback?: EventCallback, config?: EventConfig): void;
+    once(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void;
     /**
      * @inheritdoc
      */
-    onceImmediate(type: PlacesSearchBoxEvent, callback?: EventCallback, config?: EventConfig): void;
+    onceImmediate(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void;
     /**
      * @inheritdoc
      */
-    only(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    only(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void;
     /**
      * @inheritdoc
      */
-    onlyOnce(type: PlacesSearchBoxEvent, callback: EventCallback, config?: EventConfig): void;
+    onlyOnce(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void;
     /**
      * Sets the region to use for biasing query predictions.
      *
@@ -4433,5 +4728,14 @@ type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
  * @returns {Popup}
  */
 declare const popup: (options?: PopupValue) => Popup;
+/**
+ * Helper function to close all open popups
+ *
+ * Usage:
+ * G.closeAllPopups();
+ *
+ * @returns {void}
+ */
+declare const closeAllPopups: () => void;
 
-export { Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, callCallback, checkForGoogleMaps, convertControlPosition, convertMapTypeControlStyle, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };

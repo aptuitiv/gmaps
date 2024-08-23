@@ -79,6 +79,7 @@ var __async = (__this, __arguments, generator) => {
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
+  AutocompleteSearchBox: () => AutocompleteSearchBox,
   Base: () => Base_default,
   ControlPosition: () => ControlPosition,
   Evented: () => Evented,
@@ -104,8 +105,10 @@ __export(src_exports, {
   Size: () => Size,
   SvgSymbol: () => SvgSymbol,
   Tooltip: () => Tooltip,
+  autocompleteSearchBox: () => autocompleteSearchBox,
   callCallback: () => callCallback,
   checkForGoogleMaps: () => checkForGoogleMaps,
+  closeAllPopups: () => closeAllPopups,
   convertControlPosition: () => convertControlPosition,
   convertMapTypeControlStyle: () => convertMapTypeControlStyle,
   getBoolean: () => getBoolean,
@@ -1555,488 +1558,6 @@ isGoogleObjectSet_fn = function() {
   return isSet;
 };
 
-// src/lib/Size.ts
-var _sizeObject, _width, _height;
-var _Size = class _Size extends Base_default {
-  /**
-   * Constructor
-   *
-   * @param {WidthSize|Size} [width] The X value
-   * @param {number|string} [height] The Y value
-   */
-  constructor(width, height) {
-    super("size");
-    /**
-     * Holds the Google maps size object
-     *
-     * @private
-     * @type {google.maps.Size}
-     */
-    __privateAdd(this, _sizeObject, void 0);
-    /**
-     * The width value
-     *
-     * @private
-     * @type {number}
-     */
-    __privateAdd(this, _width, void 0);
-    /**
-     * The height value
-     *
-     * @type {number}
-     */
-    __privateAdd(this, _height, void 0);
-    __privateSet(this, _height, 0);
-    __privateSet(this, _width, 0);
-    if (typeof width !== "undefined") {
-      this.set(width, height);
-    }
-  }
-  /**
-   * Get the height value
-   *
-   * @returns {number}
-   */
-  get height() {
-    return __privateGet(this, _height);
-  }
-  /**
-   * Set the height value
-   *
-   * @param {number|string} height The height value. Ideally it's a number but it could be a number string
-   */
-  set height(height) {
-    if (isNumberString(height)) {
-      __privateSet(this, _height, Number(height));
-    } else if (isNumber(height)) {
-      __privateSet(this, _height, height);
-    }
-    if (isObject(__privateGet(this, _sizeObject))) {
-      __privateGet(this, _sizeObject).height = __privateGet(this, _height);
-    }
-  }
-  /**
-   * Get the width value
-   *
-   * @returns {number}
-   */
-  get width() {
-    return __privateGet(this, _width);
-  }
-  /**
-   * Set the width value
-   *
-   * @param {number|string} width The width value. Ideally it's a number but it could be a number string
-   */
-  set width(width) {
-    if (isNumberString(width)) {
-      __privateSet(this, _width, Number(width));
-    } else if (isNumber(width)) {
-      __privateSet(this, _width, width);
-    }
-    if (isObject(__privateGet(this, _sizeObject))) {
-      __privateGet(this, _sizeObject).width = __privateGet(this, _width);
-    }
-  }
-  /**
-   * Returns a new copy of the size
-   *
-   * @returns {Size}
-   */
-  clone() {
-    return new _Size(__privateGet(this, _width), __privateGet(this, _height));
-  }
-  /**
-   * Get the height value
-   *
-   * @returns {number}
-   */
-  getHeight() {
-    return __privateGet(this, _height);
-  }
-  /**
-   * Get the width value
-   *
-   * @returns {number}
-   */
-  getWidth() {
-    return __privateGet(this, _width);
-  }
-  /**
-   * Returns whether the width/height pair are valid values
-   *
-   * @returns {boolean}
-   */
-  isValid() {
-    return isNumber(__privateGet(this, _width)) && isNumber(__privateGet(this, _height));
-  }
-  /**
-   * Set the width/height values
-   *
-   * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
-   * @param {number|string} height The height value
-   * @returns {Size}
-   */
-  set(width, height) {
-    if (Array.isArray(width)) {
-      const [widthValue, heightValue] = width;
-      this.width = widthValue;
-      this.height = heightValue;
-    } else if (isObject(width)) {
-      const widthObject = width;
-      if (typeof widthObject.width !== "undefined") {
-        this.width = widthObject.width;
-      }
-      if (typeof widthObject.height !== "undefined") {
-        this.height = widthObject.height;
-      }
-    } else if (width instanceof _Size) {
-      this.width = width.getWidth();
-      this.height = width.getHeight();
-    } else {
-      this.width = width;
-      this.height = height;
-    }
-    return this;
-  }
-  /**
-   * Set the height value
-   *
-   * @param {number|string} height The height value. Ideally it's a number but it could be a number string
-   * @returns {Size}
-   */
-  setHeight(height) {
-    this.height = height;
-    return this;
-  }
-  /**
-   * Set the width value
-   *
-   * @param {number|string} width The width value. Ideally it's a number but it could be a number string
-   * @returns {Size}
-   */
-  setWidth(width) {
-    this.width = width;
-    return this;
-  }
-  /**
-   * Returns the Google maps size object
-   *
-   * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
-   *
-   * @returns {google.maps.Size|null}
-   */
-  toGoogle() {
-    if (checkForGoogleMaps("Size", "Size")) {
-      if (!isObject(__privateGet(this, _sizeObject))) {
-        __privateSet(this, _sizeObject, new google.maps.Size(__privateGet(this, _width), __privateGet(this, _height)));
-      }
-      return __privateGet(this, _sizeObject);
-    }
-    return null;
-  }
-};
-_sizeObject = new WeakMap();
-_width = new WeakMap();
-_height = new WeakMap();
-var Size = _Size;
-var size = (width, height) => new Size(width, height);
-
-// src/lib/Icon.ts
-var _options;
-var Icon = class extends Base_default {
-  /**
-   * Constructor
-   *
-   * @param {string | IconOptions} [url] The URL for the icon or the icon options
-   * @param {IconOptions} [options] The icon options
-   */
-  constructor(url, options) {
-    super("icon");
-    /**
-     * Holds the Google maps icon options
-     */
-    __privateAdd(this, _options, void 0);
-    __privateSet(this, _options, { url: "" });
-    if (typeof url === "string") {
-      __privateSet(this, _options, {
-        url
-      });
-      this.setOptions(options);
-    } else if (isObject(url)) {
-      this.setOptions(url);
-    }
-  }
-  /**
-   * Set the icon options
-   *
-   * @param {IconOptions} options The icon options
-   * @returns {Icon}
-   */
-  setOptions(options) {
-    if (isObject(options)) {
-      const pointValues = ["anchor", "labelOrigin", "origin"];
-      const sizeValues = ["scaledSize", "size"];
-      const stringValues = ["url"];
-      pointValues.forEach((key) => {
-        if (options[key]) {
-          __privateGet(this, _options)[key] = point(options[key]).toGoogle();
-        }
-      });
-      sizeValues.forEach((key) => {
-        if (options[key]) {
-          __privateGet(this, _options)[key] = size(options[key]).toGoogle();
-        }
-      });
-      stringValues.forEach((key) => {
-        if (options[key] && isStringWithValue(options[key])) {
-          __privateGet(this, _options)[key] = options[key];
-        }
-      });
-    }
-    return this;
-  }
-  /**
-   * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
-   * Use this if for some reason you didn't pass the anchor in the icon options.
-   *
-   * By default, the anchor is located along the center point of the bottom of the image.
-   *
-   * const icon = G.icon({
-   *    url: 'https://mywebsite.com/images/marker.png',
-   * });
-   * icon.setAnchor([10, 32]);
-   *
-   * Valid values are:
-   * icon.setAnchor([10, 32]);
-   * icon.setAnchor({x: 10, y: 32});
-   * icon.setAnchor(pointClassInstance);
-   *
-   * @param {PointValue} anchor The anchor point value
-   * @returns {Icon}
-   */
-  setAnchor(anchor) {
-    __privateGet(this, _options).anchor = point(anchor).toGoogle();
-    return this;
-  }
-  /**
-   * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-   * Use this if for some reason you didn't pass the label origin in the icon options.
-   *
-   * By default, the origin is located in the center point of the image.
-   *
-   * const icon = G.icon({
-   *    url: 'https://mywebsite.com/images/marker.png',
-   * });
-   * icon.setLabelOrigin([10, 32]);
-   *
-   * Valid values are:
-   * icon.setLabelOrigin([10, 32]);
-   * icon.setLabelOrigin({x: 10, y: 32});
-   * icon.setLabelOrigin(pointClassInstance);
-   *
-   * @param {PointValue} origin The label origin point value
-   * @returns {Icon}
-   */
-  setLabelOrigin(origin) {
-    __privateGet(this, _options).labelOrigin = point(origin).toGoogle();
-    return this;
-  }
-  /**
-   * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
-   * Use this if for some reason you didn't pass the origin in the icon options.
-   *
-   * const icon = G.icon({
-   *    url: 'https://mywebsite.com/images/marker.png',
-   * });
-   * icon.setOrigin([10, 32]);
-   *
-   * Valid values are:
-   * icon.setOrigin([10, 32]);
-   * icon.setOrigin({x: 10, y: 32});
-   * icon.setOrigin(pointClassInstance);
-   *
-   * @param {PointValue} origin The origin point value
-   * @returns {Icon}
-   */
-  setOrigin(origin) {
-    __privateGet(this, _options).origin = point(origin).toGoogle();
-    return this;
-  }
-  /**
-   * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
-   *
-   * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
-   *
-   * const icon = G.icon({
-   *    url: 'https://mywebsite.com/images/marker.png',
-   * });
-   * icon.setSize([40, 64]).setScaledSize([20, 32]));
-   *
-   * Valid values are:
-   * icon.setScaledSize([10, 32]);
-   * icon.setScaledSize({x: 10, y: 32});
-   * icon.setScaledSize(sizeClassInstance);
-   *
-   * @param {SizeValue} sizeValue The size value
-   * @returns {Icon}
-   */
-  setScaledSize(sizeValue) {
-    __privateGet(this, _options).scaledSize = size(sizeValue).toGoogle();
-    return this;
-  }
-  /**
-   * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
-   *
-   * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
-   *
-   * const icon = G.icon({
-   *    url: 'https://mywebsite.com/images/marker.png',
-   * });
-   * icon.setSize([20, 32]);
-   *
-   * Valid values are:
-   * icon.setSize([10, 32]);
-   * icon.setSize({x: 10, y: 32});
-   * icon.setSize(sizeClassInstance);
-   *
-   * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
-   *
-   * @param {SizeValue} sizeValue The size value
-   * @returns {Icon}
-   */
-  setSize(sizeValue) {
-    __privateGet(this, _options).size = size(sizeValue).toGoogle();
-    return this;
-  }
-  /**
-   * Set the icon URL
-   *
-   * @param {string} url The icon URL
-   * @returns {Icon}
-   */
-  setUrl(url) {
-    __privateGet(this, _options).url = url;
-    return this;
-  }
-  /**
-   * Get the icon options
-   *
-   * @returns {google.maps.Icon}
-   */
-  toGoogle() {
-    return __privateGet(this, _options);
-  }
-};
-_options = new WeakMap();
-var icon = (url, options) => {
-  if (url instanceof Icon) {
-    return url;
-  }
-  return new Icon(url, options);
-};
-
-// src/lib/Layer.ts
-var _isVisible, _map;
-var Layer = class extends Evented {
-  constructor() {
-    super(...arguments);
-    // eslint-disable-line @typescript-eslint/no-explicit-any
-    /**
-     * Holds if the layer is visible or not
-     *
-     * @private
-     * @type {boolean}
-     */
-    __privateAdd(this, _isVisible, false);
-    /**
-     * Holds the Map object that the layer is added to
-     *
-     * @private
-     * @type {Map|null}
-     */
-    __privateAdd(this, _map, null);
-  }
-  /**
-   * Get if the layer is visible or not
-   *
-   * @returns {boolean}
-   */
-  get isVisible() {
-    return __privateGet(this, _isVisible);
-  }
-  /**
-   * Set if the layer is visible or not
-   *
-   * @param {boolean} value Whether the layer is visible or not
-   */
-  set isVisible(value) {
-    if (typeof value === "boolean") {
-      __privateSet(this, _isVisible, value);
-    } else {
-      throw new Error("isVisible must be a boolean");
-    }
-  }
-  /**
-   * Return the Map object or null if the Map object is not set
-   *
-   * @returns {Map|null}
-   */
-  getMap() {
-    return __privateGet(this, _map);
-  }
-  /**
-   * Return if the layer has a Map object set
-   *
-   * @returns {boolean}
-   */
-  hasMap() {
-    return __privateGet(this, _map) !== null;
-  }
-  /**
-   * Initialize the layer
-   *
-   * This is intended to be overridden by subclasses to perform any initialization that is needed.
-   * This is not intended to be called outside of this library.
-   *
-   * This is called by other objects that depend on the element being initialized before doing their thing.
-   * For example, attaching a tooltip to a marker will wait for the marker to be initialized before attaching the tooltip.
-   *
-   * @internal
-   * @returns {Promise<void>}
-   */
-  // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
-  init() {
-    return Promise.resolve();
-  }
-  /**
-   * Clears the map object that the layer is added to
-   *
-   * Note, this does not remove the layer from the map, it just clears the map object from the layer.
-   */
-  removeMap() {
-    __privateSet(this, _map, null);
-  }
-  /**
-   * Sets the map object that the layer is added to
-   *
-   * This does not display the layer on the map, it only sets the map object for the layer.
-   *
-   * @param {Map} map The map object to add the layer to
-   */
-  setMap(map2) {
-    __privateSet(this, _map, map2);
-    if (map2) {
-      this.isVisible = true;
-    } else {
-      this.isVisible = false;
-    }
-  }
-};
-_isVisible = new WeakMap();
-_map = new WeakMap();
-var Layer_default = Layer;
-
 // src/lib/Loader.ts
 var import_js_api_loader = require("@googlemaps/js-api-loader");
 var _apiKey, _isLoading, _isLoaded, _libraries, _loader, _version;
@@ -2734,6 +2255,1044 @@ var latLngBounds = (latLngValue) => {
   return new LatLngBounds(latLngValue);
 };
 
+// src/lib/AutocompleteSearchBox.ts
+var _bounds2, _countryRestriction, _fields, _input, _place, _placeBounds, _searchBox, _strictBounds, _types, _createAutocompleteSearchBox;
+var AutocompleteSearchBox = class extends Evented {
+  /**
+   * Constructor
+   *
+   * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} input The input reference or the options
+   * @param {AutocompleteSearchBoxOptions} [options] The places autocomplete search box options if the input is reference to the input element
+   */
+  constructor(input, options) {
+    super("placesSearchBox", "places");
+    /**
+     * Holds the bounds to restrict the search to
+     *
+     * @private
+     * @type {LatLngBounds | undefined}
+     */
+    __privateAdd(this, _bounds2, void 0);
+    /**
+     * Holds the region to use for biasing query predictions.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/places-autocomplete-service#ComponentRestrictions
+     *
+     * @private
+     * @type {string|Array<string>|null}
+     */
+    __privateAdd(this, _countryRestriction, null);
+    /**
+     * Holds the fields to be included for the Place in the details response when the details are successfully retrieved.
+     *
+     * @private
+     * @type {string[]}
+     */
+    __privateAdd(this, _fields, ["ALL"]);
+    /**
+     * Holds the reference to the input element
+     *
+     * @private
+     * @type {HTMLInputElement}
+     */
+    __privateAdd(this, _input, void 0);
+    /**
+     * Holds the place that has been found.
+     *
+     * @private
+     * @type {google.maps.places.PlaceResult}
+     */
+    __privateAdd(this, _place, void 0);
+    /**
+     * Holds the map bounds based on the place that has been found
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _placeBounds, void 0);
+    /**
+     * Holds the reference to the Google Maps SearchBox object
+     *
+     * @private
+     * @type {google.maps.places.Autocomplete}
+     */
+    __privateAdd(this, _searchBox, void 0);
+    /**
+     * Sets whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _strictBounds, false);
+    /**
+     * Holds the types of predictions to be returned.
+     *
+     * @private
+     * @type {string[]}
+     */
+    __privateAdd(this, _types, void 0);
+    /**
+     * Create the places search box object
+     *
+     * @private
+     */
+    __privateAdd(this, _createAutocompleteSearchBox, () => __async(this, null, function* () {
+      if (!__privateGet(this, _searchBox)) {
+        const options = {
+          strictBounds: __privateGet(this, _strictBounds)
+        };
+        if (__privateGet(this, _bounds2)) {
+          options.bounds = yield __privateGet(this, _bounds2).toGoogle();
+        }
+        if (__privateGet(this, _countryRestriction)) {
+          options.componentRestrictions = { country: __privateGet(this, _countryRestriction) };
+        }
+        if (__privateGet(this, _fields)) {
+          options.fields = __privateGet(this, _fields);
+        }
+        if (__privateGet(this, _types)) {
+          options.types = __privateGet(this, _types);
+        }
+        __privateSet(this, _searchBox, new google.maps.places.Autocomplete(__privateGet(this, _input), options));
+        __privateGet(this, _searchBox).addListener("place_changed", () => {
+          const place = __privateGet(this, _searchBox).getPlace();
+          const bounds = latLngBounds();
+          if (place.geometry) {
+            if (place.geometry.viewport) {
+              bounds.union(place.geometry.viewport);
+            }
+          } else if (place.geometry.location) {
+            bounds.extend(latLng(place.geometry.location));
+          }
+          __privateSet(this, _place, place);
+          __privateSet(this, _placeBounds, bounds);
+          this.dispatch("place_changed", { place, bounds });
+        });
+      }
+    }));
+    if (input instanceof HTMLInputElement) {
+      __privateSet(this, _input, input);
+      this.setOptions(options);
+    } else if (isString(input)) {
+      __privateSet(this, _input, document.querySelector(input));
+      if (!__privateGet(this, _input)) {
+        throw new Error(`The input element with the selector "${input}" was not found.`);
+      }
+      this.setOptions(options);
+    } else if (isObjectWithValues(input)) {
+      this.setOptions(input);
+    }
+  }
+  /**
+   * Get the bounds to which query predictions are biased.
+   *
+   * @returns {LatLngBounds | undefined}
+   */
+  get bounds() {
+    var _a;
+    return (_a = __privateGet(this, _bounds2)) != null ? _a : void 0;
+  }
+  /**
+   * Sets the region to use for biasing query predictions.
+   *
+   * Results will only be biased towards this area and not be completely restricted to it.
+   *
+   * @param {LatLngBoundsValue} value The bounds to set
+   */
+  set bounds(value) {
+    const boundsValue = latLngBounds(value);
+    __privateSet(this, _bounds2, boundsValue);
+    if (__privateGet(this, _searchBox)) {
+      boundsValue.toGoogle().then((bounds) => {
+        __privateGet(this, _searchBox).setBounds(bounds);
+      });
+    }
+  }
+  /**
+   * Sets the country or countries to use for biasing query predictions.
+   *
+   * @param {string | string[] | null} value The country restriction to set
+   */
+  set countryRestriction(value) {
+    if (isString(value) || Array.isArray(value) || value === null) {
+      __privateSet(this, _countryRestriction, value);
+      if (__privateGet(this, _searchBox)) {
+        __privateGet(this, _searchBox).setComponentRestrictions({ country: value });
+      }
+    }
+  }
+  /**
+   * Get the country or countries to use for biasing query predictions.
+   *
+   * @returns {string | string[] | null}
+   */
+  get countryRestriction() {
+    return __privateGet(this, _countryRestriction);
+  }
+  /**
+   * Set the fields to be included for the Place in the details response when the details are successfully retrieved.
+   *
+   * @param {string | string[]} value The fields to set
+   */
+  set fields(value) {
+    if (isString(value)) {
+      __privateSet(this, _fields, [value]);
+    } else if (Array.isArray(value)) {
+      __privateSet(this, _fields, value);
+    }
+    if (__privateGet(this, _searchBox)) {
+      __privateGet(this, _searchBox).setFields(__privateGet(this, _fields));
+    }
+  }
+  /**
+   * Get the fields to be included for the Place in the details response when the details are successfully retrieved.
+   *
+   * @returns {string[]}
+   */
+  get fields() {
+    return __privateGet(this, _fields);
+  }
+  /**
+   * Get the input reference
+   *
+   * @returns {HTMLInputElement | undefined}
+   */
+  get input() {
+    return __privateGet(this, _input);
+  }
+  /**
+   * Set the input reference
+   *
+   * @param {string | HTMLInputElement} value The input HTMLInputElement or the selector for the input element
+   */
+  set input(value) {
+    if (value instanceof HTMLInputElement) {
+      __privateSet(this, _input, value);
+    } else if (isString(value)) {
+      __privateSet(this, _input, document.querySelector(value));
+      if (!__privateGet(this, _input)) {
+        throw new Error(`The input element with the selector "${value}" was not found.`);
+      }
+    }
+  }
+  /**
+   * Get whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+   *
+   * @returns {boolean}
+   */
+  get strictBounds() {
+    return __privateGet(this, _strictBounds);
+  }
+  /**
+   * Set that the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+   *
+   * Setting strictBounds to false (which is the default) will make the results biased towards, but not restricted to, places contained within the bounds.
+   *
+   * @param {boolean} value The value to set
+   */
+  set strictBounds(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _strictBounds, value);
+      if (__privateGet(this, _searchBox)) {
+        __privateGet(this, _searchBox).setOptions({ strictBounds: value });
+      }
+    }
+  }
+  /**
+   * Get the types of predictions to be returned.
+   *
+   * @returns {string[] | undefined}
+   */
+  get types() {
+    return __privateGet(this, _types);
+  }
+  /**
+   * Set the types of predictions to be returned.
+   *
+   * To clear the types set it to null.
+   *
+   * @param {string | string[] | null} value The types to set
+   */
+  set types(value) {
+    if (Array.isArray(value)) {
+      __privateSet(this, _types, value);
+    } else if (isString(value)) {
+      __privateSet(this, _types, [value]);
+    } else {
+      __privateSet(this, _types, []);
+    }
+    if (__privateGet(this, _searchBox)) {
+      __privateGet(this, _searchBox).setTypes(__privateGet(this, _types));
+    }
+  }
+  /**
+   * Get the bounds to which query predictions are biased.
+   *
+   * @returns {LatLngBounds | undefined}
+   */
+  getBounds() {
+    return this.bounds;
+  }
+  /**
+   * Get the country or countries to use for biasing query predictions.
+   *
+   * @returns {string | string[] | null}
+   */
+  getCountryRestriction() {
+    return __privateGet(this, _countryRestriction);
+  }
+  /**
+   * Get the fields to be included for the Place in the details response when the details are successfully retrieved.
+   *
+   * @returns {string[]}
+   */
+  getFields() {
+    return this.fields;
+  }
+  /**
+   * Get the HTML input element reference
+   *
+   * @returns {HTMLInputElement | undefined}
+   */
+  getInput() {
+    return __privateGet(this, _input);
+  }
+  /**
+   * Gets the place that has been found
+   *
+   * The results from the place_changed event is one place and it's the place that the user clicked on.
+   *
+   * @returns {google.maps.places.PlaceResult | undefined}
+   */
+  getPlace() {
+    return __privateGet(this, _place);
+  }
+  /**
+   * Get the map bounds based on the place that has been found.
+   *
+   * @returns {LatLngBounds|undefined}
+   */
+  getPlaceBounds() {
+    return __privateGet(this, _placeBounds);
+  }
+  /**
+   * Get whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+   *
+   * @returns {boolean}
+   */
+  getStrictBounds() {
+    return this.strictBounds;
+  }
+  /**
+   * Get the types of predictions to be returned.
+   *
+   * @returns {string[] | undefined}
+   */
+  getTypes() {
+    return __privateGet(this, _types);
+  }
+  /**
+   * Initialize the places search box object
+   *
+   * This must be called in order for the places search box to work.
+   *
+   * @returns {Promise<void>}
+   */
+  init() {
+    return __async(this, null, function* () {
+      return new Promise((resolve) => {
+        if (!isObject(__privateGet(this, _searchBox))) {
+          if (checkForGoogleMaps("AutocompleteSearchBox", "places", false)) {
+            __privateGet(this, _createAutocompleteSearchBox).call(this).then(() => {
+              resolve();
+            });
+          } else {
+            loader().once("map_loaded", () => {
+              __privateGet(this, _createAutocompleteSearchBox).call(this).then(() => {
+                resolve();
+              });
+            });
+          }
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+  /**
+   * Returns whether the places search box object has been initialized
+   *
+   * @returns {boolean}
+   */
+  isInitialized() {
+    return isObject(__privateGet(this, _searchBox));
+  }
+  /**
+   * @inheritdoc
+   */
+  hasListener(type, callback) {
+    return super.hasListener(type, callback);
+  }
+  /**
+   * @inheritdoc
+   */
+  off(type, callback, options) {
+    super.off(type, callback, options);
+  }
+  /**
+   * @inheritdoc
+   */
+  on(type, callback, config) {
+    super.on(type, callback, config);
+  }
+  /**
+   * @inheritdoc
+   */
+  onImmediate(type, callback, config) {
+    super.onImmediate(type, callback, config);
+  }
+  /**
+   * Listen for the place changed event
+   *
+   * @example
+   * autocompleteSearchBox.onPlaceChanged((place, bounds) => {
+   *    console.log('Place: ', place);
+   *   console.log('Bounds: ', bounds);
+   * });
+   * @param {(place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void} callback The callback function
+   * @returns {void}
+   */
+  onPlaceChanged(callback) {
+    this.on("place_changed", (data) => {
+      callback(data.place, data.bounds);
+    });
+  }
+  /**
+   * @inheritdoc
+   */
+  once(type, callback, config) {
+    super.once(type, callback, config);
+  }
+  /**
+   * @inheritdoc
+   */
+  onceImmediate(type, callback, config) {
+    super.onceImmediate(type, callback, config);
+  }
+  /**
+   * @inheritdoc
+   */
+  only(type, callback, config) {
+    super.only(type, callback, config);
+  }
+  /**
+   * @inheritdoc
+   */
+  onlyOnce(type, callback, config) {
+    super.onlyOnce(type, callback, config);
+  }
+  /**
+   * Sets the region to use for biasing query predictions.
+   *
+   * Results will only be biased towards this area and not be completely restricted to it.
+   *
+   * @param {LatLngBoundsValue} value The bounds to set
+   * @returns {AutocompleteSearchBox}
+   */
+  setBounds(value) {
+    this.bounds = value;
+    return this;
+  }
+  /**
+   * Sets the country or countries to use for biasing query predictions.
+   *
+   * @param {string|string[]|null} value The country restriction to set
+   * @returns {AutocompleteSearchBox}
+   */
+  setCountryRestriction(value) {
+    this.countryRestriction = value;
+    return this;
+  }
+  /**
+   * Set the fields to be included for the Place in the details response when the details are successfully retrieved.
+   *
+   * @param {string|string[]} value The fields to set
+   * @returns {AutocompleteSearchBox}
+   */
+  setFields(value) {
+    this.fields = value;
+    return this;
+  }
+  /**
+   * Set the input reference
+   *
+   * @param {string|HTMLInputElement} input The input HTMLInputElement or the selector for the input element
+   * @returns {AutocompleteSearchBox}
+   */
+  setInput(input) {
+    this.input = input;
+    return this;
+  }
+  /**
+   * Set the places search box options
+   *
+   * @param {AutocompleteSearchBoxOptions} options The options to set
+   * @returns {AutocompleteSearchBox}
+   */
+  setOptions(options) {
+    if (isObjectWithValues(options)) {
+      if (options.bounds) {
+        this.bounds = options.bounds;
+      }
+      if (typeof options.input !== "undefined") {
+        if (options.input instanceof HTMLInputElement) {
+          __privateSet(this, _input, options.input);
+        } else if (isString(options.input)) {
+          __privateSet(this, _input, document.querySelector(options.input));
+          if (!__privateGet(this, _input)) {
+            throw new Error(`The input element with the selector "${options.input}" was not found.`);
+          }
+        }
+      }
+      if (options.countryRestriction) {
+        this.countryRestriction = options.countryRestriction;
+      }
+      if (options.fields) {
+        this.fields = options.fields;
+      }
+      if (isBoolean(options.strictBounds)) {
+        this.strictBounds = options.strictBounds;
+      }
+      if (options.types) {
+        this.types = options.types;
+      }
+    }
+    return this;
+  }
+  /**
+   * Set whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
+   *
+   * Setting strictBounds to false (which is the default) will make the results biased towards, but not restricted to, places contained within the bounds.
+   *
+   * @param {boolean} value The value to set
+   * @returns {AutocompleteSearchBox}
+   */
+  setStrictBounds(value) {
+    this.strictBounds = value;
+    return this;
+  }
+  /**
+   * Set the types of predictions to be returned.
+   *
+   * To clear the types set it to null.
+   *
+   * @param {string | string[] | null} value The types to set
+   * @returns {AutocompleteSearchBox}
+   */
+  setTypes(value) {
+    this.types = value;
+    return this;
+  }
+};
+_bounds2 = new WeakMap();
+_countryRestriction = new WeakMap();
+_fields = new WeakMap();
+_input = new WeakMap();
+_place = new WeakMap();
+_placeBounds = new WeakMap();
+_searchBox = new WeakMap();
+_strictBounds = new WeakMap();
+_types = new WeakMap();
+_createAutocompleteSearchBox = new WeakMap();
+var autocompleteSearchBox = (input, options) => {
+  if (input instanceof AutocompleteSearchBox) {
+    return input;
+  }
+  return new AutocompleteSearchBox(input, options);
+};
+
+// src/lib/Size.ts
+var _sizeObject, _width, _height;
+var _Size = class _Size extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {WidthSize|Size} [width] The X value
+   * @param {number|string} [height] The Y value
+   */
+  constructor(width, height) {
+    super("size");
+    /**
+     * Holds the Google maps size object
+     *
+     * @private
+     * @type {google.maps.Size}
+     */
+    __privateAdd(this, _sizeObject, void 0);
+    /**
+     * The width value
+     *
+     * @private
+     * @type {number}
+     */
+    __privateAdd(this, _width, void 0);
+    /**
+     * The height value
+     *
+     * @type {number}
+     */
+    __privateAdd(this, _height, void 0);
+    __privateSet(this, _height, 0);
+    __privateSet(this, _width, 0);
+    if (typeof width !== "undefined") {
+      this.set(width, height);
+    }
+  }
+  /**
+   * Get the height value
+   *
+   * @returns {number}
+   */
+  get height() {
+    return __privateGet(this, _height);
+  }
+  /**
+   * Set the height value
+   *
+   * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+   */
+  set height(height) {
+    if (isNumberString(height)) {
+      __privateSet(this, _height, Number(height));
+    } else if (isNumber(height)) {
+      __privateSet(this, _height, height);
+    }
+    if (isObject(__privateGet(this, _sizeObject))) {
+      __privateGet(this, _sizeObject).height = __privateGet(this, _height);
+    }
+  }
+  /**
+   * Get the width value
+   *
+   * @returns {number}
+   */
+  get width() {
+    return __privateGet(this, _width);
+  }
+  /**
+   * Set the width value
+   *
+   * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+   */
+  set width(width) {
+    if (isNumberString(width)) {
+      __privateSet(this, _width, Number(width));
+    } else if (isNumber(width)) {
+      __privateSet(this, _width, width);
+    }
+    if (isObject(__privateGet(this, _sizeObject))) {
+      __privateGet(this, _sizeObject).width = __privateGet(this, _width);
+    }
+  }
+  /**
+   * Returns a new copy of the size
+   *
+   * @returns {Size}
+   */
+  clone() {
+    return new _Size(__privateGet(this, _width), __privateGet(this, _height));
+  }
+  /**
+   * Get the height value
+   *
+   * @returns {number}
+   */
+  getHeight() {
+    return __privateGet(this, _height);
+  }
+  /**
+   * Get the width value
+   *
+   * @returns {number}
+   */
+  getWidth() {
+    return __privateGet(this, _width);
+  }
+  /**
+   * Returns whether the width/height pair are valid values
+   *
+   * @returns {boolean}
+   */
+  isValid() {
+    return isNumber(__privateGet(this, _width)) && isNumber(__privateGet(this, _height));
+  }
+  /**
+   * Set the width/height values
+   *
+   * @param {WidthSize|Size} width The width value, or the Size object, or an arraheight of [width, height] pairs, or a {width, height} object
+   * @param {number|string} height The height value
+   * @returns {Size}
+   */
+  set(width, height) {
+    if (Array.isArray(width)) {
+      const [widthValue, heightValue] = width;
+      this.width = widthValue;
+      this.height = heightValue;
+    } else if (isObject(width)) {
+      const widthObject = width;
+      if (typeof widthObject.width !== "undefined") {
+        this.width = widthObject.width;
+      }
+      if (typeof widthObject.height !== "undefined") {
+        this.height = widthObject.height;
+      }
+    } else if (width instanceof _Size) {
+      this.width = width.getWidth();
+      this.height = width.getHeight();
+    } else {
+      this.width = width;
+      this.height = height;
+    }
+    return this;
+  }
+  /**
+   * Set the height value
+   *
+   * @param {number|string} height The height value. Ideally it's a number but it could be a number string
+   * @returns {Size}
+   */
+  setHeight(height) {
+    this.height = height;
+    return this;
+  }
+  /**
+   * Set the width value
+   *
+   * @param {number|string} width The width value. Ideally it's a number but it could be a number string
+   * @returns {Size}
+   */
+  setWidth(width) {
+    this.width = width;
+    return this;
+  }
+  /**
+   * Returns the Google maps size object
+   *
+   * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Size
+   *
+   * @returns {google.maps.Size|null}
+   */
+  toGoogle() {
+    if (checkForGoogleMaps("Size", "Size")) {
+      if (!isObject(__privateGet(this, _sizeObject))) {
+        __privateSet(this, _sizeObject, new google.maps.Size(__privateGet(this, _width), __privateGet(this, _height)));
+      }
+      return __privateGet(this, _sizeObject);
+    }
+    return null;
+  }
+};
+_sizeObject = new WeakMap();
+_width = new WeakMap();
+_height = new WeakMap();
+var Size = _Size;
+var size = (width, height) => new Size(width, height);
+
+// src/lib/Icon.ts
+var _options;
+var Icon = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {string | IconOptions} [url] The URL for the icon or the icon options
+   * @param {IconOptions} [options] The icon options
+   */
+  constructor(url, options) {
+    super("icon");
+    /**
+     * Holds the Google maps icon options
+     */
+    __privateAdd(this, _options, void 0);
+    __privateSet(this, _options, { url: "" });
+    if (typeof url === "string") {
+      __privateSet(this, _options, {
+        url
+      });
+      this.setOptions(options);
+    } else if (isObject(url)) {
+      this.setOptions(url);
+    }
+  }
+  /**
+   * Set the icon options
+   *
+   * @param {IconOptions} options The icon options
+   * @returns {Icon}
+   */
+  setOptions(options) {
+    if (isObject(options)) {
+      const pointValues = ["anchor", "labelOrigin", "origin"];
+      const sizeValues = ["scaledSize", "size"];
+      const stringValues = ["url"];
+      pointValues.forEach((key) => {
+        if (options[key]) {
+          __privateGet(this, _options)[key] = point(options[key]).toGoogle();
+        }
+      });
+      sizeValues.forEach((key) => {
+        if (options[key]) {
+          __privateGet(this, _options)[key] = size(options[key]).toGoogle();
+        }
+      });
+      stringValues.forEach((key) => {
+        if (options[key] && isStringWithValue(options[key])) {
+          __privateGet(this, _options)[key] = options[key];
+        }
+      });
+    }
+    return this;
+  }
+  /**
+   * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+   * Use this if for some reason you didn't pass the anchor in the icon options.
+   *
+   * By default, the anchor is located along the center point of the bottom of the image.
+   *
+   * const icon = G.icon({
+   *    url: 'https://mywebsite.com/images/marker.png',
+   * });
+   * icon.setAnchor([10, 32]);
+   *
+   * Valid values are:
+   * icon.setAnchor([10, 32]);
+   * icon.setAnchor({x: 10, y: 32});
+   * icon.setAnchor(pointClassInstance);
+   *
+   * @param {PointValue} anchor The anchor point value
+   * @returns {Icon}
+   */
+  setAnchor(anchor) {
+    __privateGet(this, _options).anchor = point(anchor).toGoogle();
+    return this;
+  }
+  /**
+   * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+   * Use this if for some reason you didn't pass the label origin in the icon options.
+   *
+   * By default, the origin is located in the center point of the image.
+   *
+   * const icon = G.icon({
+   *    url: 'https://mywebsite.com/images/marker.png',
+   * });
+   * icon.setLabelOrigin([10, 32]);
+   *
+   * Valid values are:
+   * icon.setLabelOrigin([10, 32]);
+   * icon.setLabelOrigin({x: 10, y: 32});
+   * icon.setLabelOrigin(pointClassInstance);
+   *
+   * @param {PointValue} origin The label origin point value
+   * @returns {Icon}
+   */
+  setLabelOrigin(origin) {
+    __privateGet(this, _options).labelOrigin = point(origin).toGoogle();
+    return this;
+  }
+  /**
+   * Set the position of the image within a sprite, if any. By default, the origin is located at the top left corner of the image (0, 0).
+   * Use this if for some reason you didn't pass the origin in the icon options.
+   *
+   * const icon = G.icon({
+   *    url: 'https://mywebsite.com/images/marker.png',
+   * });
+   * icon.setOrigin([10, 32]);
+   *
+   * Valid values are:
+   * icon.setOrigin([10, 32]);
+   * icon.setOrigin({x: 10, y: 32});
+   * icon.setOrigin(pointClassInstance);
+   *
+   * @param {PointValue} origin The origin point value
+   * @returns {Icon}
+   */
+  setOrigin(origin) {
+    __privateGet(this, _options).origin = point(origin).toGoogle();
+    return this;
+  }
+  /**
+   * Set the scaled size of the icon. Use this if for some reason you didn't pass the scaled size in the icon options.
+   *
+   * The size of the entire image after scaling, if any. Use this property to stretch/shrink an image or a sprite.
+   *
+   * const icon = G.icon({
+   *    url: 'https://mywebsite.com/images/marker.png',
+   * });
+   * icon.setSize([40, 64]).setScaledSize([20, 32]));
+   *
+   * Valid values are:
+   * icon.setScaledSize([10, 32]);
+   * icon.setScaledSize({x: 10, y: 32});
+   * icon.setScaledSize(sizeClassInstance);
+   *
+   * @param {SizeValue} sizeValue The size value
+   * @returns {Icon}
+   */
+  setScaledSize(sizeValue) {
+    __privateGet(this, _options).scaledSize = size(sizeValue).toGoogle();
+    return this;
+  }
+  /**
+   * Set the size of the icon. Use this if for some reason you didn't pass the size in the icon options.
+   *
+   * When using sprites, you must specify the sprite size. If the size is not provided, it will be set when the image loads.
+   *
+   * const icon = G.icon({
+   *    url: 'https://mywebsite.com/images/marker.png',
+   * });
+   * icon.setSize([20, 32]);
+   *
+   * Valid values are:
+   * icon.setSize([10, 32]);
+   * icon.setSize({x: 10, y: 32});
+   * icon.setSize(sizeClassInstance);
+   *
+   * If you're using an SVG you should set a size if the desired size is different from the height and width attributes of the SVG.
+   *
+   * @param {SizeValue} sizeValue The size value
+   * @returns {Icon}
+   */
+  setSize(sizeValue) {
+    __privateGet(this, _options).size = size(sizeValue).toGoogle();
+    return this;
+  }
+  /**
+   * Set the icon URL
+   *
+   * @param {string} url The icon URL
+   * @returns {Icon}
+   */
+  setUrl(url) {
+    __privateGet(this, _options).url = url;
+    return this;
+  }
+  /**
+   * Get the icon options
+   *
+   * @returns {google.maps.Icon}
+   */
+  toGoogle() {
+    return __privateGet(this, _options);
+  }
+};
+_options = new WeakMap();
+var icon = (url, options) => {
+  if (url instanceof Icon) {
+    return url;
+  }
+  return new Icon(url, options);
+};
+
+// src/lib/Layer.ts
+var _isVisible, _map;
+var Layer = class extends Evented {
+  constructor() {
+    super(...arguments);
+    // eslint-disable-line @typescript-eslint/no-explicit-any
+    /**
+     * Holds if the layer is visible or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isVisible, false);
+    /**
+     * Holds the Map object that the layer is added to
+     *
+     * @private
+     * @type {Map|null}
+     */
+    __privateAdd(this, _map, null);
+  }
+  /**
+   * Get if the layer is visible or not
+   *
+   * @returns {boolean}
+   */
+  get isVisible() {
+    return __privateGet(this, _isVisible);
+  }
+  /**
+   * Set if the layer is visible or not
+   *
+   * @param {boolean} value Whether the layer is visible or not
+   */
+  set isVisible(value) {
+    if (typeof value === "boolean") {
+      __privateSet(this, _isVisible, value);
+    } else {
+      throw new Error("isVisible must be a boolean");
+    }
+  }
+  /**
+   * Return the Map object or null if the Map object is not set
+   *
+   * @returns {Map|null}
+   */
+  getMap() {
+    return __privateGet(this, _map);
+  }
+  /**
+   * Return if the layer has a Map object set
+   *
+   * @returns {boolean}
+   */
+  hasMap() {
+    return __privateGet(this, _map) !== null;
+  }
+  /**
+   * Initialize the layer
+   *
+   * This is intended to be overridden by subclasses to perform any initialization that is needed.
+   * This is not intended to be called outside of this library.
+   *
+   * This is called by other objects that depend on the element being initialized before doing their thing.
+   * For example, attaching a tooltip to a marker will wait for the marker to be initialized before attaching the tooltip.
+   *
+   * @internal
+   * @returns {Promise<void>}
+   */
+  // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
+  init() {
+    return Promise.resolve();
+  }
+  /**
+   * Clears the map object that the layer is added to
+   *
+   * Note, this does not remove the layer from the map, it just clears the map object from the layer.
+   */
+  removeMap() {
+    __privateSet(this, _map, null);
+  }
+  /**
+   * Sets the map object that the layer is added to
+   *
+   * This does not display the layer on the map, it only sets the map object for the layer.
+   *
+   * @param {Map} map The map object to add the layer to
+   */
+  setMap(map2) {
+    __privateSet(this, _map, map2);
+    if (map2) {
+      this.isVisible = true;
+    } else {
+      this.isVisible = false;
+    }
+  }
+};
+_isVisible = new WeakMap();
+_map = new WeakMap();
+var Layer_default = Layer;
+
 // src/lib/Map/MapTypeControl.ts
 var _enabled, _mapTypeIds, _position, _style, _typeHybrid, _typeRoadmap, _typeSatellite, _typeTerrain;
 var MapTypeControl = class {
@@ -3060,7 +3619,7 @@ var mapTypeControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds2, _customControls, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds3, _customControls, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -3100,7 +3659,7 @@ var Map = class extends Evented {
      * @private
      * @type {LatLngBounds}
      */
-    __privateAdd(this, _bounds2, void 0);
+    __privateAdd(this, _bounds3, void 0);
     /**
      * Holds the custom controls that need to be added to the map
      *
@@ -3424,10 +3983,10 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   addToBounds(value) {
-    if (!__privateGet(this, _bounds2)) {
-      __privateSet(this, _bounds2, latLngBounds());
+    if (!__privateGet(this, _bounds3)) {
+      __privateSet(this, _bounds3, latLngBounds());
     }
-    __privateGet(this, _bounds2).extend(value);
+    __privateGet(this, _bounds3).extend(value);
     return this;
   }
   /**
@@ -3436,7 +3995,7 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   clearBounds() {
-    __privateSet(this, _bounds2, latLngBounds());
+    __privateSet(this, _bounds3, latLngBounds());
     return this;
   }
   /**
@@ -3475,8 +4034,8 @@ var Map = class extends Evented {
       latLngBounds(bounds).toGoogle().then((googleBounds) => {
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
-    } else if (__privateGet(this, _bounds2)) {
-      __privateGet(this, _bounds2).toGoogle().then((googleBounds) => {
+    } else if (__privateGet(this, _bounds3)) {
+      __privateGet(this, _bounds3).toGoogle().then((googleBounds) => {
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
     }
@@ -3943,7 +4502,7 @@ var Map = class extends Evented {
     return __privateGet(this, _map2);
   }
 };
-_bounds2 = new WeakMap();
+_bounds3 = new WeakMap();
 _customControls = new WeakMap();
 _latitude2 = new WeakMap();
 _longitude2 = new WeakMap();
@@ -7370,7 +7929,7 @@ var getOverlayViewClass = (classObject) => {
 var overlay = () => new Overlay("overlay", "OverlayView");
 
 // src/lib/PlacesSearchBox.ts
-var _input, _places, _placesBounds, _searchBox, _options6, _createPlacesSearchBox;
+var _input2, _places, _placesBounds, _searchBox2, _options6, _createPlacesSearchBox;
 var PlacesSearchBox = class extends Evented {
   /**
    * Constructor
@@ -7386,7 +7945,7 @@ var PlacesSearchBox = class extends Evented {
      * @private
      * @type {HTMLInputElement}
      */
-    __privateAdd(this, _input, void 0);
+    __privateAdd(this, _input2, void 0);
     /**
      * Holds the array of places that have been found.
      *
@@ -7409,7 +7968,7 @@ var PlacesSearchBox = class extends Evented {
      * @private
      * @type {google.maps.places.SearchBox}
      */
-    __privateAdd(this, _searchBox, void 0);
+    __privateAdd(this, _searchBox2, void 0);
     /**
      * Holds the options for the places search box
      *
@@ -7423,14 +7982,14 @@ var PlacesSearchBox = class extends Evented {
      * @private
      */
     __privateAdd(this, _createPlacesSearchBox, () => __async(this, null, function* () {
-      if (!__privateGet(this, _searchBox)) {
+      if (!__privateGet(this, _searchBox2)) {
         const options = {};
         if (options.bounds) {
           options.bounds = yield __privateGet(this, _options6).bounds.toGoogle();
         }
-        __privateSet(this, _searchBox, new google.maps.places.SearchBox(__privateGet(this, _input), options));
-        __privateGet(this, _searchBox).addListener("places_changed", () => {
-          const places = __privateGet(this, _searchBox).getPlaces();
+        __privateSet(this, _searchBox2, new google.maps.places.SearchBox(__privateGet(this, _input2), options));
+        __privateGet(this, _searchBox2).addListener("places_changed", () => {
+          const places = __privateGet(this, _searchBox2).getPlaces();
           const bounds = latLngBounds();
           places.forEach((place) => {
             if (place.geometry) {
@@ -7448,18 +8007,15 @@ var PlacesSearchBox = class extends Evented {
       }
     }));
     if (input instanceof HTMLInputElement) {
-      __privateSet(this, _input, input);
+      __privateSet(this, _input2, input);
       this.setOptions(options);
     } else if (isString(input)) {
-      __privateSet(this, _input, document.querySelector(input));
-      if (!__privateGet(this, _input)) {
+      __privateSet(this, _input2, document.querySelector(input));
+      if (!__privateGet(this, _input2)) {
         throw new Error(`The input element with the selector "${input}" was not found.`);
       }
       this.setOptions(options);
-    } else if (
-      // An object of options was passed. It should contain "input"
-      isObjectWithValues(input) && typeof input.input !== "undefined" && (input.input instanceof HTMLInputElement || isString(input.input))
-    ) {
+    } else if (isObjectWithValues(input)) {
       this.setOptions(input);
     }
   }
@@ -7482,9 +8038,9 @@ var PlacesSearchBox = class extends Evented {
   set bounds(value) {
     const boundsValue = latLngBounds(value);
     __privateGet(this, _options6).bounds = boundsValue;
-    if (__privateGet(this, _searchBox)) {
+    if (__privateGet(this, _searchBox2)) {
       boundsValue.toGoogle().then((bounds) => {
-        __privateGet(this, _searchBox).setBounds(bounds);
+        __privateGet(this, _searchBox2).setBounds(bounds);
       });
     }
   }
@@ -7494,7 +8050,7 @@ var PlacesSearchBox = class extends Evented {
    * @returns {HTMLInputElement | undefined}
    */
   get input() {
-    return __privateGet(this, _input);
+    return __privateGet(this, _input2);
   }
   /**
    * Set the input reference
@@ -7503,10 +8059,10 @@ var PlacesSearchBox = class extends Evented {
    */
   set input(value) {
     if (value instanceof HTMLInputElement) {
-      __privateSet(this, _input, value);
+      __privateSet(this, _input2, value);
     } else if (isString(value)) {
-      __privateSet(this, _input, document.querySelector(value));
-      if (!__privateGet(this, _input)) {
+      __privateSet(this, _input2, document.querySelector(value));
+      if (!__privateGet(this, _input2)) {
         throw new Error(`The input element with the selector "${value}" was not found.`);
       }
     }
@@ -7557,7 +8113,7 @@ var PlacesSearchBox = class extends Evented {
   init() {
     return __async(this, null, function* () {
       return new Promise((resolve) => {
-        if (!isObject(__privateGet(this, _searchBox))) {
+        if (!isObject(__privateGet(this, _searchBox2))) {
           if (checkForGoogleMaps("PlacesSearchBox", "places", false)) {
             __privateGet(this, _createPlacesSearchBox).call(this).then(() => {
               resolve();
@@ -7581,7 +8137,7 @@ var PlacesSearchBox = class extends Evented {
    * @returns {boolean}
    */
   isInitialized() {
-    return isObject(__privateGet(this, _searchBox));
+    return isObject(__privateGet(this, _searchBox2));
   }
   /**
    * @inheritdoc
@@ -7606,6 +8162,22 @@ var PlacesSearchBox = class extends Evented {
    */
   onImmediate(type, callback, config) {
     super.onImmediate(type, callback, config);
+  }
+  /**
+   * Listen for the place changed event
+   *
+   * @example
+   * placesSearchBox.onPlacesChanged((places, bounds) => {
+   *    console.log('Places: ', places);
+   *   console.log('Bounds: ', bounds);
+   * });
+   * @param {(place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void} callback The callback function
+   * @returns {void}
+   */
+  onPlacesChanged(callback) {
+    this.on("places_changed", (data) => {
+      callback(data.places, data.bounds);
+    });
   }
   /**
    * @inheritdoc
@@ -7666,10 +8238,10 @@ var PlacesSearchBox = class extends Evented {
       }
       if (typeof options.input !== "undefined") {
         if (options.input instanceof HTMLInputElement) {
-          __privateSet(this, _input, options.input);
+          __privateSet(this, _input2, options.input);
         } else if (isString(options.input)) {
-          __privateSet(this, _input, document.querySelector(options.input));
-          if (!__privateGet(this, _input)) {
+          __privateSet(this, _input2, document.querySelector(options.input));
+          if (!__privateGet(this, _input2)) {
             throw new Error(`The input element with the selector "${options.input}" was not found.`);
           }
         }
@@ -7678,10 +8250,10 @@ var PlacesSearchBox = class extends Evented {
     return this;
   }
 };
-_input = new WeakMap();
+_input2 = new WeakMap();
 _places = new WeakMap();
 _placesBounds = new WeakMap();
-_searchBox = new WeakMap();
+_searchBox2 = new WeakMap();
 _options6 = new WeakMap();
 _createPlacesSearchBox = new WeakMap();
 var placesSearchBox = (input, options) => {
@@ -9182,6 +9754,9 @@ var popup = (options) => {
   }
   return new Popup(options);
 };
+var closeAllPopups = () => {
+  PopupCollection.getInstance().hideAll();
+};
 var popupMixin = {
   /**
    *
@@ -9594,6 +10169,7 @@ Layer_default.include(tooltipMixin);
 Map.include(tooltipMixin);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  AutocompleteSearchBox,
   Base,
   ControlPosition,
   Evented,
@@ -9619,8 +10195,10 @@ Map.include(tooltipMixin);
   Size,
   SvgSymbol,
   Tooltip,
+  autocompleteSearchBox,
   callCallback,
   checkForGoogleMaps,
+  closeAllPopups,
   convertControlPosition,
   convertMapTypeControlStyle,
   getBoolean,
