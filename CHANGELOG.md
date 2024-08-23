@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0 (August 23, 2024)
+
+- Added `closeAllPopups()` method to close all open popups.
+- Added AutocompleteSearchBox component.
+- Added `onPlacesChanged()` method to the PlacesSearchBox component.
+
 ## 0.11.0 (August 14, 2024)
 
 - Map - Added methods to get the bounds, get the map div, and pan the map by a specfic amount.
