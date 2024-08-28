@@ -321,9 +321,11 @@ export class Overlay extends Layer {
                     this.#overlayView.setMap(mapObject.toGoogle());
                     this.isVisible = true;
                     super.setMap(mapObject);
+                    this.dispatch('open');
                     resolve(this);
                 } else {
                     this.show(mapObject).then(() => {
+                        this.dispatch('open');
                         resolve(this);
                     });
                 }
@@ -424,6 +426,7 @@ export class Overlay extends Layer {
                     this.#overlayView.setMap(map.toGoogle());
                     this.isVisible = true;
                     super.setMap(map);
+                    this.dispatch('open');
                     resolve(this);
                 } else {
                     // The Google maps library isn't loaded yet. Wait for it to load.
@@ -434,10 +437,12 @@ export class Overlay extends Layer {
                             this.isVisible = true;
                         }
                         super.setMap(map);
+                        this.dispatch('open');
                         resolve(this);
                     });
                 }
             } else {
+                this.dispatch('open');
                 resolve(this);
             }
         });
