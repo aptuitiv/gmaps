@@ -853,9 +853,12 @@ const popupMixin = {
      *
      * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+     * @returns {Popup}
      */
-    attachPopup(popupValue: PopupValue, event?: 'click' | 'clickon' | 'hover') {
-        popup(popupValue).attachTo(this, event);
+    attachPopup(popupValue: PopupValue, event?: 'click' | 'clickon' | 'hover'): Popup {
+        const p = popup(popupValue);
+        p.attachTo(this, event);
+        return p;
     },
 };
 

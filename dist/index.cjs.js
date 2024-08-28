@@ -7690,9 +7690,11 @@ var Overlay = class extends Layer_default {
           __privateGet(this, _overlayView).setMap(mapObject.toGoogle());
           this.isVisible = true;
           super.setMap(mapObject);
+          this.dispatch("open");
           resolve(this);
         } else {
           this.show(mapObject).then(() => {
+            this.dispatch("open");
             resolve(this);
           });
         }
@@ -7786,6 +7788,7 @@ var Overlay = class extends Layer_default {
           __privateGet(this, _overlayView).setMap(map2.toGoogle());
           this.isVisible = true;
           super.setMap(map2);
+          this.dispatch("open");
           resolve(this);
         } else {
           loader().once("map_loaded", () => {
@@ -7795,10 +7798,12 @@ var Overlay = class extends Layer_default {
               this.isVisible = true;
             }
             super.setMap(map2);
+            this.dispatch("open");
             resolve(this);
           });
         }
       } else {
+        this.dispatch("open");
         resolve(this);
       }
     });
@@ -9762,9 +9767,12 @@ var popupMixin = {
    *
    * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+   * @returns {Popup}
    */
   attachPopup(popupValue, event) {
-    popup(popupValue).attachTo(this, event);
+    const p = popup(popupValue);
+    p.attachTo(this, event);
+    return p;
   }
 };
 Layer_default.include(popupMixin);

@@ -21,12 +21,15 @@ const content = `
     <p><a href="https://www.google.com">Google</a></p>
     <p><button type="button" class="close">Close</button></p>
 `;
-marker.attachPopup({
+const markp = marker.attachPopup({
     clearance: { width: 10, height: 10 },
     closeElement: 'button.close',
     content: content,
     styles: { maxWidth: '200px', textAlign: 'center', padding: '10px 20px' },
     theme: 'default'
+});
+markp.on('open', () => {
+    console.log('Marker Popup opened');
 });
 
 
@@ -51,6 +54,9 @@ popup.clearance = [20, 40];
 popup.closeElement = closeButton;
 popup.theme = 'default';
 popup.attachTo(marker2);
+popup.on('open', () => {
+    console.log('Popup opened');
+});
 
 
 const mapPopup = G.popup({
@@ -59,7 +65,11 @@ const mapPopup = G.popup({
     theme: 'default'
 });
 mapPopup.setCloseElement('.close');
-map.attachPopup(mapPopup, 'clickon');
+const mp = map.attachPopup(mapPopup, 'clickon');
+console.log('mp: ', mp);
+mp.on('open', () => {
+    console.log('Map Popup opened');
+});
 
 const closePopupBtn = document.createElement('button');
 closePopupBtn.textContent = 'Close Map Popup';
