@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0 (August 28, 2024)
+
+- Added `open` event for the popup.
+- Return the popup object when using `attachPopup`.
+
 ## 0.12.0 (August 23, 2024)
 
 - Added `closeAllPopups()` method to close all open popups.
