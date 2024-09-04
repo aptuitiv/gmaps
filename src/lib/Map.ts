@@ -310,37 +310,6 @@ export class Map extends Evented {
     }
 
     /**
-     * Get the map type control object
-     *
-     * @returns {MapTypeControl}
-     */
-    get mapTypeControl(): MapTypeControl {
-        return this.#mapTypeControl;
-    }
-
-    /**
-     * Set the map type control object, or whether to display the map type control
-     *
-     * @param {boolean|MapTypeControl} value The map type control option
-     */
-    set mapTypeControl(value: boolean | MapTypeControl) {
-        if (isBoolean(value)) {
-            this.#mapTypeControl.enabled = value;
-        } else if (value instanceof MapTypeControl) {
-            this.#mapTypeControl = value;
-        }
-
-        if (this.#map) {
-            this.#mapTypeControl.toGoogle().then((mapTypeControlOptions) => {
-                this.#map.setOptions({
-                    mapTypeControl: this.#mapTypeControl.enabled,
-                    mapTypeControlOptions,
-                });
-            });
-        }
-    }
-
-    /**
      * Get the map type ID
      *
      * @returns {string}
