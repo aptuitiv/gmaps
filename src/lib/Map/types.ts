@@ -9,7 +9,14 @@ import { MapTypeIdValue } from '../constants';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
+    backgroundColor?: string;
     center?: LatLng;
+    clickableIcons?: boolean;
+    colorScheme?: string;
+    controlSize?: number;
+    disableDefaultUI?: boolean;
+    draggableCursor?: string;
+    draggingCursor?: string;
     mapId?: string;
     mapTypeControl?: boolean;
     mapTypeControlOptions?: google.maps.MapTypeControlOptions;
@@ -20,12 +27,37 @@ export type GMMapOptions = {
 };
 
 // The options that are passed to map() and setOptions()
+// Some of the options are part of the available google.maps.MapOptions:
+// https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions
 export type MapOptions = {
     // The Google Maps API key
     apiKey?: string;
+    // The background color of the map. This can be any valid CSS color value. The color will be visible
+    // when the tiiles have not yet loaded as the user pans. This option can only be set when the map is initialized.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.backgroundColor
+    backgroundColor?: string;
     // The center point for the map.
     // This is an alternate to setting the latitude and longitude separately.
     center?: LatLngValue;
+    // Whether the map icons are clickable or not. Defaults to true.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.clickableIcons
+    clickableIcons?: boolean;
+    // The initial Map color scheme. This option can only be set when the map is initialized.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.colorScheme
+    colorScheme?: string;
+    // The size in pixels of the controls on the map that are made by the Maps JavaScript API. This does not apply to custom controls.
+    // This can only be set when the map is initialized.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.controlSize
+    controlSize?: number;
+    // Enables or disables the default UI.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.disableDefaultUI
+    disableDefaultUI?: boolean;
+    // The name or url of the cursor to display when mousing over a draggable map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.draggableCursor
+    draggableCursor?: string;
+    // The name or url of the cursor to display when the map is being dragged.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.draggingCursor
+    draggingCursor?: string;
     // The latitude for the center point of the map
     lat?: number | string;
     latitude?: number | string;

@@ -237,6 +237,29 @@ export class Map extends Evented {
     }
 
     /**
+     * Get whether the default UI is disabled
+     *
+     * @returns {boolean}
+     */
+    get disableDefaultUI(): boolean {
+        return this.#options.disableDefaultUI ?? false;
+    }
+
+    /**
+     * Set whether the default UI is disabled
+     *
+     * @param {boolean} value Whether the default UI is disabled
+     */
+    set disableDefaultUI(value: boolean) {
+        if (isBoolean(value)) {
+            this.#options.disableDefaultUI = value;
+            if (this.#map) {
+                this.#map.setOptions({ disableDefaultUI: value });
+            }
+        }
+    }
+
+    /**
      * Get the latitude value for the center point
      *
      * @returns {number}
@@ -467,6 +490,26 @@ export class Map extends Evented {
     }
 
     /**
+     * Enable the default UI
+     *
+     * @returns {Map}
+     */
+    enableDefaultUI(): Map {
+        this.disableDefaultUI = false;
+        return this;
+    }
+
+    /**
+     * Disable the default UI
+     *
+     * @returns {Map}
+     */
+    doDisableDefaultUI(): Map {
+        this.disableDefaultUI = true;
+        return this;
+    }
+
+    /**
      * Show the map
      *
      * Alias to show()
@@ -569,8 +612,29 @@ export class Map extends Evented {
     #getMapOptions(): Promise<google.maps.MapOptions> {
         return new Promise((resolve) => {
             const mapOptions: google.maps.MapOptions = {};
-            // Options that can be set on the marker without any modification
-            const optionsToSet = ['mapId', 'mapTypeId', 'maxZoom', 'minZoom', 'zoom'];
+            // Boolean options that can be set on the map without any modification
+            const booleanOptions = ['clickableIcons', 'disableDefaultUI'];
+            booleanOptions.forEach((key) => {
+                if (isBoolean(this.#options[key])) {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+            // Number options that can be set on the map without any modification
+            const numberOptions = ['controlSize', 'maxZoom', 'minZoom', 'zoom'];
+            numberOptions.forEach((key) => {
+                if (isNumberOrNumberString(this.#options[key])) {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+            // String options that can be set on the map without any modification
+            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'mapId'];
+            stringOptions.forEach((key) => {
+                if (isStringWithValue(this.#options[key])) {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+            // Other options that can be set on the map without any modification
+            const optionsToSet = ['mapTypeId'];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     mapOptions[key] = this.#options[key];
@@ -977,12 +1041,19 @@ export class Map extends Evented {
             if (center.isValid()) {
                 this.#options.center = center;
             }
+            if (isBoolean(options.disableDefaultUI)) {
+                this.disableDefaultUI = options.disableDefaultUI;
+            }
             if (isStringWithValue(options.mapId)) {
                 // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
                 this.#options.mapId = options.mapId;
             }
             if (typeof options.mapTypeControl !== 'undefined') {
-                this.mapTypeControl = options.mapTypeControl;
+                if (isBoolean(options.mapTypeControl)) {
+                    this.#mapTypeControl.enabled = options.mapTypeControl;
+                } else if (options.mapTypeControl instanceof MapTypeControl) {
+                    this.#mapTypeControl = options.mapTypeControl;
+                }
             }
             if (options.mapTypeId) {
                 this.mapTypeId = options.mapTypeId;
@@ -998,6 +1069,32 @@ export class Map extends Evented {
             if (options.zoom) {
                 this.zoom = options.zoom;
             }
+
+            // Set options that don't correspond to a property on the map object.
+            const booleanOptions = ['clickableIcons'];
+            booleanOptions.forEach((key) => {
+                if (isBoolean(options[key])) {
+                    this.#options[key] = options[key];
+                }
+            });
+            const numberOptions = ['controlSize'];
+            numberOptions.forEach((key) => {
+                if (isNumberOrNumberString(options[key])) {
+                    this.#options[key] = options[key];
+                }
+            });
+            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor'];
+            stringOptions.forEach((key) => {
+                if (isStringWithValue(options[key])) {
+                    this.#options[key] = options[key];
+                }
+            });
+            const otherOptions = ['mapTypeId'];
+            otherOptions.forEach((key) => {
+                if (typeof options[key] !== 'undefined') {
+                    this.#options[key] = options[key];
+                }
+            });
 
             if (this.#map) {
                 this.#getMapOptions().then((mapOptions) => {
