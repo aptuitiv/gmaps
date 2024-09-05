@@ -4,6 +4,7 @@
 
 import { Libraries } from '@googlemaps/js-api-loader';
 import { LatLng, LatLngValue } from '../LatLng';
+import { FullscreenControl } from './FullscreenControl';
 import { MapTypeControl } from './MapTypeControl';
 import { MapTypeIdValue } from '../constants';
 
@@ -17,6 +18,8 @@ export type GMMapOptions = {
     disableDefaultUI?: boolean;
     draggableCursor?: string;
     draggingCursor?: string;
+    fullscreenControl?: boolean;
+    fullscreenControlOptions?: google.maps.FullscreenControlOptions;
     mapId?: string;
     mapTypeControl?: boolean;
     mapTypeControlOptions?: google.maps.MapTypeControlOptions;
@@ -58,6 +61,10 @@ export type MapOptions = {
     // The name or url of the cursor to display when the map is being dragged.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.draggingCursor
     draggingCursor?: string;
+    // The fullscreen control object to configure how the Fullscreen control displayed,
+    // or a boolean to disable/enable the Fullscreen control.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.fullscreenControl
+    fullscreenControl?: boolean | FullscreenControl;
     // The latitude for the center point of the map
     lat?: number | string;
     latitude?: number | string;
@@ -72,7 +79,7 @@ export type MapOptions = {
     // See https://developers.google.com/maps/documentation/get-map-id
     mapId?: string;
     // The map type control object to configure how the Map Type control displayed,
-    // or, false to disable the Map Type control.
+    // or a boolean to disable/enable the Map Type control.
     // https://developers.google.com/maps/documentation/javascript/controls
     mapTypeControl?: boolean | MapTypeControl;
     // The map type ID to use for the map.

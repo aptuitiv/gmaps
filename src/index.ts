@@ -17,6 +17,7 @@ export {
     AutocompleteSearchBoxOptions,
     AutocompleteSearchBoxValue,
 } from './lib/AutocompleteSearchBox';
+export { fullscreenControl, FullscreenControl, FullscreenControlOptions } from './lib/Map/FullscreenControl';
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
 export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
 export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';

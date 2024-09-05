@@ -56,13 +56,21 @@ const mapTypeControl = G.mapTypeControl({
 });
 // mapTypeControl.setMapTypeIds([G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN]);
 
+const fullscreenControl = G.fullscreenControl({
+    position: G.ControlPosition.RIGHT_BOTTOM,
+});
 const map1 = G.map('#map1', {
     center: [40.7128, -74.0060],
+    // fullscreenControl: fullscreenControl,
+    // fullscreenControl: false,
+    // mapTypeControl: false,
     mapTypeControl: mapTypeControl,
     maxZoom: 12,
     minZoom: 10,
 });
-map1.show();
+map1.show().then(() => {
+    console.log('Map 1 shown');
+});
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';
 customBtn.className = 'customButton';
@@ -153,6 +161,14 @@ autocomplete.init().then(() => {
 const autocompleteTypeReset = document.getElementById('autocompleteResetType');
 autocompleteTypeReset.addEventListener('click', () => {
     autocomplete.types = [];
+});
+const disableUI = document.getElementById('disableUI');
+disableUI.addEventListener('click', () => {
+    map1.disableDefaultUI = true;
+});
+const enableUI = document.getElementById('enableUI');
+enableUI.addEventListener('click', () => {
+    map1.disableDefaultUI = false;
 });
 
 

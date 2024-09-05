@@ -32,8 +32,9 @@ import {
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
 import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
-import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
+import { fullscreenControl, FullscreenControl } from './Map/FullscreenControl';
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
+import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
@@ -91,6 +92,14 @@ export class Map extends Evented {
      * @type {CustomControl[]}
      */
     #customControls: CustomControl[] = [];
+
+    /**
+     * Holds the fullscreen control object
+     *
+     * @private
+     * @type {FullscreenControl}
+     */
+    #fullscreenControl: FullscreenControl;
 
     /**
      * Holds the latitude portion of the center point for the map
@@ -194,6 +203,7 @@ export class Map extends Evented {
         this.#options.mapTypeId = MapTypeId.ROADMAP;
         this.#options.center = latLng(0, 0);
         this.#options.zoom = 6;
+        this.#fullscreenControl = fullscreenControl();
         this.#mapTypeControl = mapTypeControl();
 
         this.#selector = selector;
@@ -612,12 +622,15 @@ export class Map extends Evented {
 
             // Options that have to be converted to Google Maps objects
             mapOptions.center = this.#options.center.toGoogle();
+            mapOptions.fullscreenControl = this.#fullscreenControl.enabled;
             mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
 
             // Get async map options
             (async () => {
                 const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
                 mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                const fullscreenControlOptions = await this.#fullscreenControl.toGoogle();
+                mapOptions.fullscreenControlOptions = fullscreenControlOptions;
                 resolve(mapOptions);
             })();
         });
@@ -1012,6 +1025,13 @@ export class Map extends Evented {
             }
             if (isBoolean(options.disableDefaultUI)) {
                 this.disableDefaultUI = options.disableDefaultUI;
+            }
+            if (typeof options.fullscreenControl !== 'undefined') {
+                if (isBoolean(options.fullscreenControl)) {
+                    this.#fullscreenControl.enabled = options.fullscreenControl;
+                } else if (options.fullscreenControl instanceof FullscreenControl) {
+                    this.#fullscreenControl = options.fullscreenControl;
+                }
             }
             if (isStringWithValue(options.mapId)) {
                 // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
