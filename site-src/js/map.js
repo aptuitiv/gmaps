@@ -64,7 +64,7 @@ const map1 = G.map('#map1', {
     // fullscreenControl: fullscreenControl,
     fullscreenControl: false,
     // mapTypeControl: false,
-    mapTypeControl: mapTypeControl,
+    // mapTypeControl: mapTypeControl,
     maxZoom: 12,
     minZoom: 10,
 });
@@ -72,6 +72,8 @@ map1.show().then(() => {
     console.log('Map 1 shown');
     // map1.fullscreenControl = false;
     map1.fullscreenControl = fullscreenControl;
+    // map1.mapTypeControl = mapTypeControl;
+    // map1.mapTypeControl = false;
 });
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';
