@@ -222,3 +222,20 @@ export const MapTypeId = Object.freeze({
 
 // Type for the MapTypeId values
 export type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
+
+/**
+ * The rendering type of the map.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
+ */
+export const RenderingType = Object.freeze({
+    // 	Indicates that the map is a raster map.
+    RASTER: google.maps.RenderingType.RASTER,
+    // Indicates that it is unknown yet whether the map is vector or raster, because the map has not finished initializing yet.
+    UNINITIALIZED: google.maps.RenderingType.UNINITIALIZED,
+    // Indicates that the map is a vector map.
+    VECTOR: google.maps.RenderingType.VECTOR,
+});
+
+// Type for the RenderingType values
+export type RenderingTypeValue = (typeof RenderingType)[keyof typeof RenderingType];

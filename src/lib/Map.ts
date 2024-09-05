@@ -654,28 +654,35 @@ export class Map extends Evented {
         return new Promise((resolve) => {
             const mapOptions: google.maps.MapOptions = {};
             // Boolean options that can be set on the map without any modification
-            const booleanOptions = ['clickableIcons', 'disableDefaultUI'];
+            const booleanOptions = [
+                'clickableIcons',
+                'disableDefaultUI',
+                'headingInteractionEnabled',
+                'isFractionalZoomEnabled',
+                'keyboardShortcuts',
+                'noClear',
+            ];
             booleanOptions.forEach((key) => {
                 if (isBoolean(this.#options[key])) {
                     mapOptions[key] = this.#options[key];
                 }
             });
             // Number options that can be set on the map without any modification
-            const numberOptions = ['controlSize', 'maxZoom', 'minZoom', 'zoom'];
+            const numberOptions = ['controlSize', 'heading', 'maxZoom', 'minZoom', 'zoom'];
             numberOptions.forEach((key) => {
                 if (isNumberOrNumberString(this.#options[key])) {
                     mapOptions[key] = this.#options[key];
                 }
             });
             // String options that can be set on the map without any modification
-            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'mapId'];
+            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling', 'mapId'];
             stringOptions.forEach((key) => {
                 if (isStringWithValue(this.#options[key])) {
                     mapOptions[key] = this.#options[key];
                 }
             });
             // Other options that can be set on the map without any modification
-            const optionsToSet = ['mapTypeId'];
+            const optionsToSet = ['mapTypeId', 'renderingType'];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     mapOptions[key] = this.#options[key];
@@ -1123,26 +1130,32 @@ export class Map extends Evented {
                 this.zoom = options.zoom;
             }
 
-            // Set options that don't correspond to a property on the map object.
-            const booleanOptions = ['clickableIcons'];
+            // Set options that correspond to a property on the map object.
+            const booleanOptions = [
+                'clickableIcons',
+                'headingInteractionEnabled',
+                'isFractionalZoomEnabled',
+                'keyboardShortcuts',
+                'noClear',
+            ];
             booleanOptions.forEach((key) => {
                 if (isBoolean(options[key])) {
                     this.#options[key] = options[key];
                 }
             });
-            const numberOptions = ['controlSize'];
+            const numberOptions = ['controlSize', 'heading'];
             numberOptions.forEach((key) => {
                 if (isNumberOrNumberString(options[key])) {
                     this.#options[key] = options[key];
                 }
             });
-            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor'];
+            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling'];
             stringOptions.forEach((key) => {
                 if (isStringWithValue(options[key])) {
                     this.#options[key] = options[key];
                 }
             });
-            const otherOptions = ['mapTypeId'];
+            const otherOptions = ['mapTypeId', 'renderingType'];
             otherOptions.forEach((key) => {
                 if (typeof options[key] !== 'undefined') {
                     this.#options[key] = options[key];

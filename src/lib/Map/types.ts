@@ -6,7 +6,7 @@ import { Libraries } from '@googlemaps/js-api-loader';
 import { LatLng, LatLngValue } from '../LatLng';
 import { FullscreenControl } from './FullscreenControl';
 import { MapTypeControl } from './MapTypeControl';
-import { MapTypeIdValue } from '../constants';
+import { MapTypeIdValue, RenderingTypeValue } from '../constants';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -20,12 +20,19 @@ export type GMMapOptions = {
     draggingCursor?: string;
     fullscreenControl?: boolean;
     fullscreenControlOptions?: google.maps.FullscreenControlOptions;
+    gestureHandling?: string;
+    heading?: number;
+    headingInteractionEnabled?: boolean;
+    isFractionalZoomEnabled?: boolean;
+    keyboardShortcuts?: boolean;
     mapId?: string;
     mapTypeControl?: boolean;
     mapTypeControlOptions?: google.maps.MapTypeControlOptions;
     mapTypeId?: google.maps.MapTypeId | string;
     maxZoom?: number;
     minZoom?: number;
+    noClear?: boolean;
+    renderingType?: google.maps.RenderingType;
     zoom?: number;
 };
 
@@ -65,6 +72,21 @@ export type MapOptions = {
     // or a boolean to disable/enable the Fullscreen control.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.fullscreenControl
     fullscreenControl?: boolean | FullscreenControl;
+    // This controls how the API handles gestures on the map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.gestureHandling
+    gestureHandling?: string;
+    // Sets the heading for aerial imagery in degrees measured clockwise from cardinal direction North.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.heading
+    heading?: number;
+    // Whether the map should allow user control of the camera heading (rotation).
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.headingInteractionEnabled
+    headingInteractionEnabled?: boolean;
+    // Whether the map should allow fractional zoom levels.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.isFractionalZoomEnabled
+    isFractionalZoomEnabled?: boolean;
+    // Whether to allow the map to be controlled by the keyboard. By default, this is set to true.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.keyboardShortcuts
+    keyboardShortcuts?: boolean;
     // The latitude for the center point of the map
     lat?: number | string;
     latitude?: number | string;
@@ -93,6 +115,12 @@ export type MapOptions = {
     // If omitted, or set to null, the minimum zoom from the current map type is used instead.
     // Valid zoom values are numbers from zero up to the supported maximum zoom level.
     minZoom?: number;
+    // Whether to clear the contents of the map div. If true, then the map div contents will not be cleared.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.noClear
+    noClear?: boolean;
+    // The rendering type for the map. This sets if it should be a raster or vector map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.renderingType
+    renderingType?: RenderingTypeValue;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
