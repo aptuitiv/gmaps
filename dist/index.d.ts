@@ -286,6 +286,17 @@ declare const MapTypeId: Readonly<{
     TERRAIN: "terrain";
 }>;
 type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
+/**
+ * The rendering type of the map.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
+ */
+declare const RenderingType: Readonly<{
+    RASTER: google.maps.RenderingType.RASTER;
+    UNINITIALIZED: google.maps.RenderingType.UNINITIALIZED;
+    VECTOR: google.maps.RenderingType.VECTOR;
+}>;
+type RenderingTypeValue = (typeof RenderingType)[keyof typeof RenderingType];
 
 type LatLngLiteral = {
     lat?: number | string;
@@ -1830,6 +1841,11 @@ type MapOptions = {
     draggableCursor?: string;
     draggingCursor?: string;
     fullscreenControl?: boolean | FullscreenControl;
+    gestureHandling?: string;
+    heading?: number;
+    headingInteractionEnabled?: boolean;
+    isFractionalZoomEnabled?: boolean;
+    keyboardShortcuts?: boolean;
     lat?: number | string;
     latitude?: number | string;
     libraries?: Libraries;
@@ -1840,6 +1856,8 @@ type MapOptions = {
     mapTypeId?: MapTypeIdValue | string;
     maxZoom?: number;
     minZoom?: number;
+    noClear?: boolean;
+    renderingType?: RenderingTypeValue;
     version?: string;
     zoom?: number | string;
 };
@@ -1939,6 +1957,18 @@ declare class Map extends Evented {
      * @param {string|number} value The longitude value
      */
     set longitude(value: string | number);
+    /**
+     * Get the map type control object
+     *
+     * @returns {MapTypeControl}
+     */
+    get mapTypeControl(): MapTypeControl;
+    /**
+     * Set the map type control object, or whether to display the map type control
+     *
+     * @param {boolean|MapTypeControl} value The map type control option
+     */
+    set mapTypeControl(value: boolean | MapTypeControl);
     /**
      * Get the map type ID
      *
@@ -4844,4 +4874,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };

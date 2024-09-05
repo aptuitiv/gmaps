@@ -103,6 +103,7 @@ __export(src_exports, {
   Polyline: () => Polyline,
   PolylineCollection: () => PolylineCollection,
   Popup: () => Popup,
+  RenderingType: () => RenderingType,
   Size: () => Size,
   SvgSymbol: () => SvgSymbol,
   Tooltip: () => Tooltip,
@@ -456,6 +457,14 @@ var MapTypeId = Object.freeze({
    * vegetation.
    */
   TERRAIN: "terrain"
+});
+var RenderingType = Object.freeze({
+  // 	Indicates that the map is a raster map.
+  RASTER: google.maps.RenderingType.RASTER,
+  // Indicates that it is unknown yet whether the map is vector or raster, because the map has not finished initializing yet.
+  UNINITIALIZED: google.maps.RenderingType.UNINITIALIZED,
+  // Indicates that the map is a vector map.
+  VECTOR: google.maps.RenderingType.VECTOR
 });
 
 // src/lib/helpers.ts
@@ -4018,6 +4027,34 @@ var Map = class extends Evented {
     }
   }
   /**
+   * Get the map type control object
+   *
+   * @returns {MapTypeControl}
+   */
+  get mapTypeControl() {
+    return __privateGet(this, _mapTypeControl);
+  }
+  /**
+   * Set the map type control object, or whether to display the map type control
+   *
+   * @param {boolean|MapTypeControl} value The map type control option
+   */
+  set mapTypeControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _mapTypeControl).enabled = value;
+    } else if (value instanceof MapTypeControl) {
+      __privateSet(this, _mapTypeControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _mapTypeControl).toGoogle().then((mapTypeControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          mapTypeControl: __privateGet(this, _mapTypeControl).enabled,
+          mapTypeControlOptions
+        });
+      });
+    }
+  }
+  /**
    * Get the map type ID
    *
    * @returns {string}
@@ -4630,25 +4667,31 @@ var Map = class extends Evented {
       if (options.zoom) {
         this.zoom = options.zoom;
       }
-      const booleanOptions = ["clickableIcons"];
+      const booleanOptions = [
+        "clickableIcons",
+        "headingInteractionEnabled",
+        "isFractionalZoomEnabled",
+        "keyboardShortcuts",
+        "noClear"
+      ];
       booleanOptions.forEach((key) => {
         if (isBoolean(options[key])) {
           __privateGet(this, _options2)[key] = options[key];
         }
       });
-      const numberOptions = ["controlSize"];
+      const numberOptions = ["controlSize", "heading"];
       numberOptions.forEach((key) => {
         if (isNumberOrNumberString(options[key])) {
           __privateGet(this, _options2)[key] = options[key];
         }
       });
-      const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor"];
+      const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor", "gestureHandling"];
       stringOptions.forEach((key) => {
         if (isStringWithValue(options[key])) {
           __privateGet(this, _options2)[key] = options[key];
         }
       });
-      const otherOptions = ["mapTypeId"];
+      const otherOptions = ["mapTypeId", "renderingType"];
       otherOptions.forEach((key) => {
         if (typeof options[key] !== "undefined") {
           __privateGet(this, _options2)[key] = options[key];
@@ -4738,25 +4781,32 @@ _getMapOptions = new WeakSet();
 getMapOptions_fn = function() {
   return new Promise((resolve) => {
     const mapOptions = {};
-    const booleanOptions = ["clickableIcons", "disableDefaultUI"];
+    const booleanOptions = [
+      "clickableIcons",
+      "disableDefaultUI",
+      "headingInteractionEnabled",
+      "isFractionalZoomEnabled",
+      "keyboardShortcuts",
+      "noClear"
+    ];
     booleanOptions.forEach((key) => {
       if (isBoolean(__privateGet(this, _options2)[key])) {
         mapOptions[key] = __privateGet(this, _options2)[key];
       }
     });
-    const numberOptions = ["controlSize", "maxZoom", "minZoom", "zoom"];
+    const numberOptions = ["controlSize", "heading", "maxZoom", "minZoom", "zoom"];
     numberOptions.forEach((key) => {
       if (isNumberOrNumberString(__privateGet(this, _options2)[key])) {
         mapOptions[key] = __privateGet(this, _options2)[key];
       }
     });
-    const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor", "mapId"];
+    const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor", "gestureHandling", "mapId"];
     stringOptions.forEach((key) => {
       if (isStringWithValue(__privateGet(this, _options2)[key])) {
         mapOptions[key] = __privateGet(this, _options2)[key];
       }
     });
-    const optionsToSet = ["mapTypeId"];
+    const optionsToSet = ["mapTypeId", "renderingType"];
     optionsToSet.forEach((key) => {
       if (typeof __privateGet(this, _options2)[key] !== "undefined") {
         mapOptions[key] = __privateGet(this, _options2)[key];
@@ -10445,6 +10495,7 @@ Map.include(tooltipMixin);
   Polyline,
   PolylineCollection,
   Popup,
+  RenderingType,
   Size,
   SvgSymbol,
   Tooltip,
