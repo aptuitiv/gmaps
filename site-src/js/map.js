@@ -62,7 +62,7 @@ const fullscreenControl = G.fullscreenControl({
 const map1 = G.map('#map1', {
     center: [40.7128, -74.0060],
     // fullscreenControl: fullscreenControl,
-    // fullscreenControl: false,
+    fullscreenControl: false,
     // mapTypeControl: false,
     mapTypeControl: mapTypeControl,
     maxZoom: 12,
@@ -70,6 +70,8 @@ const map1 = G.map('#map1', {
 });
 map1.show().then(() => {
     console.log('Map 1 shown');
+    // map1.fullscreenControl = false;
+    map1.fullscreenControl = fullscreenControl;
 });
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';
@@ -172,17 +174,17 @@ enableUI.addEventListener('click', () => {
 });
 
 
-const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
-map2.show();
-map2.setMapTypeId(G.MapTypeId.SATELLITE);
+// const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
+// map2.show();
+// map2.setMapTypeId(G.MapTypeId.SATELLITE);
 
-const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
-map3.show();
-map3.mapTypeId = G.MapTypeId.HYBRID;
+// const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
+// map3.show();
+// map3.mapTypeId = G.MapTypeId.HYBRID;
 
-const map4Element = document.getElementById('map4');
-const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
-map4.show();
+// const map4Element = document.getElementById('map4');
+// const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
+// map4.show();
 
 function changeMapOptions() {
     map1.setOptions({ center: [36.224, -81.688], zoom: 8 });

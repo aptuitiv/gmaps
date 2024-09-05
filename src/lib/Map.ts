@@ -270,6 +270,37 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the fullscreen control object
+     *
+     * @returns {FullscreenControl}
+     */
+    get fullscreenControl(): FullscreenControl {
+        return this.#fullscreenControl;
+    }
+
+    /**
+     * Set the fullscreen control object, or whether to display the fullscreen control
+     *
+     * @param {boolean|FullscreenControl} value The fullscreen control option
+     */
+    set fullscreenControl(value: boolean | FullscreenControl) {
+        if (isBoolean(value)) {
+            this.#fullscreenControl.enabled = value;
+        } else if (value instanceof FullscreenControl) {
+            this.#fullscreenControl = value;
+        }
+
+        if (this.#map) {
+            this.#fullscreenControl.toGoogle().then((fullscreenControlOptions) => {
+                this.#map.setOptions({
+                    fullscreenControl: this.#fullscreenControl.enabled,
+                    fullscreenControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
      * Get the latitude value for the center point
      *
      * @returns {number}
@@ -749,8 +780,10 @@ export class Map extends Evented {
             loader()
                 .load()
                 .then(() => {
-                    this.#showMap(callback);
-                    resolve();
+                    this.#showMap().then(() => {
+                        callCallback(callback);
+                        resolve();
+                    });
                 })
                 .catch((err) => {
                     reject(err);
@@ -1120,13 +1153,19 @@ export class Map extends Evented {
         return new Promise((resolve) => {
             if (checkForGoogleMaps('Map', 'Map', false)) {
                 // The map library is loaded and this can be shown
-                this.#showMap(callback);
-                resolve(this);
+                this.#showMap().then(() => {
+                    // Call the callback function if necessary
+                    callCallback(callback);
+                    resolve(this);
+                });
             } else {
                 // Wait for the loader to dispatch it's "load" event
                 loader().once('load', () => {
-                    this.#showMap(callback);
-                    resolve(this);
+                    this.#showMap().then(() => {
+                        // Call the callback function if necessary
+                        callCallback(callback);
+                        resolve(this);
+                    });
                 });
             }
         });
@@ -1138,59 +1177,59 @@ export class Map extends Evented {
      * This also dispatches the "visible" and "map_loaded" events,
      * and calls the callback function.
      *
-     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
      */
-    #showMap(callback?: () => void) {
-        // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
-        if (!this.#isVisible && !this.#isGettingMapOptions) {
-            this.#isGettingMapOptions = true;
+    #showMap(): Promise<void> {
+        return new Promise((resolve) => {
+            // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
+            if (!this.#isVisible && !this.#isGettingMapOptions) {
+                this.#isGettingMapOptions = true;
 
-            // Get the DOM element to attach the map to
-            let element: HTMLElement = null;
-            if (typeof this.#selector === 'string') {
-                element = document.querySelector(this.#selector);
-            } else if (this.#selector instanceof HTMLElement) {
-                element = this.#selector;
-            }
-            if (element === null) {
-                throw new Error(
-                    'The map element could not be found. Make sure the map selector is correct and the element exists.'
-                );
-            }
-
-            // Get the map options
-            this.#getMapOptions().then((mapOptions) => {
-                this.#map = new google.maps.Map(element, mapOptions);
-                this.setEventGoogleObject(this.#map);
-
-                // Add any custom controls to the map
-                if (this.#customControls.length > 0) {
-                    this.#customControls.forEach((control) => {
-                        this.#map.controls[convertControlPosition(control.position)].push(control.element);
-                    });
+                // Get the DOM element to attach the map to
+                let element: HTMLElement = null;
+                if (typeof this.#selector === 'string') {
+                    element = document.querySelector(this.#selector);
+                } else if (this.#selector instanceof HTMLElement) {
+                    element = this.#selector;
                 }
-                this.#customControls = [];
+                if (element === null) {
+                    throw new Error(
+                        'The map element could not be found. Make sure the map selector is correct and the element exists.'
+                    );
+                }
 
-                // Dispatch the event to say that the map is visible
-                this.dispatch('visible');
-                // Dispatch the event on the loader to say that the map is fully loaded.
-                // This is done because the map is loaded after the loader's "load" event is dispatched
-                // and some objects depend on the map being loaded before they can be set up.
-                loader().dispatch('map_loaded');
+                // Get the map options
+                this.#getMapOptions().then((mapOptions) => {
+                    this.#map = new google.maps.Map(element, mapOptions);
+                    this.setEventGoogleObject(this.#map);
 
-                // Set that the map is initialized
-                this.#isInitialized = true;
+                    // Add any custom controls to the map
+                    if (this.#customControls.length > 0) {
+                        this.#customControls.forEach((control) => {
+                            this.#map.controls[convertControlPosition(control.position)].push(control.element);
+                        });
+                    }
+                    this.#customControls = [];
 
-                // Set that the map is visible
-                this.#isVisible = true;
+                    // Dispatch the event to say that the map is visible
+                    this.dispatch('visible');
+                    // Dispatch the event on the loader to say that the map is fully loaded.
+                    // This is done because the map is loaded after the loader's "load" event is dispatched
+                    // and some objects depend on the map being loaded before they can be set up.
+                    loader().dispatch('map_loaded');
 
-                // Call the callback function if necessary
-                callCallback(callback);
-            });
-        } else {
-            // Call the callback function if necessary
-            callCallback(callback);
-        }
+                    // Set that the map is initialized
+                    this.#isInitialized = true;
+
+                    // Set that the map is visible
+                    this.#isVisible = true;
+
+                    resolve();
+                });
+            } else {
+                resolve();
+            }
+        });
     }
 
     /**
