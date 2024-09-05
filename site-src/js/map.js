@@ -69,6 +69,7 @@ const map1 = G.map('#map1', {
     minZoom: 10,
 });
 map1.show().then(() => {
+    console.log('map.mapTypeControl: ', map1.mapTypeControl);
     console.log('Map 1 shown');
     // map1.fullscreenControl = false;
     map1.fullscreenControl = fullscreenControl;
