@@ -292,9 +292,9 @@ type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
  * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
  */
 declare const RenderingType: Readonly<{
-    RASTER: google.maps.RenderingType.RASTER;
-    UNINITIALIZED: google.maps.RenderingType.UNINITIALIZED;
-    VECTOR: google.maps.RenderingType.VECTOR;
+    RASTER: "RASTER";
+    UNINITIALIZED: "UNINITIALIZED";
+    VECTOR: "VECTOR";
 }>;
 type RenderingTypeValue = (typeof RenderingType)[keyof typeof RenderingType];
 
@@ -1679,6 +1679,112 @@ type IconValue = Icon | string | IconOptions;
  */
 declare const icon: (url?: IconValue, options?: IconOptions) => Icon;
 
+type MapRestrictionOptions = {
+    enabled?: boolean;
+    latLngBounds?: LatLngBoundsValue;
+    strictBounds?: boolean;
+};
+/**
+ * MapRestriction class
+ */
+declare class MapRestriction {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {MapRestrictionOptions | LatLngBoundsValue | boolean} [options] Either the MapRestriction options just the LatLng bounds value.
+     */
+    constructor(options?: MapRestrictionOptions | LatLngBoundsValue | boolean);
+    /**
+     * Get whether the MapRestriction object is enabled
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the MapRestriction object is enabled
+     *
+     * @param {boolean} value Whether the MapRestriction object is enabled
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the existing latitude/longitude bounds
+     *
+     * @returns {LatLngBounds | undefined}
+     */
+    get latLngBounds(): LatLngBounds;
+    /**
+     * Set the latitude/longitude bounds
+     *
+     * @param {LatLngBoundsValue} value The lat/lng bounds value
+     */
+    set latLngBounds(value: LatLngBoundsValue);
+    /**
+     * Get whether the bounds are strict
+     *
+     * @returns {boolean}
+     */
+    get strictBounds(): boolean;
+    /**
+     * Set whether the bounds are strict
+     *
+     * @param {boolean} value Whether the bounds are strict
+     */
+    set strictBounds(value: boolean);
+    /**
+     * Disable the map restriction
+     *
+     * @returns {MapRestriction}
+     */
+    disable(): MapRestriction;
+    /**
+     * Enable the map restriction
+     *
+     * @returns {MapRestriction}
+     */
+    enable(): MapRestriction;
+    /**
+     * Returns whether the MapRestriction object is enabled
+     *
+     * @returns {boolean}
+     */
+    isEnabled(): boolean;
+    /**
+     * Returns if the MapRestriction object is valid
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean;
+    /**
+     * Set the latitude/longitude bounds
+     *
+     * @param {LatLngBoundsValue} value The lat/lng bounds value
+     * @returns {MapRestriction}
+     */
+    setLatLngBounds(value: LatLngBoundsValue): MapRestriction;
+    /**
+     * Set whether the bounds are strict
+     *
+     * @param {boolean} value Whether the bounds are strict
+     * @returns {MapRestriction}
+     */
+    setStrictBounds(value: boolean): MapRestriction;
+    /**
+     * Get the MapRestriction Google Maps object
+     *
+     * @returns {Promise<google.maps.MapRestriction>}
+     */
+    toGoogle(): Promise<google.maps.MapRestriction>;
+}
+type MapRestrictionValue = MapRestrictionOptions | LatLngBoundsValue | MapRestriction | boolean;
+/**
+ * Helper function to set up the MapRestriction object
+ *
+ * @param {MapRestrictionValue} options The MapRestriction options, a LatLngBounds value, or a MapRestriction object.
+ * @returns {MapRestriction}
+ */
+declare const mapRestriction: (options?: MapRestrictionValue) => MapRestriction;
+
 type MapTypeControlOptions = {
     mapTypeIds?: MapTypeIdValue[];
     position?: ControlPositionValue;
@@ -1858,6 +1964,7 @@ type MapOptions = {
     minZoom?: number;
     noClear?: boolean;
     renderingType?: RenderingTypeValue;
+    restriction?: MapRestrictionValue;
     version?: string;
     zoom?: number | string;
 };
@@ -2005,6 +2112,18 @@ declare class Map extends Evented {
      * @param {null|number} value The minimum zoom level
      */
     set minZoom(value: null | number);
+    /**
+     * Get the MapRestriction object if it's been set
+     *
+     * @returns {MapRestriction|undefined}
+     */
+    get restriction(): MapRestriction | undefined;
+    /**
+     * Set the MapRestriction value
+     *
+     * @param {MapRestrictionValue} value The MapRestriction value
+     */
+    set restriction(value: MapRestrictionValue);
     /**
      * Get the zoom level for the map
      *
@@ -4874,4 +4993,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };

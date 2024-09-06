@@ -367,11 +367,11 @@ var MapTypeId = Object.freeze({
 });
 var RenderingType = Object.freeze({
   // 	Indicates that the map is a raster map.
-  RASTER: google.maps.RenderingType.RASTER,
+  RASTER: "RASTER",
   // Indicates that it is unknown yet whether the map is vector or raster, because the map has not finished initializing yet.
-  UNINITIALIZED: google.maps.RenderingType.UNINITIALIZED,
+  UNINITIALIZED: "UNINITIALIZED",
   // Indicates that the map is a vector map.
-  VECTOR: google.maps.RenderingType.VECTOR
+  VECTOR: "VECTOR"
 });
 
 // src/lib/helpers.ts
@@ -2111,15 +2111,15 @@ extendGoogle_fn = function(latLngObject) {
 };
 _extend = new WeakSet();
 extend_fn = function(latLngObject) {
-  __privateGet(this, _boundValues).push(latLngObject);
+  __privateGet(this, _boundValues).push(latLngObject.clone());
   if (__privateGet(this, _northEast) && __privateGet(this, _southWest)) {
     __privateGet(this, _northEast).latitude = Math.max(latLngObject.latitude, __privateGet(this, _northEast).latitude);
     __privateGet(this, _northEast).longitude = Math.max(latLngObject.longitude, __privateGet(this, _northEast).longitude);
     __privateGet(this, _southWest).latitude = Math.min(latLngObject.latitude, __privateGet(this, _southWest).latitude);
     __privateGet(this, _southWest).longitude = Math.min(latLngObject.longitude, __privateGet(this, _southWest).longitude);
   } else {
-    __privateSet(this, _northEast, latLngObject);
-    __privateSet(this, _southWest, latLngObject);
+    __privateSet(this, _northEast, latLngObject.clone());
+    __privateSet(this, _southWest, latLngObject.clone());
   }
 };
 _setupGoogleLatLngBounds = new WeakSet();
@@ -3337,8 +3337,202 @@ _isVisible = new WeakMap();
 _map = new WeakMap();
 var Layer_default = Layer;
 
+// src/lib/Map/MapRestriction.ts
+var _enabled2, _latLngBounds, _strictBounds2;
+var MapRestriction = class {
+  /**
+   * Class constructor
+   *
+   * @param {MapRestrictionOptions | LatLngBoundsValue | boolean} [options] Either the MapRestriction options just the LatLng bounds value.
+   */
+  constructor(options) {
+    /**
+     * Whether the MapRestriction object is enabled
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled2, true);
+    /**
+     * The latitude/longitude bounds that a user is restricted to.
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _latLngBounds, void 0);
+    /**
+     * If true, anything outside of the latLngBounds will be hidden when zooming. This can restrict how much the user can zoom out.
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _strictBounds2, false);
+    if (isBoolean(options)) {
+      this.enabled = options;
+    } else if (options instanceof LatLngBounds) {
+      this.latLngBounds = options;
+    } else if (isObject(options)) {
+      const opts = options;
+      if (typeof opts.enabled !== "undefined" || typeof opts.latLngBounds !== "undefined" || typeof opts.strictBounds !== "undefined") {
+        if (isBoolean(opts.enabled)) {
+          this.enabled = opts.enabled;
+        }
+        if (typeof opts.latLngBounds !== "undefined") {
+          this.latLngBounds = opts.latLngBounds;
+        }
+        if (isBoolean(opts.strictBounds)) {
+          this.strictBounds = opts.strictBounds;
+        }
+      } else {
+        this.latLngBounds = options;
+      }
+    } else if (Array.isArray(options)) {
+      this.latLngBounds = options;
+    }
+  }
+  /**
+   * Get whether the MapRestriction object is enabled
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled2);
+  }
+  /**
+   * Set whether the MapRestriction object is enabled
+   *
+   * @param {boolean} value Whether the MapRestriction object is enabled
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled2, value);
+    }
+  }
+  /**
+   * Get the existing latitude/longitude bounds
+   *
+   * @returns {LatLngBounds | undefined}
+   */
+  get latLngBounds() {
+    return __privateGet(this, _latLngBounds);
+  }
+  /**
+   * Set the latitude/longitude bounds
+   *
+   * @param {LatLngBoundsValue} value The lat/lng bounds value
+   */
+  set latLngBounds(value) {
+    __privateSet(this, _latLngBounds, latLngBounds(value));
+  }
+  /**
+   * Get whether the bounds are strict
+   *
+   * @returns {boolean}
+   */
+  get strictBounds() {
+    return __privateGet(this, _strictBounds2);
+  }
+  /**
+   * Set whether the bounds are strict
+   *
+   * @param {boolean} value Whether the bounds are strict
+   */
+  set strictBounds(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _strictBounds2, value);
+    }
+  }
+  /**
+   * Disable the map restriction
+   *
+   * @returns {MapRestriction}
+   */
+  disable() {
+    __privateSet(this, _enabled2, false);
+    return this;
+  }
+  /**
+   * Enable the map restriction
+   *
+   * @returns {MapRestriction}
+   */
+  enable() {
+    __privateSet(this, _enabled2, true);
+    return this;
+  }
+  /**
+   * Returns whether the MapRestriction object is enabled
+   *
+   * @returns {boolean}
+   */
+  isEnabled() {
+    return __privateGet(this, _enabled2);
+  }
+  /**
+   * Returns if the MapRestriction object is valid
+   *
+   * @returns {boolean}
+   */
+  isValid() {
+    let valid = false;
+    if (__privateGet(this, _latLngBounds)) {
+      const json = __privateGet(this, _latLngBounds).toJson();
+      if (json.east !== json.west && json.north !== json.south) {
+        valid = true;
+      } else {
+        console.error("The MapRestrictions latLngBounds value must have at least two different LatLng values.");
+      }
+    }
+    return valid;
+  }
+  /**
+   * Set the latitude/longitude bounds
+   *
+   * @param {LatLngBoundsValue} value The lat/lng bounds value
+   * @returns {MapRestriction}
+   */
+  setLatLngBounds(value) {
+    this.latLngBounds = value;
+    return this;
+  }
+  /**
+   * Set whether the bounds are strict
+   *
+   * @param {boolean} value Whether the bounds are strict
+   * @returns {MapRestriction}
+   */
+  setStrictBounds(value) {
+    this.strictBounds = value;
+    return this;
+  }
+  /**
+   * Get the MapRestriction Google Maps object
+   *
+   * @returns {Promise<google.maps.MapRestriction>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      __privateGet(this, _latLngBounds).toGoogle().then((bounds) => {
+        resolve({
+          latLngBounds: bounds,
+          strictBounds: __privateGet(this, _strictBounds2)
+        });
+      });
+    });
+  }
+};
+_enabled2 = new WeakMap();
+_latLngBounds = new WeakMap();
+_strictBounds2 = new WeakMap();
+var mapRestriction = (options) => {
+  if (options instanceof MapRestriction) {
+    return options;
+  }
+  return new MapRestriction(options);
+};
+
 // src/lib/Map/MapTypeControl.ts
-var _enabled2, _mapTypeIds, _position2, _style, _typeHybrid, _typeRoadmap, _typeSatellite, _typeTerrain;
+var _enabled3, _mapTypeIds, _position2, _style, _typeHybrid, _typeRoadmap, _typeSatellite, _typeTerrain;
 var MapTypeControl = class {
   /**
    * Class constructor
@@ -3352,7 +3546,7 @@ var MapTypeControl = class {
      * @private
      * @type {boolean}
      */
-    __privateAdd(this, _enabled2, true);
+    __privateAdd(this, _enabled3, true);
     /**
      * The map type ids to include in the control
      *
@@ -3410,7 +3604,7 @@ var MapTypeControl = class {
     __privateAdd(this, _typeTerrain, true);
     loader().on("load", () => {
       if (isBoolean(options)) {
-        __privateSet(this, _enabled2, options);
+        __privateSet(this, _enabled3, options);
       }
       if (!__privateGet(this, _mapTypeIds)) {
         __privateSet(this, _mapTypeIds, []);
@@ -3452,7 +3646,7 @@ var MapTypeControl = class {
    * @returns {boolean}
    */
   get enabled() {
-    return __privateGet(this, _enabled2);
+    return __privateGet(this, _enabled3);
   }
   /**
    * Set whether the Map Type control is enabled.
@@ -3461,7 +3655,7 @@ var MapTypeControl = class {
    */
   set enabled(value) {
     if (isBoolean(value)) {
-      __privateSet(this, _enabled2, value);
+      __privateSet(this, _enabled3, value);
     }
   }
   /**
@@ -3574,7 +3768,7 @@ var MapTypeControl = class {
    * @returns {MapTypeControl}
    */
   disable() {
-    __privateSet(this, _enabled2, false);
+    __privateSet(this, _enabled3, false);
     return this;
   }
   /**
@@ -3583,7 +3777,7 @@ var MapTypeControl = class {
    * @returns {MapTypeControl}
    */
   enable() {
-    __privateSet(this, _enabled2, true);
+    __privateSet(this, _enabled3, true);
     return this;
   }
   /**
@@ -3647,7 +3841,7 @@ var MapTypeControl = class {
     });
   }
 };
-_enabled2 = new WeakMap();
+_enabled3 = new WeakMap();
 _mapTypeIds = new WeakMap();
 _position2 = new WeakMap();
 _style = new WeakMap();
@@ -3663,7 +3857,7 @@ var mapTypeControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -3781,6 +3975,13 @@ var Map = class extends Evented {
      * @type {GMMapOptions}
      */
     __privateAdd(this, _options2, {});
+    /**
+     * Holds the map restriction object to restrict the map to a certain area
+     *
+     * @private
+     * @type {MapRestriction}
+     */
+    __privateAdd(this, _restriction, void 0);
     /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
@@ -4031,6 +4232,27 @@ var Map = class extends Evented {
       if (__privateGet(this, _map2)) {
         __privateGet(this, _map2).setOptions({ minZoom: value });
       }
+    }
+  }
+  /**
+   * Get the MapRestriction object if it's been set
+   *
+   * @returns {MapRestriction|undefined}
+   */
+  get restriction() {
+    return __privateGet(this, _restriction);
+  }
+  /**
+   * Set the MapRestriction value
+   *
+   * @param {MapRestrictionValue} value The MapRestriction value
+   */
+  set restriction(value) {
+    __privateSet(this, _restriction, mapRestriction(value));
+    if (__privateGet(this, _map2) && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
+      __privateGet(this, _restriction).toGoogle().then((restriction) => {
+        __privateGet(this, _map2).setOptions({ restriction });
+      });
     }
   }
   /**
@@ -4571,6 +4793,9 @@ var Map = class extends Evented {
       if (typeof options.minZoom !== "undefined") {
         this.minZoom = options.minZoom;
       }
+      if (typeof options.restriction !== "undefined") {
+        this.restriction = options.restriction;
+      }
       if (options.zoom) {
         this.zoom = options.zoom;
       }
@@ -4682,6 +4907,7 @@ _isVisible2 = new WeakMap();
 _map2 = new WeakMap();
 _mapTypeControl = new WeakMap();
 _options2 = new WeakMap();
+_restriction = new WeakMap();
 _selector = new WeakMap();
 _watchId = new WeakMap();
 _getMapOptions = new WeakSet();
@@ -4727,6 +4953,10 @@ getMapOptions_fn = function() {
       mapOptions.mapTypeControlOptions = mapTypeControlOptions;
       const fullscreenControlOptions = yield __privateGet(this, _fullscreenControl).toGoogle();
       mapOptions.fullscreenControlOptions = fullscreenControlOptions;
+      if (__privateGet(this, _restriction) && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
+        const restriction = yield __privateGet(this, _restriction).toGoogle();
+        mapOptions.restriction = restriction;
+      }
       resolve(mapOptions);
     }))();
   });
@@ -10394,6 +10624,7 @@ export {
   Layer_default as Layer,
   Loader,
   Map,
+  MapRestriction,
   MapTypeControl,
   MapTypeControlStyle,
   MapTypeId,
@@ -10440,6 +10671,7 @@ export {
   latLngBounds,
   loader,
   map,
+  mapRestriction,
   mapTypeControl,
   marker,
   markerCluster,
