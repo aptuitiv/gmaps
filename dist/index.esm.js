@@ -376,6 +376,7 @@ var RenderingType = Object.freeze({
 
 // src/lib/helpers.ts
 var isBoolean = (thing) => typeof thing === "boolean";
+var isDefined = (thing) => typeof thing !== "undefined";
 var isFunction = (thing) => typeof thing === "function";
 var isNull = (thing) => thing === null;
 var isNumber = (thing) => !Number.isNaN(thing) && typeof thing === "number" && thing !== Infinity;
@@ -3856,8 +3857,183 @@ var mapTypeControl = (options) => {
   return new MapTypeControl(options);
 };
 
+// src/lib/Map/MapStyle.ts
+var _elementType, _featureType, _styles;
+var MapStyle = class {
+  /**
+   * Class constructor
+   *
+   * @param {MapStyleOptions | Style | Style[]} [options] Either the MapStyle options, a single style, or an array of styles
+   */
+  constructor(options) {
+    /**
+     * he element type to which the styles should be applied to. If not set then the styles are applied to all elements.
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _elementType, "all");
+    /**
+     * The feature type to which the styles should be applied to. If not set then the styles are applied to all features.
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _featureType, "all");
+    /**
+     * The styles to apply to the map
+     *
+     * @private
+     * @type {Style[]}
+     */
+    __privateAdd(this, _styles, []);
+    if (isObject(options)) {
+      if (isDefined(options.elementType) || isDefined(options.featureType) || isDefined(options.styles)) {
+        const opts = options;
+        if (opts.elementType) {
+          this.elementType = opts.elementType;
+        }
+        if (opts.featureType) {
+          this.featureType = opts.featureType;
+        }
+        if (opts.styles) {
+          __privateSet(this, _styles, opts.styles);
+        }
+      } else {
+        this.styles = options;
+      }
+    } else if (Array.isArray(options)) {
+      this.styles = options;
+    }
+  }
+  /**
+   * Get the element type to apply styles to
+   *
+   * @returns {string}
+   */
+  get elementType() {
+    return __privateGet(this, _elementType);
+  }
+  /**
+   * Set the element type to apply styles to
+   *
+   * @param {string} value The element type to apply values to
+   */
+  set elementType(value) {
+    if (isStringWithValue(value)) {
+      __privateSet(this, _elementType, value);
+    }
+  }
+  /**
+   * Get the feature type to apply styles to
+   *
+   * @returns {string}
+   */
+  get featureType() {
+    return __privateGet(this, _featureType);
+  }
+  /**
+   * Set the feature type to apply styles to
+   *
+   * @param {string} value The feature type to apply values to
+   */
+  set featureType(value) {
+    if (isStringWithValue(value)) {
+      __privateSet(this, _featureType, value);
+    }
+  }
+  /**
+   * Get the styles to apply to the map
+   *
+   * @returns {Style[]}
+   */
+  get styles() {
+    return __privateGet(this, _styles);
+  }
+  /**
+   * Set the styles to apply to the map
+   *
+   * @param {Style | Style[]} value The style or styles to apply to the map
+   */
+  set styles(value) {
+    if (Array.isArray(value)) {
+      __privateSet(this, _styles, value);
+    } else if (isObject(value)) {
+      __privateSet(this, _styles, [value]);
+    }
+  }
+  /**
+   * Add a style to the list of styles to apply
+   *
+   * Example:
+   * styles.addStyle('color', 'red');
+   * styles.addStyle('weight', 2);
+   *
+   * @param {string} property The style property.
+   * @param {string | number} value The style value.
+   * @returns {MapStyle}
+   */
+  addStyle(property, value) {
+    if (isStringWithValue(property) && isStringOrNumber(value)) {
+      __privateGet(this, _styles).push({ [property]: value });
+    }
+    return this;
+  }
+  /**
+   * Set the element type to apply styles to
+   *
+   * @param {string} value The element type to apply values to
+   * @returns {MapStyle}
+   */
+  setElementType(value) {
+    this.elementType = value;
+    return this;
+  }
+  /**
+   * Set the feature type to apply styles to
+   *
+   * @param {string} value The feature type to apply values to
+   * @returns {MapStyle}
+   */
+  setFeatureType(value) {
+    this.featureType = value;
+    return this;
+  }
+  /**
+   * Set the styles to apply to the map
+   *
+   * @param { Style|Style[]} value The style or styles to apply to the map
+   * @returns {MapStyle}
+   */
+  setStyles(value) {
+    this.styles = value;
+    return this;
+  }
+  /**
+   * Get the MapTypeStyle Google Maps object
+   *
+   * @returns {google.maps.MapTypeStyle}
+   */
+  toGoogle() {
+    return {
+      elementType: __privateGet(this, _elementType),
+      featureType: __privateGet(this, _featureType),
+      stylers: __privateGet(this, _styles)
+    };
+  }
+};
+_elementType = new WeakMap();
+_featureType = new WeakMap();
+_styles = new WeakMap();
+var mapStyle = (options) => {
+  if (options instanceof MapStyle) {
+    return options;
+  }
+  return new MapStyle(options);
+};
+
 // src/lib/Map.ts
-var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _selector, _styles2, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -3989,6 +4165,13 @@ var Map = class extends Evented {
      * @type {string|HTMLElement}
      */
     __privateAdd(this, _selector, void 0);
+    /**
+     * Holds the styles to apply to the map
+     *
+     * @private
+     * @type {MapStyle[]}
+     */
+    __privateAdd(this, _styles2, []);
     /**
      * Holds the watchId for the watchPosition() function
      *
@@ -4796,6 +4979,11 @@ var Map = class extends Evented {
       if (typeof options.restriction !== "undefined") {
         this.restriction = options.restriction;
       }
+      if (Array.isArray(options.styles)) {
+        __privateSet(this, _styles2, options.styles.map((style) => mapStyle(style)));
+      } else if (options.styles instanceof MapStyle) {
+        __privateSet(this, _styles2, [options.styles]);
+      }
       if (options.zoom) {
         this.zoom = options.zoom;
       }
@@ -4804,14 +4992,16 @@ var Map = class extends Evented {
         "headingInteractionEnabled",
         "isFractionalZoomEnabled",
         "keyboardShortcuts",
-        "noClear"
+        "noClear",
+        "scrollwheel",
+        "tiltInteractionEnabled"
       ];
       booleanOptions.forEach((key) => {
         if (isBoolean(options[key])) {
           __privateGet(this, _options2)[key] = options[key];
         }
       });
-      const numberOptions = ["controlSize", "heading"];
+      const numberOptions = ["controlSize", "heading", "tilt"];
       numberOptions.forEach((key) => {
         if (isNumberOrNumberString(options[key])) {
           __privateGet(this, _options2)[key] = options[key];
@@ -4909,6 +5099,7 @@ _mapTypeControl = new WeakMap();
 _options2 = new WeakMap();
 _restriction = new WeakMap();
 _selector = new WeakMap();
+_styles2 = new WeakMap();
 _watchId = new WeakMap();
 _getMapOptions = new WeakSet();
 getMapOptions_fn = function() {
@@ -4920,14 +5111,16 @@ getMapOptions_fn = function() {
       "headingInteractionEnabled",
       "isFractionalZoomEnabled",
       "keyboardShortcuts",
-      "noClear"
+      "noClear",
+      "scrollwheel",
+      "tiltInteractionEnabled"
     ];
     booleanOptions.forEach((key) => {
       if (isBoolean(__privateGet(this, _options2)[key])) {
         mapOptions[key] = __privateGet(this, _options2)[key];
       }
     });
-    const numberOptions = ["controlSize", "heading", "maxZoom", "minZoom", "zoom"];
+    const numberOptions = ["controlSize", "heading", "maxZoom", "minZoom", "tilt", "zoom"];
     numberOptions.forEach((key) => {
       if (isNumberOrNumberString(__privateGet(this, _options2)[key])) {
         mapOptions[key] = __privateGet(this, _options2)[key];
@@ -4956,6 +5149,9 @@ getMapOptions_fn = function() {
       if (__privateGet(this, _restriction) && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
         const restriction = yield __privateGet(this, _restriction).toGoogle();
         mapOptions.restriction = restriction;
+      }
+      if (__privateGet(this, _styles2).length > 0) {
+        mapOptions.styles = __privateGet(this, _styles2).map((style) => style.toGoogle());
       }
       resolve(mapOptions);
     }))();
@@ -7850,7 +8046,7 @@ var MarkerCollection = class {
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var _offset, _overlay, _overlayView, _position3, _styles, _setupGoogleOverlay, setupGoogleOverlay_fn;
+var _offset, _overlay, _overlayView, _position3, _styles3, _setupGoogleOverlay, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -7904,7 +8100,7 @@ var Overlay = class extends Layer_default {
      * @private
      * @type {object}
      */
-    __privateAdd(this, _styles, {});
+    __privateAdd(this, _styles3, {});
     __privateSet(this, _overlay, document.createElement("div"));
     __privateGet(this, _overlay).style.position = "absolute";
     this.setOffset([0, 0]);
@@ -7983,7 +8179,7 @@ var Overlay = class extends Layer_default {
    * @returns {object}
    */
   get styles() {
-    return __privateGet(this, _styles);
+    return __privateGet(this, _styles3);
   }
   /**
    * Set the styles for the overlay element
@@ -7992,7 +8188,7 @@ var Overlay = class extends Layer_default {
    */
   set styles(styles) {
     if (isObject(styles)) {
-      __privateSet(this, _styles, styles);
+      __privateSet(this, _styles3, styles);
       Object.keys(styles).forEach((key) => {
         __privateGet(this, _overlay).style[key] = styles[key];
       });
@@ -8253,7 +8449,7 @@ var Overlay = class extends Layer_default {
    */
   style(name, value) {
     if (isString(name) && isString(value)) {
-      __privateGet(this, _styles)[name] = value;
+      __privateGet(this, _styles3)[name] = value;
       __privateGet(this, _overlay).style[name] = value;
     }
     return this;
@@ -8311,7 +8507,7 @@ _offset = new WeakMap();
 _overlay = new WeakMap();
 _overlayView = new WeakMap();
 _position3 = new WeakMap();
-_styles = new WeakMap();
+_styles3 = new WeakMap();
 _setupGoogleOverlay = new WeakSet();
 setupGoogleOverlay_fn = function() {
   if (!isObject(__privateGet(this, _overlayView))) {
@@ -10625,6 +10821,7 @@ export {
   Loader,
   Map,
   MapRestriction,
+  MapStyle,
   MapTypeControl,
   MapTypeControlStyle,
   MapTypeId,
@@ -10654,6 +10851,7 @@ export {
   icon,
   infoWindow,
   isBoolean,
+  isDefined,
   isFunction,
   isNull,
   isNullOrUndefined,
@@ -10672,6 +10870,7 @@ export {
   loader,
   map,
   mapRestriction,
+  mapStyle,
   mapTypeControl,
   marker,
   markerCluster,

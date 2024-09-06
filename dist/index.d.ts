@@ -788,6 +788,13 @@ declare class Evented extends Base {
  */
 declare const isBoolean: (thing: any) => thing is boolean;
 /**
+ * Tests to see if the value is defined
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isDefined: <T>(thing: any) => thing is T;
+/**
  * Returns if the thing is a function
  *
  * @param {any} thing The thing to test
@@ -1936,6 +1943,110 @@ type MapTypeControlValue = MapTypeControlOptions | boolean | MapTypeControl;
  */
 declare const mapTypeControl: (options?: MapTypeControlValue) => MapTypeControl;
 
+type Style = {
+    [key: string]: string | number;
+};
+type MapStyleOptions = {
+    elementType?: string;
+    featureType?: string;
+    styles?: Style[];
+};
+/**
+ * MapStyle class
+ */
+declare class MapStyle {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {MapStyleOptions | Style | Style[]} [options] Either the MapStyle options, a single style, or an array of styles
+     */
+    constructor(options?: MapStyleOptions | Style | Style[]);
+    /**
+     * Get the element type to apply styles to
+     *
+     * @returns {string}
+     */
+    get elementType(): string;
+    /**
+     * Set the element type to apply styles to
+     *
+     * @param {string} value The element type to apply values to
+     */
+    set elementType(value: string);
+    /**
+     * Get the feature type to apply styles to
+     *
+     * @returns {string}
+     */
+    get featureType(): string;
+    /**
+     * Set the feature type to apply styles to
+     *
+     * @param {string} value The feature type to apply values to
+     */
+    set featureType(value: string);
+    /**
+     * Get the styles to apply to the map
+     *
+     * @returns {Style[]}
+     */
+    get styles(): Style[];
+    /**
+     * Set the styles to apply to the map
+     *
+     * @param {Style | Style[]} value The style or styles to apply to the map
+     */
+    set styles(value: Style | Style[]);
+    /**
+     * Add a style to the list of styles to apply
+     *
+     * Example:
+     * styles.addStyle('color', 'red');
+     * styles.addStyle('weight', 2);
+     *
+     * @param {string} property The style property.
+     * @param {string | number} value The style value.
+     * @returns {MapStyle}
+     */
+    addStyle(property: string, value: string | number): MapStyle;
+    /**
+     * Set the element type to apply styles to
+     *
+     * @param {string} value The element type to apply values to
+     * @returns {MapStyle}
+     */
+    setElementType(value: string): MapStyle;
+    /**
+     * Set the feature type to apply styles to
+     *
+     * @param {string} value The feature type to apply values to
+     * @returns {MapStyle}
+     */
+    setFeatureType(value: string): MapStyle;
+    /**
+     * Set the styles to apply to the map
+     *
+     * @param { Style|Style[]} value The style or styles to apply to the map
+     * @returns {MapStyle}
+     */
+    setStyles(value: Style | Style[]): MapStyle;
+    /**
+     * Get the MapTypeStyle Google Maps object
+     *
+     * @returns {google.maps.MapTypeStyle}
+     */
+    toGoogle(): google.maps.MapTypeStyle;
+}
+type MapStyleValue = MapStyleOptions | Style | Style[] | MapStyle;
+/**
+ * Helper function to set up the MapStyle object
+ *
+ * @param {MapStyleValue} options The MapStyle options, a single style object, an array of styles, or a MapStyle object.
+ * @returns {MapStyle}
+ */
+declare const mapStyle: (options?: MapStyleValue) => MapStyle;
+
 type MapOptions = {
     apiKey?: string;
     backgroundColor?: string;
@@ -1965,6 +2076,10 @@ type MapOptions = {
     noClear?: boolean;
     renderingType?: RenderingTypeValue;
     restriction?: MapRestrictionValue;
+    scrollwheel?: boolean;
+    styles?: MapStyleValue;
+    tilt?: number;
+    tiltInteractionEnabled?: boolean;
     version?: string;
     zoom?: number | string;
 };
@@ -4993,4 +5108,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
