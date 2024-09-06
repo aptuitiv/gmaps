@@ -230,11 +230,11 @@ export type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
  */
 export const RenderingType = Object.freeze({
     // 	Indicates that the map is a raster map.
-    RASTER: google.maps.RenderingType.RASTER,
+    RASTER: 'RASTER',
     // Indicates that it is unknown yet whether the map is vector or raster, because the map has not finished initializing yet.
-    UNINITIALIZED: google.maps.RenderingType.UNINITIALIZED,
+    UNINITIALIZED: 'UNINITIALIZED',
     // Indicates that the map is a vector map.
-    VECTOR: google.maps.RenderingType.VECTOR,
+    VECTOR: 'VECTOR',
 });
 
 // Type for the RenderingType values
