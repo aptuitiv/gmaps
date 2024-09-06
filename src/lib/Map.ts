@@ -35,6 +35,7 @@ import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Eve
 import { fullscreenControl, FullscreenControl } from './Map/FullscreenControl';
 import { mapRestriction, MapRestriction, MapRestrictionValue } from './Map/MapRestriction';
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
+import { mapStyle, MapStyle } from './Map/MapStyle';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
 
 // Based on google.maps.MapTypeId
@@ -189,6 +190,14 @@ export class Map extends Evented {
      * @type {string|HTMLElement}
      */
     #selector: string | HTMLElement;
+
+    /**
+     * Holds the styles to apply to the map
+     *
+     * @private
+     * @type {MapStyle[]}
+     */
+    #styles?: MapStyle[] = [];
 
     /**
      * Holds the watchId for the watchPosition() function
@@ -738,6 +747,9 @@ export class Map extends Evented {
                     const restriction = await this.#restriction.toGoogle();
                     mapOptions.restriction = restriction;
                 }
+                if (this.#styles.length > 0) {
+                    mapOptions.styles = this.#styles.map((style) => style.toGoogle());
+                }
                 resolve(mapOptions);
             })();
         });
@@ -1165,6 +1177,13 @@ export class Map extends Evented {
 
             if (typeof options.restriction !== 'undefined') {
                 this.restriction = options.restriction;
+            }
+
+            // Set the styles for the map
+            if (Array.isArray(options.styles)) {
+                this.#styles = options.styles.map((style) => mapStyle(style));
+            } else if (options.styles instanceof MapStyle) {
+                this.#styles = [options.styles];
             }
 
             // Set the zoom level for the map

@@ -26,6 +26,7 @@ import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
 import { loader, Loader } from './lib/Loader';
 import { map, Map } from './lib/Map';
 import { mapRestriction, MapRestriction } from './lib/Map/MapRestriction';
+import { mapStyle, MapStyle } from './lib/Map/MapStyle';
 import { mapTypeControl, MapTypeControl } from './lib/Map/MapTypeControl';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
@@ -63,6 +64,8 @@ type GlobalObj = {
     Map: typeof Map;
     mapRestriction: typeof mapRestriction;
     MapRestriction: typeof MapRestriction;
+    mapStyle: typeof mapStyle;
+    MapStyle: typeof MapStyle;
     mapTypeControl: typeof mapTypeControl;
     MapTypeControl: typeof MapTypeControl;
     marker: typeof marker;
@@ -115,6 +118,8 @@ const G: GlobalObj = {
     Map,
     mapRestriction,
     MapRestriction,
+    mapStyle,
+    MapStyle,
     mapTypeControl,
     MapTypeControl,
     marker,

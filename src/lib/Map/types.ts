@@ -8,6 +8,7 @@ import { FullscreenControl } from './FullscreenControl';
 import { MapTypeControl } from './MapTypeControl';
 import { MapTypeIdValue, RenderingTypeValue } from '../constants';
 import { MapRestrictionValue } from './MapRestriction';
+import { MapStyleValue } from './MapStyle';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -36,6 +37,7 @@ export type GMMapOptions = {
     renderingType?: google.maps.RenderingType;
     restriction?: google.maps.MapRestriction;
     scrollwheel?: boolean;
+    styles?: google.maps.MapTypeStyle[];
     tilt?: number;
     tiltInteractionEnabled?: boolean;
     zoom?: number;
@@ -132,6 +134,9 @@ export type MapOptions = {
     // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
     scrollwheel?: boolean;
+    // The styles to apply to the map types.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.styles
+    styles?: MapStyleValue;
     // For vector maps, this sets the angle of incidence of the map.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.tilt
     tilt?: number;

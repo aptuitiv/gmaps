@@ -76,6 +76,13 @@ restriction.enabled = false;
 // restriction.extend({ lat: 40.712, lng: -74.227 });
 // restriction.extend({ lat: 40.713, lng: -74.227 });
 // restriction.extend({ lat: 50.774, lng: -84.125 });
+const styles = G.mapStyle({
+    featureType: "road.arterial",
+    elementType: "geometry",
+    styles: [
+        { color: "#4447E8" }
+    ]
+});
 const map1 = G.map('#map1', {
     center: [40.7128, -74.0060],
     // fullscreenControl: fullscreenControl,
@@ -88,7 +95,8 @@ const map1 = G.map('#map1', {
     //     [40.712, -74.227],
     //     [40.774, -74.125]
     // ],
-    restriction: restriction,
+    // restriction: restriction,
+    styles: styles
 });
 map1.show().then(() => {
     // console.log('Map 1 shown');

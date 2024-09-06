@@ -10,6 +10,14 @@
 export const isBoolean = (thing: any): thing is boolean => typeof thing === 'boolean';
 
 /**
+ * Tests to see if the value is defined
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+export const isDefined = <T>(thing: any): thing is T => typeof thing !== 'undefined';
+
+/**
  * Returns if the thing is a function
  *
  * @param {any} thing The thing to test
