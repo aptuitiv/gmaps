@@ -35,6 +35,9 @@ export type GMMapOptions = {
     noClear?: boolean;
     renderingType?: google.maps.RenderingType;
     restriction?: google.maps.MapRestriction;
+    scrollwheel?: boolean;
+    tilt?: number;
+    tiltInteractionEnabled?: boolean;
     zoom?: number;
 };
 
@@ -126,6 +129,15 @@ export type MapOptions = {
     // The boundry to restrict the map to. When set the user can only pan and zoom within this latitude/longitude bounds.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.restriction
     restriction?: MapRestrictionValue;
+    // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
+    scrollwheel?: boolean;
+    // For vector maps, this sets the angle of incidence of the map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.tilt
+    tilt?: number;
+    // Whether the map should allow user control of the camera tilt.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.tiltInteractionEnabled
+    tiltInteractionEnabled?: boolean;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;

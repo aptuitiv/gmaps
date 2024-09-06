@@ -693,6 +693,8 @@ export class Map extends Evented {
                 'isFractionalZoomEnabled',
                 'keyboardShortcuts',
                 'noClear',
+                'scrollwheel',
+                'tiltInteractionEnabled',
             ];
             booleanOptions.forEach((key) => {
                 if (isBoolean(this.#options[key])) {
@@ -700,7 +702,7 @@ export class Map extends Evented {
                 }
             });
             // Number options that can be set on the map without any modification
-            const numberOptions = ['controlSize', 'heading', 'maxZoom', 'minZoom', 'zoom'];
+            const numberOptions = ['controlSize', 'heading', 'maxZoom', 'minZoom', 'tilt', 'zoom'];
             numberOptions.forEach((key) => {
                 if (isNumberOrNumberString(this.#options[key])) {
                     mapOptions[key] = this.#options[key];
@@ -1177,13 +1179,15 @@ export class Map extends Evented {
                 'isFractionalZoomEnabled',
                 'keyboardShortcuts',
                 'noClear',
+                'scrollwheel',
+                'tiltInteractionEnabled',
             ];
             booleanOptions.forEach((key) => {
                 if (isBoolean(options[key])) {
                     this.#options[key] = options[key];
                 }
             });
-            const numberOptions = ['controlSize', 'heading'];
+            const numberOptions = ['controlSize', 'heading', 'tilt'];
             numberOptions.forEach((key) => {
                 if (isNumberOrNumberString(options[key])) {
                     this.#options[key] = options[key];
