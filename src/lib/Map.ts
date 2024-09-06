@@ -33,6 +33,7 @@ import {
 import { LatLng, latLng, LatLngValue } from './LatLng';
 import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { fullscreenControl, FullscreenControl } from './Map/FullscreenControl';
+import { mapRestriction, MapRestriction, MapRestrictionValue } from './Map/MapRestriction';
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
 
@@ -172,6 +173,14 @@ export class Map extends Evented {
      * @type {GMMapOptions}
      */
     #options: GMMapOptions = {};
+
+    /**
+     * Holds the map restriction object to restrict the map to a certain area
+     *
+     * @private
+     * @type {MapRestriction}
+     */
+    #restriction: MapRestriction;
 
     /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
@@ -458,6 +467,29 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the MapRestriction object if it's been set
+     *
+     * @returns {MapRestriction|undefined}
+     */
+    get restriction(): MapRestriction | undefined {
+        return this.#restriction;
+    }
+
+    /**
+     * Set the MapRestriction value
+     *
+     * @param {MapRestrictionValue} value The MapRestriction value
+     */
+    set restriction(value: MapRestrictionValue) {
+        this.#restriction = mapRestriction(value);
+        if (this.#map && this.#restriction.isValid() && this.#restriction.isEnabled()) {
+            this.#restriction.toGoogle().then((restriction) => {
+                this.#map.setOptions({ restriction });
+            });
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -700,6 +732,10 @@ export class Map extends Evented {
                 mapOptions.mapTypeControlOptions = mapTypeControlOptions;
                 const fullscreenControlOptions = await this.#fullscreenControl.toGoogle();
                 mapOptions.fullscreenControlOptions = fullscreenControlOptions;
+                if (this.#restriction && this.#restriction.isValid() && this.#restriction.isEnabled()) {
+                    const restriction = await this.#restriction.toGoogle();
+                    mapOptions.restriction = restriction;
+                }
                 resolve(mapOptions);
             })();
         });
@@ -1123,6 +1159,10 @@ export class Map extends Evented {
             }
             if (typeof options.minZoom !== 'undefined') {
                 this.minZoom = options.minZoom;
+            }
+
+            if (typeof options.restriction !== 'undefined') {
+                this.restriction = options.restriction;
             }
 
             // Set the zoom level for the map

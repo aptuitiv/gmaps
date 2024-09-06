@@ -25,6 +25,7 @@ export { latLngBounds, LatLngBounds, LatLngBoundsValue } from './lib/LatLngBound
 export { default as Layer } from './lib/Layer';
 export { loader, Loader, LoaderOptions } from './lib/Loader';
 export { map, Map, MapType } from './lib/Map';
+export { mapRestriction, MapRestriction, MapRestrictionOptions } from './lib/Map/MapRestriction';
 export { mapTypeControl, MapTypeControl, MapTypeControlOptions } from './lib/Map/MapTypeControl';
 export { LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './lib/Map/types';
 export { marker, Marker, MarkerLabel, MarkerOptions, MarkerValue } from './lib/Marker';

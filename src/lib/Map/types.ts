@@ -7,6 +7,7 @@ import { LatLng, LatLngValue } from '../LatLng';
 import { FullscreenControl } from './FullscreenControl';
 import { MapTypeControl } from './MapTypeControl';
 import { MapTypeIdValue, RenderingTypeValue } from '../constants';
+import { MapRestrictionValue } from './MapRestriction';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -33,6 +34,7 @@ export type GMMapOptions = {
     minZoom?: number;
     noClear?: boolean;
     renderingType?: google.maps.RenderingType;
+    restriction?: google.maps.MapRestriction;
     zoom?: number;
 };
 
@@ -121,6 +123,9 @@ export type MapOptions = {
     // The rendering type for the map. This sets if it should be a raster or vector map.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.renderingType
     renderingType?: RenderingTypeValue;
+    // The boundry to restrict the map to. When set the user can only pan and zoom within this latitude/longitude bounds.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.restriction
+    restriction?: MapRestrictionValue;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;

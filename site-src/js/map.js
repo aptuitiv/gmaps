@@ -59,22 +59,47 @@ const mapTypeControl = G.mapTypeControl({
 const fullscreenControl = G.fullscreenControl({
     position: G.ControlPosition.RIGHT_BOTTOM,
 });
+// const restriction = G.mapRestriction({
+//     latLngBounds: [[40.712, -74.227],
+//     [40.774, -74.125]],
+//     strictBounds: false,
+// });
+// const restriction = G.mapRestriction([[41.712, -74.227],
+// [41.774, -74.125]]
+// );
+const restriction = G.mapRestriction();
+// restriction.latLngBounds = [[43.712, -74.227], [43.774, -74.125]];
+restriction.latLngBounds = [{ lat: 40.712, lng: -74.227 }, { lat: 40.774, lng: -74.124 }];
+restriction.enabled = false;
+// const restriction = G.latLngBounds([[40.712, -74.227],
+// [40.774, -74.125]]);
+// restriction.extend({ lat: 40.712, lng: -74.227 });
+// restriction.extend({ lat: 40.713, lng: -74.227 });
+// restriction.extend({ lat: 50.774, lng: -84.125 });
 const map1 = G.map('#map1', {
     center: [40.7128, -74.0060],
     // fullscreenControl: fullscreenControl,
     fullscreenControl: false,
     // mapTypeControl: false,
     // mapTypeControl: mapTypeControl,
-    maxZoom: 12,
-    minZoom: 10,
+    // maxZoom: 12,
+    // minZoom: 10,
+    // restriction: [
+    //     [40.712, -74.227],
+    //     [40.774, -74.125]
+    // ],
+    restriction: restriction,
 });
 map1.show().then(() => {
-    console.log('map.mapTypeControl: ', map1.mapTypeControl);
-    console.log('Map 1 shown');
+    // console.log('Map 1 shown');
     // map1.fullscreenControl = false;
     map1.fullscreenControl = fullscreenControl;
     // map1.mapTypeControl = mapTypeControl;
     // map1.mapTypeControl = false;
+    // map1.restriction = [
+    //     [44.712, -72.227],
+    //     [43.774, -71.125]
+    // ];
 });
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';
