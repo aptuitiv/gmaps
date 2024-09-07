@@ -44,26 +44,22 @@ export class FullscreenControl {
      * @param {FullscreenControlOptions | boolean} [options] Either the FullscreenControl options or a boolean value to disable the control.
      */
     constructor(options?: FullscreenControlOptions | boolean) {
-        // The Google Maps library must be loaded first in order for the default values to set using
-        // Google Maps types.
-        loader().on('load', () => {
-            // Set the enabled/disabled state of the control if necessary
-            if (isBoolean(options)) {
-                this.#enabled = options;
-            }
+        // Set the enabled/disabled state of the control if necessary
+        if (isBoolean(options)) {
+            this.#enabled = options;
+        }
 
-            // If the position is not already set, then set the default value
-            if (!this.#position) {
-                this.#position = ControlPosition.INLINE_END_BLOCK_START;
-            }
+        // If the position is not already set, then set the default value
+        if (!this.#position) {
+            this.#position = ControlPosition.INLINE_END_BLOCK_START;
+        }
 
-            // If the options are set, then override the default values
-            if (isObject(options)) {
-                if (options.position) {
-                    this.setPosition(options.position);
-                }
+        // If the options are set, then override the default values
+        if (isObject(options)) {
+            if (options.position) {
+                this.setPosition(options.position);
             }
-        });
+        }
     }
 
     /**
