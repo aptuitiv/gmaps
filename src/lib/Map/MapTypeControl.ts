@@ -308,11 +308,10 @@ export class MapTypeControl {
     /**
      * Returns whether the Map Type control is using the map type id
      *
-     * @param mapTypeId The map type id to check
+     * @param {MapTypeIdValue} mapTypeId The map type id to check
      * @returns {boolean}
      */
     hasMapType(mapTypeId: MapTypeIdValue): boolean {
-        console.log('MapTypeIds: ', this.#mapTypeIds);
         return this.#mapTypeIds.includes(mapTypeId);
     }
 
