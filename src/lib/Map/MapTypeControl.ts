@@ -118,31 +118,19 @@ export class MapTypeControl {
             this.#enabled = options;
         }
 
-        // If the map type IDs are not already set, then set the default values based on the enabled types.
+        // Set the default map type values based on the enabled types.
         // This allows the developer to configure the types to show on the map before the map is loaded.
-        if (!this.#mapTypeIds) {
-            this.#mapTypeIds = [];
-            if (this.#typeHybrid) {
-                this.#mapTypeIds.push(MapTypeId.HYBRID);
-            }
-            if (this.#typeRoadmap) {
-                this.#mapTypeIds.push(MapTypeId.ROADMAP);
-            }
-            if (this.#typeSatellite) {
-                this.#mapTypeIds.push(MapTypeId.SATELLITE);
-            }
-            if (this.#typeTerrain) {
-                this.#mapTypeIds.push(MapTypeId.TERRAIN);
-            }
-        }
-        // If the position is not already set, then set the default value
-        if (!this.#position) {
-            this.#position = ControlPosition.BLOCK_START_INLINE_START;
-        }
-        // If the style is not already set, then set the default value
-        if (!this.#style) {
-            this.#style = MapTypeControlStyle.DEFAULT;
-        }
+        this.#mapTypeIds = [];
+        this.#mapTypeIds.push(MapTypeId.HYBRID);
+        this.#mapTypeIds.push(MapTypeId.ROADMAP);
+        this.#mapTypeIds.push(MapTypeId.SATELLITE);
+        this.#mapTypeIds.push(MapTypeId.TERRAIN);
+
+        // Set the default position
+        this.#position = ControlPosition.BLOCK_START_INLINE_START;
+
+        // Set the default style
+        this.#style = MapTypeControlStyle.DEFAULT;
 
         // If the options are set, then override the default values
         if (isObject(options)) {

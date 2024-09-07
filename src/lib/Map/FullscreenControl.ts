@@ -51,10 +51,8 @@ export class FullscreenControl {
             this.#enabled = options;
         }
 
-        // If the position is not already set, then set the default value
-        if (!this.#position) {
-            this.#position = ControlPosition.INLINE_END_BLOCK_START;
-        }
+        // Set the default position
+        this.#position = ControlPosition.INLINE_END_BLOCK_START;
 
         // If the options are set, then override the default values
         if (isObject(options)) {
