@@ -20,6 +20,8 @@ import {
 } from '../constants';
 
 export type MapTypeControlOptions = {
+    // Whether the MapTypeControl object is enabled
+    enabled?: boolean;
     // IDs of map types to show in the control.
     // Default: [ROADMAP, SATELLITE, HYBRID, TERRAIN]
     mapTypeIds?: MapTypeIdValue[];
@@ -144,6 +146,9 @@ export class MapTypeControl {
 
         // If the options are set, then override the default values
         if (isObject(options)) {
+            if (isBoolean(options.enabled)) {
+                this.#enabled = options.enabled;
+            }
             if (options.mapTypeIds) {
                 this.setMapTypeIds(options.mapTypeIds);
             }

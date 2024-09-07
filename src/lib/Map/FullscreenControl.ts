@@ -11,6 +11,8 @@ import { isBoolean, isObject } from '../helpers';
 import { convertControlPosition, ControlPosition, ControlPositionValue } from '../constants';
 
 export type FullscreenControlOptions = {
+    // Whether the FullscreenControl object is enabled
+    enabled?: boolean;
     // The initial display position of the control.
     // Default: ControlPosition.INLINE_END_BLOCK_START
     position?: ControlPositionValue;
@@ -56,6 +58,9 @@ export class FullscreenControl {
 
         // If the options are set, then override the default values
         if (isObject(options)) {
+            if (isBoolean(options.enabled)) {
+                this.#enabled = options.enabled;
+            }
             if (options.position) {
                 this.setPosition(options.position);
             }
