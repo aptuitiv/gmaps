@@ -15,7 +15,7 @@
 
 /* global google, HTMLElement */
 
-import { convertControlPosition, ControlPositionValue, MapTypeId } from './constants';
+import { convertControlPosition, ControlPositionValue, MapTypeId, MapTypeIdValue } from './constants';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
@@ -725,7 +725,7 @@ export class Map extends Evented {
                 }
             });
             // Other options that can be set on the map without any modification
-            const optionsToSet = ['mapTypeId', 'renderingType'];
+            const optionsToSet = ['renderingType'];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     mapOptions[key] = this.#options[key];
@@ -733,6 +733,26 @@ export class Map extends Evented {
             });
 
             // Options that have to be converted to Google Maps objects
+            // If the mapTypeId is set then make sure that it's one of the map types supported
+            // in the MapTypeControl object
+            if (isStringWithValue(this.#options.mapTypeId)) {
+                console.log(
+                    'map type is valid: ',
+                    this.#mapTypeControl.hasMapType(this.#options.mapTypeId as MapTypeIdValue),
+                    this.#options.mapTypeId
+                );
+                if (this.#mapTypeControl.hasMapType(this.#options.mapTypeId as MapTypeIdValue)) {
+                    mapOptions.mapTypeId = this.#options.mapTypeId;
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        'The selected mapTypeId is not one of the allowed types set for the MapType Control.',
+                        this.#options.mapTypeId
+                    );
+                }
+            }
+
+            // Options that have to be converted to Google Maps objects but are not async
             mapOptions.center = this.#options.center.toGoogle();
             mapOptions.fullscreenControl = this.#fullscreenControl.enabled;
             mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
