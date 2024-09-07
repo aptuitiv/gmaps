@@ -732,7 +732,6 @@ export class Map extends Evented {
                 }
             });
 
-            // Options that have to be converted to Google Maps objects
             // If the mapTypeId is set then make sure that it's one of the map types supported
             // in the MapTypeControl object
             if (isStringWithValue(this.#options.mapTypeId)) {
@@ -754,19 +753,23 @@ export class Map extends Evented {
 
             // Options that have to be converted to Google Maps objects but are not async
             mapOptions.center = this.#options.center.toGoogle();
-            mapOptions.fullscreenControl = this.#fullscreenControl.enabled;
-            mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
 
             // Get async map options
             (async () => {
-                const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
-                mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                // Full screen control
+                mapOptions.fullscreenControl = this.#fullscreenControl.enabled;
                 const fullscreenControlOptions = await this.#fullscreenControl.toGoogle();
                 mapOptions.fullscreenControlOptions = fullscreenControlOptions;
+                // Map type control
+                mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
+                const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
+                mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                // Restrictions
                 if (this.#restriction && this.#restriction.isValid() && this.#restriction.isEnabled()) {
                     const restriction = await this.#restriction.toGoogle();
                     mapOptions.restriction = restriction;
                 }
+                // Map styles
                 if (this.#styles.length > 0) {
                     mapOptions.styles = this.#styles.map((style) => style.toGoogle());
                 }
