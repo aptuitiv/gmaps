@@ -47,7 +47,8 @@ const mapObject = {
 // mapObject.init();
 // mapObject.setupEvents();
 
-G.loader({ apiKey: apiKey, libraries: ['places'] }).load();
+G.loader({ apiKey: apiKey, libraries: ['places'] });
+// G.loader({ apiKey: apiKey, libraries: ['places'] }).load();
 
 const mapTypeControl = G.mapTypeControl({
     // mapTypeIds: [G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN],
@@ -76,6 +77,12 @@ restriction.enabled = false;
 // restriction.extend({ lat: 40.712, lng: -74.227 });
 // restriction.extend({ lat: 40.713, lng: -74.227 });
 // restriction.extend({ lat: 50.774, lng: -84.125 });
+
+const rotateControl = G.rotateControl({
+    enabled: false,
+    position: G.ControlPosition.LEFT_CENTER,
+});
+
 const styles = G.mapStyle({
     featureType: "road.arterial",
     elementType: "geometry",
@@ -88,7 +95,8 @@ const map1 = G.map('#map1', {
     // fullscreenControl: fullscreenControl,
     fullscreenControl: false,
     // mapTypeControl: false,
-    // mapTypeControl: mapTypeControl,
+    mapTypeControl: mapTypeControl,
+    mapTypeId: G.MapTypeId.SATELLITE,
     // maxZoom: 12,
     // minZoom: 10,
     // restriction: [
@@ -96,10 +104,11 @@ const map1 = G.map('#map1', {
     //     [40.774, -74.125]
     // ],
     // restriction: restriction,
+    // rotateControl: rotateControl,
     styles: styles
 });
-map1.show().then(() => {
-    // console.log('Map 1 shown');
+map1.load().then(() => {
+    console.log('Map 1 shown');
     // map1.fullscreenControl = false;
     map1.fullscreenControl = fullscreenControl;
     // map1.mapTypeControl = mapTypeControl;
@@ -108,6 +117,9 @@ map1.show().then(() => {
     //     [44.712, -72.227],
     //     [43.774, -71.125]
     // ];
+    map1.rotateControl = G.rotateControl({
+        position: G.ControlPosition.LEFT_BOTTOM,
+    });
 });
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';
@@ -120,22 +132,22 @@ customBtn.addEventListener('click', () => {
     console.log('Custom Control clicked');
 });
 map1.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
-map1.on('click', (e) => {
-    console.log(`The event type is ${e.type}`);
+// map1.on('click', (e) => {
+//     console.log(`The event type is ${e.type}`);
 
-    map1.setCenter(36.224, 2.3522);
+//     map1.setCenter(36.224, 2.3522);
 
-    console.log('map 1 control: ', map1.mapTypeControl);
+//     console.log('map 1 control: ', map1.mapTypeControl);
 
-    if (e.latLng) {
-        console.log(`You clicked at ${e.latLng.lat}/${e.latLng.lng}`);
-    }
+//     if (e.latLng) {
+//         console.log(`You clicked at ${e.latLng.lat}/${e.latLng.lng}`);
+//     }
 
-    // Stop the event from propogating to other elements on the page.
-    if (e.stop) {
-        e.stop();
-    }
-});
+//     // Stop the event from propogating to other elements on the page.
+//     if (e.stop) {
+//         e.stop();
+//     }
+// });
 
 // Set up places search for map 1
 // const input = document.getElementById('placesSearch');

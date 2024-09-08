@@ -18,16 +18,17 @@
 // the lowercase objects should be used (i.e. marker, polyline, etc.).
 import { autocompleteSearchBox, AutocompleteSearchBox } from './lib/AutocompleteSearchBox';
 import { ControlPosition, MapTypeControlStyle, MapTypeId } from './lib/constants';
-import { fullscreenControl, FullscreenControl } from './lib/Map/FullscreenControl';
 import { icon, Icon } from './lib/Icon';
 import { infoWindow, InfoWindow } from './lib/InfoWindow';
 import { latLng, LatLng } from './lib/LatLng';
 import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
 import { loader, Loader } from './lib/Loader';
 import { map, Map } from './lib/Map';
+import { fullscreenControl, FullscreenControl } from './lib/Map/FullscreenControl';
 import { mapRestriction, MapRestriction } from './lib/Map/MapRestriction';
 import { mapStyle, MapStyle } from './lib/Map/MapStyle';
 import { mapTypeControl, MapTypeControl } from './lib/Map/MapTypeControl';
+import { rotateControl, RotateControl } from './lib/Map/RotateControl';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
 import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
@@ -87,6 +88,8 @@ type GlobalObj = {
     popup: typeof popup;
     Popup: typeof Popup;
     closeAllPopups: typeof closeAllPopups;
+    rotateControl: typeof rotateControl;
+    RotateControl: typeof RotateControl;
     size: typeof size;
     Size: typeof Size;
     svgSymbol: typeof svgSymbol;
@@ -141,6 +144,8 @@ const G: GlobalObj = {
     popup,
     Popup,
     closeAllPopups,
+    rotateControl,
+    RotateControl,
     size,
     Size,
     svgSymbol,

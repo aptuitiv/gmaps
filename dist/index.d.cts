@@ -1357,80 +1357,6 @@ type AutocompleteSearchBoxValue = HTMLInputElement | string | AutocompleteSearch
  */
 declare const autocompleteSearchBox: (input?: AutocompleteSearchBoxValue, options?: AutocompleteSearchBoxOptions) => AutocompleteSearchBox;
 
-type FullscreenControlOptions = {
-    position?: ControlPositionValue;
-};
-/**
- * Fullscreen control class
- */
-declare class FullscreenControl {
-    #private;
-    /**
-     * Class constructor
-     *
-     * @param {FullscreenControlOptions | boolean} [options] Either the FullscreenControl options or a boolean value to disable the control.
-     */
-    constructor(options?: FullscreenControlOptions | boolean);
-    /**
-     * Get whether the Fullscreen control is enabled.
-     *
-     * @returns {boolean}
-     */
-    get enabled(): boolean;
-    /**
-     * Set whether the Fullscreen control is enabled.
-     *
-     * @param {boolean} value The enabled/disabled state
-     */
-    set enabled(value: boolean);
-    /**
-     * Get the map type control position
-     *
-     * @returns {ControlPosition}
-     */
-    get position(): ControlPositionValue;
-    /**
-     * Set the map type control position
-     *
-     * @param {ControlPosition} value The position of the control
-     */
-    set position(value: ControlPositionValue);
-    /**
-     * Disable the Fullscreen control
-     *
-     * @returns {FullscreenControl}
-     */
-    disable(): FullscreenControl;
-    /**
-     * Enable the Fullscreen control
-     *
-     * @returns {FullscreenControl}
-     */
-    enable(): FullscreenControl;
-    /**
-     * Set the position of the control
-     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
-     *
-     * @param {ControlPositionValue} position The position of the control
-     * @returns {FullscreenControl}
-     */
-    setPosition(position: ControlPositionValue): FullscreenControl;
-    /**
-     * Get the Fullscreen Control options Google Maps object
-     *
-     * @returns {Promise<google.maps.FullscreenControlOptions>}
-     */
-    toGoogle(): Promise<google.maps.FullscreenControlOptions>;
-}
-type FullscreenControlValue = FullscreenControlOptions | boolean | FullscreenControl;
-/**
- * Helper function to set up the FullscreenControl object
- *
- * @param {FullscreenControlValue} options The FullscreenControl options, a boolean value to disable the control, or a FullscreenControl object.
- * @returns {FullscreenControl}
- */
-declare const fullscreenControl: (options?: FullscreenControlValue) => FullscreenControl;
-
 type SizeObject = {
     height: number | string;
     width: number | string;
@@ -1686,6 +1612,81 @@ type IconValue = Icon | string | IconOptions;
  */
 declare const icon: (url?: IconValue, options?: IconOptions) => Icon;
 
+type FullscreenControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+};
+/**
+ * Fullscreen control class
+ */
+declare class FullscreenControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {FullscreenControlOptions | boolean} [options] Either the FullscreenControl options or a boolean value to disable the control.
+     */
+    constructor(options?: FullscreenControlOptions | boolean);
+    /**
+     * Get whether the Fullscreen control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Fullscreen control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the map type control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the map type control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Disable the Fullscreen control
+     *
+     * @returns {FullscreenControl}
+     */
+    disable(): FullscreenControl;
+    /**
+     * Enable the Fullscreen control
+     *
+     * @returns {FullscreenControl}
+     */
+    enable(): FullscreenControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {FullscreenControl}
+     */
+    setPosition(position: ControlPositionValue): FullscreenControl;
+    /**
+     * Get the Fullscreen Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.FullscreenControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.FullscreenControlOptions>;
+}
+type FullscreenControlValue = FullscreenControlOptions | boolean | FullscreenControl;
+/**
+ * Helper function to set up the FullscreenControl object
+ *
+ * @param {FullscreenControlValue} options The FullscreenControl options, a boolean value to disable the control, or a FullscreenControl object.
+ * @returns {FullscreenControl}
+ */
+declare const fullscreenControl: (options?: FullscreenControlValue) => FullscreenControl;
+
 type MapRestrictionOptions = {
     enabled?: boolean;
     latLngBounds?: LatLngBoundsValue;
@@ -1793,6 +1794,7 @@ type MapRestrictionValue = MapRestrictionOptions | LatLngBoundsValue | MapRestri
 declare const mapRestriction: (options?: MapRestrictionValue) => MapRestriction;
 
 type MapTypeControlOptions = {
+    enabled?: boolean;
     mapTypeIds?: MapTypeIdValue[];
     position?: ControlPositionValue;
     style?: MapTypeControlStyleValue;
@@ -1904,6 +1906,13 @@ declare class MapTypeControl {
      * @returns {MapTypeControl}
      */
     enable(): MapTypeControl;
+    /**
+     * Returns whether the Map Type control is using the map type id
+     *
+     * @param {MapTypeIdValue} mapTypeId The map type id to check
+     * @returns {boolean}
+     */
+    hasMapType(mapTypeId: MapTypeIdValue): boolean;
     /**
      * Set the map type ids to include in the control
      *
@@ -2047,6 +2056,81 @@ type MapStyleValue = MapStyleOptions | Style | Style[] | MapStyle;
  */
 declare const mapStyle: (options?: MapStyleValue) => MapStyle;
 
+type RotateControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+};
+/**
+ * Rotate control class
+ */
+declare class RotateControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {RotateControlOptions | boolean} [options] Either the RotateControl options or a boolean value to disable the control.
+     */
+    constructor(options?: RotateControlOptions | boolean);
+    /**
+     * Get whether the Rotate control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Rotate control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the map type control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the map type control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Disable the Rotate control
+     *
+     * @returns {RotateControl}
+     */
+    disable(): RotateControl;
+    /**
+     * Enable the Rotate control
+     *
+     * @returns {RotateControl}
+     */
+    enable(): RotateControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {RotateControl}
+     */
+    setPosition(position: ControlPositionValue): RotateControl;
+    /**
+     * Get the Rotate Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.RotateControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.RotateControlOptions>;
+}
+type RotateControlValue = RotateControlOptions | boolean | RotateControl;
+/**
+ * Helper function to set up the RotateControl object
+ *
+ * @param {RotateControlValue} options The RotateControl options, a boolean value to disable the control, or a RotateControl object.
+ * @returns {RotateControl}
+ */
+declare const rotateControl: (options?: RotateControlValue) => RotateControl;
+
 type MapOptions = {
     apiKey?: string;
     backgroundColor?: string;
@@ -2076,6 +2160,7 @@ type MapOptions = {
     noClear?: boolean;
     renderingType?: RenderingTypeValue;
     restriction?: MapRestrictionValue;
+    rotateControl?: RotateControlValue;
     scrollwheel?: boolean;
     styles?: MapStyleValue;
     tilt?: number;
@@ -2239,6 +2324,18 @@ declare class Map extends Evented {
      * @param {MapRestrictionValue} value The MapRestriction value
      */
     set restriction(value: MapRestrictionValue);
+    /**
+     * Get the rotate control object
+     *
+     * @returns {RotateControl}
+     */
+    get rotateControl(): RotateControl;
+    /**
+     * Set the rotate control object, or whether to display the rotate control
+     *
+     * @param {boolean|RotateControl} value The rotate control option
+     */
+    set rotateControl(value: boolean | RotateControl);
     /**
      * Get the zoom level for the map
      *
@@ -5108,4 +5205,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, size, svgSymbol, tooltip };

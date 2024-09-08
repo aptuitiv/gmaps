@@ -9,6 +9,7 @@ import { MapTypeControl } from './MapTypeControl';
 import { MapTypeIdValue, RenderingTypeValue } from '../constants';
 import { MapRestrictionValue } from './MapRestriction';
 import { MapStyleValue } from './MapStyle';
+import { RotateControlValue } from './RotateControl';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -36,6 +37,8 @@ export type GMMapOptions = {
     noClear?: boolean;
     renderingType?: google.maps.RenderingType;
     restriction?: google.maps.MapRestriction;
+    rotateControl?: boolean;
+    rotateControlOptions?: google.maps.RotateControlOptions;
     scrollwheel?: boolean;
     styles?: google.maps.MapTypeStyle[];
     tilt?: number;
@@ -131,6 +134,10 @@ export type MapOptions = {
     // The boundry to restrict the map to. When set the user can only pan and zoom within this latitude/longitude bounds.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.restriction
     restriction?: MapRestrictionValue;
+    // The Rotate control object to configure how the Rotate control displayed,
+    // or a boolean to disable/enable the Rotate control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    rotateControl?: RotateControlValue;
     // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
     scrollwheel?: boolean;

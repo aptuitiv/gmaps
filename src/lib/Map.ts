@@ -22,6 +22,7 @@ import {
     callCallback,
     checkForGoogleMaps,
     isBoolean,
+    isDefined,
     isFunction,
     isNull,
     isNumber,
@@ -37,6 +38,7 @@ import { mapRestriction, MapRestriction, MapRestrictionValue } from './Map/MapRe
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
 import { mapStyle, MapStyle } from './Map/MapStyle';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
+import { rotateControl, RotateControl } from './Map/RotateControl';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
@@ -184,6 +186,14 @@ export class Map extends Evented {
     #restriction: MapRestriction;
 
     /**
+     * Holds the rotate control object
+     *
+     * @private
+     * @type {RotateControl}
+     */
+    #rotateControl: RotateControl;
+
+    /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
      * @private
@@ -223,6 +233,7 @@ export class Map extends Evented {
         this.#options.zoom = 6;
         this.#fullscreenControl = fullscreenControl();
         this.#mapTypeControl = mapTypeControl();
+        this.#rotateControl = rotateControl();
 
         this.#selector = selector;
         if (isObject(options)) {
@@ -499,6 +510,37 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the rotate control object
+     *
+     * @returns {RotateControl}
+     */
+    get rotateControl(): RotateControl {
+        return this.#rotateControl;
+    }
+
+    /**
+     * Set the rotate control object, or whether to display the rotate control
+     *
+     * @param {boolean|RotateControl} value The rotate control option
+     */
+    set rotateControl(value: boolean | RotateControl) {
+        if (isBoolean(value)) {
+            this.#rotateControl.enabled = value;
+        } else if (value instanceof RotateControl) {
+            this.#rotateControl = value;
+        }
+
+        if (this.#map) {
+            this.#rotateControl.toGoogle().then((rotateControlOptions) => {
+                this.#map.setOptions({
+                    rotateControl: this.#rotateControl.enabled,
+                    rotateControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -764,6 +806,10 @@ export class Map extends Evented {
                 mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
                 const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
                 mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                // Rotate control
+                mapOptions.rotateControl = this.#rotateControl.enabled;
+                const rotateControlOptions = await this.#rotateControl.toGoogle();
+                mapOptions.rotateControlOptions = rotateControlOptions;
                 // Restrictions
                 if (this.#restriction && this.#restriction.isValid() && this.#restriction.isEnabled()) {
                     const restriction = await this.#restriction.toGoogle();
@@ -1200,6 +1246,14 @@ export class Map extends Evented {
 
             if (typeof options.restriction !== 'undefined') {
                 this.restriction = options.restriction;
+            }
+
+            if (isDefined(options.rotateControl)) {
+                if (isBoolean(options.rotateControl)) {
+                    this.#rotateControl.enabled = options.rotateControl;
+                } else if (options.rotateControl instanceof RotateControl) {
+                    this.#rotateControl = options.rotateControl;
+                }
             }
 
             // Set the styles for the map
