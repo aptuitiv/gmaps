@@ -29,6 +29,7 @@ export { mapRestriction, MapRestriction, MapRestrictionOptions } from './lib/Map
 export { mapStyle, MapStyle, MapStyleOptions } from './lib/Map/MapStyle';
 export { mapTypeControl, MapTypeControl, MapTypeControlOptions } from './lib/Map/MapTypeControl';
 export { rotateControl, RotateControl, RotateControlOptions } from './lib/Map/RotateControl';
+export { scaleControl, ScaleControl, ScaleControlOptions } from './lib/Map/ScaleControl';
 export { LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './lib/Map/types';
 export { marker, Marker, MarkerLabel, MarkerOptions, MarkerValue } from './lib/Marker';
 export {

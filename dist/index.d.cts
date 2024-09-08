@@ -2131,6 +2131,60 @@ type RotateControlValue = RotateControlOptions | boolean | RotateControl;
  */
 declare const rotateControl: (options?: RotateControlValue) => RotateControl;
 
+type ScaleControlOptions = {
+    enabled?: boolean;
+};
+/**
+ * Scale control class
+ */
+declare class ScaleControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {ScaleControlOptions | boolean} [options] Either the ScaleControl options or a boolean value to disable the control.
+     */
+    constructor(options?: ScaleControlOptions | boolean);
+    /**
+     * Get whether the Scale control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Scale control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Disable the Scale control
+     *
+     * @returns {ScaleControl}
+     */
+    disable(): ScaleControl;
+    /**
+     * Enable the Scale control
+     *
+     * @returns {ScaleControl}
+     */
+    enable(): ScaleControl;
+    /**
+     * Get the Scale Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.ScaleControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.ScaleControlOptions>;
+}
+type ScaleControlValue = ScaleControlOptions | boolean | ScaleControl;
+/**
+ * Helper function to set up the ScaleControl object
+ *
+ * @param {ScaleControlValue} options The ScaleControl options, a boolean value to disable the control, or a ScaleControl object.
+ * @returns {ScaleControl}
+ */
+declare const scaleControl: (options?: ScaleControlValue) => ScaleControl;
+
 type MapOptions = {
     apiKey?: string;
     backgroundColor?: string;
@@ -2162,6 +2216,7 @@ type MapOptions = {
     restriction?: MapRestrictionValue;
     rotateControl?: RotateControlValue;
     scrollwheel?: boolean;
+    scaleControl?: ScaleControlValue;
     styles?: MapStyleValue;
     tilt?: number;
     tiltInteractionEnabled?: boolean;
@@ -2336,6 +2391,18 @@ declare class Map extends Evented {
      * @param {boolean|RotateControl} value The rotate control option
      */
     set rotateControl(value: boolean | RotateControl);
+    /**
+     * Get the scale control object
+     *
+     * @returns {ScaleControl}
+     */
+    get scaleControl(): ScaleControl;
+    /**
+     * Set the scale control object, or whether to display the scale control
+     *
+     * @param {boolean|ScaleControl} value The scale control option
+     */
+    set scaleControl(value: boolean | ScaleControl);
     /**
      * Get the zoom level for the map
      *
@@ -5205,4 +5272,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, svgSymbol, tooltip };

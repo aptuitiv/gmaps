@@ -10,6 +10,7 @@ import { MapTypeIdValue, RenderingTypeValue } from '../constants';
 import { MapRestrictionValue } from './MapRestriction';
 import { MapStyleValue } from './MapStyle';
 import { RotateControlValue } from './RotateControl';
+import { ScaleControlValue } from './ScaleControl';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -39,6 +40,8 @@ export type GMMapOptions = {
     restriction?: google.maps.MapRestriction;
     rotateControl?: boolean;
     rotateControlOptions?: google.maps.RotateControlOptions;
+    scaleControl?: boolean;
+    scaleControlOptions?: google.maps.ScaleControlOptions;
     scrollwheel?: boolean;
     styles?: google.maps.MapTypeStyle[];
     tilt?: number;
@@ -141,6 +144,10 @@ export type MapOptions = {
     // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
     scrollwheel?: boolean;
+    // The Scale control object to configure how the Scale control displayed,
+    // or a boolean to disable/enable the Scale control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    scaleControl?: ScaleControlValue;
     // The styles to apply to the map types.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.styles
     styles?: MapStyleValue;

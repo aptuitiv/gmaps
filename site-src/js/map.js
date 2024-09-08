@@ -105,6 +105,7 @@ const map1 = G.map('#map1', {
     // ],
     // restriction: restriction,
     // rotateControl: rotateControl,
+    scaleControl: false,
     styles: styles
 });
 map1.load().then(() => {

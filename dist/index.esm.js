@@ -4154,8 +4154,93 @@ var rotateControl = (options) => {
   return new RotateControl(options);
 };
 
+// src/lib/Map/ScaleControl.ts
+var _enabled5;
+var ScaleControl = class {
+  /**
+   * Class constructor
+   *
+   * @param {ScaleControlOptions | boolean} [options] Either the ScaleControl options or a boolean value to disable the control.
+   */
+  constructor(options) {
+    /**
+     * Holds whether the Scale control is enabled or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled5, false);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled5, options);
+    }
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        __privateSet(this, _enabled5, options.enabled);
+      }
+    }
+  }
+  /**
+   * Get whether the Scale control is enabled.
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled5);
+  }
+  /**
+   * Set whether the Scale control is enabled.
+   *
+   * @param {boolean} value The enabled/disabled state
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled5, value);
+    }
+  }
+  /**
+   * Disable the Scale control
+   *
+   * @returns {ScaleControl}
+   */
+  disable() {
+    __privateSet(this, _enabled5, false);
+    return this;
+  }
+  /**
+   * Enable the Scale control
+   *
+   * @returns {ScaleControl}
+   */
+  enable() {
+    __privateSet(this, _enabled5, true);
+    return this;
+  }
+  /**
+   * Get the Scale Control options Google Maps object
+   *
+   * @returns {Promise<google.maps.ScaleControlOptions>}
+   */
+  // eslint-disable-next-line class-methods-use-this
+  toGoogle() {
+    return new Promise((resolve) => {
+      loader().on("load", () => {
+        resolve({
+          style: google.maps.ScaleControlStyle.DEFAULT
+        });
+      });
+    });
+  }
+};
+_enabled5 = new WeakMap();
+var scaleControl = (options) => {
+  if (options instanceof ScaleControl) {
+    return options;
+  }
+  return new ScaleControl(options);
+};
+
 // src/lib/Map.ts
-var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _selector, _styles2, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _styles2, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -4288,6 +4373,13 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _rotateControl, void 0);
     /**
+     * Holds the scale control object
+     *
+     * @private
+     * @type {ScaleControl}
+     */
+    __privateAdd(this, _scaleControl, void 0);
+    /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
      * @private
@@ -4314,6 +4406,7 @@ var Map = class extends Evented {
     __privateSet(this, _fullscreenControl, fullscreenControl());
     __privateSet(this, _mapTypeControl, mapTypeControl());
     __privateSet(this, _rotateControl, rotateControl());
+    __privateSet(this, _scaleControl, scaleControl());
     __privateSet(this, _selector, selector);
     if (isObject(options)) {
       this.setOptions(options);
@@ -4592,6 +4685,34 @@ var Map = class extends Evented {
         __privateGet(this, _map2).setOptions({
           rotateControl: __privateGet(this, _rotateControl).enabled,
           rotateControlOptions
+        });
+      });
+    }
+  }
+  /**
+   * Get the scale control object
+   *
+   * @returns {ScaleControl}
+   */
+  get scaleControl() {
+    return __privateGet(this, _scaleControl);
+  }
+  /**
+   * Set the scale control object, or whether to display the scale control
+   *
+   * @param {boolean|ScaleControl} value The scale control option
+   */
+  set scaleControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _scaleControl).enabled = value;
+    } else if (value instanceof ScaleControl) {
+      __privateSet(this, _scaleControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _scaleControl).toGoogle().then((scaleControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          scaleControl: __privateGet(this, _scaleControl).enabled,
+          scaleControlOptions
         });
       });
     }
@@ -5144,6 +5265,13 @@ var Map = class extends Evented {
           __privateSet(this, _rotateControl, options.rotateControl);
         }
       }
+      if (isDefined(options.scaleControl)) {
+        if (isBoolean(options.scaleControl)) {
+          __privateGet(this, _scaleControl).enabled = options.scaleControl;
+        } else if (options.scaleControl instanceof ScaleControl) {
+          __privateSet(this, _scaleControl, options.scaleControl);
+        }
+      }
       if (Array.isArray(options.styles)) {
         __privateSet(this, _styles2, options.styles.map((style) => mapStyle(style)));
       } else if (options.styles instanceof MapStyle) {
@@ -5264,6 +5392,7 @@ _mapTypeControl = new WeakMap();
 _options2 = new WeakMap();
 _restriction = new WeakMap();
 _rotateControl = new WeakMap();
+_scaleControl = new WeakMap();
 _selector = new WeakMap();
 _styles2 = new WeakMap();
 _watchId = new WeakMap();
@@ -5305,11 +5434,6 @@ getMapOptions_fn = function() {
       }
     });
     if (isStringWithValue(__privateGet(this, _options2).mapTypeId)) {
-      console.log(
-        "map type is valid: ",
-        __privateGet(this, _mapTypeControl).hasMapType(__privateGet(this, _options2).mapTypeId),
-        __privateGet(this, _options2).mapTypeId
-      );
       if (__privateGet(this, _mapTypeControl).hasMapType(__privateGet(this, _options2).mapTypeId)) {
         mapOptions.mapTypeId = __privateGet(this, _options2).mapTypeId;
       } else {
@@ -5327,13 +5451,16 @@ getMapOptions_fn = function() {
       mapOptions.mapTypeControl = __privateGet(this, _mapTypeControl).enabled;
       const mapTypeControlOptions = yield __privateGet(this, _mapTypeControl).toGoogle();
       mapOptions.mapTypeControlOptions = mapTypeControlOptions;
-      mapOptions.rotateControl = __privateGet(this, _rotateControl).enabled;
-      const rotateControlOptions = yield __privateGet(this, _rotateControl).toGoogle();
-      mapOptions.rotateControlOptions = rotateControlOptions;
       if (__privateGet(this, _restriction) && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
         const restriction = yield __privateGet(this, _restriction).toGoogle();
         mapOptions.restriction = restriction;
       }
+      mapOptions.rotateControl = __privateGet(this, _rotateControl).enabled;
+      const rotateControlOptions = yield __privateGet(this, _rotateControl).toGoogle();
+      mapOptions.rotateControlOptions = rotateControlOptions;
+      mapOptions.scaleControl = __privateGet(this, _scaleControl).enabled;
+      const scaleControlOptions = yield __privateGet(this, _scaleControl).toGoogle();
+      mapOptions.scaleControlOptions = scaleControlOptions;
       if (__privateGet(this, _styles2).length > 0) {
         mapOptions.styles = __privateGet(this, _styles2).map((style) => style.toGoogle());
       }
@@ -11020,6 +11147,7 @@ export {
   Popup,
   RenderingType,
   RotateControl,
+  ScaleControl,
   Size,
   SvgSymbol,
   Tooltip,
@@ -11068,6 +11196,7 @@ export {
   polylineCollection,
   popup,
   rotateControl,
+  scaleControl,
   size,
   svgSymbol,
   tooltip

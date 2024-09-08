@@ -39,6 +39,7 @@ import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
 import { mapStyle, MapStyle } from './Map/MapStyle';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
 import { rotateControl, RotateControl } from './Map/RotateControl';
+import { scaleControl, ScaleControl } from './Map/ScaleControl';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
@@ -194,6 +195,14 @@ export class Map extends Evented {
     #rotateControl: RotateControl;
 
     /**
+     * Holds the scale control object
+     *
+     * @private
+     * @type {ScaleControl}
+     */
+    #scaleControl: ScaleControl;
+
+    /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
      * @private
@@ -234,6 +243,7 @@ export class Map extends Evented {
         this.#fullscreenControl = fullscreenControl();
         this.#mapTypeControl = mapTypeControl();
         this.#rotateControl = rotateControl();
+        this.#scaleControl = scaleControl();
 
         this.#selector = selector;
         if (isObject(options)) {
@@ -541,6 +551,37 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the scale control object
+     *
+     * @returns {ScaleControl}
+     */
+    get scaleControl(): ScaleControl {
+        return this.#scaleControl;
+    }
+
+    /**
+     * Set the scale control object, or whether to display the scale control
+     *
+     * @param {boolean|ScaleControl} value The scale control option
+     */
+    set scaleControl(value: boolean | ScaleControl) {
+        if (isBoolean(value)) {
+            this.#scaleControl.enabled = value;
+        } else if (value instanceof ScaleControl) {
+            this.#scaleControl = value;
+        }
+
+        if (this.#map) {
+            this.#scaleControl.toGoogle().then((scaleControlOptions) => {
+                this.#map.setOptions({
+                    scaleControl: this.#scaleControl.enabled,
+                    scaleControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -777,11 +818,6 @@ export class Map extends Evented {
             // If the mapTypeId is set then make sure that it's one of the map types supported
             // in the MapTypeControl object
             if (isStringWithValue(this.#options.mapTypeId)) {
-                console.log(
-                    'map type is valid: ',
-                    this.#mapTypeControl.hasMapType(this.#options.mapTypeId as MapTypeIdValue),
-                    this.#options.mapTypeId
-                );
                 if (this.#mapTypeControl.hasMapType(this.#options.mapTypeId as MapTypeIdValue)) {
                     mapOptions.mapTypeId = this.#options.mapTypeId;
                 } else {
@@ -806,15 +842,19 @@ export class Map extends Evented {
                 mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
                 const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
                 mapOptions.mapTypeControlOptions = mapTypeControlOptions;
-                // Rotate control
-                mapOptions.rotateControl = this.#rotateControl.enabled;
-                const rotateControlOptions = await this.#rotateControl.toGoogle();
-                mapOptions.rotateControlOptions = rotateControlOptions;
                 // Restrictions
                 if (this.#restriction && this.#restriction.isValid() && this.#restriction.isEnabled()) {
                     const restriction = await this.#restriction.toGoogle();
                     mapOptions.restriction = restriction;
                 }
+                // Rotate control
+                mapOptions.rotateControl = this.#rotateControl.enabled;
+                const rotateControlOptions = await this.#rotateControl.toGoogle();
+                mapOptions.rotateControlOptions = rotateControlOptions;
+                // Scale control
+                mapOptions.scaleControl = this.#scaleControl.enabled;
+                const scaleControlOptions = await this.#scaleControl.toGoogle();
+                mapOptions.scaleControlOptions = scaleControlOptions;
                 // Map styles
                 if (this.#styles.length > 0) {
                     mapOptions.styles = this.#styles.map((style) => style.toGoogle());
@@ -1253,6 +1293,14 @@ export class Map extends Evented {
                     this.#rotateControl.enabled = options.rotateControl;
                 } else if (options.rotateControl instanceof RotateControl) {
                     this.#rotateControl = options.rotateControl;
+                }
+            }
+
+            if (isDefined(options.scaleControl)) {
+                if (isBoolean(options.scaleControl)) {
+                    this.#scaleControl.enabled = options.scaleControl;
+                } else if (options.scaleControl instanceof ScaleControl) {
+                    this.#scaleControl = options.scaleControl;
                 }
             }
 

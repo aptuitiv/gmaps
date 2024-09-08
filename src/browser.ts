@@ -29,6 +29,7 @@ import { mapRestriction, MapRestriction } from './lib/Map/MapRestriction';
 import { mapStyle, MapStyle } from './lib/Map/MapStyle';
 import { mapTypeControl, MapTypeControl } from './lib/Map/MapTypeControl';
 import { rotateControl, RotateControl } from './lib/Map/RotateControl';
+import { scaleControl, ScaleControl } from './lib/Map/ScaleControl';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
 import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
@@ -90,6 +91,8 @@ type GlobalObj = {
     closeAllPopups: typeof closeAllPopups;
     rotateControl: typeof rotateControl;
     RotateControl: typeof RotateControl;
+    scaleControl: typeof scaleControl;
+    ScaleControl: typeof ScaleControl;
     size: typeof size;
     Size: typeof Size;
     svgSymbol: typeof svgSymbol;
@@ -146,6 +149,8 @@ const G: GlobalObj = {
     closeAllPopups,
     rotateControl,
     RotateControl,
+    scaleControl,
+    ScaleControl,
     size,
     Size,
     svgSymbol,
