@@ -83,7 +83,7 @@ export class FullscreenControl {
     }
 
     /**
-     * Get the map type control position
+     * Get the fullscreen control position
      *
      * @returns {ControlPosition}
      */
@@ -92,7 +92,7 @@ export class FullscreenControl {
     }
 
     /**
-     * Set the map type control position
+     * Set the fullscreen control position
      *
      * @param {ControlPosition} value The position of the control
      */

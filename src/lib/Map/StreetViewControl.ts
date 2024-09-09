@@ -102,7 +102,7 @@ export class StreetViewControl {
     }
 
     /**
-     * Get the map type control position
+     * Get the street view control position
      *
      * @returns {ControlPosition}
      */
@@ -111,7 +111,7 @@ export class StreetViewControl {
     }
 
     /**
-     * Set the map type control position
+     * Set the street view control position
      *
      * @param {ControlPosition} value The position of the control
      */

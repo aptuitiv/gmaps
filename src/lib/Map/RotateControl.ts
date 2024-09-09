@@ -83,7 +83,7 @@ export class RotateControl {
     }
 
     /**
-     * Get the map type control position
+     * Get the rotate control position
      *
      * @returns {ControlPosition}
      */
@@ -92,7 +92,7 @@ export class RotateControl {
     }
 
     /**
-     * Set the map type control position
+     * Set the rotate control position
      *
      * @param {ControlPosition} value The position of the control
      */
