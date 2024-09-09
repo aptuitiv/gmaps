@@ -41,6 +41,7 @@ import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOp
 import { rotateControl, RotateControl } from './Map/RotateControl';
 import { scaleControl, ScaleControl } from './Map/ScaleControl';
 import { streetViewControl, StreetViewControl } from './Map/StreetViewControl';
+import { zoomControl, ZoomControl } from './Map/ZoomControl';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
@@ -236,6 +237,14 @@ export class Map extends Evented {
     #watchId: number;
 
     /**
+     * Holds the zoom control object
+     *
+     * @private
+     * @type {ZoomControl}
+     */
+    #zoomControl: ZoomControl;
+
+    /**
      * Class constructor
      *
      * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
@@ -254,6 +263,7 @@ export class Map extends Evented {
         this.#rotateControl = rotateControl();
         this.#scaleControl = scaleControl();
         this.#streetViewControl = streetViewControl();
+        this.#zoomControl = zoomControl();
 
         this.#selector = selector;
         if (isObject(options)) {
@@ -656,6 +666,37 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the zoom control object
+     *
+     * @returns {ZoomControl}
+     */
+    get zoomControl(): ZoomControl {
+        return this.#zoomControl;
+    }
+
+    /**
+     * Set the zoom control object, or whether to display the zoom control
+     *
+     * @param {boolean|ZoomControl} value The zoom control option
+     */
+    set zoomControl(value: boolean | ZoomControl) {
+        if (isBoolean(value)) {
+            this.#zoomControl.enabled = value;
+        } else if (value instanceof ZoomControl) {
+            this.#zoomControl = value;
+        }
+
+        if (this.#map) {
+            this.#zoomControl.toGoogle().then((zoomControlOptions) => {
+                this.#map.setOptions({
+                    zoomControl: this.#zoomControl.enabled,
+                    zoomControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
      * Adds a custom control to the map
      *
      * @param {ControlPositionValue} position The position to add the custom control
@@ -900,6 +941,10 @@ export class Map extends Evented {
                 mapOptions.streetViewControl = this.#streetViewControl.enabled;
                 const streetViewControlOptions = await this.#streetViewControl.toGoogle();
                 mapOptions.streetViewControlOptions = streetViewControlOptions;
+                // Zoom control
+                mapOptions.zoomControl = this.#zoomControl.enabled;
+                const zoomControlOptions = await this.#zoomControl.toGoogle();
+                mapOptions.zoomControlOptions = zoomControlOptions;
                 // Map styles
                 if (this.#styles.length > 0) {
                     mapOptions.styles = this.#styles.map((style) => style.toGoogle());
@@ -1354,6 +1399,14 @@ export class Map extends Evented {
                     this.#streetViewControl.enabled = options.streetViewControl;
                 } else if (options.streetViewControl instanceof StreetViewControl) {
                     this.#streetViewControl = options.streetViewControl;
+                }
+            }
+
+            if (isDefined(options.zoomControl)) {
+                if (isBoolean(options.zoomControl)) {
+                    this.#zoomControl.enabled = options.zoomControl;
+                } else if (options.zoomControl instanceof ZoomControl) {
+                    this.#zoomControl = options.zoomControl;
                 }
             }
 

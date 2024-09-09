@@ -111,7 +111,8 @@ const map1 = G.map('#map1', {
     // rotateControl: rotateControl,
     scaleControl: false,
     // streetViewControl: streetViewControl,
-    styles: styles
+    styles: styles,
+    zoomControl: false,
 });
 map1.load().then(() => {
     console.log('Map 1 shown');
@@ -127,6 +128,10 @@ map1.load().then(() => {
         position: G.ControlPosition.LEFT_BOTTOM,
     });
     // map1.streetViewControl = false;
+    map1.zoomControl = G.zoomControl({
+        enabled: true,
+        position: G.ControlPosition.LEFT_TOP,
+    });
 });
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';

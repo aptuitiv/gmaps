@@ -1650,13 +1650,13 @@ declare class FullscreenControl {
      */
     set enabled(value: boolean);
     /**
-     * Get the map type control position
+     * Get the fullscreen control position
      *
      * @returns {ControlPosition}
      */
     get position(): ControlPositionValue;
     /**
-     * Set the map type control position
+     * Set the fullscreen control position
      *
      * @param {ControlPosition} value The position of the control
      */
@@ -2094,13 +2094,13 @@ declare class RotateControl {
      */
     set enabled(value: boolean);
     /**
-     * Get the map type control position
+     * Get the rotate control position
      *
      * @returns {ControlPosition}
      */
     get position(): ControlPositionValue;
     /**
-     * Set the map type control position
+     * Set the rotate control position
      *
      * @param {ControlPosition} value The position of the control
      */
@@ -2224,13 +2224,13 @@ declare class StreetViewControl {
      */
     set enabled(value: boolean);
     /**
-     * Get the map type control position
+     * Get the street view control position
      *
      * @returns {ControlPosition}
      */
     get position(): ControlPositionValue;
     /**
-     * Set the map type control position
+     * Set the street view control position
      *
      * @param {ControlPosition} value The position of the control
      */
@@ -2281,6 +2281,89 @@ declare class StreetViewControl {
      */
     toGoogle(): Promise<google.maps.StreetViewControlOptions>;
 }
+type StreetViewControlValue = StreetViewControlOptions | boolean | StreetViewControl;
+/**
+ * Helper function to set up the StreetViewControl object
+ *
+ * @param {StreetViewControlValue} options The StreetViewControl options, a boolean value to disable the control, or a StreetViewControl object.
+ * @returns {StreetViewControl}
+ */
+declare const streetViewControl: (options?: StreetViewControlValue) => StreetViewControl;
+
+type ZoomControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+};
+/**
+ * Zoom control class
+ */
+declare class ZoomControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {ZoomControlOptions | boolean} [options] Either the ZoomControl options or a boolean value to disable the control.
+     */
+    constructor(options?: ZoomControlOptions | boolean);
+    /**
+     * Get whether the Zoom control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Zoom control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the zoom control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the zoom control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Disable the Zoom control
+     *
+     * @returns {ZoomControl}
+     */
+    disable(): ZoomControl;
+    /**
+     * Enable the Zoom control
+     *
+     * @returns {ZoomControl}
+     */
+    enable(): ZoomControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {ZoomControl}
+     */
+    setPosition(position: ControlPositionValue): ZoomControl;
+    /**
+     * Get the Zoom Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.ZoomControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.ZoomControlOptions>;
+}
+type ZoomControlValue = ZoomControlOptions | boolean | ZoomControl;
+/**
+ * Helper function to set up the ZoomControl object
+ *
+ * @param {ZoomControlValue} options The ZoomControl options, a boolean value to disable the control, or a ZoomControl object.
+ * @returns {ZoomControl}
+ */
+declare const zoomControl: (options?: ZoomControlValue) => ZoomControl;
 
 type MapOptions = {
     apiKey?: string;
@@ -2311,16 +2394,17 @@ type MapOptions = {
     noClear?: boolean;
     renderingType?: RenderingTypeValue;
     restriction?: MapRestrictionValue;
-    rotateControl?: RotateControlValue;
-    scaleControl?: ScaleControlValue;
+    rotateControl?: boolean | RotateControlValue;
+    scaleControl?: boolean | ScaleControlValue;
     scrollwheel?: boolean;
     streetView?: google.maps.StreetViewPanorama;
-    streetViewControl?: StreetViewControl;
+    streetViewControl?: boolean | StreetViewControl;
     styles?: MapStyleValue;
     tilt?: number;
     tiltInteractionEnabled?: boolean;
     version?: string;
     zoom?: number | string;
+    zoomControl?: boolean | ZoomControl;
 };
 type LocateOptions = {
     enableHighAccuracy?: boolean;
@@ -2526,6 +2610,18 @@ declare class Map extends Evented {
      * @param {number|string} value The zoom level
      */
     set zoom(value: number | string);
+    /**
+     * Get the zoom control object
+     *
+     * @returns {ZoomControl}
+     */
+    get zoomControl(): ZoomControl;
+    /**
+     * Set the zoom control object, or whether to display the zoom control
+     *
+     * @param {boolean|ZoomControl} value The zoom control option
+     */
+    set zoomControl(value: boolean | ZoomControl);
     /**
      * Adds a custom control to the map
      *
@@ -5383,4 +5479,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

@@ -12,6 +12,7 @@ import { MapStyleValue } from './MapStyle';
 import { RotateControlValue } from './RotateControl';
 import { ScaleControlValue } from './ScaleControl';
 import { StreetViewControl } from './StreetViewControl';
+import { ZoomControl } from './ZoomControl';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -49,6 +50,8 @@ export type GMMapOptions = {
     tilt?: number;
     tiltInteractionEnabled?: boolean;
     zoom?: number;
+    zoomControl?: boolean;
+    zoomControlOptions?: google.maps.ZoomControlOptions;
 };
 
 // The options that are passed to map() and setOptions()
@@ -142,11 +145,11 @@ export type MapOptions = {
     // The Rotate control object to configure how the Rotate control displayed,
     // or a boolean to disable/enable the Rotate control.
     // https://developers.google.com/maps/documentation/javascript/controls
-    rotateControl?: RotateControlValue;
+    rotateControl?: boolean | RotateControlValue;
     // The Scale control object to configure how the Scale control displayed,
     // or a boolean to disable/enable the Scale control.
     // https://developers.google.com/maps/documentation/javascript/controls
-    scaleControl?: ScaleControlValue;
+    scaleControl?: boolean | ScaleControlValue;
     // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
     scrollwheel?: boolean;
@@ -156,7 +159,7 @@ export type MapOptions = {
     // The Street view control object to configure how the Street view control is displayed,
     // or a boolean to disable/enable the Street view control.
     // https://developers.google.com/maps/documentation/javascript/controls
-    streetViewControl?: StreetViewControl;
+    streetViewControl?: boolean | StreetViewControl;
     // The styles to apply to the map types.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.styles
     styles?: MapStyleValue;
@@ -171,6 +174,10 @@ export type MapOptions = {
     version?: string;
     // The default zoom for the map. Defaults to 8.
     zoom?: number | string;
+    // The Zoom control object to configure how the Zoom control is displayed,
+    // or a boolean to disable/enable the Zoom control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    zoomControl?: boolean | ZoomControl;
 };
 
 // The options for the Map.locate() function

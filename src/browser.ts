@@ -31,6 +31,7 @@ import { mapTypeControl, MapTypeControl } from './lib/Map/MapTypeControl';
 import { rotateControl, RotateControl } from './lib/Map/RotateControl';
 import { scaleControl, ScaleControl } from './lib/Map/ScaleControl';
 import { streetViewControl, StreetViewControl } from './lib/Map/StreetViewControl';
+import { zoomControl, ZoomControl } from './lib/Map/ZoomControl';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
 import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
@@ -102,6 +103,8 @@ type GlobalObj = {
     SvgSymbol: typeof SvgSymbol;
     tooltip: typeof tooltip;
     Tooltip: typeof Tooltip;
+    zoomControl: typeof zoomControl;
+    ZoomControl: typeof ZoomControl;
 };
 
 // Set up the global namespace object
@@ -162,6 +165,8 @@ const G: GlobalObj = {
     SvgSymbol,
     tooltip,
     Tooltip,
+    zoomControl,
+    ZoomControl,
 };
 
 /**
