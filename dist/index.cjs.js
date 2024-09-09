@@ -3350,17 +3350,16 @@ var FullscreenControl = class {
      * @private
      * @type {ControlPosition}
      */
-    __privateAdd(this, _position, void 0);
+    __privateAdd(this, _position, ControlPosition.INLINE_END_BLOCK_START);
     if (isBoolean(options)) {
       __privateSet(this, _enabled, options);
     }
-    __privateSet(this, _position, ControlPosition.INLINE_END_BLOCK_START);
     if (isObject(options)) {
       if (isBoolean(options.enabled)) {
-        __privateSet(this, _enabled, options.enabled);
+        this.enabled = options.enabled;
       }
       if (options.position) {
-        this.setPosition(options.position);
+        this.position = options.position;
       }
     }
   }
@@ -3396,7 +3395,11 @@ var FullscreenControl = class {
    * @param {ControlPosition} value The position of the control
    */
   set position(value) {
-    __privateSet(this, _position, value);
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position, value);
+    } else {
+      console.warn("The Fullscreen position that you provided is not valid. You provided: ", value);
+    }
   }
   /**
    * Disable the Fullscreen control
@@ -3678,7 +3681,7 @@ var MapTypeControl = class {
      * @private
      * @type {ControlPosition}
      */
-    __privateAdd(this, _position2, void 0);
+    __privateAdd(this, _position2, ControlPosition.BLOCK_START_INLINE_START);
     /**
      * The style of the control
      *
@@ -3687,7 +3690,7 @@ var MapTypeControl = class {
      * @private
      * @type {MapTypeControlStyle}
      */
-    __privateAdd(this, _style, void 0);
+    __privateAdd(this, _style, MapTypeControlStyle.DEFAULT);
     /**
      * Holds whether the hybrid map type is enabled
      *
@@ -3724,20 +3727,18 @@ var MapTypeControl = class {
     __privateGet(this, _mapTypeIds).push(MapTypeId.ROADMAP);
     __privateGet(this, _mapTypeIds).push(MapTypeId.SATELLITE);
     __privateGet(this, _mapTypeIds).push(MapTypeId.TERRAIN);
-    __privateSet(this, _position2, ControlPosition.BLOCK_START_INLINE_START);
-    __privateSet(this, _style, MapTypeControlStyle.DEFAULT);
     if (isObject(options)) {
       if (isBoolean(options.enabled)) {
-        __privateSet(this, _enabled3, options.enabled);
+        this.enabled = options.enabled;
       }
       if (options.mapTypeIds) {
         this.setMapTypeIds(options.mapTypeIds);
       }
       if (options.position) {
-        this.setPosition(options.position);
+        this.position = options.position;
       }
       if (options.style) {
-        this.setStyle(options.style);
+        this.style = options.style;
       }
     }
   }
@@ -3791,7 +3792,11 @@ var MapTypeControl = class {
    * @param {ControlPosition} value The position of the control
    */
   set position(value) {
-    __privateSet(this, _position2, value);
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position2, value);
+    } else {
+      console.warn("The MapType position that you provided is not valid. You provided: ", value);
+    }
   }
   /**
    * Get whether the roadmap map type is enabled
@@ -4165,19 +4170,16 @@ var RotateControl = class {
      * @private
      * @type {ControlPosition}
      */
-    __privateAdd(this, _position3, void 0);
+    __privateAdd(this, _position3, ControlPosition.INLINE_END_BLOCK_START);
     if (isBoolean(options)) {
       __privateSet(this, _enabled4, options);
     }
-    if (!__privateGet(this, _position3)) {
-      __privateSet(this, _position3, ControlPosition.INLINE_END_BLOCK_START);
-    }
     if (isObject(options)) {
       if (isBoolean(options.enabled)) {
-        __privateSet(this, _enabled4, options.enabled);
+        this.enabled = options.enabled;
       }
       if (options.position) {
-        this.setPosition(options.position);
+        this.position = options.position;
       }
     }
   }
@@ -4213,7 +4215,11 @@ var RotateControl = class {
    * @param {ControlPosition} value The position of the control
    */
   set position(value) {
-    __privateSet(this, _position3, value);
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position3, value);
+    } else {
+      console.warn("The Rotate position that you provided is not valid. You provided: ", value);
+    }
   }
   /**
    * Disable the Rotate control

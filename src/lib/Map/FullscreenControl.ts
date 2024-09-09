@@ -38,7 +38,7 @@ export class FullscreenControl {
      * @private
      * @type {ControlPosition}
      */
-    #position: ControlPositionValue;
+    #position: ControlPositionValue = ControlPosition.INLINE_END_BLOCK_START;
 
     /**
      * Class constructor
@@ -51,16 +51,13 @@ export class FullscreenControl {
             this.#enabled = options;
         }
 
-        // Set the default position
-        this.#position = ControlPosition.INLINE_END_BLOCK_START;
-
         // If the options are set, then override the default values
         if (isObject(options)) {
             if (isBoolean(options.enabled)) {
-                this.#enabled = options.enabled;
+                this.enabled = options.enabled;
             }
             if (options.position) {
-                this.setPosition(options.position);
+                this.position = options.position;
             }
         }
     }
@@ -100,7 +97,12 @@ export class FullscreenControl {
      * @param {ControlPosition} value The position of the control
      */
     set position(value: ControlPositionValue) {
-        this.#position = value;
+        if (Object.values(ControlPosition).includes(value)) {
+            this.#position = value;
+        } else {
+            // eslint-disable-next-line no-console
+            console.warn('The Fullscreen position that you provided is not valid. You provided: ', value);
+        }
     }
 
     /**

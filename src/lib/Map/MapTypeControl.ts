@@ -63,7 +63,7 @@ export class MapTypeControl {
      * @private
      * @type {ControlPosition}
      */
-    #position: ControlPositionValue;
+    #position: ControlPositionValue = ControlPosition.BLOCK_START_INLINE_START;
 
     /**
      * The style of the control
@@ -73,7 +73,7 @@ export class MapTypeControl {
      * @private
      * @type {MapTypeControlStyle}
      */
-    #style: MapTypeControlStyleValue;
+    #style: MapTypeControlStyleValue = MapTypeControlStyle.DEFAULT;
 
     /**
      * Holds whether the hybrid map type is enabled
@@ -126,25 +126,19 @@ export class MapTypeControl {
         this.#mapTypeIds.push(MapTypeId.SATELLITE);
         this.#mapTypeIds.push(MapTypeId.TERRAIN);
 
-        // Set the default position
-        this.#position = ControlPosition.BLOCK_START_INLINE_START;
-
-        // Set the default style
-        this.#style = MapTypeControlStyle.DEFAULT;
-
         // If the options are set, then override the default values
         if (isObject(options)) {
             if (isBoolean(options.enabled)) {
-                this.#enabled = options.enabled;
+                this.enabled = options.enabled;
             }
             if (options.mapTypeIds) {
                 this.setMapTypeIds(options.mapTypeIds);
             }
             if (options.position) {
-                this.setPosition(options.position);
+                this.position = options.position;
             }
             if (options.style) {
-                this.setStyle(options.style);
+                this.style = options.style;
             }
         }
     }
@@ -204,7 +198,12 @@ export class MapTypeControl {
      * @param {ControlPosition} value The position of the control
      */
     set position(value: ControlPositionValue) {
-        this.#position = value;
+        if (Object.values(ControlPosition).includes(value)) {
+            this.#position = value;
+        } else {
+            // eslint-disable-next-line no-console
+            console.warn('The MapType position that you provided is not valid. You provided: ', value);
+        }
     }
 
     /**
