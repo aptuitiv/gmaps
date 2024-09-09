@@ -239,3 +239,22 @@ export const RenderingType = Object.freeze({
 
 // Type for the RenderingType values
 export type RenderingTypeValue = (typeof RenderingType)[keyof typeof RenderingType];
+
+/**
+ * Street view sources
+ * https://developers.google.com/maps/documentation/javascript/reference/street-view-service#StreetViewSource
+ */
+export const StreetViewSource = Object.freeze({
+    // Uses the default sources of Street View, searches will not be limited to
+    // specific sources.
+    DEFAULT: 'default',
+    // Limits Street View searches to official Google collections.
+    GOOGLE: 'google',
+    // Limits Street View searches to outdoor collections. Indoor collections
+    // are not included in search results. According to Google's documentation,
+    // this is not supported.
+    OUTDOOR: 'outdoor',
+});
+
+// Type for the StreetViewSource values
+export type StreetViewSourceValue = (typeof StreetViewSource)[keyof typeof StreetViewSource];

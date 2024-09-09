@@ -83,6 +83,10 @@ const rotateControl = G.rotateControl({
     position: G.ControlPosition.LEFT_CENTER,
 });
 
+const streetViewControl = G.streetViewControl({
+    position: G.ControlPosition.LEFT_CENTER,
+});
+
 const styles = G.mapStyle({
     featureType: "road.arterial",
     elementType: "geometry",
@@ -106,6 +110,7 @@ const map1 = G.map('#map1', {
     // restriction: restriction,
     // rotateControl: rotateControl,
     scaleControl: false,
+    // streetViewControl: streetViewControl,
     styles: styles
 });
 map1.load().then(() => {
@@ -121,6 +126,7 @@ map1.load().then(() => {
     map1.rotateControl = G.rotateControl({
         position: G.ControlPosition.LEFT_BOTTOM,
     });
+    // map1.streetViewControl = false;
 });
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';

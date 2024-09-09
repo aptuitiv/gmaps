@@ -40,6 +40,7 @@ import { mapStyle, MapStyle } from './Map/MapStyle';
 import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
 import { rotateControl, RotateControl } from './Map/RotateControl';
 import { scaleControl, ScaleControl } from './Map/ScaleControl';
+import { streetViewControl, StreetViewControl } from './Map/StreetViewControl';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
@@ -211,6 +212,14 @@ export class Map extends Evented {
     #selector: string | HTMLElement;
 
     /**
+     * Holds the street view control object
+     *
+     * @private
+     * @type {StreetViewControl}
+     */
+    #streetViewControl: StreetViewControl;
+
+    /**
      * Holds the styles to apply to the map
      *
      * @private
@@ -244,6 +253,7 @@ export class Map extends Evented {
         this.#mapTypeControl = mapTypeControl();
         this.#rotateControl = rotateControl();
         this.#scaleControl = scaleControl();
+        this.#streetViewControl = streetViewControl();
 
         this.#selector = selector;
         if (isObject(options)) {
@@ -582,6 +592,37 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the street view control object
+     *
+     * @returns {StreetViewControl}
+     */
+    get streetViewControl(): StreetViewControl {
+        return this.#streetViewControl;
+    }
+
+    /**
+     * Set the street view control object, or whether to display the scale control
+     *
+     * @param {boolean|StreetViewControl} value The scale control option
+     */
+    set streetViewControl(value: boolean | StreetViewControl) {
+        if (isBoolean(value)) {
+            this.#streetViewControl.enabled = value;
+        } else if (value instanceof StreetViewControl) {
+            this.#streetViewControl = value;
+        }
+
+        if (this.#map) {
+            this.#streetViewControl.toGoogle().then((streetViewControlOptions) => {
+                this.#map.setOptions({
+                    streetViewControl: this.#streetViewControl.enabled,
+                    streetViewControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -808,7 +849,7 @@ export class Map extends Evented {
                 }
             });
             // Other options that can be set on the map without any modification
-            const optionsToSet = ['renderingType'];
+            const optionsToSet = ['renderingType', 'streetView'];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     mapOptions[key] = this.#options[key];
@@ -855,6 +896,10 @@ export class Map extends Evented {
                 mapOptions.scaleControl = this.#scaleControl.enabled;
                 const scaleControlOptions = await this.#scaleControl.toGoogle();
                 mapOptions.scaleControlOptions = scaleControlOptions;
+                // Street view control
+                mapOptions.streetViewControl = this.#streetViewControl.enabled;
+                const streetViewControlOptions = await this.#streetViewControl.toGoogle();
+                mapOptions.streetViewControlOptions = streetViewControlOptions;
                 // Map styles
                 if (this.#styles.length > 0) {
                     mapOptions.styles = this.#styles.map((style) => style.toGoogle());
@@ -1304,6 +1349,14 @@ export class Map extends Evented {
                 }
             }
 
+            if (isDefined(options.streetViewControl)) {
+                if (isBoolean(options.streetViewControl)) {
+                    this.#streetViewControl.enabled = options.streetViewControl;
+                } else if (options.streetViewControl instanceof StreetViewControl) {
+                    this.#streetViewControl = options.streetViewControl;
+                }
+            }
+
             // Set the styles for the map
             if (Array.isArray(options.styles)) {
                 this.#styles = options.styles.map((style) => mapStyle(style));
@@ -1343,7 +1396,7 @@ export class Map extends Evented {
                     this.#options[key] = options[key];
                 }
             });
-            const otherOptions = ['mapTypeId', 'renderingType'];
+            const otherOptions = ['mapTypeId', 'renderingType', 'streetView'];
             otherOptions.forEach((key) => {
                 if (typeof options[key] !== 'undefined') {
                     this.#options[key] = options[key];

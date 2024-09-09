@@ -11,6 +11,7 @@ import { MapRestrictionValue } from './MapRestriction';
 import { MapStyleValue } from './MapStyle';
 import { RotateControlValue } from './RotateControl';
 import { ScaleControlValue } from './ScaleControl';
+import { StreetViewControl } from './StreetViewControl';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
@@ -43,6 +44,7 @@ export type GMMapOptions = {
     scaleControl?: boolean;
     scaleControlOptions?: google.maps.ScaleControlOptions;
     scrollwheel?: boolean;
+    streetView?: google.maps.StreetViewPanorama;
     styles?: google.maps.MapTypeStyle[];
     tilt?: number;
     tiltInteractionEnabled?: boolean;
@@ -141,13 +143,20 @@ export type MapOptions = {
     // or a boolean to disable/enable the Rotate control.
     // https://developers.google.com/maps/documentation/javascript/controls
     rotateControl?: RotateControlValue;
-    // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
-    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
-    scrollwheel?: boolean;
     // The Scale control object to configure how the Scale control displayed,
     // or a boolean to disable/enable the Scale control.
     // https://developers.google.com/maps/documentation/javascript/controls
     scaleControl?: ScaleControlValue;
+    // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
+    scrollwheel?: boolean;
+    // A StreetViewPanorama to display when the Street View pegman is dropped on the map
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.streetView
+    streetView?: google.maps.StreetViewPanorama;
+    // The Street view control object to configure how the Street view control is displayed,
+    // or a boolean to disable/enable the Street view control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    streetViewControl?: StreetViewControl;
     // The styles to apply to the map types.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.styles
     styles?: MapStyleValue;

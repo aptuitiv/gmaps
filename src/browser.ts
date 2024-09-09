@@ -30,6 +30,7 @@ import { mapStyle, MapStyle } from './lib/Map/MapStyle';
 import { mapTypeControl, MapTypeControl } from './lib/Map/MapTypeControl';
 import { rotateControl, RotateControl } from './lib/Map/RotateControl';
 import { scaleControl, ScaleControl } from './lib/Map/ScaleControl';
+import { streetViewControl, StreetViewControl } from './lib/Map/StreetViewControl';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
 import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
@@ -95,6 +96,8 @@ type GlobalObj = {
     ScaleControl: typeof ScaleControl;
     size: typeof size;
     Size: typeof Size;
+    streetViewControl: typeof streetViewControl;
+    StreetViewControl: typeof StreetViewControl;
     svgSymbol: typeof svgSymbol;
     SvgSymbol: typeof SvgSymbol;
     tooltip: typeof tooltip;
@@ -153,6 +156,8 @@ const G: GlobalObj = {
     ScaleControl,
     size,
     Size,
+    streetViewControl,
+    StreetViewControl,
     svgSymbol,
     SvgSymbol,
     tooltip,

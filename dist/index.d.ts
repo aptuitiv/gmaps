@@ -297,6 +297,16 @@ declare const RenderingType: Readonly<{
     VECTOR: "VECTOR";
 }>;
 type RenderingTypeValue = (typeof RenderingType)[keyof typeof RenderingType];
+/**
+ * Street view sources
+ * https://developers.google.com/maps/documentation/javascript/reference/street-view-service#StreetViewSource
+ */
+declare const StreetViewSource: Readonly<{
+    DEFAULT: "default";
+    GOOGLE: "google";
+    OUTDOOR: "outdoor";
+}>;
+type StreetViewSourceValue = (typeof StreetViewSource)[keyof typeof StreetViewSource];
 
 type LatLngLiteral = {
     lat?: number | string;
@@ -2185,6 +2195,93 @@ type ScaleControlValue = ScaleControlOptions | boolean | ScaleControl;
  */
 declare const scaleControl: (options?: ScaleControlValue) => ScaleControl;
 
+type StreetViewControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+    sources?: StreetViewSourceValue | StreetViewSourceValue[];
+};
+/**
+ * StreetView control class
+ */
+declare class StreetViewControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {StreetViewControlOptions | boolean} [options] Either the StreetViewControl options or a boolean value to disable the control.
+     */
+    constructor(options?: StreetViewControlOptions | boolean);
+    /**
+     * Get whether the StreetView control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the StreetView control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the map type control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the map type control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Get the sources of the street view control
+     *
+     * @returns {StreetViewSourceValue[]}
+     */
+    get sources(): StreetViewSourceValue[];
+    /**
+     * Set the sources of the street view control
+     *
+     * @param {StreetViewSourceValue | StreetViewSourceValue[]} value The source or sources of the street view control
+     */
+    set sources(value: StreetViewSourceValue | StreetViewSourceValue[]);
+    /**
+     * Disable the StreetView control
+     *
+     * @returns {StreetViewControl}
+     */
+    disable(): StreetViewControl;
+    /**
+     * Enable the StreetView control
+     *
+     * @returns {StreetViewControl}
+     */
+    enable(): StreetViewControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {StreetViewControl}
+     */
+    setPosition(position: ControlPositionValue): StreetViewControl;
+    /**
+     * Set the sources of the street view control
+     *
+     * @param {StreetViewSourceValue | StreetViewSourceValue[]} sources The source or sources of the street view control
+     * @returns {StreetViewControl}
+     */
+    setSources(sources: StreetViewSourceValue | StreetViewSourceValue[]): StreetViewControl;
+    /**
+     * Get the StreetView Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.StreetViewControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.StreetViewControlOptions>;
+}
+
 type MapOptions = {
     apiKey?: string;
     backgroundColor?: string;
@@ -2215,8 +2312,10 @@ type MapOptions = {
     renderingType?: RenderingTypeValue;
     restriction?: MapRestrictionValue;
     rotateControl?: RotateControlValue;
-    scrollwheel?: boolean;
     scaleControl?: ScaleControlValue;
+    scrollwheel?: boolean;
+    streetView?: google.maps.StreetViewPanorama;
+    streetViewControl?: StreetViewControl;
     styles?: MapStyleValue;
     tilt?: number;
     tiltInteractionEnabled?: boolean;
@@ -2403,6 +2502,18 @@ declare class Map extends Evented {
      * @param {boolean|ScaleControl} value The scale control option
      */
     set scaleControl(value: boolean | ScaleControl);
+    /**
+     * Get the street view control object
+     *
+     * @returns {StreetViewControl}
+     */
+    get streetViewControl(): StreetViewControl;
+    /**
+     * Set the street view control object, or whether to display the scale control
+     *
+     * @param {boolean|StreetViewControl} value The scale control option
+     */
+    set streetViewControl(value: boolean | StreetViewControl);
     /**
      * Get the zoom level for the map
      *
@@ -5272,4 +5383,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, svgSymbol, tooltip };

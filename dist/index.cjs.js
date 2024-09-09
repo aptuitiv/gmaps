@@ -109,6 +109,7 @@ __export(src_exports, {
   RotateControl: () => RotateControl,
   ScaleControl: () => ScaleControl,
   Size: () => Size,
+  StreetViewSource: () => StreetViewSource,
   SvgSymbol: () => SvgSymbol,
   Tooltip: () => Tooltip,
   autocompleteSearchBox: () => autocompleteSearchBox,
@@ -474,6 +475,17 @@ var RenderingType = Object.freeze({
   UNINITIALIZED: "UNINITIALIZED",
   // Indicates that the map is a vector map.
   VECTOR: "VECTOR"
+});
+var StreetViewSource = Object.freeze({
+  // Uses the default sources of Street View, searches will not be limited to
+  // specific sources.
+  DEFAULT: "default",
+  // Limits Street View searches to official Google collections.
+  GOOGLE: "google",
+  // Limits Street View searches to outdoor collections. Indoor collections
+  // are not included in search results. According to Google's documentation,
+  // this is not supported.
+  OUTDOOR: "outdoor"
 });
 
 // src/lib/helpers.ts
@@ -4341,8 +4353,179 @@ var scaleControl = (options) => {
   return new ScaleControl(options);
 };
 
+// src/lib/Map/StreetViewControl.ts
+var _enabled6, _position4, _sources;
+var StreetViewControl = class {
+  /**
+   * Class constructor
+   *
+   * @param {StreetViewControlOptions | boolean} [options] Either the StreetViewControl options or a boolean value to disable the control.
+   */
+  constructor(options) {
+    /**
+     * Holds whether the StreetView control is enabled or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled6, true);
+    /**
+     * The position of the control on the map
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @private
+     * @type {ControlPosition}
+     */
+    __privateAdd(this, _position4, ControlPosition.INLINE_END_BLOCK_END);
+    /**
+     * The sources of the street view control
+     *
+     * @private
+     * @type {StreetViewSourceValue[]}
+     */
+    __privateAdd(this, _sources, [StreetViewSource.DEFAULT]);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled6, options);
+    }
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        this.enabled = options.enabled;
+      }
+      if (options.position) {
+        this.position = options.position;
+      }
+      if (options.sources) {
+        this.sources = options.sources;
+      }
+    }
+  }
+  /**
+   * Get whether the StreetView control is enabled.
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled6);
+  }
+  /**
+   * Set whether the StreetView control is enabled.
+   *
+   * @param {boolean} value The enabled/disabled state
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled6, value);
+    }
+  }
+  /**
+   * Get the map type control position
+   *
+   * @returns {ControlPosition}
+   */
+  get position() {
+    return __privateGet(this, _position4);
+  }
+  /**
+   * Set the map type control position
+   *
+   * @param {ControlPosition} value The position of the control
+   */
+  set position(value) {
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position4, value);
+    } else {
+      console.warn("The Street View position that you provided is not valid. You provided: ", value);
+    }
+  }
+  /**
+   * Get the sources of the street view control
+   *
+   * @returns {StreetViewSourceValue[]}
+   */
+  get sources() {
+    return __privateGet(this, _sources);
+  }
+  /**
+   * Set the sources of the street view control
+   *
+   * @param {StreetViewSourceValue | StreetViewSourceValue[]} value The source or sources of the street view control
+   */
+  set sources(value) {
+    const sources = Array.isArray(value) ? value : [value];
+    const validSources = sources.filter((source) => Object.values(StreetViewSource).includes(source));
+    if (validSources.length > 0) {
+      __privateSet(this, _sources, validSources);
+    } else {
+      console.warn("The Street View sources that you provided are not valid. You provided: ", value);
+    }
+  }
+  /**
+   * Disable the StreetView control
+   *
+   * @returns {StreetViewControl}
+   */
+  disable() {
+    __privateSet(this, _enabled6, false);
+    return this;
+  }
+  /**
+   * Enable the StreetView control
+   *
+   * @returns {StreetViewControl}
+   */
+  enable() {
+    __privateSet(this, _enabled6, true);
+    return this;
+  }
+  /**
+   * Set the position of the control
+   * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+   *
+   * @param {ControlPositionValue} position The position of the control
+   * @returns {StreetViewControl}
+   */
+  setPosition(position) {
+    this.position = position;
+    return this;
+  }
+  /**
+   * Set the sources of the street view control
+   *
+   * @param {StreetViewSourceValue | StreetViewSourceValue[]} sources The source or sources of the street view control
+   * @returns {StreetViewControl}
+   */
+  setSources(sources) {
+    this.sources = sources;
+    return this;
+  }
+  /**
+   * Get the StreetView Control options Google Maps object
+   *
+   * @returns {Promise<google.maps.StreetViewControlOptions>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      loader().on("load", () => {
+        resolve({
+          position: convertControlPosition(__privateGet(this, _position4))
+        });
+      });
+    });
+  }
+};
+_enabled6 = new WeakMap();
+_position4 = new WeakMap();
+_sources = new WeakMap();
+var streetViewControl = (options) => {
+  if (options instanceof StreetViewControl) {
+    return options;
+  }
+  return new StreetViewControl(options);
+};
+
 // src/lib/Map.ts
-var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _styles2, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -4489,6 +4672,13 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _selector, void 0);
     /**
+     * Holds the street view control object
+     *
+     * @private
+     * @type {StreetViewControl}
+     */
+    __privateAdd(this, _streetViewControl, void 0);
+    /**
      * Holds the styles to apply to the map
      *
      * @private
@@ -4509,6 +4699,7 @@ var Map = class extends Evented {
     __privateSet(this, _mapTypeControl, mapTypeControl());
     __privateSet(this, _rotateControl, rotateControl());
     __privateSet(this, _scaleControl, scaleControl());
+    __privateSet(this, _streetViewControl, streetViewControl());
     __privateSet(this, _selector, selector);
     if (isObject(options)) {
       this.setOptions(options);
@@ -4815,6 +5006,34 @@ var Map = class extends Evented {
         __privateGet(this, _map2).setOptions({
           scaleControl: __privateGet(this, _scaleControl).enabled,
           scaleControlOptions
+        });
+      });
+    }
+  }
+  /**
+   * Get the street view control object
+   *
+   * @returns {StreetViewControl}
+   */
+  get streetViewControl() {
+    return __privateGet(this, _streetViewControl);
+  }
+  /**
+   * Set the street view control object, or whether to display the scale control
+   *
+   * @param {boolean|StreetViewControl} value The scale control option
+   */
+  set streetViewControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _streetViewControl).enabled = value;
+    } else if (value instanceof StreetViewControl) {
+      __privateSet(this, _streetViewControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _streetViewControl).toGoogle().then((streetViewControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          streetViewControl: __privateGet(this, _streetViewControl).enabled,
+          streetViewControlOptions
         });
       });
     }
@@ -5374,6 +5593,13 @@ var Map = class extends Evented {
           __privateSet(this, _scaleControl, options.scaleControl);
         }
       }
+      if (isDefined(options.streetViewControl)) {
+        if (isBoolean(options.streetViewControl)) {
+          __privateGet(this, _streetViewControl).enabled = options.streetViewControl;
+        } else if (options.streetViewControl instanceof StreetViewControl) {
+          __privateSet(this, _streetViewControl, options.streetViewControl);
+        }
+      }
       if (Array.isArray(options.styles)) {
         __privateSet(this, _styles2, options.styles.map((style) => mapStyle(style)));
       } else if (options.styles instanceof MapStyle) {
@@ -5408,7 +5634,7 @@ var Map = class extends Evented {
           __privateGet(this, _options2)[key] = options[key];
         }
       });
-      const otherOptions = ["mapTypeId", "renderingType"];
+      const otherOptions = ["mapTypeId", "renderingType", "streetView"];
       otherOptions.forEach((key) => {
         if (typeof options[key] !== "undefined") {
           __privateGet(this, _options2)[key] = options[key];
@@ -5496,6 +5722,7 @@ _restriction = new WeakMap();
 _rotateControl = new WeakMap();
 _scaleControl = new WeakMap();
 _selector = new WeakMap();
+_streetViewControl = new WeakMap();
 _styles2 = new WeakMap();
 _watchId = new WeakMap();
 _getMapOptions = new WeakSet();
@@ -5529,7 +5756,7 @@ getMapOptions_fn = function() {
         mapOptions[key] = __privateGet(this, _options2)[key];
       }
     });
-    const optionsToSet = ["renderingType"];
+    const optionsToSet = ["renderingType", "streetView"];
     optionsToSet.forEach((key) => {
       if (typeof __privateGet(this, _options2)[key] !== "undefined") {
         mapOptions[key] = __privateGet(this, _options2)[key];
@@ -5563,6 +5790,9 @@ getMapOptions_fn = function() {
       mapOptions.scaleControl = __privateGet(this, _scaleControl).enabled;
       const scaleControlOptions = yield __privateGet(this, _scaleControl).toGoogle();
       mapOptions.scaleControlOptions = scaleControlOptions;
+      mapOptions.streetViewControl = __privateGet(this, _streetViewControl).enabled;
+      const streetViewControlOptions = yield __privateGet(this, _streetViewControl).toGoogle();
+      mapOptions.streetViewControlOptions = streetViewControlOptions;
       if (__privateGet(this, _styles2).length > 0) {
         mapOptions.styles = __privateGet(this, _styles2).map((style) => style.toGoogle());
       }
@@ -8454,7 +8684,7 @@ var MarkerCollection = class {
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var _offset, _overlay, _overlayView, _position4, _styles3, _setupGoogleOverlay, setupGoogleOverlay_fn;
+var _offset, _overlay, _overlayView, _position5, _styles3, _setupGoogleOverlay, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -8501,7 +8731,7 @@ var Overlay = class extends Layer_default {
      * @private
      * @type {LatLng}
      */
-    __privateAdd(this, _position4, void 0);
+    __privateAdd(this, _position5, void 0);
     /**
      * Holds the styles for the tooltip. These are applied to the tooltip container (i.e. the overlay element).
      *
@@ -8566,7 +8796,7 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
-    return __privateGet(this, _position4);
+    return __privateGet(this, _position5);
   }
   /**
    * Set the position of the overlay
@@ -8576,9 +8806,9 @@ var Overlay = class extends Layer_default {
   set position(value) {
     const position = latLng(value);
     if (position.isValid()) {
-      __privateSet(this, _position4, position);
+      __privateSet(this, _position5, position);
     } else if (isNullOrUndefined(value)) {
-      __privateSet(this, _position4, void 0);
+      __privateSet(this, _position5, void 0);
     }
   }
   /**
@@ -8693,7 +8923,7 @@ var Overlay = class extends Layer_default {
    * @returns {boolean}
    */
   hasPosition() {
-    return __privateGet(this, _position4) instanceof LatLng;
+    return __privateGet(this, _position5) instanceof LatLng;
   }
   /**
    * Hide the overlay
@@ -8914,7 +9144,7 @@ var Overlay = class extends Layer_default {
 _offset = new WeakMap();
 _overlay = new WeakMap();
 _overlayView = new WeakMap();
-_position4 = new WeakMap();
+_position5 = new WeakMap();
 _styles3 = new WeakMap();
 _setupGoogleOverlay = new WeakSet();
 setupGoogleOverlay_fn = function() {
@@ -11247,6 +11477,7 @@ Map.include(tooltipMixin);
   RotateControl,
   ScaleControl,
   Size,
+  StreetViewSource,
   SvgSymbol,
   Tooltip,
   autocompleteSearchBox,
