@@ -24,7 +24,14 @@ export { latLngBounds, LatLngBounds, LatLngBoundsValue } from './lib/LatLngBound
 export { default as Layer } from './lib/Layer';
 export { loader, Loader, LoaderOptions } from './lib/Loader';
 export { map, Map, MapType } from './lib/Map';
+export { fullscreenControl, FullscreenControl, FullscreenControlOptions } from './lib/Map/FullscreenControl';
+export { mapRestriction, MapRestriction, MapRestrictionOptions } from './lib/Map/MapRestriction';
+export { mapStyle, MapStyle, MapStyleOptions } from './lib/Map/MapStyle';
 export { mapTypeControl, MapTypeControl, MapTypeControlOptions } from './lib/Map/MapTypeControl';
+export { rotateControl, RotateControl, RotateControlOptions } from './lib/Map/RotateControl';
+export { scaleControl, ScaleControl, ScaleControlOptions } from './lib/Map/ScaleControl';
+export { streetViewControl, StreetViewControl, StreetViewControlOptions } from './lib/Map/StreetViewControl';
+export { zoomControl, ZoomControl, ZoomControlOptions } from './lib/Map/ZoomControl';
 export { LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './lib/Map/types';
 export { marker, Marker, MarkerLabel, MarkerOptions, MarkerValue } from './lib/Marker';
 export {

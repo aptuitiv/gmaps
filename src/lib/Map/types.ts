@@ -4,28 +4,107 @@
 
 import { Libraries } from '@googlemaps/js-api-loader';
 import { LatLng, LatLngValue } from '../LatLng';
+import { FullscreenControl } from './FullscreenControl';
 import { MapTypeControl } from './MapTypeControl';
-import { MapTypeIdValue } from '../constants';
+import { MapTypeIdValue, RenderingTypeValue } from '../constants';
+import { MapRestrictionValue } from './MapRestriction';
+import { MapStyleValue } from './MapStyle';
+import { RotateControlValue } from './RotateControl';
+import { ScaleControlValue } from './ScaleControl';
+import { StreetViewControl } from './StreetViewControl';
+import { ZoomControl } from './ZoomControl';
 
 // The options that will be passed to the Google Maps map object
 export type GMMapOptions = {
+    backgroundColor?: string;
     center?: LatLng;
+    clickableIcons?: boolean;
+    colorScheme?: string;
+    controlSize?: number;
+    disableDefaultUI?: boolean;
+    draggableCursor?: string;
+    draggingCursor?: string;
+    fullscreenControl?: boolean;
+    fullscreenControlOptions?: google.maps.FullscreenControlOptions;
+    gestureHandling?: string;
+    heading?: number;
+    headingInteractionEnabled?: boolean;
+    isFractionalZoomEnabled?: boolean;
+    keyboardShortcuts?: boolean;
     mapId?: string;
     mapTypeControl?: boolean;
     mapTypeControlOptions?: google.maps.MapTypeControlOptions;
     mapTypeId?: google.maps.MapTypeId | string;
     maxZoom?: number;
     minZoom?: number;
+    noClear?: boolean;
+    renderingType?: google.maps.RenderingType;
+    restriction?: google.maps.MapRestriction;
+    rotateControl?: boolean;
+    rotateControlOptions?: google.maps.RotateControlOptions;
+    scaleControl?: boolean;
+    scaleControlOptions?: google.maps.ScaleControlOptions;
+    scrollwheel?: boolean;
+    streetView?: google.maps.StreetViewPanorama;
+    styles?: google.maps.MapTypeStyle[];
+    tilt?: number;
+    tiltInteractionEnabled?: boolean;
     zoom?: number;
+    zoomControl?: boolean;
+    zoomControlOptions?: google.maps.ZoomControlOptions;
 };
 
 // The options that are passed to map() and setOptions()
+// Some of the options are part of the available google.maps.MapOptions:
+// https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions
 export type MapOptions = {
     // The Google Maps API key
     apiKey?: string;
+    // The background color of the map. This can be any valid CSS color value. The color will be visible
+    // when the tiiles have not yet loaded as the user pans. This option can only be set when the map is initialized.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.backgroundColor
+    backgroundColor?: string;
     // The center point for the map.
     // This is an alternate to setting the latitude and longitude separately.
     center?: LatLngValue;
+    // Whether the map icons are clickable or not. Defaults to true.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.clickableIcons
+    clickableIcons?: boolean;
+    // The initial Map color scheme. This option can only be set when the map is initialized.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.colorScheme
+    colorScheme?: string;
+    // The size in pixels of the controls on the map that are made by the Maps JavaScript API. This does not apply to custom controls.
+    // This can only be set when the map is initialized.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.controlSize
+    controlSize?: number;
+    // Enables or disables the default UI.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.disableDefaultUI
+    disableDefaultUI?: boolean;
+    // The name or url of the cursor to display when mousing over a draggable map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.draggableCursor
+    draggableCursor?: string;
+    // The name or url of the cursor to display when the map is being dragged.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.draggingCursor
+    draggingCursor?: string;
+    // The fullscreen control object to configure how the Fullscreen control displayed,
+    // or a boolean to disable/enable the Fullscreen control.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.fullscreenControl
+    fullscreenControl?: boolean | FullscreenControl;
+    // This controls how the API handles gestures on the map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.gestureHandling
+    gestureHandling?: string;
+    // Sets the heading for aerial imagery in degrees measured clockwise from cardinal direction North.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.heading
+    heading?: number;
+    // Whether the map should allow user control of the camera heading (rotation).
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.headingInteractionEnabled
+    headingInteractionEnabled?: boolean;
+    // Whether the map should allow fractional zoom levels.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.isFractionalZoomEnabled
+    isFractionalZoomEnabled?: boolean;
+    // Whether to allow the map to be controlled by the keyboard. By default, this is set to true.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.keyboardShortcuts
+    keyboardShortcuts?: boolean;
     // The latitude for the center point of the map
     lat?: number | string;
     latitude?: number | string;
@@ -40,7 +119,7 @@ export type MapOptions = {
     // See https://developers.google.com/maps/documentation/get-map-id
     mapId?: string;
     // The map type control object to configure how the Map Type control displayed,
-    // or, false to disable the Map Type control.
+    // or a boolean to disable/enable the Map Type control.
     // https://developers.google.com/maps/documentation/javascript/controls
     mapTypeControl?: boolean | MapTypeControl;
     // The map type ID to use for the map.
@@ -54,11 +133,51 @@ export type MapOptions = {
     // If omitted, or set to null, the minimum zoom from the current map type is used instead.
     // Valid zoom values are numbers from zero up to the supported maximum zoom level.
     minZoom?: number;
+    // Whether to clear the contents of the map div. If true, then the map div contents will not be cleared.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.noClear
+    noClear?: boolean;
+    // The rendering type for the map. This sets if it should be a raster or vector map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.renderingType
+    renderingType?: RenderingTypeValue;
+    // The boundry to restrict the map to. When set the user can only pan and zoom within this latitude/longitude bounds.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.restriction
+    restriction?: MapRestrictionValue;
+    // The Rotate control object to configure how the Rotate control displayed,
+    // or a boolean to disable/enable the Rotate control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    rotateControl?: boolean | RotateControlValue;
+    // The Scale control object to configure how the Scale control displayed,
+    // or a boolean to disable/enable the Scale control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    scaleControl?: boolean | ScaleControlValue;
+    // Whether to enable or disable zooming with the mouse scroll wheel. Defaults to true.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.scrollwheel
+    scrollwheel?: boolean;
+    // A StreetViewPanorama to display when the Street View pegman is dropped on the map
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.streetView
+    streetView?: google.maps.StreetViewPanorama;
+    // The Street view control object to configure how the Street view control is displayed,
+    // or a boolean to disable/enable the Street view control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    streetViewControl?: boolean | StreetViewControl;
+    // The styles to apply to the map types.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.styles
+    styles?: MapStyleValue;
+    // For vector maps, this sets the angle of incidence of the map.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.tilt
+    tilt?: number;
+    // Whether the map should allow user control of the camera tilt.
+    // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.tiltInteractionEnabled
+    tiltInteractionEnabled?: boolean;
     // The version of the Google Maps API to load.
     // https://developers.google.com/maps/documentation/javascript/versions
     version?: string;
     // The default zoom for the map. Defaults to 8.
     zoom?: number | string;
+    // The Zoom control object to configure how the Zoom control is displayed,
+    // or a boolean to disable/enable the Zoom control.
+    // https://developers.google.com/maps/documentation/javascript/controls
+    zoomControl?: boolean | ZoomControl;
 };
 
 // The options for the Map.locate() function

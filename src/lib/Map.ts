@@ -15,13 +15,14 @@
 
 /* global google, HTMLElement */
 
-import { convertControlPosition, ControlPositionValue, MapTypeId } from './constants';
+import { convertControlPosition, ControlPositionValue, MapTypeId, MapTypeIdValue } from './constants';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
     callCallback,
     checkForGoogleMaps,
     isBoolean,
+    isDefined,
     isFunction,
     isNull,
     isNumber,
@@ -32,8 +33,15 @@ import {
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
 import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
-import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
+import { fullscreenControl, FullscreenControl } from './Map/FullscreenControl';
+import { mapRestriction, MapRestriction, MapRestrictionValue } from './Map/MapRestriction';
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
+import { mapStyle, MapStyle } from './Map/MapStyle';
+import { GMMapOptions, LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './Map/types';
+import { rotateControl, RotateControl } from './Map/RotateControl';
+import { scaleControl, ScaleControl } from './Map/ScaleControl';
+import { streetViewControl, StreetViewControl } from './Map/StreetViewControl';
+import { zoomControl, ZoomControl } from './Map/ZoomControl';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
@@ -91,6 +99,14 @@ export class Map extends Evented {
      * @type {CustomControl[]}
      */
     #customControls: CustomControl[] = [];
+
+    /**
+     * Holds the fullscreen control object
+     *
+     * @private
+     * @type {FullscreenControl}
+     */
+    #fullscreenControl: FullscreenControl;
 
     /**
      * Holds the latitude portion of the center point for the map
@@ -165,6 +181,30 @@ export class Map extends Evented {
     #options: GMMapOptions = {};
 
     /**
+     * Holds the map restriction object to restrict the map to a certain area
+     *
+     * @private
+     * @type {MapRestriction}
+     */
+    #restriction: MapRestriction;
+
+    /**
+     * Holds the rotate control object
+     *
+     * @private
+     * @type {RotateControl}
+     */
+    #rotateControl: RotateControl;
+
+    /**
+     * Holds the scale control object
+     *
+     * @private
+     * @type {ScaleControl}
+     */
+    #scaleControl: ScaleControl;
+
+    /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
      * @private
@@ -173,12 +213,36 @@ export class Map extends Evented {
     #selector: string | HTMLElement;
 
     /**
+     * Holds the street view control object
+     *
+     * @private
+     * @type {StreetViewControl}
+     */
+    #streetViewControl: StreetViewControl;
+
+    /**
+     * Holds the styles to apply to the map
+     *
+     * @private
+     * @type {MapStyle[]}
+     */
+    #styles?: MapStyle[] = [];
+
+    /**
      * Holds the watchId for the watchPosition() function
      *
      * @private
      * @type {number}
      */
     #watchId: number;
+
+    /**
+     * Holds the zoom control object
+     *
+     * @private
+     * @type {ZoomControl}
+     */
+    #zoomControl: ZoomControl;
 
     /**
      * Class constructor
@@ -194,7 +258,12 @@ export class Map extends Evented {
         this.#options.mapTypeId = MapTypeId.ROADMAP;
         this.#options.center = latLng(0, 0);
         this.#options.zoom = 6;
+        this.#fullscreenControl = fullscreenControl();
         this.#mapTypeControl = mapTypeControl();
+        this.#rotateControl = rotateControl();
+        this.#scaleControl = scaleControl();
+        this.#streetViewControl = streetViewControl();
+        this.#zoomControl = zoomControl();
 
         this.#selector = selector;
         if (isObject(options)) {
@@ -233,6 +302,60 @@ export class Map extends Evented {
             if (isObject(this.#map)) {
                 this.#map.setCenter(this.#options.center.toGoogle());
             }
+        }
+    }
+
+    /**
+     * Get whether the default UI is disabled
+     *
+     * @returns {boolean}
+     */
+    get disableDefaultUI(): boolean {
+        return this.#options.disableDefaultUI ?? false;
+    }
+
+    /**
+     * Set whether the default UI is disabled
+     *
+     * @param {boolean} value Whether the default UI is disabled
+     */
+    set disableDefaultUI(value: boolean) {
+        if (isBoolean(value)) {
+            this.#options.disableDefaultUI = value;
+            if (this.#map) {
+                this.#map.setOptions({ disableDefaultUI: value });
+            }
+        }
+    }
+
+    /**
+     * Get the fullscreen control object
+     *
+     * @returns {FullscreenControl}
+     */
+    get fullscreenControl(): FullscreenControl {
+        return this.#fullscreenControl;
+    }
+
+    /**
+     * Set the fullscreen control object, or whether to display the fullscreen control
+     *
+     * @param {boolean|FullscreenControl} value The fullscreen control option
+     */
+    set fullscreenControl(value: boolean | FullscreenControl) {
+        if (isBoolean(value)) {
+            this.#fullscreenControl.enabled = value;
+        } else if (value instanceof FullscreenControl) {
+            this.#fullscreenControl = value;
+        }
+
+        if (this.#map) {
+            this.#fullscreenControl.toGoogle().then((fullscreenControlOptions) => {
+                this.#map.setOptions({
+                    fullscreenControl: this.#fullscreenControl.enabled,
+                    fullscreenControlOptions,
+                });
+            });
         }
     }
 
@@ -394,6 +517,122 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the MapRestriction object if it's been set
+     *
+     * @returns {MapRestriction|undefined}
+     */
+    get restriction(): MapRestriction | undefined {
+        return this.#restriction;
+    }
+
+    /**
+     * Set the MapRestriction value
+     *
+     * @param {MapRestrictionValue} value The MapRestriction value
+     */
+    set restriction(value: MapRestrictionValue) {
+        this.#restriction = mapRestriction(value);
+        if (this.#map && this.#restriction.isValid() && this.#restriction.isEnabled()) {
+            this.#restriction.toGoogle().then((restriction) => {
+                this.#map.setOptions({ restriction });
+            });
+        }
+    }
+
+    /**
+     * Get the rotate control object
+     *
+     * @returns {RotateControl}
+     */
+    get rotateControl(): RotateControl {
+        return this.#rotateControl;
+    }
+
+    /**
+     * Set the rotate control object, or whether to display the rotate control
+     *
+     * @param {boolean|RotateControl} value The rotate control option
+     */
+    set rotateControl(value: boolean | RotateControl) {
+        if (isBoolean(value)) {
+            this.#rotateControl.enabled = value;
+        } else if (value instanceof RotateControl) {
+            this.#rotateControl = value;
+        }
+
+        if (this.#map) {
+            this.#rotateControl.toGoogle().then((rotateControlOptions) => {
+                this.#map.setOptions({
+                    rotateControl: this.#rotateControl.enabled,
+                    rotateControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
+     * Get the scale control object
+     *
+     * @returns {ScaleControl}
+     */
+    get scaleControl(): ScaleControl {
+        return this.#scaleControl;
+    }
+
+    /**
+     * Set the scale control object, or whether to display the scale control
+     *
+     * @param {boolean|ScaleControl} value The scale control option
+     */
+    set scaleControl(value: boolean | ScaleControl) {
+        if (isBoolean(value)) {
+            this.#scaleControl.enabled = value;
+        } else if (value instanceof ScaleControl) {
+            this.#scaleControl = value;
+        }
+
+        if (this.#map) {
+            this.#scaleControl.toGoogle().then((scaleControlOptions) => {
+                this.#map.setOptions({
+                    scaleControl: this.#scaleControl.enabled,
+                    scaleControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
+     * Get the street view control object
+     *
+     * @returns {StreetViewControl}
+     */
+    get streetViewControl(): StreetViewControl {
+        return this.#streetViewControl;
+    }
+
+    /**
+     * Set the street view control object, or whether to display the scale control
+     *
+     * @param {boolean|StreetViewControl} value The scale control option
+     */
+    set streetViewControl(value: boolean | StreetViewControl) {
+        if (isBoolean(value)) {
+            this.#streetViewControl.enabled = value;
+        } else if (value instanceof StreetViewControl) {
+            this.#streetViewControl = value;
+        }
+
+        if (this.#map) {
+            this.#streetViewControl.toGoogle().then((streetViewControlOptions) => {
+                this.#map.setOptions({
+                    streetViewControl: this.#streetViewControl.enabled,
+                    streetViewControlOptions,
+                });
+            });
+        }
+    }
+
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -423,6 +662,37 @@ export class Map extends Evented {
 
         if (this.#map) {
             this.#map.setZoom(Number(value));
+        }
+    }
+
+    /**
+     * Get the zoom control object
+     *
+     * @returns {ZoomControl}
+     */
+    get zoomControl(): ZoomControl {
+        return this.#zoomControl;
+    }
+
+    /**
+     * Set the zoom control object, or whether to display the zoom control
+     *
+     * @param {boolean|ZoomControl} value The zoom control option
+     */
+    set zoomControl(value: boolean | ZoomControl) {
+        if (isBoolean(value)) {
+            this.#zoomControl.enabled = value;
+        } else if (value instanceof ZoomControl) {
+            this.#zoomControl = value;
+        }
+
+        if (this.#map) {
+            this.#zoomControl.toGoogle().then((zoomControlOptions) => {
+                this.#map.setOptions({
+                    zoomControl: this.#zoomControl.enabled,
+                    zoomControlOptions,
+                });
+            });
         }
     }
 
@@ -463,6 +733,26 @@ export class Map extends Evented {
      */
     clearBounds(): Map {
         this.#bounds = latLngBounds();
+        return this;
+    }
+
+    /**
+     * Enable the default UI
+     *
+     * @returns {Map}
+     */
+    enableDefaultUI(): Map {
+        this.disableDefaultUI = false;
+        return this;
+    }
+
+    /**
+     * Disable the default UI
+     *
+     * @returns {Map}
+     */
+    doDisableDefaultUI(): Map {
+        this.disableDefaultUI = true;
         return this;
     }
 
@@ -569,22 +859,96 @@ export class Map extends Evented {
     #getMapOptions(): Promise<google.maps.MapOptions> {
         return new Promise((resolve) => {
             const mapOptions: google.maps.MapOptions = {};
-            // Options that can be set on the marker without any modification
-            const optionsToSet = ['mapId', 'mapTypeId', 'maxZoom', 'minZoom', 'zoom'];
+            // Boolean options that can be set on the map without any modification
+            const booleanOptions = [
+                'clickableIcons',
+                'disableDefaultUI',
+                'headingInteractionEnabled',
+                'isFractionalZoomEnabled',
+                'keyboardShortcuts',
+                'noClear',
+                'scrollwheel',
+                'tiltInteractionEnabled',
+            ];
+            booleanOptions.forEach((key) => {
+                if (isBoolean(this.#options[key])) {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+            // Number options that can be set on the map without any modification
+            const numberOptions = ['controlSize', 'heading', 'maxZoom', 'minZoom', 'tilt', 'zoom'];
+            numberOptions.forEach((key) => {
+                if (isNumberOrNumberString(this.#options[key])) {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+            // String options that can be set on the map without any modification
+            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling', 'mapId'];
+            stringOptions.forEach((key) => {
+                if (isStringWithValue(this.#options[key])) {
+                    mapOptions[key] = this.#options[key];
+                }
+            });
+            // Other options that can be set on the map without any modification
+            const optionsToSet = ['renderingType', 'streetView'];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
                     mapOptions[key] = this.#options[key];
                 }
             });
 
-            // Options that have to be converted to Google Maps objects
+            // If the mapTypeId is set then make sure that it's one of the map types supported
+            // in the MapTypeControl object
+            if (isStringWithValue(this.#options.mapTypeId)) {
+                if (this.#mapTypeControl.hasMapType(this.#options.mapTypeId as MapTypeIdValue)) {
+                    mapOptions.mapTypeId = this.#options.mapTypeId;
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        'The selected mapTypeId is not one of the allowed types set for the MapType Control.',
+                        this.#options.mapTypeId
+                    );
+                }
+            }
+
+            // Options that have to be converted to Google Maps objects but are not async
             mapOptions.center = this.#options.center.toGoogle();
-            mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
 
             // Get async map options
             (async () => {
+                // Full screen control
+                mapOptions.fullscreenControl = this.#fullscreenControl.enabled;
+                const fullscreenControlOptions = await this.#fullscreenControl.toGoogle();
+                mapOptions.fullscreenControlOptions = fullscreenControlOptions;
+                // Map type control
+                mapOptions.mapTypeControl = this.#mapTypeControl.enabled;
                 const mapTypeControlOptions = await this.#mapTypeControl.toGoogle();
                 mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+                // Restrictions
+                if (this.#restriction && this.#restriction.isValid() && this.#restriction.isEnabled()) {
+                    const restriction = await this.#restriction.toGoogle();
+                    mapOptions.restriction = restriction;
+                }
+                // Rotate control
+                mapOptions.rotateControl = this.#rotateControl.enabled;
+                const rotateControlOptions = await this.#rotateControl.toGoogle();
+                mapOptions.rotateControlOptions = rotateControlOptions;
+                // Scale control
+                mapOptions.scaleControl = this.#scaleControl.enabled;
+                const scaleControlOptions = await this.#scaleControl.toGoogle();
+                mapOptions.scaleControlOptions = scaleControlOptions;
+                // Street view control
+                mapOptions.streetViewControl = this.#streetViewControl.enabled;
+                const streetViewControlOptions = await this.#streetViewControl.toGoogle();
+                mapOptions.streetViewControlOptions = streetViewControlOptions;
+                // Zoom control
+                mapOptions.zoomControl = this.#zoomControl.enabled;
+                const zoomControlOptions = await this.#zoomControl.toGoogle();
+                mapOptions.zoomControlOptions = zoomControlOptions;
+                // Map styles
+                if (this.#styles.length > 0) {
+                    mapOptions.styles = this.#styles.map((style) => style.toGoogle());
+                }
                 resolve(mapOptions);
             })();
         });
@@ -703,8 +1067,10 @@ export class Map extends Evented {
             loader()
                 .load()
                 .then(() => {
-                    this.#showMap(callback);
-                    resolve();
+                    this.#showMap().then(() => {
+                        callCallback(callback);
+                        resolve();
+                    });
                 })
                 .catch((err) => {
                     reject(err);
@@ -977,12 +1343,26 @@ export class Map extends Evented {
             if (center.isValid()) {
                 this.#options.center = center;
             }
+            if (isBoolean(options.disableDefaultUI)) {
+                this.disableDefaultUI = options.disableDefaultUI;
+            }
+            if (typeof options.fullscreenControl !== 'undefined') {
+                if (isBoolean(options.fullscreenControl)) {
+                    this.#fullscreenControl.enabled = options.fullscreenControl;
+                } else if (options.fullscreenControl instanceof FullscreenControl) {
+                    this.#fullscreenControl = options.fullscreenControl;
+                }
+            }
             if (isStringWithValue(options.mapId)) {
                 // 'DEMO_MAP_ID' could be used in development, but it should be set to a real map id in production.
                 this.#options.mapId = options.mapId;
             }
             if (typeof options.mapTypeControl !== 'undefined') {
-                this.mapTypeControl = options.mapTypeControl;
+                if (isBoolean(options.mapTypeControl)) {
+                    this.#mapTypeControl.enabled = options.mapTypeControl;
+                } else if (options.mapTypeControl instanceof MapTypeControl) {
+                    this.#mapTypeControl = options.mapTypeControl;
+                }
             }
             if (options.mapTypeId) {
                 this.mapTypeId = options.mapTypeId;
@@ -994,10 +1374,87 @@ export class Map extends Evented {
                 this.minZoom = options.minZoom;
             }
 
+            if (typeof options.restriction !== 'undefined') {
+                this.restriction = options.restriction;
+            }
+
+            if (isDefined(options.rotateControl)) {
+                if (isBoolean(options.rotateControl)) {
+                    this.#rotateControl.enabled = options.rotateControl;
+                } else if (options.rotateControl instanceof RotateControl) {
+                    this.#rotateControl = options.rotateControl;
+                }
+            }
+
+            if (isDefined(options.scaleControl)) {
+                if (isBoolean(options.scaleControl)) {
+                    this.#scaleControl.enabled = options.scaleControl;
+                } else if (options.scaleControl instanceof ScaleControl) {
+                    this.#scaleControl = options.scaleControl;
+                }
+            }
+
+            if (isDefined(options.streetViewControl)) {
+                if (isBoolean(options.streetViewControl)) {
+                    this.#streetViewControl.enabled = options.streetViewControl;
+                } else if (options.streetViewControl instanceof StreetViewControl) {
+                    this.#streetViewControl = options.streetViewControl;
+                }
+            }
+
+            if (isDefined(options.zoomControl)) {
+                if (isBoolean(options.zoomControl)) {
+                    this.#zoomControl.enabled = options.zoomControl;
+                } else if (options.zoomControl instanceof ZoomControl) {
+                    this.#zoomControl = options.zoomControl;
+                }
+            }
+
+            // Set the styles for the map
+            if (Array.isArray(options.styles)) {
+                this.#styles = options.styles.map((style) => mapStyle(style));
+            } else if (options.styles instanceof MapStyle) {
+                this.#styles = [options.styles];
+            }
+
             // Set the zoom level for the map
             if (options.zoom) {
                 this.zoom = options.zoom;
             }
+
+            // Set options that correspond to a property on the map object.
+            const booleanOptions = [
+                'clickableIcons',
+                'headingInteractionEnabled',
+                'isFractionalZoomEnabled',
+                'keyboardShortcuts',
+                'noClear',
+                'scrollwheel',
+                'tiltInteractionEnabled',
+            ];
+            booleanOptions.forEach((key) => {
+                if (isBoolean(options[key])) {
+                    this.#options[key] = options[key];
+                }
+            });
+            const numberOptions = ['controlSize', 'heading', 'tilt'];
+            numberOptions.forEach((key) => {
+                if (isNumberOrNumberString(options[key])) {
+                    this.#options[key] = options[key];
+                }
+            });
+            const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling'];
+            stringOptions.forEach((key) => {
+                if (isStringWithValue(options[key])) {
+                    this.#options[key] = options[key];
+                }
+            });
+            const otherOptions = ['mapTypeId', 'renderingType', 'streetView'];
+            otherOptions.forEach((key) => {
+                if (typeof options[key] !== 'undefined') {
+                    this.#options[key] = options[key];
+                }
+            });
 
             if (this.#map) {
                 this.#getMapOptions().then((mapOptions) => {
@@ -1034,13 +1491,19 @@ export class Map extends Evented {
         return new Promise((resolve) => {
             if (checkForGoogleMaps('Map', 'Map', false)) {
                 // The map library is loaded and this can be shown
-                this.#showMap(callback);
-                resolve(this);
+                this.#showMap().then(() => {
+                    // Call the callback function if necessary
+                    callCallback(callback);
+                    resolve(this);
+                });
             } else {
                 // Wait for the loader to dispatch it's "load" event
                 loader().once('load', () => {
-                    this.#showMap(callback);
-                    resolve(this);
+                    this.#showMap().then(() => {
+                        // Call the callback function if necessary
+                        callCallback(callback);
+                        resolve(this);
+                    });
                 });
             }
         });
@@ -1052,59 +1515,59 @@ export class Map extends Evented {
      * This also dispatches the "visible" and "map_loaded" events,
      * and calls the callback function.
      *
-     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
      */
-    #showMap(callback?: () => void) {
-        // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
-        if (!this.#isVisible && !this.#isGettingMapOptions) {
-            this.#isGettingMapOptions = true;
+    #showMap(): Promise<void> {
+        return new Promise((resolve) => {
+            // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
+            if (!this.#isVisible && !this.#isGettingMapOptions) {
+                this.#isGettingMapOptions = true;
 
-            // Get the DOM element to attach the map to
-            let element: HTMLElement = null;
-            if (typeof this.#selector === 'string') {
-                element = document.querySelector(this.#selector);
-            } else if (this.#selector instanceof HTMLElement) {
-                element = this.#selector;
-            }
-            if (element === null) {
-                throw new Error(
-                    'The map element could not be found. Make sure the map selector is correct and the element exists.'
-                );
-            }
-
-            // Get the map options
-            this.#getMapOptions().then((mapOptions) => {
-                this.#map = new google.maps.Map(element, mapOptions);
-                this.setEventGoogleObject(this.#map);
-
-                // Add any custom controls to the map
-                if (this.#customControls.length > 0) {
-                    this.#customControls.forEach((control) => {
-                        this.#map.controls[convertControlPosition(control.position)].push(control.element);
-                    });
+                // Get the DOM element to attach the map to
+                let element: HTMLElement = null;
+                if (typeof this.#selector === 'string') {
+                    element = document.querySelector(this.#selector);
+                } else if (this.#selector instanceof HTMLElement) {
+                    element = this.#selector;
                 }
-                this.#customControls = [];
+                if (element === null) {
+                    throw new Error(
+                        'The map element could not be found. Make sure the map selector is correct and the element exists.'
+                    );
+                }
 
-                // Dispatch the event to say that the map is visible
-                this.dispatch('visible');
-                // Dispatch the event on the loader to say that the map is fully loaded.
-                // This is done because the map is loaded after the loader's "load" event is dispatched
-                // and some objects depend on the map being loaded before they can be set up.
-                loader().dispatch('map_loaded');
+                // Get the map options
+                this.#getMapOptions().then((mapOptions) => {
+                    this.#map = new google.maps.Map(element, mapOptions);
+                    this.setEventGoogleObject(this.#map);
 
-                // Set that the map is initialized
-                this.#isInitialized = true;
+                    // Add any custom controls to the map
+                    if (this.#customControls.length > 0) {
+                        this.#customControls.forEach((control) => {
+                            this.#map.controls[convertControlPosition(control.position)].push(control.element);
+                        });
+                    }
+                    this.#customControls = [];
 
-                // Set that the map is visible
-                this.#isVisible = true;
+                    // Dispatch the event to say that the map is visible
+                    this.dispatch('visible');
+                    // Dispatch the event on the loader to say that the map is fully loaded.
+                    // This is done because the map is loaded after the loader's "load" event is dispatched
+                    // and some objects depend on the map being loaded before they can be set up.
+                    loader().dispatch('map_loaded');
 
-                // Call the callback function if necessary
-                callCallback(callback);
-            });
-        } else {
-            // Call the callback function if necessary
-            callCallback(callback);
-        }
+                    // Set that the map is initialized
+                    this.#isInitialized = true;
+
+                    // Set that the map is visible
+                    this.#isVisible = true;
+
+                    resolve();
+                });
+            } else {
+                resolve();
+            }
+        });
     }
 
     /**

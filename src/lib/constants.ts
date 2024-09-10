@@ -222,3 +222,39 @@ export const MapTypeId = Object.freeze({
 
 // Type for the MapTypeId values
 export type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
+
+/**
+ * The rendering type of the map.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
+ */
+export const RenderingType = Object.freeze({
+    // 	Indicates that the map is a raster map.
+    RASTER: 'RASTER',
+    // Indicates that it is unknown yet whether the map is vector or raster, because the map has not finished initializing yet.
+    UNINITIALIZED: 'UNINITIALIZED',
+    // Indicates that the map is a vector map.
+    VECTOR: 'VECTOR',
+});
+
+// Type for the RenderingType values
+export type RenderingTypeValue = (typeof RenderingType)[keyof typeof RenderingType];
+
+/**
+ * Street view sources
+ * https://developers.google.com/maps/documentation/javascript/reference/street-view-service#StreetViewSource
+ */
+export const StreetViewSource = Object.freeze({
+    // Uses the default sources of Street View, searches will not be limited to
+    // specific sources.
+    DEFAULT: 'default',
+    // Limits Street View searches to official Google collections.
+    GOOGLE: 'google',
+    // Limits Street View searches to outdoor collections. Indoor collections
+    // are not included in search results. According to Google's documentation,
+    // this is not supported.
+    OUTDOOR: 'outdoor',
+});
+
+// Type for the StreetViewSource values
+export type StreetViewSourceValue = (typeof StreetViewSource)[keyof typeof StreetViewSource];

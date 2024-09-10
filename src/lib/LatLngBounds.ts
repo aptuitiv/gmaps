@@ -201,7 +201,7 @@ export class LatLngBounds extends Base {
      * @returns {void}
      */
     #extend(latLngObject: LatLng): void {
-        this.#boundValues.push(latLngObject);
+        this.#boundValues.push(latLngObject.clone());
 
         if (this.#northEast && this.#southWest) {
             // Set the north-east corner to the most north-east point
@@ -213,8 +213,10 @@ export class LatLngBounds extends Base {
             this.#southWest.longitude = Math.min(latLngObject.longitude, this.#southWest.longitude);
         } else {
             // Set the north-east and south-west corners to the first point
-            this.#northEast = latLngObject;
-            this.#southWest = latLngObject;
+            // We clone the LatLng object so that it's not associated with the original object.
+            // We were getting some odd errors where the original object was being modified.
+            this.#northEast = latLngObject.clone();
+            this.#southWest = latLngObject.clone();
         }
     }
 

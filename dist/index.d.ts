@@ -286,6 +286,27 @@ declare const MapTypeId: Readonly<{
     TERRAIN: "terrain";
 }>;
 type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
+/**
+ * The rendering type of the map.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
+ */
+declare const RenderingType: Readonly<{
+    RASTER: "RASTER";
+    UNINITIALIZED: "UNINITIALIZED";
+    VECTOR: "VECTOR";
+}>;
+type RenderingTypeValue = (typeof RenderingType)[keyof typeof RenderingType];
+/**
+ * Street view sources
+ * https://developers.google.com/maps/documentation/javascript/reference/street-view-service#StreetViewSource
+ */
+declare const StreetViewSource: Readonly<{
+    DEFAULT: "default";
+    GOOGLE: "google";
+    OUTDOOR: "outdoor";
+}>;
+type StreetViewSourceValue = (typeof StreetViewSource)[keyof typeof StreetViewSource];
 
 type LatLngLiteral = {
     lat?: number | string;
@@ -776,6 +797,13 @@ declare class Evented extends Base {
  * @returns {boolean}
  */
 declare const isBoolean: (thing: any) => thing is boolean;
+/**
+ * Tests to see if the value is defined
+ *
+ * @param {any} thing The value to test
+ * @returns {boolean}
+ */
+declare const isDefined: <T>(thing: any) => thing is T;
 /**
  * Returns if the thing is a function
  *
@@ -1594,7 +1622,189 @@ type IconValue = Icon | string | IconOptions;
  */
 declare const icon: (url?: IconValue, options?: IconOptions) => Icon;
 
+type FullscreenControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+};
+/**
+ * Fullscreen control class
+ */
+declare class FullscreenControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {FullscreenControlOptions | boolean} [options] Either the FullscreenControl options or a boolean value to disable the control.
+     */
+    constructor(options?: FullscreenControlOptions | boolean);
+    /**
+     * Get whether the Fullscreen control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Fullscreen control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the fullscreen control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the fullscreen control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Disable the Fullscreen control
+     *
+     * @returns {FullscreenControl}
+     */
+    disable(): FullscreenControl;
+    /**
+     * Enable the Fullscreen control
+     *
+     * @returns {FullscreenControl}
+     */
+    enable(): FullscreenControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {FullscreenControl}
+     */
+    setPosition(position: ControlPositionValue): FullscreenControl;
+    /**
+     * Get the Fullscreen Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.FullscreenControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.FullscreenControlOptions>;
+}
+type FullscreenControlValue = FullscreenControlOptions | boolean | FullscreenControl;
+/**
+ * Helper function to set up the FullscreenControl object
+ *
+ * @param {FullscreenControlValue} options The FullscreenControl options, a boolean value to disable the control, or a FullscreenControl object.
+ * @returns {FullscreenControl}
+ */
+declare const fullscreenControl: (options?: FullscreenControlValue) => FullscreenControl;
+
+type MapRestrictionOptions = {
+    enabled?: boolean;
+    latLngBounds?: LatLngBoundsValue;
+    strictBounds?: boolean;
+};
+/**
+ * MapRestriction class
+ */
+declare class MapRestriction {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {MapRestrictionOptions | LatLngBoundsValue | boolean} [options] Either the MapRestriction options just the LatLng bounds value.
+     */
+    constructor(options?: MapRestrictionOptions | LatLngBoundsValue | boolean);
+    /**
+     * Get whether the MapRestriction object is enabled
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the MapRestriction object is enabled
+     *
+     * @param {boolean} value Whether the MapRestriction object is enabled
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the existing latitude/longitude bounds
+     *
+     * @returns {LatLngBounds | undefined}
+     */
+    get latLngBounds(): LatLngBounds;
+    /**
+     * Set the latitude/longitude bounds
+     *
+     * @param {LatLngBoundsValue} value The lat/lng bounds value
+     */
+    set latLngBounds(value: LatLngBoundsValue);
+    /**
+     * Get whether the bounds are strict
+     *
+     * @returns {boolean}
+     */
+    get strictBounds(): boolean;
+    /**
+     * Set whether the bounds are strict
+     *
+     * @param {boolean} value Whether the bounds are strict
+     */
+    set strictBounds(value: boolean);
+    /**
+     * Disable the map restriction
+     *
+     * @returns {MapRestriction}
+     */
+    disable(): MapRestriction;
+    /**
+     * Enable the map restriction
+     *
+     * @returns {MapRestriction}
+     */
+    enable(): MapRestriction;
+    /**
+     * Returns whether the MapRestriction object is enabled
+     *
+     * @returns {boolean}
+     */
+    isEnabled(): boolean;
+    /**
+     * Returns if the MapRestriction object is valid
+     *
+     * @returns {boolean}
+     */
+    isValid(): boolean;
+    /**
+     * Set the latitude/longitude bounds
+     *
+     * @param {LatLngBoundsValue} value The lat/lng bounds value
+     * @returns {MapRestriction}
+     */
+    setLatLngBounds(value: LatLngBoundsValue): MapRestriction;
+    /**
+     * Set whether the bounds are strict
+     *
+     * @param {boolean} value Whether the bounds are strict
+     * @returns {MapRestriction}
+     */
+    setStrictBounds(value: boolean): MapRestriction;
+    /**
+     * Get the MapRestriction Google Maps object
+     *
+     * @returns {Promise<google.maps.MapRestriction>}
+     */
+    toGoogle(): Promise<google.maps.MapRestriction>;
+}
+type MapRestrictionValue = MapRestrictionOptions | LatLngBoundsValue | MapRestriction | boolean;
+/**
+ * Helper function to set up the MapRestriction object
+ *
+ * @param {MapRestrictionValue} options The MapRestriction options, a LatLngBounds value, or a MapRestriction object.
+ * @returns {MapRestriction}
+ */
+declare const mapRestriction: (options?: MapRestrictionValue) => MapRestriction;
+
 type MapTypeControlOptions = {
+    enabled?: boolean;
     mapTypeIds?: MapTypeIdValue[];
     position?: ControlPositionValue;
     style?: MapTypeControlStyleValue;
@@ -1707,6 +1917,13 @@ declare class MapTypeControl {
      */
     enable(): MapTypeControl;
     /**
+     * Returns whether the Map Type control is using the map type id
+     *
+     * @param {MapTypeIdValue} mapTypeId The map type id to check
+     * @returns {boolean}
+     */
+    hasMapType(mapTypeId: MapTypeIdValue): boolean;
+    /**
      * Set the map type ids to include in the control
      *
      * @param {MapTypeIdValue[]} mapTypeIds The map type ids to include in the control
@@ -1745,9 +1962,425 @@ type MapTypeControlValue = MapTypeControlOptions | boolean | MapTypeControl;
  */
 declare const mapTypeControl: (options?: MapTypeControlValue) => MapTypeControl;
 
+type Style = {
+    [key: string]: string | number;
+};
+type MapStyleOptions = {
+    elementType?: string;
+    featureType?: string;
+    styles?: Style[];
+};
+/**
+ * MapStyle class
+ */
+declare class MapStyle {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {MapStyleOptions | Style | Style[]} [options] Either the MapStyle options, a single style, or an array of styles
+     */
+    constructor(options?: MapStyleOptions | Style | Style[]);
+    /**
+     * Get the element type to apply styles to
+     *
+     * @returns {string}
+     */
+    get elementType(): string;
+    /**
+     * Set the element type to apply styles to
+     *
+     * @param {string} value The element type to apply values to
+     */
+    set elementType(value: string);
+    /**
+     * Get the feature type to apply styles to
+     *
+     * @returns {string}
+     */
+    get featureType(): string;
+    /**
+     * Set the feature type to apply styles to
+     *
+     * @param {string} value The feature type to apply values to
+     */
+    set featureType(value: string);
+    /**
+     * Get the styles to apply to the map
+     *
+     * @returns {Style[]}
+     */
+    get styles(): Style[];
+    /**
+     * Set the styles to apply to the map
+     *
+     * @param {Style | Style[]} value The style or styles to apply to the map
+     */
+    set styles(value: Style | Style[]);
+    /**
+     * Add a style to the list of styles to apply
+     *
+     * Example:
+     * styles.addStyle('color', 'red');
+     * styles.addStyle('weight', 2);
+     *
+     * @param {string} property The style property.
+     * @param {string | number} value The style value.
+     * @returns {MapStyle}
+     */
+    addStyle(property: string, value: string | number): MapStyle;
+    /**
+     * Set the element type to apply styles to
+     *
+     * @param {string} value The element type to apply values to
+     * @returns {MapStyle}
+     */
+    setElementType(value: string): MapStyle;
+    /**
+     * Set the feature type to apply styles to
+     *
+     * @param {string} value The feature type to apply values to
+     * @returns {MapStyle}
+     */
+    setFeatureType(value: string): MapStyle;
+    /**
+     * Set the styles to apply to the map
+     *
+     * @param { Style|Style[]} value The style or styles to apply to the map
+     * @returns {MapStyle}
+     */
+    setStyles(value: Style | Style[]): MapStyle;
+    /**
+     * Get the MapTypeStyle Google Maps object
+     *
+     * @returns {google.maps.MapTypeStyle}
+     */
+    toGoogle(): google.maps.MapTypeStyle;
+}
+type MapStyleValue = MapStyleOptions | Style | Style[] | MapStyle;
+/**
+ * Helper function to set up the MapStyle object
+ *
+ * @param {MapStyleValue} options The MapStyle options, a single style object, an array of styles, or a MapStyle object.
+ * @returns {MapStyle}
+ */
+declare const mapStyle: (options?: MapStyleValue) => MapStyle;
+
+type RotateControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+};
+/**
+ * Rotate control class
+ */
+declare class RotateControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {RotateControlOptions | boolean} [options] Either the RotateControl options or a boolean value to disable the control.
+     */
+    constructor(options?: RotateControlOptions | boolean);
+    /**
+     * Get whether the Rotate control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Rotate control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the rotate control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the rotate control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Disable the Rotate control
+     *
+     * @returns {RotateControl}
+     */
+    disable(): RotateControl;
+    /**
+     * Enable the Rotate control
+     *
+     * @returns {RotateControl}
+     */
+    enable(): RotateControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {RotateControl}
+     */
+    setPosition(position: ControlPositionValue): RotateControl;
+    /**
+     * Get the Rotate Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.RotateControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.RotateControlOptions>;
+}
+type RotateControlValue = RotateControlOptions | boolean | RotateControl;
+/**
+ * Helper function to set up the RotateControl object
+ *
+ * @param {RotateControlValue} options The RotateControl options, a boolean value to disable the control, or a RotateControl object.
+ * @returns {RotateControl}
+ */
+declare const rotateControl: (options?: RotateControlValue) => RotateControl;
+
+type ScaleControlOptions = {
+    enabled?: boolean;
+};
+/**
+ * Scale control class
+ */
+declare class ScaleControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {ScaleControlOptions | boolean} [options] Either the ScaleControl options or a boolean value to disable the control.
+     */
+    constructor(options?: ScaleControlOptions | boolean);
+    /**
+     * Get whether the Scale control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Scale control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Disable the Scale control
+     *
+     * @returns {ScaleControl}
+     */
+    disable(): ScaleControl;
+    /**
+     * Enable the Scale control
+     *
+     * @returns {ScaleControl}
+     */
+    enable(): ScaleControl;
+    /**
+     * Get the Scale Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.ScaleControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.ScaleControlOptions>;
+}
+type ScaleControlValue = ScaleControlOptions | boolean | ScaleControl;
+/**
+ * Helper function to set up the ScaleControl object
+ *
+ * @param {ScaleControlValue} options The ScaleControl options, a boolean value to disable the control, or a ScaleControl object.
+ * @returns {ScaleControl}
+ */
+declare const scaleControl: (options?: ScaleControlValue) => ScaleControl;
+
+type StreetViewControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+    sources?: StreetViewSourceValue | StreetViewSourceValue[];
+};
+/**
+ * StreetView control class
+ */
+declare class StreetViewControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {StreetViewControlOptions | boolean} [options] Either the StreetViewControl options or a boolean value to disable the control.
+     */
+    constructor(options?: StreetViewControlOptions | boolean);
+    /**
+     * Get whether the StreetView control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the StreetView control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the street view control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the street view control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Get the sources of the street view control
+     *
+     * @returns {StreetViewSourceValue[]}
+     */
+    get sources(): StreetViewSourceValue[];
+    /**
+     * Set the sources of the street view control
+     *
+     * @param {StreetViewSourceValue | StreetViewSourceValue[]} value The source or sources of the street view control
+     */
+    set sources(value: StreetViewSourceValue | StreetViewSourceValue[]);
+    /**
+     * Disable the StreetView control
+     *
+     * @returns {StreetViewControl}
+     */
+    disable(): StreetViewControl;
+    /**
+     * Enable the StreetView control
+     *
+     * @returns {StreetViewControl}
+     */
+    enable(): StreetViewControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {StreetViewControl}
+     */
+    setPosition(position: ControlPositionValue): StreetViewControl;
+    /**
+     * Set the sources of the street view control
+     *
+     * @param {StreetViewSourceValue | StreetViewSourceValue[]} sources The source or sources of the street view control
+     * @returns {StreetViewControl}
+     */
+    setSources(sources: StreetViewSourceValue | StreetViewSourceValue[]): StreetViewControl;
+    /**
+     * Get the StreetView Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.StreetViewControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.StreetViewControlOptions>;
+}
+type StreetViewControlValue = StreetViewControlOptions | boolean | StreetViewControl;
+/**
+ * Helper function to set up the StreetViewControl object
+ *
+ * @param {StreetViewControlValue} options The StreetViewControl options, a boolean value to disable the control, or a StreetViewControl object.
+ * @returns {StreetViewControl}
+ */
+declare const streetViewControl: (options?: StreetViewControlValue) => StreetViewControl;
+
+type ZoomControlOptions = {
+    enabled?: boolean;
+    position?: ControlPositionValue;
+};
+/**
+ * Zoom control class
+ */
+declare class ZoomControl {
+    #private;
+    /**
+     * Class constructor
+     *
+     * @param {ZoomControlOptions | boolean} [options] Either the ZoomControl options or a boolean value to disable the control.
+     */
+    constructor(options?: ZoomControlOptions | boolean);
+    /**
+     * Get whether the Zoom control is enabled.
+     *
+     * @returns {boolean}
+     */
+    get enabled(): boolean;
+    /**
+     * Set whether the Zoom control is enabled.
+     *
+     * @param {boolean} value The enabled/disabled state
+     */
+    set enabled(value: boolean);
+    /**
+     * Get the zoom control position
+     *
+     * @returns {ControlPosition}
+     */
+    get position(): ControlPositionValue;
+    /**
+     * Set the zoom control position
+     *
+     * @param {ControlPosition} value The position of the control
+     */
+    set position(value: ControlPositionValue);
+    /**
+     * Disable the Zoom control
+     *
+     * @returns {ZoomControl}
+     */
+    disable(): ZoomControl;
+    /**
+     * Enable the Zoom control
+     *
+     * @returns {ZoomControl}
+     */
+    enable(): ZoomControl;
+    /**
+     * Set the position of the control
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @param {ControlPositionValue} position The position of the control
+     * @returns {ZoomControl}
+     */
+    setPosition(position: ControlPositionValue): ZoomControl;
+    /**
+     * Get the Zoom Control options Google Maps object
+     *
+     * @returns {Promise<google.maps.ZoomControlOptions>}
+     */
+    toGoogle(): Promise<google.maps.ZoomControlOptions>;
+}
+type ZoomControlValue = ZoomControlOptions | boolean | ZoomControl;
+/**
+ * Helper function to set up the ZoomControl object
+ *
+ * @param {ZoomControlValue} options The ZoomControl options, a boolean value to disable the control, or a ZoomControl object.
+ * @returns {ZoomControl}
+ */
+declare const zoomControl: (options?: ZoomControlValue) => ZoomControl;
+
 type MapOptions = {
     apiKey?: string;
+    backgroundColor?: string;
     center?: LatLngValue;
+    clickableIcons?: boolean;
+    colorScheme?: string;
+    controlSize?: number;
+    disableDefaultUI?: boolean;
+    draggableCursor?: string;
+    draggingCursor?: string;
+    fullscreenControl?: boolean | FullscreenControl;
+    gestureHandling?: string;
+    heading?: number;
+    headingInteractionEnabled?: boolean;
+    isFractionalZoomEnabled?: boolean;
+    keyboardShortcuts?: boolean;
     lat?: number | string;
     latitude?: number | string;
     libraries?: Libraries;
@@ -1758,8 +2391,20 @@ type MapOptions = {
     mapTypeId?: MapTypeIdValue | string;
     maxZoom?: number;
     minZoom?: number;
+    noClear?: boolean;
+    renderingType?: RenderingTypeValue;
+    restriction?: MapRestrictionValue;
+    rotateControl?: boolean | RotateControlValue;
+    scaleControl?: boolean | ScaleControlValue;
+    scrollwheel?: boolean;
+    streetView?: google.maps.StreetViewPanorama;
+    streetViewControl?: boolean | StreetViewControl;
+    styles?: MapStyleValue;
+    tilt?: number;
+    tiltInteractionEnabled?: boolean;
     version?: string;
     zoom?: number | string;
+    zoomControl?: boolean | ZoomControl;
 };
 type LocateOptions = {
     enableHighAccuracy?: boolean;
@@ -1809,6 +2454,30 @@ declare class Map extends Evented {
      * @param {LatLngValue} value The center point for the map
      */
     set center(value: LatLngValue);
+    /**
+     * Get whether the default UI is disabled
+     *
+     * @returns {boolean}
+     */
+    get disableDefaultUI(): boolean;
+    /**
+     * Set whether the default UI is disabled
+     *
+     * @param {boolean} value Whether the default UI is disabled
+     */
+    set disableDefaultUI(value: boolean);
+    /**
+     * Get the fullscreen control object
+     *
+     * @returns {FullscreenControl}
+     */
+    get fullscreenControl(): FullscreenControl;
+    /**
+     * Set the fullscreen control object, or whether to display the fullscreen control
+     *
+     * @param {boolean|FullscreenControl} value The fullscreen control option
+     */
+    set fullscreenControl(value: boolean | FullscreenControl);
     /**
      * Get the latitude value for the center point
      *
@@ -1882,6 +2551,54 @@ declare class Map extends Evented {
      */
     set minZoom(value: null | number);
     /**
+     * Get the MapRestriction object if it's been set
+     *
+     * @returns {MapRestriction|undefined}
+     */
+    get restriction(): MapRestriction | undefined;
+    /**
+     * Set the MapRestriction value
+     *
+     * @param {MapRestrictionValue} value The MapRestriction value
+     */
+    set restriction(value: MapRestrictionValue);
+    /**
+     * Get the rotate control object
+     *
+     * @returns {RotateControl}
+     */
+    get rotateControl(): RotateControl;
+    /**
+     * Set the rotate control object, or whether to display the rotate control
+     *
+     * @param {boolean|RotateControl} value The rotate control option
+     */
+    set rotateControl(value: boolean | RotateControl);
+    /**
+     * Get the scale control object
+     *
+     * @returns {ScaleControl}
+     */
+    get scaleControl(): ScaleControl;
+    /**
+     * Set the scale control object, or whether to display the scale control
+     *
+     * @param {boolean|ScaleControl} value The scale control option
+     */
+    set scaleControl(value: boolean | ScaleControl);
+    /**
+     * Get the street view control object
+     *
+     * @returns {StreetViewControl}
+     */
+    get streetViewControl(): StreetViewControl;
+    /**
+     * Set the street view control object, or whether to display the scale control
+     *
+     * @param {boolean|StreetViewControl} value The scale control option
+     */
+    set streetViewControl(value: boolean | StreetViewControl);
+    /**
      * Get the zoom level for the map
      *
      * @returns {number}
@@ -1893,6 +2610,18 @@ declare class Map extends Evented {
      * @param {number|string} value The zoom level
      */
     set zoom(value: number | string);
+    /**
+     * Get the zoom control object
+     *
+     * @returns {ZoomControl}
+     */
+    get zoomControl(): ZoomControl;
+    /**
+     * Set the zoom control object, or whether to display the zoom control
+     *
+     * @param {boolean|ZoomControl} value The zoom control option
+     */
+    set zoomControl(value: boolean | ZoomControl);
     /**
      * Adds a custom control to the map
      *
@@ -1914,6 +2643,18 @@ declare class Map extends Evented {
      * @returns {Map}
      */
     clearBounds(): Map;
+    /**
+     * Enable the default UI
+     *
+     * @returns {Map}
+     */
+    enableDefaultUI(): Map;
+    /**
+     * Disable the default UI
+     *
+     * @returns {Map}
+     */
+    doDisableDefaultUI(): Map;
     /**
      * Show the map
      *
@@ -4738,4 +5479,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, Size, type SizeObject, type SizeValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, size, svgSymbol, tooltip };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

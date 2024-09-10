@@ -24,7 +24,14 @@ import { latLng, LatLng } from './lib/LatLng';
 import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
 import { loader, Loader } from './lib/Loader';
 import { map, Map } from './lib/Map';
+import { fullscreenControl, FullscreenControl } from './lib/Map/FullscreenControl';
+import { mapRestriction, MapRestriction } from './lib/Map/MapRestriction';
+import { mapStyle, MapStyle } from './lib/Map/MapStyle';
 import { mapTypeControl, MapTypeControl } from './lib/Map/MapTypeControl';
+import { rotateControl, RotateControl } from './lib/Map/RotateControl';
+import { scaleControl, ScaleControl } from './lib/Map/ScaleControl';
+import { streetViewControl, StreetViewControl } from './lib/Map/StreetViewControl';
+import { zoomControl, ZoomControl } from './lib/Map/ZoomControl';
 import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
 import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
@@ -45,6 +52,8 @@ type GlobalObj = {
     MapTypeId: typeof MapTypeId;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
+    fullscreenControl: typeof fullscreenControl;
+    FullscreenControl: typeof FullscreenControl;
     icon: typeof icon;
     Icon: typeof Icon;
     infoWindow: typeof infoWindow;
@@ -57,6 +66,10 @@ type GlobalObj = {
     Loader: typeof Loader;
     map: typeof map;
     Map: typeof Map;
+    mapRestriction: typeof mapRestriction;
+    MapRestriction: typeof MapRestriction;
+    mapStyle: typeof mapStyle;
+    MapStyle: typeof MapStyle;
     mapTypeControl: typeof mapTypeControl;
     MapTypeControl: typeof MapTypeControl;
     marker: typeof marker;
@@ -78,12 +91,20 @@ type GlobalObj = {
     popup: typeof popup;
     Popup: typeof Popup;
     closeAllPopups: typeof closeAllPopups;
+    rotateControl: typeof rotateControl;
+    RotateControl: typeof RotateControl;
+    scaleControl: typeof scaleControl;
+    ScaleControl: typeof ScaleControl;
     size: typeof size;
     Size: typeof Size;
+    streetViewControl: typeof streetViewControl;
+    StreetViewControl: typeof StreetViewControl;
     svgSymbol: typeof svgSymbol;
     SvgSymbol: typeof SvgSymbol;
     tooltip: typeof tooltip;
     Tooltip: typeof Tooltip;
+    zoomControl: typeof zoomControl;
+    ZoomControl: typeof ZoomControl;
 };
 
 // Set up the global namespace object
@@ -93,6 +114,8 @@ const G: GlobalObj = {
     MapTypeId,
     autocompleteSearchBox,
     AutocompleteSearchBox,
+    fullscreenControl,
+    FullscreenControl,
     icon,
     Icon,
     infoWindow,
@@ -105,6 +128,10 @@ const G: GlobalObj = {
     Loader,
     map,
     Map,
+    mapRestriction,
+    MapRestriction,
+    mapStyle,
+    MapStyle,
     mapTypeControl,
     MapTypeControl,
     marker,
@@ -126,12 +153,20 @@ const G: GlobalObj = {
     popup,
     Popup,
     closeAllPopups,
+    rotateControl,
+    RotateControl,
+    scaleControl,
+    ScaleControl,
     size,
     Size,
+    streetViewControl,
+    StreetViewControl,
     svgSymbol,
     SvgSymbol,
     tooltip,
     Tooltip,
+    zoomControl,
+    ZoomControl,
 };
 
 /**

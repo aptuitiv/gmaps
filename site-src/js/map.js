@@ -47,7 +47,8 @@ const mapObject = {
 // mapObject.init();
 // mapObject.setupEvents();
 
-G.loader({ apiKey: apiKey, libraries: ['places'] }).load();
+G.loader({ apiKey: apiKey, libraries: ['places'] });
+// G.loader({ apiKey: apiKey, libraries: ['places'] }).load();
 
 const mapTypeControl = G.mapTypeControl({
     // mapTypeIds: [G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN],
@@ -56,13 +57,82 @@ const mapTypeControl = G.mapTypeControl({
 });
 // mapTypeControl.setMapTypeIds([G.MapTypeId.ROADMAP, G.MapTypeId.TERRAIN]);
 
+const fullscreenControl = G.fullscreenControl({
+    position: G.ControlPosition.RIGHT_BOTTOM,
+});
+// const restriction = G.mapRestriction({
+//     latLngBounds: [[40.712, -74.227],
+//     [40.774, -74.125]],
+//     strictBounds: false,
+// });
+// const restriction = G.mapRestriction([[41.712, -74.227],
+// [41.774, -74.125]]
+// );
+const restriction = G.mapRestriction();
+// restriction.latLngBounds = [[43.712, -74.227], [43.774, -74.125]];
+restriction.latLngBounds = [{ lat: 40.712, lng: -74.227 }, { lat: 40.774, lng: -74.124 }];
+restriction.enabled = false;
+// const restriction = G.latLngBounds([[40.712, -74.227],
+// [40.774, -74.125]]);
+// restriction.extend({ lat: 40.712, lng: -74.227 });
+// restriction.extend({ lat: 40.713, lng: -74.227 });
+// restriction.extend({ lat: 50.774, lng: -84.125 });
+
+const rotateControl = G.rotateControl({
+    enabled: false,
+    position: G.ControlPosition.LEFT_CENTER,
+});
+
+const streetViewControl = G.streetViewControl({
+    position: G.ControlPosition.LEFT_CENTER,
+});
+
+const styles = G.mapStyle({
+    featureType: "road.arterial",
+    elementType: "geometry",
+    styles: [
+        { color: "#4447E8" }
+    ]
+});
 const map1 = G.map('#map1', {
     center: [40.7128, -74.0060],
+    // fullscreenControl: fullscreenControl,
+    fullscreenControl: false,
+    // mapTypeControl: false,
     mapTypeControl: mapTypeControl,
-    maxZoom: 12,
-    minZoom: 10,
+    mapTypeId: G.MapTypeId.SATELLITE,
+    // maxZoom: 12,
+    // minZoom: 10,
+    // restriction: [
+    //     [40.712, -74.227],
+    //     [40.774, -74.125]
+    // ],
+    // restriction: restriction,
+    // rotateControl: rotateControl,
+    scaleControl: false,
+    // streetViewControl: streetViewControl,
+    styles: styles,
+    zoomControl: false,
 });
-map1.show();
+map1.load().then(() => {
+    console.log('Map 1 shown');
+    // map1.fullscreenControl = false;
+    map1.fullscreenControl = fullscreenControl;
+    // map1.mapTypeControl = mapTypeControl;
+    // map1.mapTypeControl = false;
+    // map1.restriction = [
+    //     [44.712, -72.227],
+    //     [43.774, -71.125]
+    // ];
+    map1.rotateControl = G.rotateControl({
+        position: G.ControlPosition.LEFT_BOTTOM,
+    });
+    // map1.streetViewControl = false;
+    map1.zoomControl = G.zoomControl({
+        enabled: true,
+        position: G.ControlPosition.LEFT_TOP,
+    });
+});
 const customBtn = document.createElement('button');
 customBtn.textContent = 'Custom Control 2';
 customBtn.className = 'customButton';
@@ -74,22 +144,22 @@ customBtn.addEventListener('click', () => {
     console.log('Custom Control clicked');
 });
 map1.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
-map1.on('click', (e) => {
-    console.log(`The event type is ${e.type}`);
+// map1.on('click', (e) => {
+//     console.log(`The event type is ${e.type}`);
 
-    map1.setCenter(36.224, 2.3522);
+//     map1.setCenter(36.224, 2.3522);
 
-    console.log('map 1 control: ', map1.mapTypeControl);
+//     console.log('map 1 control: ', map1.mapTypeControl);
 
-    if (e.latLng) {
-        console.log(`You clicked at ${e.latLng.lat}/${e.latLng.lng}`);
-    }
+//     if (e.latLng) {
+//         console.log(`You clicked at ${e.latLng.lat}/${e.latLng.lng}`);
+//     }
 
-    // Stop the event from propogating to other elements on the page.
-    if (e.stop) {
-        e.stop();
-    }
-});
+//     // Stop the event from propogating to other elements on the page.
+//     if (e.stop) {
+//         e.stop();
+//     }
+// });
 
 // Set up places search for map 1
 // const input = document.getElementById('placesSearch');
@@ -154,19 +224,27 @@ const autocompleteTypeReset = document.getElementById('autocompleteResetType');
 autocompleteTypeReset.addEventListener('click', () => {
     autocomplete.types = [];
 });
+const disableUI = document.getElementById('disableUI');
+disableUI.addEventListener('click', () => {
+    map1.disableDefaultUI = true;
+});
+const enableUI = document.getElementById('enableUI');
+enableUI.addEventListener('click', () => {
+    map1.disableDefaultUI = false;
+});
 
 
-const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
-map2.show();
-map2.setMapTypeId(G.MapTypeId.SATELLITE);
+// const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
+// map2.show();
+// map2.setMapTypeId(G.MapTypeId.SATELLITE);
 
-const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
-map3.show();
-map3.mapTypeId = G.MapTypeId.HYBRID;
+// const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
+// map3.show();
+// map3.mapTypeId = G.MapTypeId.HYBRID;
 
-const map4Element = document.getElementById('map4');
-const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
-map4.show();
+// const map4Element = document.getElementById('map4');
+// const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
+// map4.show();
 
 function changeMapOptions() {
     map1.setOptions({ center: [36.224, -81.688], zoom: 8 });

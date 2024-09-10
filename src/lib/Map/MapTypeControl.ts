@@ -20,6 +20,8 @@ import {
 } from '../constants';
 
 export type MapTypeControlOptions = {
+    // Whether the MapTypeControl object is enabled
+    enabled?: boolean;
     // IDs of map types to show in the control.
     // Default: [ROADMAP, SATELLITE, HYBRID, TERRAIN]
     mapTypeIds?: MapTypeIdValue[];
@@ -61,7 +63,7 @@ export class MapTypeControl {
      * @private
      * @type {ControlPosition}
      */
-    #position: ControlPositionValue;
+    #position: ControlPositionValue = ControlPosition.BLOCK_START_INLINE_START;
 
     /**
      * The style of the control
@@ -71,7 +73,7 @@ export class MapTypeControl {
      * @private
      * @type {MapTypeControlStyle}
      */
-    #style: MapTypeControlStyleValue;
+    #style: MapTypeControlStyleValue = MapTypeControlStyle.DEFAULT;
 
     /**
      * Holds whether the hybrid map type is enabled
@@ -111,53 +113,34 @@ export class MapTypeControl {
      * @param {MapTypeControlOptions | boolean} [options] Either the MapTypeControl options or a boolean value to disable the control.
      */
     constructor(options?: MapTypeControlOptions | boolean) {
-        // The Google Maps library must be loaded first in order for the default values to set using
-        // Google Maps types.
-        loader().on('load', () => {
-            // Set the enabled/disabled state of the control if necessary
-            if (isBoolean(options)) {
-                this.#enabled = options;
-            }
+        // Set the enabled/disabled state of the control if necessary
+        if (isBoolean(options)) {
+            this.#enabled = options;
+        }
 
-            // If the map type IDs are not already set, then set the default values based on the enabled types.
-            // This allows the developer to configure the types to show on the map before the map is loaded.
-            if (!this.#mapTypeIds) {
-                this.#mapTypeIds = [];
-                if (this.#typeHybrid) {
-                    this.#mapTypeIds.push(MapTypeId.HYBRID);
-                }
-                if (this.#typeRoadmap) {
-                    this.#mapTypeIds.push(MapTypeId.ROADMAP);
-                }
-                if (this.#typeSatellite) {
-                    this.#mapTypeIds.push(MapTypeId.SATELLITE);
-                }
-                if (this.#typeTerrain) {
-                    this.#mapTypeIds.push(MapTypeId.TERRAIN);
-                }
-            }
-            // If the position is not already set, then set the default value
-            if (!this.#position) {
-                this.#position = ControlPosition.BLOCK_START_INLINE_START;
-            }
-            // If the style is not already set, then set the default value
-            if (!this.#style) {
-                this.#style = MapTypeControlStyle.DEFAULT;
-            }
+        // Set the default map type values based on the enabled types.
+        // This allows the developer to configure the types to show on the map before the map is loaded.
+        this.#mapTypeIds = [];
+        this.#mapTypeIds.push(MapTypeId.HYBRID);
+        this.#mapTypeIds.push(MapTypeId.ROADMAP);
+        this.#mapTypeIds.push(MapTypeId.SATELLITE);
+        this.#mapTypeIds.push(MapTypeId.TERRAIN);
 
-            // If the options are set, then override the default values
-            if (isObject(options)) {
-                if (options.mapTypeIds) {
-                    this.setMapTypeIds(options.mapTypeIds);
-                }
-                if (options.position) {
-                    this.setPosition(options.position);
-                }
-                if (options.style) {
-                    this.setStyle(options.style);
-                }
+        // If the options are set, then override the default values
+        if (isObject(options)) {
+            if (isBoolean(options.enabled)) {
+                this.enabled = options.enabled;
             }
-        });
+            if (options.mapTypeIds) {
+                this.setMapTypeIds(options.mapTypeIds);
+            }
+            if (options.position) {
+                this.position = options.position;
+            }
+            if (options.style) {
+                this.style = options.style;
+            }
+        }
     }
 
     /**
@@ -215,7 +198,12 @@ export class MapTypeControl {
      * @param {ControlPosition} value The position of the control
      */
     set position(value: ControlPositionValue) {
-        this.#position = value;
+        if (Object.values(ControlPosition).includes(value)) {
+            this.#position = value;
+        } else {
+            // eslint-disable-next-line no-console
+            console.warn('The MapType position that you provided is not valid. You provided: ', value);
+        }
     }
 
     /**
@@ -314,6 +302,16 @@ export class MapTypeControl {
     enable(): MapTypeControl {
         this.#enabled = true;
         return this;
+    }
+
+    /**
+     * Returns whether the Map Type control is using the map type id
+     *
+     * @param {MapTypeIdValue} mapTypeId The map type id to check
+     * @returns {boolean}
+     */
+    hasMapType(mapTypeId: MapTypeIdValue): boolean {
+        return this.#mapTypeIds.includes(mapTypeId);
     }
 
     /**

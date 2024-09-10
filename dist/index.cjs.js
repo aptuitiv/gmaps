@@ -83,6 +83,7 @@ __export(src_exports, {
   Base: () => Base_default,
   ControlPosition: () => ControlPosition,
   Evented: () => Evented,
+  FullscreenControl: () => FullscreenControl,
   Icon: () => Icon,
   InfoWindow: () => InfoWindow,
   LatLng: () => LatLng,
@@ -90,6 +91,8 @@ __export(src_exports, {
   Layer: () => Layer_default,
   Loader: () => Loader,
   Map: () => Map,
+  MapRestriction: () => MapRestriction,
+  MapStyle: () => MapStyle,
   MapTypeControl: () => MapTypeControl,
   MapTypeControlStyle: () => MapTypeControlStyle,
   MapTypeId: () => MapTypeId,
@@ -102,21 +105,29 @@ __export(src_exports, {
   Polyline: () => Polyline,
   PolylineCollection: () => PolylineCollection,
   Popup: () => Popup,
+  RenderingType: () => RenderingType,
+  RotateControl: () => RotateControl,
+  ScaleControl: () => ScaleControl,
   Size: () => Size,
+  StreetViewControl: () => StreetViewControl,
+  StreetViewSource: () => StreetViewSource,
   SvgSymbol: () => SvgSymbol,
   Tooltip: () => Tooltip,
+  ZoomControl: () => ZoomControl,
   autocompleteSearchBox: () => autocompleteSearchBox,
   callCallback: () => callCallback,
   checkForGoogleMaps: () => checkForGoogleMaps,
   closeAllPopups: () => closeAllPopups,
   convertControlPosition: () => convertControlPosition,
   convertMapTypeControlStyle: () => convertMapTypeControlStyle,
+  fullscreenControl: () => fullscreenControl,
   getBoolean: () => getBoolean,
   getNumber: () => getNumber,
   getPixelsFromLatLng: () => getPixelsFromLatLng,
   icon: () => icon,
   infoWindow: () => infoWindow,
   isBoolean: () => isBoolean,
+  isDefined: () => isDefined,
   isFunction: () => isFunction,
   isNull: () => isNull,
   isNullOrUndefined: () => isNullOrUndefined,
@@ -134,6 +145,8 @@ __export(src_exports, {
   latLngBounds: () => latLngBounds,
   loader: () => loader,
   map: () => map,
+  mapRestriction: () => mapRestriction,
+  mapStyle: () => mapStyle,
   mapTypeControl: () => mapTypeControl,
   marker: () => marker,
   markerCluster: () => markerCluster,
@@ -145,9 +158,13 @@ __export(src_exports, {
   polyline: () => polyline,
   polylineCollection: () => polylineCollection,
   popup: () => popup,
+  rotateControl: () => rotateControl,
+  scaleControl: () => scaleControl,
   size: () => size,
+  streetViewControl: () => streetViewControl,
   svgSymbol: () => svgSymbol,
-  tooltip: () => tooltip
+  tooltip: () => tooltip,
+  zoomControl: () => zoomControl
 });
 module.exports = __toCommonJS(src_exports);
 
@@ -455,9 +472,29 @@ var MapTypeId = Object.freeze({
    */
   TERRAIN: "terrain"
 });
+var RenderingType = Object.freeze({
+  // 	Indicates that the map is a raster map.
+  RASTER: "RASTER",
+  // Indicates that it is unknown yet whether the map is vector or raster, because the map has not finished initializing yet.
+  UNINITIALIZED: "UNINITIALIZED",
+  // Indicates that the map is a vector map.
+  VECTOR: "VECTOR"
+});
+var StreetViewSource = Object.freeze({
+  // Uses the default sources of Street View, searches will not be limited to
+  // specific sources.
+  DEFAULT: "default",
+  // Limits Street View searches to official Google collections.
+  GOOGLE: "google",
+  // Limits Street View searches to outdoor collections. Indoor collections
+  // are not included in search results. According to Google's documentation,
+  // this is not supported.
+  OUTDOOR: "outdoor"
+});
 
 // src/lib/helpers.ts
 var isBoolean = (thing) => typeof thing === "boolean";
+var isDefined = (thing) => typeof thing !== "undefined";
 var isFunction = (thing) => typeof thing === "function";
 var isNull = (thing) => thing === null;
 var isNumber = (thing) => !Number.isNaN(thing) && typeof thing === "number" && thing !== Infinity;
@@ -2193,15 +2230,15 @@ extendGoogle_fn = function(latLngObject) {
 };
 _extend = new WeakSet();
 extend_fn = function(latLngObject) {
-  __privateGet(this, _boundValues).push(latLngObject);
+  __privateGet(this, _boundValues).push(latLngObject.clone());
   if (__privateGet(this, _northEast) && __privateGet(this, _southWest)) {
     __privateGet(this, _northEast).latitude = Math.max(latLngObject.latitude, __privateGet(this, _northEast).latitude);
     __privateGet(this, _northEast).longitude = Math.max(latLngObject.longitude, __privateGet(this, _northEast).longitude);
     __privateGet(this, _southWest).latitude = Math.min(latLngObject.latitude, __privateGet(this, _southWest).latitude);
     __privateGet(this, _southWest).longitude = Math.min(latLngObject.longitude, __privateGet(this, _southWest).longitude);
   } else {
-    __privateSet(this, _northEast, latLngObject);
-    __privateSet(this, _southWest, latLngObject);
+    __privateSet(this, _northEast, latLngObject.clone());
+    __privateSet(this, _southWest, latLngObject.clone());
   }
 };
 _setupGoogleLatLngBounds = new WeakSet();
@@ -3293,8 +3330,330 @@ _isVisible = new WeakMap();
 _map = new WeakMap();
 var Layer_default = Layer;
 
+// src/lib/Map/FullscreenControl.ts
+var _enabled, _position;
+var FullscreenControl = class {
+  /**
+   * Class constructor
+   *
+   * @param {FullscreenControlOptions | boolean} [options] Either the FullscreenControl options or a boolean value to disable the control.
+   */
+  constructor(options) {
+    /**
+     * Holds whether the Fullscreen control is enabled or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled, true);
+    /**
+     * The position of the control on the map
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @private
+     * @type {ControlPosition}
+     */
+    __privateAdd(this, _position, ControlPosition.INLINE_END_BLOCK_START);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled, options);
+    }
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        this.enabled = options.enabled;
+      }
+      if (options.position) {
+        this.position = options.position;
+      }
+    }
+  }
+  /**
+   * Get whether the Fullscreen control is enabled.
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled);
+  }
+  /**
+   * Set whether the Fullscreen control is enabled.
+   *
+   * @param {boolean} value The enabled/disabled state
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled, value);
+    }
+  }
+  /**
+   * Get the fullscreen control position
+   *
+   * @returns {ControlPosition}
+   */
+  get position() {
+    return __privateGet(this, _position);
+  }
+  /**
+   * Set the fullscreen control position
+   *
+   * @param {ControlPosition} value The position of the control
+   */
+  set position(value) {
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position, value);
+    } else {
+      console.warn("The Fullscreen position that you provided is not valid. You provided: ", value);
+    }
+  }
+  /**
+   * Disable the Fullscreen control
+   *
+   * @returns {FullscreenControl}
+   */
+  disable() {
+    __privateSet(this, _enabled, false);
+    return this;
+  }
+  /**
+   * Enable the Fullscreen control
+   *
+   * @returns {FullscreenControl}
+   */
+  enable() {
+    __privateSet(this, _enabled, true);
+    return this;
+  }
+  /**
+   * Set the position of the control
+   * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+   *
+   * @param {ControlPositionValue} position The position of the control
+   * @returns {FullscreenControl}
+   */
+  setPosition(position) {
+    __privateSet(this, _position, position);
+    return this;
+  }
+  /**
+   * Get the Fullscreen Control options Google Maps object
+   *
+   * @returns {Promise<google.maps.FullscreenControlOptions>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      loader().on("load", () => {
+        resolve({
+          position: convertControlPosition(__privateGet(this, _position))
+        });
+      });
+    });
+  }
+};
+_enabled = new WeakMap();
+_position = new WeakMap();
+var fullscreenControl = (options) => {
+  if (options instanceof FullscreenControl) {
+    return options;
+  }
+  return new FullscreenControl(options);
+};
+
+// src/lib/Map/MapRestriction.ts
+var _enabled2, _latLngBounds, _strictBounds2;
+var MapRestriction = class {
+  /**
+   * Class constructor
+   *
+   * @param {MapRestrictionOptions | LatLngBoundsValue | boolean} [options] Either the MapRestriction options just the LatLng bounds value.
+   */
+  constructor(options) {
+    /**
+     * Whether the MapRestriction object is enabled
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled2, true);
+    /**
+     * The latitude/longitude bounds that a user is restricted to.
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _latLngBounds, void 0);
+    /**
+     * If true, anything outside of the latLngBounds will be hidden when zooming. This can restrict how much the user can zoom out.
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _strictBounds2, false);
+    if (isBoolean(options)) {
+      this.enabled = options;
+    } else if (options instanceof LatLngBounds) {
+      this.latLngBounds = options;
+    } else if (isObject(options)) {
+      const opts = options;
+      if (typeof opts.enabled !== "undefined" || typeof opts.latLngBounds !== "undefined" || typeof opts.strictBounds !== "undefined") {
+        if (isBoolean(opts.enabled)) {
+          this.enabled = opts.enabled;
+        }
+        if (typeof opts.latLngBounds !== "undefined") {
+          this.latLngBounds = opts.latLngBounds;
+        }
+        if (isBoolean(opts.strictBounds)) {
+          this.strictBounds = opts.strictBounds;
+        }
+      } else {
+        this.latLngBounds = options;
+      }
+    } else if (Array.isArray(options)) {
+      this.latLngBounds = options;
+    }
+  }
+  /**
+   * Get whether the MapRestriction object is enabled
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled2);
+  }
+  /**
+   * Set whether the MapRestriction object is enabled
+   *
+   * @param {boolean} value Whether the MapRestriction object is enabled
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled2, value);
+    }
+  }
+  /**
+   * Get the existing latitude/longitude bounds
+   *
+   * @returns {LatLngBounds | undefined}
+   */
+  get latLngBounds() {
+    return __privateGet(this, _latLngBounds);
+  }
+  /**
+   * Set the latitude/longitude bounds
+   *
+   * @param {LatLngBoundsValue} value The lat/lng bounds value
+   */
+  set latLngBounds(value) {
+    __privateSet(this, _latLngBounds, latLngBounds(value));
+  }
+  /**
+   * Get whether the bounds are strict
+   *
+   * @returns {boolean}
+   */
+  get strictBounds() {
+    return __privateGet(this, _strictBounds2);
+  }
+  /**
+   * Set whether the bounds are strict
+   *
+   * @param {boolean} value Whether the bounds are strict
+   */
+  set strictBounds(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _strictBounds2, value);
+    }
+  }
+  /**
+   * Disable the map restriction
+   *
+   * @returns {MapRestriction}
+   */
+  disable() {
+    __privateSet(this, _enabled2, false);
+    return this;
+  }
+  /**
+   * Enable the map restriction
+   *
+   * @returns {MapRestriction}
+   */
+  enable() {
+    __privateSet(this, _enabled2, true);
+    return this;
+  }
+  /**
+   * Returns whether the MapRestriction object is enabled
+   *
+   * @returns {boolean}
+   */
+  isEnabled() {
+    return __privateGet(this, _enabled2);
+  }
+  /**
+   * Returns if the MapRestriction object is valid
+   *
+   * @returns {boolean}
+   */
+  isValid() {
+    let valid = false;
+    if (__privateGet(this, _latLngBounds)) {
+      const json = __privateGet(this, _latLngBounds).toJson();
+      if (json.east !== json.west && json.north !== json.south) {
+        valid = true;
+      } else {
+        console.error("The MapRestrictions latLngBounds value must have at least two different LatLng values.");
+      }
+    }
+    return valid;
+  }
+  /**
+   * Set the latitude/longitude bounds
+   *
+   * @param {LatLngBoundsValue} value The lat/lng bounds value
+   * @returns {MapRestriction}
+   */
+  setLatLngBounds(value) {
+    this.latLngBounds = value;
+    return this;
+  }
+  /**
+   * Set whether the bounds are strict
+   *
+   * @param {boolean} value Whether the bounds are strict
+   * @returns {MapRestriction}
+   */
+  setStrictBounds(value) {
+    this.strictBounds = value;
+    return this;
+  }
+  /**
+   * Get the MapRestriction Google Maps object
+   *
+   * @returns {Promise<google.maps.MapRestriction>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      __privateGet(this, _latLngBounds).toGoogle().then((bounds) => {
+        resolve({
+          latLngBounds: bounds,
+          strictBounds: __privateGet(this, _strictBounds2)
+        });
+      });
+    });
+  }
+};
+_enabled2 = new WeakMap();
+_latLngBounds = new WeakMap();
+_strictBounds2 = new WeakMap();
+var mapRestriction = (options) => {
+  if (options instanceof MapRestriction) {
+    return options;
+  }
+  return new MapRestriction(options);
+};
+
 // src/lib/Map/MapTypeControl.ts
-var _enabled, _mapTypeIds, _position, _style, _typeHybrid, _typeRoadmap, _typeSatellite, _typeTerrain;
+var _enabled3, _mapTypeIds, _position2, _style, _typeHybrid, _typeRoadmap, _typeSatellite, _typeTerrain;
 var MapTypeControl = class {
   /**
    * Class constructor
@@ -3308,7 +3667,7 @@ var MapTypeControl = class {
      * @private
      * @type {boolean}
      */
-    __privateAdd(this, _enabled, true);
+    __privateAdd(this, _enabled3, true);
     /**
      * The map type ids to include in the control
      *
@@ -3326,7 +3685,7 @@ var MapTypeControl = class {
      * @private
      * @type {ControlPosition}
      */
-    __privateAdd(this, _position, void 0);
+    __privateAdd(this, _position2, ControlPosition.BLOCK_START_INLINE_START);
     /**
      * The style of the control
      *
@@ -3335,7 +3694,7 @@ var MapTypeControl = class {
      * @private
      * @type {MapTypeControlStyle}
      */
-    __privateAdd(this, _style, void 0);
+    __privateAdd(this, _style, MapTypeControlStyle.DEFAULT);
     /**
      * Holds whether the hybrid map type is enabled
      *
@@ -3364,43 +3723,28 @@ var MapTypeControl = class {
      * @type {boolean}
      */
     __privateAdd(this, _typeTerrain, true);
-    loader().on("load", () => {
-      if (isBoolean(options)) {
-        __privateSet(this, _enabled, options);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled3, options);
+    }
+    __privateSet(this, _mapTypeIds, []);
+    __privateGet(this, _mapTypeIds).push(MapTypeId.HYBRID);
+    __privateGet(this, _mapTypeIds).push(MapTypeId.ROADMAP);
+    __privateGet(this, _mapTypeIds).push(MapTypeId.SATELLITE);
+    __privateGet(this, _mapTypeIds).push(MapTypeId.TERRAIN);
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        this.enabled = options.enabled;
       }
-      if (!__privateGet(this, _mapTypeIds)) {
-        __privateSet(this, _mapTypeIds, []);
-        if (__privateGet(this, _typeHybrid)) {
-          __privateGet(this, _mapTypeIds).push(MapTypeId.HYBRID);
-        }
-        if (__privateGet(this, _typeRoadmap)) {
-          __privateGet(this, _mapTypeIds).push(MapTypeId.ROADMAP);
-        }
-        if (__privateGet(this, _typeSatellite)) {
-          __privateGet(this, _mapTypeIds).push(MapTypeId.SATELLITE);
-        }
-        if (__privateGet(this, _typeTerrain)) {
-          __privateGet(this, _mapTypeIds).push(MapTypeId.TERRAIN);
-        }
+      if (options.mapTypeIds) {
+        this.setMapTypeIds(options.mapTypeIds);
       }
-      if (!__privateGet(this, _position)) {
-        __privateSet(this, _position, ControlPosition.BLOCK_START_INLINE_START);
+      if (options.position) {
+        this.position = options.position;
       }
-      if (!__privateGet(this, _style)) {
-        __privateSet(this, _style, MapTypeControlStyle.DEFAULT);
+      if (options.style) {
+        this.style = options.style;
       }
-      if (isObject(options)) {
-        if (options.mapTypeIds) {
-          this.setMapTypeIds(options.mapTypeIds);
-        }
-        if (options.position) {
-          this.setPosition(options.position);
-        }
-        if (options.style) {
-          this.setStyle(options.style);
-        }
-      }
-    });
+    }
   }
   /**
    * Get whether the Map Type control is enabled.
@@ -3408,7 +3752,7 @@ var MapTypeControl = class {
    * @returns {boolean}
    */
   get enabled() {
-    return __privateGet(this, _enabled);
+    return __privateGet(this, _enabled3);
   }
   /**
    * Set whether the Map Type control is enabled.
@@ -3417,7 +3761,7 @@ var MapTypeControl = class {
    */
   set enabled(value) {
     if (isBoolean(value)) {
-      __privateSet(this, _enabled, value);
+      __privateSet(this, _enabled3, value);
     }
   }
   /**
@@ -3444,7 +3788,7 @@ var MapTypeControl = class {
    * @returns {ControlPosition}
    */
   get position() {
-    return __privateGet(this, _position);
+    return __privateGet(this, _position2);
   }
   /**
    * Set the map type control position
@@ -3452,7 +3796,11 @@ var MapTypeControl = class {
    * @param {ControlPosition} value The position of the control
    */
   set position(value) {
-    __privateSet(this, _position, value);
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position2, value);
+    } else {
+      console.warn("The MapType position that you provided is not valid. You provided: ", value);
+    }
   }
   /**
    * Get whether the roadmap map type is enabled
@@ -3530,7 +3878,7 @@ var MapTypeControl = class {
    * @returns {MapTypeControl}
    */
   disable() {
-    __privateSet(this, _enabled, false);
+    __privateSet(this, _enabled3, false);
     return this;
   }
   /**
@@ -3539,8 +3887,17 @@ var MapTypeControl = class {
    * @returns {MapTypeControl}
    */
   enable() {
-    __privateSet(this, _enabled, true);
+    __privateSet(this, _enabled3, true);
     return this;
+  }
+  /**
+   * Returns whether the Map Type control is using the map type id
+   *
+   * @param {MapTypeIdValue} mapTypeId The map type id to check
+   * @returns {boolean}
+   */
+  hasMapType(mapTypeId) {
+    return __privateGet(this, _mapTypeIds).includes(mapTypeId);
   }
   /**
    * Set the map type ids to include in the control
@@ -3569,7 +3926,7 @@ var MapTypeControl = class {
    * @returns {MapTypeControl}
    */
   setPosition(position) {
-    __privateSet(this, _position, position);
+    __privateSet(this, _position2, position);
     return this;
   }
   /**
@@ -3593,7 +3950,7 @@ var MapTypeControl = class {
       loader().on("load", () => {
         resolve({
           mapTypeIds: __privateGet(this, _mapTypeIds),
-          position: convertControlPosition(__privateGet(this, _position)),
+          position: convertControlPosition(__privateGet(this, _position2)),
           // position: 21,
           // style: this.#style,
           // style: 2,
@@ -3603,9 +3960,9 @@ var MapTypeControl = class {
     });
   }
 };
-_enabled = new WeakMap();
+_enabled3 = new WeakMap();
 _mapTypeIds = new WeakMap();
-_position = new WeakMap();
+_position2 = new WeakMap();
 _style = new WeakMap();
 _typeHybrid = new WeakMap();
 _typeRoadmap = new WeakMap();
@@ -3618,8 +3975,695 @@ var mapTypeControl = (options) => {
   return new MapTypeControl(options);
 };
 
+// src/lib/Map/MapStyle.ts
+var _elementType, _featureType, _styles;
+var MapStyle = class {
+  /**
+   * Class constructor
+   *
+   * @param {MapStyleOptions | Style | Style[]} [options] Either the MapStyle options, a single style, or an array of styles
+   */
+  constructor(options) {
+    /**
+     * he element type to which the styles should be applied to. If not set then the styles are applied to all elements.
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _elementType, "all");
+    /**
+     * The feature type to which the styles should be applied to. If not set then the styles are applied to all features.
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _featureType, "all");
+    /**
+     * The styles to apply to the map
+     *
+     * @private
+     * @type {Style[]}
+     */
+    __privateAdd(this, _styles, []);
+    if (isObject(options)) {
+      if (isDefined(options.elementType) || isDefined(options.featureType) || isDefined(options.styles)) {
+        const opts = options;
+        if (opts.elementType) {
+          this.elementType = opts.elementType;
+        }
+        if (opts.featureType) {
+          this.featureType = opts.featureType;
+        }
+        if (opts.styles) {
+          __privateSet(this, _styles, opts.styles);
+        }
+      } else {
+        this.styles = options;
+      }
+    } else if (Array.isArray(options)) {
+      this.styles = options;
+    }
+  }
+  /**
+   * Get the element type to apply styles to
+   *
+   * @returns {string}
+   */
+  get elementType() {
+    return __privateGet(this, _elementType);
+  }
+  /**
+   * Set the element type to apply styles to
+   *
+   * @param {string} value The element type to apply values to
+   */
+  set elementType(value) {
+    if (isStringWithValue(value)) {
+      __privateSet(this, _elementType, value);
+    }
+  }
+  /**
+   * Get the feature type to apply styles to
+   *
+   * @returns {string}
+   */
+  get featureType() {
+    return __privateGet(this, _featureType);
+  }
+  /**
+   * Set the feature type to apply styles to
+   *
+   * @param {string} value The feature type to apply values to
+   */
+  set featureType(value) {
+    if (isStringWithValue(value)) {
+      __privateSet(this, _featureType, value);
+    }
+  }
+  /**
+   * Get the styles to apply to the map
+   *
+   * @returns {Style[]}
+   */
+  get styles() {
+    return __privateGet(this, _styles);
+  }
+  /**
+   * Set the styles to apply to the map
+   *
+   * @param {Style | Style[]} value The style or styles to apply to the map
+   */
+  set styles(value) {
+    if (Array.isArray(value)) {
+      __privateSet(this, _styles, value);
+    } else if (isObject(value)) {
+      __privateSet(this, _styles, [value]);
+    }
+  }
+  /**
+   * Add a style to the list of styles to apply
+   *
+   * Example:
+   * styles.addStyle('color', 'red');
+   * styles.addStyle('weight', 2);
+   *
+   * @param {string} property The style property.
+   * @param {string | number} value The style value.
+   * @returns {MapStyle}
+   */
+  addStyle(property, value) {
+    if (isStringWithValue(property) && isStringOrNumber(value)) {
+      __privateGet(this, _styles).push({ [property]: value });
+    }
+    return this;
+  }
+  /**
+   * Set the element type to apply styles to
+   *
+   * @param {string} value The element type to apply values to
+   * @returns {MapStyle}
+   */
+  setElementType(value) {
+    this.elementType = value;
+    return this;
+  }
+  /**
+   * Set the feature type to apply styles to
+   *
+   * @param {string} value The feature type to apply values to
+   * @returns {MapStyle}
+   */
+  setFeatureType(value) {
+    this.featureType = value;
+    return this;
+  }
+  /**
+   * Set the styles to apply to the map
+   *
+   * @param { Style|Style[]} value The style or styles to apply to the map
+   * @returns {MapStyle}
+   */
+  setStyles(value) {
+    this.styles = value;
+    return this;
+  }
+  /**
+   * Get the MapTypeStyle Google Maps object
+   *
+   * @returns {google.maps.MapTypeStyle}
+   */
+  toGoogle() {
+    return {
+      elementType: __privateGet(this, _elementType),
+      featureType: __privateGet(this, _featureType),
+      stylers: __privateGet(this, _styles)
+    };
+  }
+};
+_elementType = new WeakMap();
+_featureType = new WeakMap();
+_styles = new WeakMap();
+var mapStyle = (options) => {
+  if (options instanceof MapStyle) {
+    return options;
+  }
+  return new MapStyle(options);
+};
+
+// src/lib/Map/RotateControl.ts
+var _enabled4, _position3;
+var RotateControl = class {
+  /**
+   * Class constructor
+   *
+   * @param {RotateControlOptions | boolean} [options] Either the RotateControl options or a boolean value to disable the control.
+   */
+  constructor(options) {
+    /**
+     * Holds whether the Rotate control is enabled or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled4, true);
+    /**
+     * The position of the control on the map
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @private
+     * @type {ControlPosition}
+     */
+    __privateAdd(this, _position3, ControlPosition.INLINE_END_BLOCK_START);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled4, options);
+    }
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        this.enabled = options.enabled;
+      }
+      if (options.position) {
+        this.position = options.position;
+      }
+    }
+  }
+  /**
+   * Get whether the Rotate control is enabled.
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled4);
+  }
+  /**
+   * Set whether the Rotate control is enabled.
+   *
+   * @param {boolean} value The enabled/disabled state
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled4, value);
+    }
+  }
+  /**
+   * Get the rotate control position
+   *
+   * @returns {ControlPosition}
+   */
+  get position() {
+    return __privateGet(this, _position3);
+  }
+  /**
+   * Set the rotate control position
+   *
+   * @param {ControlPosition} value The position of the control
+   */
+  set position(value) {
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position3, value);
+    } else {
+      console.warn("The Rotate position that you provided is not valid. You provided: ", value);
+    }
+  }
+  /**
+   * Disable the Rotate control
+   *
+   * @returns {RotateControl}
+   */
+  disable() {
+    __privateSet(this, _enabled4, false);
+    return this;
+  }
+  /**
+   * Enable the Rotate control
+   *
+   * @returns {RotateControl}
+   */
+  enable() {
+    __privateSet(this, _enabled4, true);
+    return this;
+  }
+  /**
+   * Set the position of the control
+   * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+   *
+   * @param {ControlPositionValue} position The position of the control
+   * @returns {RotateControl}
+   */
+  setPosition(position) {
+    __privateSet(this, _position3, position);
+    return this;
+  }
+  /**
+   * Get the Rotate Control options Google Maps object
+   *
+   * @returns {Promise<google.maps.RotateControlOptions>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      loader().on("load", () => {
+        resolve({
+          position: convertControlPosition(__privateGet(this, _position3))
+        });
+      });
+    });
+  }
+};
+_enabled4 = new WeakMap();
+_position3 = new WeakMap();
+var rotateControl = (options) => {
+  if (options instanceof RotateControl) {
+    return options;
+  }
+  return new RotateControl(options);
+};
+
+// src/lib/Map/ScaleControl.ts
+var _enabled5;
+var ScaleControl = class {
+  /**
+   * Class constructor
+   *
+   * @param {ScaleControlOptions | boolean} [options] Either the ScaleControl options or a boolean value to disable the control.
+   */
+  constructor(options) {
+    /**
+     * Holds whether the Scale control is enabled or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled5, false);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled5, options);
+    }
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        __privateSet(this, _enabled5, options.enabled);
+      }
+    }
+  }
+  /**
+   * Get whether the Scale control is enabled.
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled5);
+  }
+  /**
+   * Set whether the Scale control is enabled.
+   *
+   * @param {boolean} value The enabled/disabled state
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled5, value);
+    }
+  }
+  /**
+   * Disable the Scale control
+   *
+   * @returns {ScaleControl}
+   */
+  disable() {
+    __privateSet(this, _enabled5, false);
+    return this;
+  }
+  /**
+   * Enable the Scale control
+   *
+   * @returns {ScaleControl}
+   */
+  enable() {
+    __privateSet(this, _enabled5, true);
+    return this;
+  }
+  /**
+   * Get the Scale Control options Google Maps object
+   *
+   * @returns {Promise<google.maps.ScaleControlOptions>}
+   */
+  // eslint-disable-next-line class-methods-use-this
+  toGoogle() {
+    return new Promise((resolve) => {
+      loader().on("load", () => {
+        resolve({
+          style: google.maps.ScaleControlStyle.DEFAULT
+        });
+      });
+    });
+  }
+};
+_enabled5 = new WeakMap();
+var scaleControl = (options) => {
+  if (options instanceof ScaleControl) {
+    return options;
+  }
+  return new ScaleControl(options);
+};
+
+// src/lib/Map/StreetViewControl.ts
+var _enabled6, _position4, _sources;
+var StreetViewControl = class {
+  /**
+   * Class constructor
+   *
+   * @param {StreetViewControlOptions | boolean} [options] Either the StreetViewControl options or a boolean value to disable the control.
+   */
+  constructor(options) {
+    /**
+     * Holds whether the StreetView control is enabled or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled6, true);
+    /**
+     * The position of the control on the map
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @private
+     * @type {ControlPosition}
+     */
+    __privateAdd(this, _position4, ControlPosition.INLINE_END_BLOCK_END);
+    /**
+     * The sources of the street view control
+     *
+     * @private
+     * @type {StreetViewSourceValue[]}
+     */
+    __privateAdd(this, _sources, [StreetViewSource.DEFAULT]);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled6, options);
+    }
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        this.enabled = options.enabled;
+      }
+      if (options.position) {
+        this.position = options.position;
+      }
+      if (options.sources) {
+        this.sources = options.sources;
+      }
+    }
+  }
+  /**
+   * Get whether the StreetView control is enabled.
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled6);
+  }
+  /**
+   * Set whether the StreetView control is enabled.
+   *
+   * @param {boolean} value The enabled/disabled state
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled6, value);
+    }
+  }
+  /**
+   * Get the street view control position
+   *
+   * @returns {ControlPosition}
+   */
+  get position() {
+    return __privateGet(this, _position4);
+  }
+  /**
+   * Set the street view control position
+   *
+   * @param {ControlPosition} value The position of the control
+   */
+  set position(value) {
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position4, value);
+    } else {
+      console.warn("The Street View position that you provided is not valid. You provided: ", value);
+    }
+  }
+  /**
+   * Get the sources of the street view control
+   *
+   * @returns {StreetViewSourceValue[]}
+   */
+  get sources() {
+    return __privateGet(this, _sources);
+  }
+  /**
+   * Set the sources of the street view control
+   *
+   * @param {StreetViewSourceValue | StreetViewSourceValue[]} value The source or sources of the street view control
+   */
+  set sources(value) {
+    const sources = Array.isArray(value) ? value : [value];
+    const validSources = sources.filter((source) => Object.values(StreetViewSource).includes(source));
+    if (validSources.length > 0) {
+      __privateSet(this, _sources, validSources);
+    } else {
+      console.warn("The Street View sources that you provided are not valid. You provided: ", value);
+    }
+  }
+  /**
+   * Disable the StreetView control
+   *
+   * @returns {StreetViewControl}
+   */
+  disable() {
+    __privateSet(this, _enabled6, false);
+    return this;
+  }
+  /**
+   * Enable the StreetView control
+   *
+   * @returns {StreetViewControl}
+   */
+  enable() {
+    __privateSet(this, _enabled6, true);
+    return this;
+  }
+  /**
+   * Set the position of the control
+   * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+   *
+   * @param {ControlPositionValue} position The position of the control
+   * @returns {StreetViewControl}
+   */
+  setPosition(position) {
+    this.position = position;
+    return this;
+  }
+  /**
+   * Set the sources of the street view control
+   *
+   * @param {StreetViewSourceValue | StreetViewSourceValue[]} sources The source or sources of the street view control
+   * @returns {StreetViewControl}
+   */
+  setSources(sources) {
+    this.sources = sources;
+    return this;
+  }
+  /**
+   * Get the StreetView Control options Google Maps object
+   *
+   * @returns {Promise<google.maps.StreetViewControlOptions>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      loader().on("load", () => {
+        resolve({
+          position: convertControlPosition(__privateGet(this, _position4))
+        });
+      });
+    });
+  }
+};
+_enabled6 = new WeakMap();
+_position4 = new WeakMap();
+_sources = new WeakMap();
+var streetViewControl = (options) => {
+  if (options instanceof StreetViewControl) {
+    return options;
+  }
+  return new StreetViewControl(options);
+};
+
+// src/lib/Map/ZoomControl.ts
+var _enabled7, _position5;
+var ZoomControl = class {
+  /**
+   * Class constructor
+   *
+   * @param {ZoomControlOptions | boolean} [options] Either the ZoomControl options or a boolean value to disable the control.
+   */
+  constructor(options) {
+    /**
+     * Holds whether the Zoom control is enabled or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _enabled7, true);
+    /**
+     * The position of the control on the map
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+     *
+     * @private
+     * @type {ControlPosition}
+     */
+    __privateAdd(this, _position5, ControlPosition.INLINE_END_BLOCK_END);
+    if (isBoolean(options)) {
+      __privateSet(this, _enabled7, options);
+    }
+    if (isObject(options)) {
+      if (isBoolean(options.enabled)) {
+        this.enabled = options.enabled;
+      }
+      if (options.position) {
+        this.position = options.position;
+      }
+    }
+  }
+  /**
+   * Get whether the Zoom control is enabled.
+   *
+   * @returns {boolean}
+   */
+  get enabled() {
+    return __privateGet(this, _enabled7);
+  }
+  /**
+   * Set whether the Zoom control is enabled.
+   *
+   * @param {boolean} value The enabled/disabled state
+   */
+  set enabled(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _enabled7, value);
+    }
+  }
+  /**
+   * Get the zoom control position
+   *
+   * @returns {ControlPosition}
+   */
+  get position() {
+    return __privateGet(this, _position5);
+  }
+  /**
+   * Set the zoom control position
+   *
+   * @param {ControlPosition} value The position of the control
+   */
+  set position(value) {
+    if (Object.values(ControlPosition).includes(value)) {
+      __privateSet(this, _position5, value);
+    } else {
+      console.warn("The Zoom position that you provided is not valid. You provided: ", value);
+    }
+  }
+  /**
+   * Disable the Zoom control
+   *
+   * @returns {ZoomControl}
+   */
+  disable() {
+    __privateSet(this, _enabled7, false);
+    return this;
+  }
+  /**
+   * Enable the Zoom control
+   *
+   * @returns {ZoomControl}
+   */
+  enable() {
+    __privateSet(this, _enabled7, true);
+    return this;
+  }
+  /**
+   * Set the position of the control
+   * https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
+   *
+   * @param {ControlPositionValue} position The position of the control
+   * @returns {ZoomControl}
+   */
+  setPosition(position) {
+    __privateSet(this, _position5, position);
+    return this;
+  }
+  /**
+   * Get the Zoom Control options Google Maps object
+   *
+   * @returns {Promise<google.maps.ZoomControlOptions>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      loader().on("load", () => {
+        resolve({
+          position: convertControlPosition(__privateGet(this, _position5))
+        });
+      });
+    });
+  }
+};
+_enabled7 = new WeakMap();
+_position5 = new WeakMap();
+var zoomControl = (options) => {
+  if (options instanceof ZoomControl) {
+    return options;
+  }
+  return new ZoomControl(options);
+};
+
 // src/lib/Map.ts
-var _bounds3, _customControls, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _selector, _watchId, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -3650,7 +4694,7 @@ var Map = class extends Evented {
      * This also dispatches the "visible" and "map_loaded" events,
      * and calls the callback function.
      *
-     * @param {Function} callback The callback function to call after the map loads
+     * @returns {Promise<void>}
      */
     __privateAdd(this, _showMap);
     /**
@@ -3667,6 +4711,13 @@ var Map = class extends Evented {
      * @type {CustomControl[]}
      */
     __privateAdd(this, _customControls, []);
+    /**
+     * Holds the fullscreen control object
+     *
+     * @private
+     * @type {FullscreenControl}
+     */
+    __privateAdd(this, _fullscreenControl, void 0);
     /**
      * Holds the latitude portion of the center point for the map
      *
@@ -3731,6 +4782,27 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _options2, {});
     /**
+     * Holds the map restriction object to restrict the map to a certain area
+     *
+     * @private
+     * @type {MapRestriction}
+     */
+    __privateAdd(this, _restriction, void 0);
+    /**
+     * Holds the rotate control object
+     *
+     * @private
+     * @type {RotateControl}
+     */
+    __privateAdd(this, _rotateControl, void 0);
+    /**
+     * Holds the scale control object
+     *
+     * @private
+     * @type {ScaleControl}
+     */
+    __privateAdd(this, _scaleControl, void 0);
+    /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
      * @private
@@ -3738,16 +4810,42 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _selector, void 0);
     /**
+     * Holds the street view control object
+     *
+     * @private
+     * @type {StreetViewControl}
+     */
+    __privateAdd(this, _streetViewControl, void 0);
+    /**
+     * Holds the styles to apply to the map
+     *
+     * @private
+     * @type {MapStyle[]}
+     */
+    __privateAdd(this, _styles2, []);
+    /**
      * Holds the watchId for the watchPosition() function
      *
      * @private
      * @type {number}
      */
     __privateAdd(this, _watchId, void 0);
+    /**
+     * Holds the zoom control object
+     *
+     * @private
+     * @type {ZoomControl}
+     */
+    __privateAdd(this, _zoomControl, void 0);
     __privateGet(this, _options2).mapTypeId = MapTypeId.ROADMAP;
     __privateGet(this, _options2).center = latLng(0, 0);
     __privateGet(this, _options2).zoom = 6;
+    __privateSet(this, _fullscreenControl, fullscreenControl());
     __privateSet(this, _mapTypeControl, mapTypeControl());
+    __privateSet(this, _rotateControl, rotateControl());
+    __privateSet(this, _scaleControl, scaleControl());
+    __privateSet(this, _streetViewControl, streetViewControl());
+    __privateSet(this, _zoomControl, zoomControl());
     __privateSet(this, _selector, selector);
     if (isObject(options)) {
       this.setOptions(options);
@@ -3783,6 +4881,56 @@ var Map = class extends Evented {
       if (isObject(__privateGet(this, _map2))) {
         __privateGet(this, _map2).setCenter(__privateGet(this, _options2).center.toGoogle());
       }
+    }
+  }
+  /**
+   * Get whether the default UI is disabled
+   *
+   * @returns {boolean}
+   */
+  get disableDefaultUI() {
+    var _a;
+    return (_a = __privateGet(this, _options2).disableDefaultUI) != null ? _a : false;
+  }
+  /**
+   * Set whether the default UI is disabled
+   *
+   * @param {boolean} value Whether the default UI is disabled
+   */
+  set disableDefaultUI(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _options2).disableDefaultUI = value;
+      if (__privateGet(this, _map2)) {
+        __privateGet(this, _map2).setOptions({ disableDefaultUI: value });
+      }
+    }
+  }
+  /**
+   * Get the fullscreen control object
+   *
+   * @returns {FullscreenControl}
+   */
+  get fullscreenControl() {
+    return __privateGet(this, _fullscreenControl);
+  }
+  /**
+   * Set the fullscreen control object, or whether to display the fullscreen control
+   *
+   * @param {boolean|FullscreenControl} value The fullscreen control option
+   */
+  set fullscreenControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _fullscreenControl).enabled = value;
+    } else if (value instanceof FullscreenControl) {
+      __privateSet(this, _fullscreenControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _fullscreenControl).toGoogle().then((fullscreenControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          fullscreenControl: __privateGet(this, _fullscreenControl).enabled,
+          fullscreenControlOptions
+        });
+      });
     }
   }
   /**
@@ -3932,6 +5080,111 @@ var Map = class extends Evented {
     }
   }
   /**
+   * Get the MapRestriction object if it's been set
+   *
+   * @returns {MapRestriction|undefined}
+   */
+  get restriction() {
+    return __privateGet(this, _restriction);
+  }
+  /**
+   * Set the MapRestriction value
+   *
+   * @param {MapRestrictionValue} value The MapRestriction value
+   */
+  set restriction(value) {
+    __privateSet(this, _restriction, mapRestriction(value));
+    if (__privateGet(this, _map2) && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
+      __privateGet(this, _restriction).toGoogle().then((restriction) => {
+        __privateGet(this, _map2).setOptions({ restriction });
+      });
+    }
+  }
+  /**
+   * Get the rotate control object
+   *
+   * @returns {RotateControl}
+   */
+  get rotateControl() {
+    return __privateGet(this, _rotateControl);
+  }
+  /**
+   * Set the rotate control object, or whether to display the rotate control
+   *
+   * @param {boolean|RotateControl} value The rotate control option
+   */
+  set rotateControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _rotateControl).enabled = value;
+    } else if (value instanceof RotateControl) {
+      __privateSet(this, _rotateControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _rotateControl).toGoogle().then((rotateControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          rotateControl: __privateGet(this, _rotateControl).enabled,
+          rotateControlOptions
+        });
+      });
+    }
+  }
+  /**
+   * Get the scale control object
+   *
+   * @returns {ScaleControl}
+   */
+  get scaleControl() {
+    return __privateGet(this, _scaleControl);
+  }
+  /**
+   * Set the scale control object, or whether to display the scale control
+   *
+   * @param {boolean|ScaleControl} value The scale control option
+   */
+  set scaleControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _scaleControl).enabled = value;
+    } else if (value instanceof ScaleControl) {
+      __privateSet(this, _scaleControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _scaleControl).toGoogle().then((scaleControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          scaleControl: __privateGet(this, _scaleControl).enabled,
+          scaleControlOptions
+        });
+      });
+    }
+  }
+  /**
+   * Get the street view control object
+   *
+   * @returns {StreetViewControl}
+   */
+  get streetViewControl() {
+    return __privateGet(this, _streetViewControl);
+  }
+  /**
+   * Set the street view control object, or whether to display the scale control
+   *
+   * @param {boolean|StreetViewControl} value The scale control option
+   */
+  set streetViewControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _streetViewControl).enabled = value;
+    } else if (value instanceof StreetViewControl) {
+      __privateSet(this, _streetViewControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _streetViewControl).toGoogle().then((streetViewControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          streetViewControl: __privateGet(this, _streetViewControl).enabled,
+          streetViewControlOptions
+        });
+      });
+    }
+  }
+  /**
    * Get the zoom level for the map
    *
    * @returns {number}
@@ -3959,6 +5212,34 @@ var Map = class extends Evented {
     }
     if (__privateGet(this, _map2)) {
       __privateGet(this, _map2).setZoom(Number(value));
+    }
+  }
+  /**
+   * Get the zoom control object
+   *
+   * @returns {ZoomControl}
+   */
+  get zoomControl() {
+    return __privateGet(this, _zoomControl);
+  }
+  /**
+   * Set the zoom control object, or whether to display the zoom control
+   *
+   * @param {boolean|ZoomControl} value The zoom control option
+   */
+  set zoomControl(value) {
+    if (isBoolean(value)) {
+      __privateGet(this, _zoomControl).enabled = value;
+    } else if (value instanceof ZoomControl) {
+      __privateSet(this, _zoomControl, value);
+    }
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _zoomControl).toGoogle().then((zoomControlOptions) => {
+        __privateGet(this, _map2).setOptions({
+          zoomControl: __privateGet(this, _zoomControl).enabled,
+          zoomControlOptions
+        });
+      });
     }
   }
   /**
@@ -3996,6 +5277,24 @@ var Map = class extends Evented {
    */
   clearBounds() {
     __privateSet(this, _bounds3, latLngBounds());
+    return this;
+  }
+  /**
+   * Enable the default UI
+   *
+   * @returns {Map}
+   */
+  enableDefaultUI() {
+    this.disableDefaultUI = false;
+    return this;
+  }
+  /**
+   * Disable the default UI
+   *
+   * @returns {Map}
+   */
+  doDisableDefaultUI() {
+    this.disableDefaultUI = true;
     return this;
   }
   /**
@@ -4422,11 +5721,25 @@ var Map = class extends Evented {
       if (center.isValid()) {
         __privateGet(this, _options2).center = center;
       }
+      if (isBoolean(options.disableDefaultUI)) {
+        this.disableDefaultUI = options.disableDefaultUI;
+      }
+      if (typeof options.fullscreenControl !== "undefined") {
+        if (isBoolean(options.fullscreenControl)) {
+          __privateGet(this, _fullscreenControl).enabled = options.fullscreenControl;
+        } else if (options.fullscreenControl instanceof FullscreenControl) {
+          __privateSet(this, _fullscreenControl, options.fullscreenControl);
+        }
+      }
       if (isStringWithValue(options.mapId)) {
         __privateGet(this, _options2).mapId = options.mapId;
       }
       if (typeof options.mapTypeControl !== "undefined") {
-        this.mapTypeControl = options.mapTypeControl;
+        if (isBoolean(options.mapTypeControl)) {
+          __privateGet(this, _mapTypeControl).enabled = options.mapTypeControl;
+        } else if (options.mapTypeControl instanceof MapTypeControl) {
+          __privateSet(this, _mapTypeControl, options.mapTypeControl);
+        }
       }
       if (options.mapTypeId) {
         this.mapTypeId = options.mapTypeId;
@@ -4437,9 +5750,77 @@ var Map = class extends Evented {
       if (typeof options.minZoom !== "undefined") {
         this.minZoom = options.minZoom;
       }
+      if (typeof options.restriction !== "undefined") {
+        this.restriction = options.restriction;
+      }
+      if (isDefined(options.rotateControl)) {
+        if (isBoolean(options.rotateControl)) {
+          __privateGet(this, _rotateControl).enabled = options.rotateControl;
+        } else if (options.rotateControl instanceof RotateControl) {
+          __privateSet(this, _rotateControl, options.rotateControl);
+        }
+      }
+      if (isDefined(options.scaleControl)) {
+        if (isBoolean(options.scaleControl)) {
+          __privateGet(this, _scaleControl).enabled = options.scaleControl;
+        } else if (options.scaleControl instanceof ScaleControl) {
+          __privateSet(this, _scaleControl, options.scaleControl);
+        }
+      }
+      if (isDefined(options.streetViewControl)) {
+        if (isBoolean(options.streetViewControl)) {
+          __privateGet(this, _streetViewControl).enabled = options.streetViewControl;
+        } else if (options.streetViewControl instanceof StreetViewControl) {
+          __privateSet(this, _streetViewControl, options.streetViewControl);
+        }
+      }
+      if (isDefined(options.zoomControl)) {
+        if (isBoolean(options.zoomControl)) {
+          __privateGet(this, _zoomControl).enabled = options.zoomControl;
+        } else if (options.zoomControl instanceof ZoomControl) {
+          __privateSet(this, _zoomControl, options.zoomControl);
+        }
+      }
+      if (Array.isArray(options.styles)) {
+        __privateSet(this, _styles2, options.styles.map((style) => mapStyle(style)));
+      } else if (options.styles instanceof MapStyle) {
+        __privateSet(this, _styles2, [options.styles]);
+      }
       if (options.zoom) {
         this.zoom = options.zoom;
       }
+      const booleanOptions = [
+        "clickableIcons",
+        "headingInteractionEnabled",
+        "isFractionalZoomEnabled",
+        "keyboardShortcuts",
+        "noClear",
+        "scrollwheel",
+        "tiltInteractionEnabled"
+      ];
+      booleanOptions.forEach((key) => {
+        if (isBoolean(options[key])) {
+          __privateGet(this, _options2)[key] = options[key];
+        }
+      });
+      const numberOptions = ["controlSize", "heading", "tilt"];
+      numberOptions.forEach((key) => {
+        if (isNumberOrNumberString(options[key])) {
+          __privateGet(this, _options2)[key] = options[key];
+        }
+      });
+      const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor", "gestureHandling"];
+      stringOptions.forEach((key) => {
+        if (isStringWithValue(options[key])) {
+          __privateGet(this, _options2)[key] = options[key];
+        }
+      });
+      const otherOptions = ["mapTypeId", "renderingType", "streetView"];
+      otherOptions.forEach((key) => {
+        if (typeof options[key] !== "undefined") {
+          __privateGet(this, _options2)[key] = options[key];
+        }
+      });
       if (__privateGet(this, _map2)) {
         __privateMethod(this, _getMapOptions, getMapOptions_fn).call(this).then((mapOptions) => {
           __privateGet(this, _map2).setOptions(mapOptions);
@@ -4472,12 +5853,16 @@ var Map = class extends Evented {
   show(callback) {
     return new Promise((resolve) => {
       if (checkForGoogleMaps("Map", "Map", false)) {
-        __privateMethod(this, _showMap, showMap_fn).call(this, callback);
-        resolve(this);
+        __privateMethod(this, _showMap, showMap_fn).call(this).then(() => {
+          callCallback(callback);
+          resolve(this);
+        });
       } else {
         loader().once("load", () => {
-          __privateMethod(this, _showMap, showMap_fn).call(this, callback);
-          resolve(this);
+          __privateMethod(this, _showMap, showMap_fn).call(this).then(() => {
+            callCallback(callback);
+            resolve(this);
+          });
         });
       }
     });
@@ -4504,6 +5889,7 @@ var Map = class extends Evented {
 };
 _bounds3 = new WeakMap();
 _customControls = new WeakMap();
+_fullscreenControl = new WeakMap();
 _latitude2 = new WeakMap();
 _longitude2 = new WeakMap();
 _isGettingMapOptions = new WeakMap();
@@ -4513,23 +5899,88 @@ _isVisible2 = new WeakMap();
 _map2 = new WeakMap();
 _mapTypeControl = new WeakMap();
 _options2 = new WeakMap();
+_restriction = new WeakMap();
+_rotateControl = new WeakMap();
+_scaleControl = new WeakMap();
 _selector = new WeakMap();
+_streetViewControl = new WeakMap();
+_styles2 = new WeakMap();
 _watchId = new WeakMap();
+_zoomControl = new WeakMap();
 _getMapOptions = new WeakSet();
 getMapOptions_fn = function() {
   return new Promise((resolve) => {
     const mapOptions = {};
-    const optionsToSet = ["mapId", "mapTypeId", "maxZoom", "minZoom", "zoom"];
+    const booleanOptions = [
+      "clickableIcons",
+      "disableDefaultUI",
+      "headingInteractionEnabled",
+      "isFractionalZoomEnabled",
+      "keyboardShortcuts",
+      "noClear",
+      "scrollwheel",
+      "tiltInteractionEnabled"
+    ];
+    booleanOptions.forEach((key) => {
+      if (isBoolean(__privateGet(this, _options2)[key])) {
+        mapOptions[key] = __privateGet(this, _options2)[key];
+      }
+    });
+    const numberOptions = ["controlSize", "heading", "maxZoom", "minZoom", "tilt", "zoom"];
+    numberOptions.forEach((key) => {
+      if (isNumberOrNumberString(__privateGet(this, _options2)[key])) {
+        mapOptions[key] = __privateGet(this, _options2)[key];
+      }
+    });
+    const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor", "gestureHandling", "mapId"];
+    stringOptions.forEach((key) => {
+      if (isStringWithValue(__privateGet(this, _options2)[key])) {
+        mapOptions[key] = __privateGet(this, _options2)[key];
+      }
+    });
+    const optionsToSet = ["renderingType", "streetView"];
     optionsToSet.forEach((key) => {
       if (typeof __privateGet(this, _options2)[key] !== "undefined") {
         mapOptions[key] = __privateGet(this, _options2)[key];
       }
     });
+    if (isStringWithValue(__privateGet(this, _options2).mapTypeId)) {
+      if (__privateGet(this, _mapTypeControl).hasMapType(__privateGet(this, _options2).mapTypeId)) {
+        mapOptions.mapTypeId = __privateGet(this, _options2).mapTypeId;
+      } else {
+        console.warn(
+          "The selected mapTypeId is not one of the allowed types set for the MapType Control.",
+          __privateGet(this, _options2).mapTypeId
+        );
+      }
+    }
     mapOptions.center = __privateGet(this, _options2).center.toGoogle();
-    mapOptions.mapTypeControl = __privateGet(this, _mapTypeControl).enabled;
     (() => __async(this, null, function* () {
+      mapOptions.fullscreenControl = __privateGet(this, _fullscreenControl).enabled;
+      const fullscreenControlOptions = yield __privateGet(this, _fullscreenControl).toGoogle();
+      mapOptions.fullscreenControlOptions = fullscreenControlOptions;
+      mapOptions.mapTypeControl = __privateGet(this, _mapTypeControl).enabled;
       const mapTypeControlOptions = yield __privateGet(this, _mapTypeControl).toGoogle();
       mapOptions.mapTypeControlOptions = mapTypeControlOptions;
+      if (__privateGet(this, _restriction) && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
+        const restriction = yield __privateGet(this, _restriction).toGoogle();
+        mapOptions.restriction = restriction;
+      }
+      mapOptions.rotateControl = __privateGet(this, _rotateControl).enabled;
+      const rotateControlOptions = yield __privateGet(this, _rotateControl).toGoogle();
+      mapOptions.rotateControlOptions = rotateControlOptions;
+      mapOptions.scaleControl = __privateGet(this, _scaleControl).enabled;
+      const scaleControlOptions = yield __privateGet(this, _scaleControl).toGoogle();
+      mapOptions.scaleControlOptions = scaleControlOptions;
+      mapOptions.streetViewControl = __privateGet(this, _streetViewControl).enabled;
+      const streetViewControlOptions = yield __privateGet(this, _streetViewControl).toGoogle();
+      mapOptions.streetViewControlOptions = streetViewControlOptions;
+      mapOptions.zoomControl = __privateGet(this, _zoomControl).enabled;
+      const zoomControlOptions = yield __privateGet(this, _zoomControl).toGoogle();
+      mapOptions.zoomControlOptions = zoomControlOptions;
+      if (__privateGet(this, _styles2).length > 0) {
+        mapOptions.styles = __privateGet(this, _styles2).map((style) => style.toGoogle());
+      }
       resolve(mapOptions);
     }))();
   });
@@ -4538,46 +5989,50 @@ _load = new WeakSet();
 load_fn = function(callback) {
   return new Promise((resolve, reject) => {
     loader().load().then(() => {
-      __privateMethod(this, _showMap, showMap_fn).call(this, callback);
-      resolve();
+      __privateMethod(this, _showMap, showMap_fn).call(this).then(() => {
+        callCallback(callback);
+        resolve();
+      });
     }).catch((err) => {
       reject(err);
     });
   });
 };
 _showMap = new WeakSet();
-showMap_fn = function(callback) {
-  if (!__privateGet(this, _isVisible2) && !__privateGet(this, _isGettingMapOptions)) {
-    __privateSet(this, _isGettingMapOptions, true);
-    let element = null;
-    if (typeof __privateGet(this, _selector) === "string") {
-      element = document.querySelector(__privateGet(this, _selector));
-    } else if (__privateGet(this, _selector) instanceof HTMLElement) {
-      element = __privateGet(this, _selector);
-    }
-    if (element === null) {
-      throw new Error(
-        "The map element could not be found. Make sure the map selector is correct and the element exists."
-      );
-    }
-    __privateMethod(this, _getMapOptions, getMapOptions_fn).call(this).then((mapOptions) => {
-      __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
-      this.setEventGoogleObject(__privateGet(this, _map2));
-      if (__privateGet(this, _customControls).length > 0) {
-        __privateGet(this, _customControls).forEach((control) => {
-          __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
-        });
+showMap_fn = function() {
+  return new Promise((resolve) => {
+    if (!__privateGet(this, _isVisible2) && !__privateGet(this, _isGettingMapOptions)) {
+      __privateSet(this, _isGettingMapOptions, true);
+      let element = null;
+      if (typeof __privateGet(this, _selector) === "string") {
+        element = document.querySelector(__privateGet(this, _selector));
+      } else if (__privateGet(this, _selector) instanceof HTMLElement) {
+        element = __privateGet(this, _selector);
       }
-      __privateSet(this, _customControls, []);
-      this.dispatch("visible");
-      loader().dispatch("map_loaded");
-      __privateSet(this, _isInitialized, true);
-      __privateSet(this, _isVisible2, true);
-      callCallback(callback);
-    });
-  } else {
-    callCallback(callback);
-  }
+      if (element === null) {
+        throw new Error(
+          "The map element could not be found. Make sure the map selector is correct and the element exists."
+        );
+      }
+      __privateMethod(this, _getMapOptions, getMapOptions_fn).call(this).then((mapOptions) => {
+        __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
+        this.setEventGoogleObject(__privateGet(this, _map2));
+        if (__privateGet(this, _customControls).length > 0) {
+          __privateGet(this, _customControls).forEach((control) => {
+            __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
+          });
+        }
+        __privateSet(this, _customControls, []);
+        this.dispatch("visible");
+        loader().dispatch("map_loaded");
+        __privateSet(this, _isInitialized, true);
+        __privateSet(this, _isVisible2, true);
+        resolve();
+      });
+    } else {
+      resolve();
+    }
+  });
 };
 var map = (selector, config) => new Map(selector, config);
 
@@ -7414,7 +8869,7 @@ var MarkerCollection = class {
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var _offset, _overlay, _overlayView, _position2, _styles, _setupGoogleOverlay, setupGoogleOverlay_fn;
+var _offset, _overlay, _overlayView, _position6, _styles3, _setupGoogleOverlay, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -7461,14 +8916,14 @@ var Overlay = class extends Layer_default {
      * @private
      * @type {LatLng}
      */
-    __privateAdd(this, _position2, void 0);
+    __privateAdd(this, _position6, void 0);
     /**
      * Holds the styles for the tooltip. These are applied to the tooltip container (i.e. the overlay element).
      *
      * @private
      * @type {object}
      */
-    __privateAdd(this, _styles, {});
+    __privateAdd(this, _styles3, {});
     __privateSet(this, _overlay, document.createElement("div"));
     __privateGet(this, _overlay).style.position = "absolute";
     this.setOffset([0, 0]);
@@ -7526,7 +8981,7 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
-    return __privateGet(this, _position2);
+    return __privateGet(this, _position6);
   }
   /**
    * Set the position of the overlay
@@ -7536,9 +8991,9 @@ var Overlay = class extends Layer_default {
   set position(value) {
     const position = latLng(value);
     if (position.isValid()) {
-      __privateSet(this, _position2, position);
+      __privateSet(this, _position6, position);
     } else if (isNullOrUndefined(value)) {
-      __privateSet(this, _position2, void 0);
+      __privateSet(this, _position6, void 0);
     }
   }
   /**
@@ -7547,7 +9002,7 @@ var Overlay = class extends Layer_default {
    * @returns {object}
    */
   get styles() {
-    return __privateGet(this, _styles);
+    return __privateGet(this, _styles3);
   }
   /**
    * Set the styles for the overlay element
@@ -7556,7 +9011,7 @@ var Overlay = class extends Layer_default {
    */
   set styles(styles) {
     if (isObject(styles)) {
-      __privateSet(this, _styles, styles);
+      __privateSet(this, _styles3, styles);
       Object.keys(styles).forEach((key) => {
         __privateGet(this, _overlay).style[key] = styles[key];
       });
@@ -7653,7 +9108,7 @@ var Overlay = class extends Layer_default {
    * @returns {boolean}
    */
   hasPosition() {
-    return __privateGet(this, _position2) instanceof LatLng;
+    return __privateGet(this, _position6) instanceof LatLng;
   }
   /**
    * Hide the overlay
@@ -7817,7 +9272,7 @@ var Overlay = class extends Layer_default {
    */
   style(name, value) {
     if (isString(name) && isString(value)) {
-      __privateGet(this, _styles)[name] = value;
+      __privateGet(this, _styles3)[name] = value;
       __privateGet(this, _overlay).style[name] = value;
     }
     return this;
@@ -7874,8 +9329,8 @@ var Overlay = class extends Layer_default {
 _offset = new WeakMap();
 _overlay = new WeakMap();
 _overlayView = new WeakMap();
-_position2 = new WeakMap();
-_styles = new WeakMap();
+_position6 = new WeakMap();
+_styles3 = new WeakMap();
 _setupGoogleOverlay = new WeakSet();
 setupGoogleOverlay_fn = function() {
   if (!isObject(__privateGet(this, _overlayView))) {
@@ -10181,6 +11636,7 @@ Map.include(tooltipMixin);
   Base,
   ControlPosition,
   Evented,
+  FullscreenControl,
   Icon,
   InfoWindow,
   LatLng,
@@ -10188,6 +11644,8 @@ Map.include(tooltipMixin);
   Layer,
   Loader,
   Map,
+  MapRestriction,
+  MapStyle,
   MapTypeControl,
   MapTypeControlStyle,
   MapTypeId,
@@ -10200,21 +11658,29 @@ Map.include(tooltipMixin);
   Polyline,
   PolylineCollection,
   Popup,
+  RenderingType,
+  RotateControl,
+  ScaleControl,
   Size,
+  StreetViewControl,
+  StreetViewSource,
   SvgSymbol,
   Tooltip,
+  ZoomControl,
   autocompleteSearchBox,
   callCallback,
   checkForGoogleMaps,
   closeAllPopups,
   convertControlPosition,
   convertMapTypeControlStyle,
+  fullscreenControl,
   getBoolean,
   getNumber,
   getPixelsFromLatLng,
   icon,
   infoWindow,
   isBoolean,
+  isDefined,
   isFunction,
   isNull,
   isNullOrUndefined,
@@ -10232,6 +11698,8 @@ Map.include(tooltipMixin);
   latLngBounds,
   loader,
   map,
+  mapRestriction,
+  mapStyle,
   mapTypeControl,
   marker,
   markerCluster,
@@ -10243,7 +11711,11 @@ Map.include(tooltipMixin);
   polyline,
   polylineCollection,
   popup,
+  rotateControl,
+  scaleControl,
   size,
+  streetViewControl,
   svgSymbol,
-  tooltip
+  tooltip,
+  zoomControl
 });
