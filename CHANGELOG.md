@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.1 (September 10, 2024)
+
+- Updated caniuse-lite.
+- Trying to fix the dist/browser.js as it's missing the new map control objects.
+
 ## 0.14.0 (September 10, 2024)
 
 - Added more Map options so that we offer the same options as the Google Maps library.
