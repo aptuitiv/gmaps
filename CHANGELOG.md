@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0 (September 10, 2024)
+
+- Added more Map options so that we offer the same options as the Google Maps library.
+- Added support for all map controls when configuring the map object.
+
 ## 0.13.0 (August 28, 2024)
 
 - Added `open` event for the popup.
