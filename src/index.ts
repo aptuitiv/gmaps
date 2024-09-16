@@ -10,7 +10,7 @@
 export { default as Base } from './lib/Base';
 export * from './lib/constants';
 export { Event, EventCallback, EventConfig, EventListenerOptions, Evented } from './lib/Evented';
-export { geocode, Geocode, GeocodeOptions, GeocodeComponentRestrictions } from './lib/Geocode';
+export { geocode, Geocode, GeocodeComponentRestrictions, GeocodeOptions, GeocodeResult } from './lib/Geocode';
 export * from './lib/helpers';
 export {
     autocompleteSearchBox,

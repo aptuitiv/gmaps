@@ -32,6 +32,9 @@ export type GeocodeOptions = {
     region?: string;
 };
 
+// The result from the geocoding request
+export type GeocodeResult = google.maps.GeocoderResult;
+
 /**
  * The Geocode class
  */
@@ -259,9 +262,9 @@ export class Geocode extends Base {
      * Call the Google Maps Geocoder service
      *
      * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<google.maps.GeocoderResult[]>}
+     * @returns {Promise<GeocodeResult[]>}
      */
-    geocode(options?: GeocodeOptions): Promise<google.maps.GeocoderResult[]> {
+    geocode(options?: GeocodeOptions): Promise<GeocodeResult[]> {
         return new Promise((resolve, reject) => {
             if (isObject(options)) {
                 this.setOptions(options);
@@ -296,18 +299,18 @@ export class Geocode extends Base {
      * Alias for the geocode method
      *
      * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<google.maps.GeocoderResult[]>}
+     * @returns {Promise<GeocodeResult[]>}
      */
-    run(options?: GeocodeOptions): Promise<google.maps.GeocoderResult[]> {
+    run(options?: GeocodeOptions): Promise<GeocodeResult[]> {
         return this.geocode(options);
     }
 
     /**
      * Runs the geocode request
      *
-     * @returns {Promise<google.maps.GeocoderResult[]>}
+     * @returns {Promise<GeocodeResult[]>}
      */
-    #runGeocode = (): Promise<google.maps.GeocoderResult[]> =>
+    #runGeocode = (): Promise<GeocodeResult[]> =>
         new Promise((resolve, reject) => {
             const options: google.maps.GeocoderRequest = {};
             if (this.#address) {
