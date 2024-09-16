@@ -379,6 +379,13 @@ export class Geocode extends Base {
         return this;
     }
 
+    /**
+     * Set the language to use for the geocode
+     * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+     *
+     * @param {string} language The language to use for the geocode
+     * @returns {Geocode}
+     */
     setLanguage(language: string): Geocode {
         this.language = language;
         return this;
