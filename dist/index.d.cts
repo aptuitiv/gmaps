@@ -833,7 +833,7 @@ declare class LatLngBounds extends Base {
      * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
      *      See comments on the extended method for the types of values that latLngValue can be.
      */
-    constructor(latLngValue?: LatLngValue | LatLngValue[]);
+    constructor(latLngValue?: LatLngValue | LatLngValue[] | LatLngBoundsEdges | LatLngBoundsLiteral);
     /**
      * Returns whether the the given LatLng value is within this bounds
      *
@@ -939,7 +939,7 @@ declare class LatLngBounds extends Base {
      */
     union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void>;
 }
-type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
+type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBoundsEdges | LatLngBoundsLiteral | LatLngBounds;
 /**
  * Helper function to set up the LatLngBounds object
  *
@@ -962,10 +962,12 @@ type GeocodeOptions = {
     address?: string;
     bounds?: LatLngBoundsValue;
     componentRestrictions?: GeocodeComponentRestrictions;
+    language?: string;
     location?: LatLngValue;
     placeId?: string;
     region?: string;
 };
+type GeocodeResult = google.maps.GeocoderResult;
 /**
  * The Geocode class
  */
@@ -1014,6 +1016,20 @@ declare class Geocode extends Base {
      */
     set componentRestrictions(componentRestrictions: GeocodeComponentRestrictions);
     /**
+     * Get the language to use for the geocode
+     *
+     * @returns {string|undefined}
+     */
+    get language(): string | undefined;
+    /**
+     * Set the language to use for the geocode
+     *
+     * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+     *
+     * @param {string} language The language to use for the geocode
+     */
+    set language(language: string);
+    /**
      * Get the location to geocode
      *
      * @returns {LatLng|undefined}
@@ -1052,9 +1068,19 @@ declare class Geocode extends Base {
     /**
      * Call the Google Maps Geocoder service
      *
-     * @returns {Promise<google.maps.GeocoderResult[]>}
+     * @param {GeocodeOptions} [options] The Geocode options
+     * @returns {Promise<GeocodeResult[]>}
      */
-    geocode(): Promise<google.maps.GeocoderResult[]>;
+    geocode(options?: GeocodeOptions): Promise<GeocodeResult[]>;
+    /**
+     * Call the Google Maps Geocoder service
+     *
+     * Alias for the geocode method
+     *
+     * @param {GeocodeOptions} [options] The Geocode options
+     * @returns {Promise<GeocodeResult[]>}
+     */
+    run(options?: GeocodeOptions): Promise<GeocodeResult[]>;
     /**
      * Set the address to geocode
      *
@@ -1076,6 +1102,14 @@ declare class Geocode extends Base {
      * @returns {Geocode}
      */
     setComponentRestrictions(componentRestrictions: GeocodeComponentRestrictions): Geocode;
+    /**
+     * Set the language to use for the geocode
+     * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+     *
+     * @param {string} language The language to use for the geocode
+     * @returns {Geocode}
+     */
+    setLanguage(language: string): Geocode;
     /**
      * Set the location to geocode
      *
@@ -5674,4 +5708,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, type GeocodeResult, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

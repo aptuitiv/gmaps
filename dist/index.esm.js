@@ -2216,7 +2216,7 @@ var latLngBounds = (latLngValue) => {
 };
 
 // src/lib/Geocode.ts
-var _address, _bounds2, _componentRestrictions, _location, _placeId, _region, _runGeocode;
+var _address, _bounds2, _componentRestrictions, _language, _location, _placeId, _region, _runGeocode;
 var Geocode = class extends Base_default {
   /**
    * Constructor
@@ -2247,6 +2247,15 @@ var Geocode = class extends Base_default {
      */
     __privateAdd(this, _componentRestrictions, void 0);
     /**
+     * The language to use for the geocode
+     *
+     * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _language, void 0);
+    /**
      * The location to geocode
      *
      * @type {LatLng}
@@ -2270,7 +2279,7 @@ var Geocode = class extends Base_default {
     /**
      * Runs the geocode request
      *
-     * @returns {Promise<google.maps.GeocoderResult[]>}
+     * @returns {Promise<GeocodeResult[]>}
      */
     __privateAdd(this, _runGeocode, () => new Promise((resolve, reject) => {
       const options = {};
@@ -2288,6 +2297,9 @@ var Geocode = class extends Base_default {
       }
       if (__privateGet(this, _componentRestrictions)) {
         options.componentRestrictions = __privateGet(this, _componentRestrictions);
+      }
+      if (__privateGet(this, _language)) {
+        options.language = __privateGet(this, _language);
       }
       if (__privateGet(this, _region)) {
         options.region = __privateGet(this, _region);
@@ -2365,6 +2377,26 @@ var Geocode = class extends Base_default {
     }
   }
   /**
+   * Get the language to use for the geocode
+   *
+   * @returns {string|undefined}
+   */
+  get language() {
+    return __privateGet(this, _language);
+  }
+  /**
+   * Set the language to use for the geocode
+   *
+   * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+   *
+   * @param {string} language The language to use for the geocode
+   */
+  set language(language) {
+    if (isStringWithValue(language)) {
+      __privateSet(this, _language, language);
+    }
+  }
+  /**
    * Get the location to geocode
    *
    * @returns {LatLng|undefined}
@@ -2422,10 +2454,14 @@ var Geocode = class extends Base_default {
   /**
    * Call the Google Maps Geocoder service
    *
-   * @returns {Promise<google.maps.GeocoderResult[]>}
+   * @param {GeocodeOptions} [options] The Geocode options
+   * @returns {Promise<GeocodeResult[]>}
    */
-  geocode() {
+  geocode(options) {
     return new Promise((resolve, reject) => {
+      if (isObject(options)) {
+        this.setOptions(options);
+      }
       if (checkForGoogleMaps("Geocoder", "Geocoder", false)) {
         __privateGet(this, _runGeocode).call(this).then((results) => {
           resolve(results);
@@ -2442,6 +2478,17 @@ var Geocode = class extends Base_default {
         });
       }
     });
+  }
+  /**
+   * Call the Google Maps Geocoder service
+   *
+   * Alias for the geocode method
+   *
+   * @param {GeocodeOptions} [options] The Geocode options
+   * @returns {Promise<GeocodeResult[]>}
+   */
+  run(options) {
+    return this.geocode(options);
   }
   /**
    * Set the address to geocode
@@ -2471,6 +2518,17 @@ var Geocode = class extends Base_default {
    */
   setComponentRestrictions(componentRestrictions) {
     this.componentRestrictions = componentRestrictions;
+    return this;
+  }
+  /**
+   * Set the language to use for the geocode
+   * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+   *
+   * @param {string} language The language to use for the geocode
+   * @returns {Geocode}
+   */
+  setLanguage(language) {
+    this.language = language;
     return this;
   }
   /**
@@ -2519,6 +2577,9 @@ var Geocode = class extends Base_default {
     if (options.componentRestrictions) {
       this.componentRestrictions = options.componentRestrictions;
     }
+    if (options.language) {
+      this.language = options.language;
+    }
     if (options.location) {
       this.location = options.location;
     }
@@ -2534,6 +2595,7 @@ var Geocode = class extends Base_default {
 _address = new WeakMap();
 _bounds2 = new WeakMap();
 _componentRestrictions = new WeakMap();
+_language = new WeakMap();
 _location = new WeakMap();
 _placeId = new WeakMap();
 _region = new WeakMap();
