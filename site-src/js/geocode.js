@@ -20,7 +20,7 @@ G.loader({ apiKey: apiKey, }).load().then(() => {
         //     country: 'US',
         // },
         // address: '04938',
-        address: '1398 N. "E" Street, San Bernardino, CA 92405',
+        address: '221 B Baker St, London, England',
         // bounds: bounds,
         // location: {
         //     lat: 44.7,
@@ -28,10 +28,16 @@ G.loader({ apiKey: apiKey, }).load().then(() => {
         // },
         // region: 'US',
     });
-    geocoder.geocode().then((response) => {
+    geocoder.run().then((response) => {
         console.log('Response: ', response);
     })
         .catch((error) => {
             console.error('Error: ', error);
         });
+
+    G.geocode().run({
+        address: '04938',
+    }).then((response) => {
+        console.log('Response 2: ', response);
+    });
 });

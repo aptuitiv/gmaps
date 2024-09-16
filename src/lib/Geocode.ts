@@ -291,6 +291,18 @@ export class Geocode extends Base {
     }
 
     /**
+     * Call the Google Maps Geocoder service
+     *
+     * Alias for the geocode method
+     *
+     * @param {GeocodeOptions} [options] The Geocode options
+     * @returns {Promise<google.maps.GeocoderResult[]>}
+     */
+    run(options?: GeocodeOptions): Promise<google.maps.GeocoderResult[]> {
+        return this.geocode(options);
+    }
+
+    /**
      * Runs the geocode request
      *
      * @returns {Promise<google.maps.GeocoderResult[]>}
