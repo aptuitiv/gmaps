@@ -21,7 +21,13 @@ export {
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
 export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
 export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';
-export { latLngBounds, LatLngBounds, LatLngBoundsValue } from './lib/LatLngBounds';
+export {
+    latLngBounds,
+    LatLngBounds,
+    LatLngBoundsValue,
+    LatLngBoundsEdges,
+    LatLngBoundsLiteral,
+} from './lib/LatLngBounds';
 export { default as Layer } from './lib/Layer';
 export { loader, Loader, LoaderOptions } from './lib/Loader';
 export { map, Map, MapType } from './lib/Map';
