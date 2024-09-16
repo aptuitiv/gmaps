@@ -790,6 +790,330 @@ declare class Evented extends Base {
     trigger(event: string, data?: any): Evented;
 }
 
+type LatLngBoundsLiteral = {
+    /**
+     * East longitude in degrees. Values outside the range [-180, 180] will be
+     * wrapped to the range [-180, 180). For example, a value of -190 will be
+     * converted to 170. A value of 190 will be converted to -170. This reflects
+     * the fact that longitudes wrap around the globe.
+     */
+    east: number;
+    /**
+     * North latitude in degrees. Values will be clamped to the range [-90, 90].
+     * This means that if the value specified is less than -90, it will be set
+     * to -90. And if the value is greater than 90, it will be set to 90.
+     */
+    north: number;
+    /**
+     * South latitude in degrees. Values will be clamped to the range [-90, 90].
+     * This means that if the value specified is less than -90, it will be set
+     * to -90. And if the value is greater than 90, it will be set to 90.
+     */
+    south: number;
+    /**
+     * West longitude in degrees. Values outside the range [-180, 180] will be
+     * wrapped to the range [-180, 180). For example, a value of -190 will be
+     * converted to 170. A value of 190 will be converted to -170. This reflects
+     * the fact that longitudes wrap around the globe.
+     */
+    west: number;
+};
+type LatLngBoundsEdges = {
+    ne: LatLngValue;
+    sw: LatLngValue;
+};
+/**
+ * The LatLngBounds class to set up and manage latitude/longitude bounds
+ */
+declare class LatLngBounds extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
+     *      See comments on the extended method for the types of values that latLngValue can be.
+     */
+    constructor(latLngValue?: LatLngValue | LatLngValue[]);
+    /**
+     * Returns whether the the given LatLng value is within this bounds
+     *
+     * @param {LatLngValue} latLngValue The LatLng value to test
+     * @returns {boolean}
+     */
+    contains(latLngValue: LatLngValue): boolean;
+    /**
+     * Returns whether this bounds approximately equals the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {Promise<boolean>}
+     */
+    equals(other: LatLngBounds): Promise<boolean>;
+    /**
+     * Extends this bounds to contain the given point
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+     *
+     * The latLngValue parameter can be:
+     * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
+     * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
+     * - an array of LatLng objects: [LatLng, LatLng, ...]
+     * - a [lat, lng] pair
+     * - a {lat, lng} object (LatLngLiteral)
+     *
+     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
+     * @returns {LatLngBounds}
+     */
+    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds;
+    /**
+     * Get the center of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getCenter(): LatLng;
+    /**
+     * Get the north-east corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getNorthEast(): LatLng;
+    /**
+     * Get the south-west corner of the LatLngBounds
+     *
+     * @returns {LatLng}
+     */
+    getSouthWest(): LatLng;
+    /**
+     * Initialize the lat/lng bounds object so that the Google maps library is available
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * Returns whether this bounds shares any points with the other bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to compare
+     * @returns {Promise<boolean>}
+     */
+    intersects(other: LatLngBounds): Promise<boolean>;
+    /**
+     * Returns whether this bounds is empty
+     *
+     * @returns {boolean}
+     */
+    isEmpty(): boolean;
+    /**
+     * Get the Google maps LatLngBounds object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
+     *
+     * @returns {Promise<google.maps.LatLngBounds>}
+     */
+    toGoogle(): Promise<google.maps.LatLngBounds>;
+    /**
+     * Converts the LatLngBounds object to a JSON object
+     *
+     * @returns {google.maps.LatLngBoundsLiteral}
+     */
+    toJson(): google.maps.LatLngBoundsLiteral;
+    /**
+     * Converts the LatLngBounds object to a string
+     *
+     * @returns {string}
+     */
+    toString(): string;
+    /**
+     * Returns the LatLngBounds object as a string that can be used in a URL
+     *
+     * @param {number} [precision] The number of decimal places to round the lat/lng values to
+     * @returns {string}
+     */
+    toUrlValue(precision?: number): string;
+    /**
+     * Extends this bounds to contain the union of this and the given bounds
+     *
+     * @param {LatLngBounds} other The LatLngBounds object to join with
+     * @returns {Promise<void>}
+     */
+    union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void>;
+}
+type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
+/**
+ * Helper function to set up the LatLngBounds object
+ *
+ * See comments on the extended method in the LatLngBounds class for the types of values
+ * that latLngValue can be.
+ *
+ * @param {LatLngBoundsValue} [latLngValue] The latitude/longitude bounds value
+ * @returns {LatLngBounds}
+ */
+declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
+
+type GeocodeOptions = {
+    address?: string;
+    bounds?: LatLngBoundsValue;
+    componentRestrictions?: GeocodeComponentRestrictions;
+    location?: LatLngValue;
+    placeId?: string;
+    region?: string;
+};
+type GeocodeComponentRestrictions = {
+    administrativeArea?: string;
+    country?: string;
+    locality?: string;
+    postalCode?: string;
+    route?: string;
+};
+/**
+ * The Geocode class
+ */
+declare class Geocode extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {GeocodeOptions} [options] The Geocode options
+     */
+    constructor(options: GeocodeOptions);
+    /**
+     * Returns the address
+     *
+     * @returns {string|undefined}
+     */
+    get address(): string | undefined;
+    /**
+     * Sets the address to geocode
+     *
+     * @param {string} address The address to geocode
+     */
+    set address(address: string);
+    /**
+     * Returns the bounds
+     *
+     * @returns {LatLngBounds|undefined}
+     */
+    get bounds(): LatLngBounds | undefined;
+    /**
+     * Sets the bounds within which to bias geocode results more prominently
+     *
+     * @param {LatLngBoundsValue} bounds The bounds within which to bias geocode results more prominently
+     */
+    set bounds(bounds: LatLngBoundsValue);
+    /**
+     * Get the component restrictions
+     *
+     * @returns {GeocodeComponentRestrictions|undefined}
+     */
+    get componentRestrictions(): GeocodeComponentRestrictions | undefined;
+    /**
+     * Set the component restrictions
+     *
+     * @param {GeocodeComponentRestrictions} componentRestrictions The component restrictions
+     */
+    set componentRestrictions(componentRestrictions: GeocodeComponentRestrictions);
+    /**
+     * Get the location to geocode
+     *
+     * @returns {LatLng|undefined}
+     */
+    get location(): LatLng | undefined;
+    /**
+     * Set the location to geocode
+     *
+     * @param {LatLngValue} location The location to geocode
+     */
+    set location(location: LatLngValue);
+    /**
+     * Get the place id
+     *
+     * @returns {string|undefined}
+     */
+    get placeId(): string | undefined;
+    /**
+     * Set the place id
+     *
+     * @param {string} placeId The place id
+     */
+    set placeId(placeId: string);
+    /**
+     * Get the region code
+     *
+     * @returns {string|undefined}
+     */
+    get region(): string | undefined;
+    /**
+     * Set the region code
+     *
+     * @param {string} region The region code
+     */
+    set region(region: string);
+    /**
+     * Call the Google Maps Geocoder service
+     *
+     * @returns {Promise<google.maps.GeocoderResult[]>}
+     */
+    geocode(): Promise<google.maps.GeocoderResult[]>;
+    /**
+     * Set the address to geocode
+     *
+     * @param {string} address The address to geocode
+     * @returns {Geocode}
+     */
+    setAddress(address: string): Geocode;
+    /**
+     * Set the bounds within which to bias geocode results more prominently
+     *
+     * @param {LatLngBoundsValue} bounds The bounds within which to bias geocode results more prominently
+     * @returns {Geocode}
+     */
+    setBounds(bounds: LatLngBoundsValue): Geocode;
+    /**
+     * Set the component restrictions
+     *
+     * @param {GeocodeComponentRestrictions} componentRestrictions The component restrictions
+     * @returns {Geocode}
+     */
+    setComponentRestrictions(componentRestrictions: GeocodeComponentRestrictions): Geocode;
+    /**
+     * Set the location to geocode
+     *
+     * @param {LatLngValue} location The location to geocode
+     * @returns {Geocode}
+     */
+    setLocation(location: LatLngValue): Geocode;
+    /**
+     * Set the place id
+     *
+     * @param {string} placeId The place id
+     * @returns {Geocode}
+     */
+    setPlaceId(placeId: string): Geocode;
+    /**
+     * Set the region code
+     *
+     * @param {string} region The region code
+     * @returns {Geocode}
+     */
+    setRegion(region: string): Geocode;
+    /**
+     * Sets the options for the popup
+     *
+     * @param {GeocodeOptions} options Geocode options
+     * @returns {Geocode}
+     */
+    setOptions(options: GeocodeOptions): Geocode;
+}
+type GeocodeValue = Geocode | GeocodeOptions;
+/**
+ * Helper function to set up a new Geocode object value
+ *
+ * @param {GeocodeValue} [options] The options for the Geocode object
+ * @returns {Geocode}
+ */
+declare const geocode: (options?: GeocodeValue) => Geocode;
+
 /**
  * Returns if the value is boolean
  *
@@ -959,135 +1283,6 @@ declare const objectEquals: (a: any, b: any) => boolean;
  * @param {any[]} args The arguments to pass to the callback function
  */
 declare const callCallback: (callback: Function | undefined, ...args: any[]) => void;
-
-/**
- * The LatLngBounds class to set up and manage latitude/longitude bounds
- */
-declare class LatLngBounds extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
-     *      See comments on the extended method for the types of values that latLngValue can be.
-     */
-    constructor(latLngValue?: LatLngValue | LatLngValue[]);
-    /**
-     * Returns whether the the given LatLng value is within this bounds
-     *
-     * @param {LatLngValue} latLngValue The LatLng value to test
-     * @returns {boolean}
-     */
-    contains(latLngValue: LatLngValue): boolean;
-    /**
-     * Returns whether this bounds approximately equals the given bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {Promise<boolean>}
-     */
-    equals(other: LatLngBounds): Promise<boolean>;
-    /**
-     * Extends this bounds to contain the given point
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
-     *
-     * The latLngValue parameter can be:
-     * - an array of [lat, lng] pairs: [[lat, lng], [lat, lng], ...]
-     * - an array of {lat, lng} objects (LatLngLiteral[]): [{lat, lng}, {lat, lng}, ...]
-     * - an array of LatLng objects: [LatLng, LatLng, ...]
-     * - a [lat, lng] pair
-     * - a {lat, lng} object (LatLngLiteral)
-     *
-     * @param {LatLngValue | LatLngValue[]} latLngValue The latitude/longitude value(s)
-     * @returns {LatLngBounds}
-     */
-    extend(latLngValue: LatLngValue | LatLngValue[]): LatLngBounds;
-    /**
-     * Get the center of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getCenter(): LatLng;
-    /**
-     * Get the north-east corner of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getNorthEast(): LatLng;
-    /**
-     * Get the south-west corner of the LatLngBounds
-     *
-     * @returns {LatLng}
-     */
-    getSouthWest(): LatLng;
-    /**
-     * Initialize the lat/lng bounds object so that the Google maps library is available
-     *
-     * This is not intended to be called outside of this library.
-     *
-     * @internal
-     * @returns {Promise<void>}
-     */
-    init(): Promise<void>;
-    /**
-     * Returns whether this bounds shares any points with the other bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to compare
-     * @returns {Promise<boolean>}
-     */
-    intersects(other: LatLngBounds): Promise<boolean>;
-    /**
-     * Returns whether this bounds is empty
-     *
-     * @returns {boolean}
-     */
-    isEmpty(): boolean;
-    /**
-     * Get the Google maps LatLngBounds object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
-     *
-     * @returns {Promise<google.maps.LatLngBounds>}
-     */
-    toGoogle(): Promise<google.maps.LatLngBounds>;
-    /**
-     * Converts the LatLngBounds object to a JSON object
-     *
-     * @returns {google.maps.LatLngBoundsLiteral}
-     */
-    toJson(): google.maps.LatLngBoundsLiteral;
-    /**
-     * Converts the LatLngBounds object to a string
-     *
-     * @returns {string}
-     */
-    toString(): string;
-    /**
-     * Returns the LatLngBounds object as a string that can be used in a URL
-     *
-     * @param {number} [precision] The number of decimal places to round the lat/lng values to
-     * @returns {string}
-     */
-    toUrlValue(precision?: number): string;
-    /**
-     * Extends this bounds to contain the union of this and the given bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {Promise<void>}
-     */
-    union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void>;
-}
-type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
-/**
- * Helper function to set up the LatLngBounds object
- *
- * See comments on the extended method in the LatLngBounds class for the types of values
- * that latLngValue can be.
- *
- * @param {LatLngBoundsValue} [latLngValue] The latitude/longitude bounds value
- * @returns {LatLngBounds}
- */
-declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
 
 type AutocompleteSearchBoxOptions = {
     bounds?: LatLngBoundsValue;
@@ -5479,4 +5674,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

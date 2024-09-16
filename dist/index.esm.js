@@ -1832,7 +1832,37 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
      */
     __privateAdd(this, _southWest, void 0);
     if (latLngValue) {
-      this.extend(latLngValue);
+      if (isObjectWithValues(latLngValue)) {
+        if (typeof latLngValue.ne !== "undefined" && typeof latLngValue.sw !== "undefined") {
+          const ne = latLng(latLngValue.ne);
+          if (ne.isValid()) {
+            __privateSet(this, _northEast, ne);
+          }
+          const sw = latLng(latLngValue.sw);
+          if (sw.isValid()) {
+            __privateSet(this, _southWest, sw);
+          }
+        } else if (typeof latLngValue.north !== "undefined" && typeof latLngValue.south !== "undefined" && typeof latLngValue.east !== "undefined" && typeof latLngValue.west !== "undefined") {
+          const ne = latLng([
+            latLngValue.north,
+            latLngValue.east
+          ]);
+          const sw = latLng([
+            latLngValue.south,
+            latLngValue.west
+          ]);
+          if (ne.isValid()) {
+            __privateSet(this, _northEast, ne);
+          }
+          if (sw.isValid()) {
+            __privateSet(this, _southWest, sw);
+          }
+        } else {
+          this.extend(latLngValue);
+        }
+      } else {
+        this.extend(latLngValue);
+      }
     }
   }
   /**
@@ -2185,8 +2215,338 @@ var latLngBounds = (latLngValue) => {
   return new LatLngBounds(latLngValue);
 };
 
+// src/lib/Geocode.ts
+var _address, _bounds2, _componentRestrictions, _location, _placeId, _region, _runGeocode;
+var Geocode = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {GeocodeOptions} [options] The Geocode options
+   */
+  constructor(options) {
+    super("geocode");
+    /**
+     * The address to geocode
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _address, void 0);
+    /**
+     * The bounds within which to bias geocode results more prominently
+     *
+     * @type {LatLngBounds}
+     * @private
+     */
+    __privateAdd(this, _bounds2, void 0);
+    /**
+     * Holds the component restrictions
+     *
+     * @type {GeocodeComponentRestrictions}
+     * @private
+     */
+    __privateAdd(this, _componentRestrictions, void 0);
+    /**
+     * The location to geocode
+     *
+     * @type {LatLng}
+     * @private
+     */
+    __privateAdd(this, _location, void 0);
+    /**
+     * Holds the id of the place to geocode
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _placeId, void 0);
+    /**
+     * The region code to influence the geocoding
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _region, void 0);
+    /**
+     * Runs the geocode request
+     *
+     * @returns {Promise<google.maps.GeocoderResult[]>}
+     */
+    __privateAdd(this, _runGeocode, () => new Promise((resolve, reject) => {
+      const options = {};
+      if (__privateGet(this, _address)) {
+        options.address = __privateGet(this, _address);
+      } else if (__privateGet(this, _location)) {
+        options.location = __privateGet(this, _location).toGoogle();
+      } else if (__privateGet(this, _placeId)) {
+        options.placeId = __privateGet(this, _placeId);
+      }
+      if (__privateGet(this, _bounds2)) {
+        (() => __async(this, null, function* () {
+          options.bounds = yield __privateGet(this, _bounds2).toGoogle();
+        }))();
+      }
+      if (__privateGet(this, _componentRestrictions)) {
+        options.componentRestrictions = __privateGet(this, _componentRestrictions);
+      }
+      if (__privateGet(this, _region)) {
+        options.region = __privateGet(this, _region);
+      }
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(options, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK) {
+          resolve(results);
+        } else {
+          reject(status);
+        }
+      });
+    }));
+    if (isObject(options)) {
+      this.setOptions(options);
+    }
+  }
+  /**
+   * Returns the address
+   *
+   * @returns {string|undefined}
+   */
+  get address() {
+    return __privateGet(this, _address);
+  }
+  /**
+   * Sets the address to geocode
+   *
+   * @param {string} address The address to geocode
+   */
+  set address(address) {
+    if (isString(address)) {
+      __privateSet(this, _address, address);
+    }
+  }
+  /**
+   * Returns the bounds
+   *
+   * @returns {LatLngBounds|undefined}
+   */
+  get bounds() {
+    return __privateGet(this, _bounds2);
+  }
+  /**
+   * Sets the bounds within which to bias geocode results more prominently
+   *
+   * @param {LatLngBoundsValue} bounds The bounds within which to bias geocode results more prominently
+   */
+  set bounds(bounds) {
+    __privateSet(this, _bounds2, latLngBounds(bounds));
+  }
+  /**
+   * Get the component restrictions
+   *
+   * @returns {GeocodeComponentRestrictions|undefined}
+   */
+  get componentRestrictions() {
+    return __privateGet(this, _componentRestrictions);
+  }
+  /**
+   * Set the component restrictions
+   *
+   * @param {GeocodeComponentRestrictions} componentRestrictions The component restrictions
+   */
+  set componentRestrictions(componentRestrictions) {
+    if (isObjectWithValues(componentRestrictions)) {
+      const restrictions = {};
+      const keys = ["administrativeArea", "country", "locality", "postalCode", "route"];
+      keys.forEach((key) => {
+        if (isStringWithValue(componentRestrictions[key])) {
+          restrictions[key] = componentRestrictions[key];
+        }
+      });
+      __privateSet(this, _componentRestrictions, restrictions);
+    }
+  }
+  /**
+   * Get the location to geocode
+   *
+   * @returns {LatLng|undefined}
+   */
+  get location() {
+    return __privateGet(this, _location);
+  }
+  /**
+   * Set the location to geocode
+   *
+   * @param {LatLngValue} location The location to geocode
+   */
+  set location(location) {
+    const value = latLng(location);
+    if (value.isValid()) {
+      __privateSet(this, _location, value);
+    }
+  }
+  /**
+   * Get the place id
+   *
+   * @returns {string|undefined}
+   */
+  get placeId() {
+    return __privateGet(this, _placeId);
+  }
+  /**
+   * Set the place id
+   *
+   * @param {string} placeId The place id
+   */
+  set placeId(placeId) {
+    if (isStringWithValue(placeId)) {
+      __privateSet(this, _placeId, placeId);
+    }
+  }
+  /**
+   * Get the region code
+   *
+   * @returns {string|undefined}
+   */
+  get region() {
+    return __privateGet(this, _region);
+  }
+  /**
+   * Set the region code
+   *
+   * @param {string} region The region code
+   */
+  set region(region) {
+    if (isStringWithValue(region)) {
+      __privateSet(this, _region, region);
+    }
+  }
+  /**
+   * Call the Google Maps Geocoder service
+   *
+   * @returns {Promise<google.maps.GeocoderResult[]>}
+   */
+  geocode() {
+    return new Promise((resolve, reject) => {
+      if (checkForGoogleMaps("Geocoder", "Geocoder", false)) {
+        __privateGet(this, _runGeocode).call(this).then((results) => {
+          resolve(results);
+        }).catch((status) => {
+          reject(status);
+        });
+      } else {
+        loader().once("map_loaded", () => {
+          __privateGet(this, _runGeocode).call(this).then((results) => {
+            resolve(results);
+          }).catch((status) => {
+            reject(status);
+          });
+        });
+      }
+    });
+  }
+  /**
+   * Set the address to geocode
+   *
+   * @param {string} address The address to geocode
+   * @returns {Geocode}
+   */
+  setAddress(address) {
+    this.address = address;
+    return this;
+  }
+  /**
+   * Set the bounds within which to bias geocode results more prominently
+   *
+   * @param {LatLngBoundsValue} bounds The bounds within which to bias geocode results more prominently
+   * @returns {Geocode}
+   */
+  setBounds(bounds) {
+    this.bounds = bounds;
+    return this;
+  }
+  /**
+   * Set the component restrictions
+   *
+   * @param {GeocodeComponentRestrictions} componentRestrictions The component restrictions
+   * @returns {Geocode}
+   */
+  setComponentRestrictions(componentRestrictions) {
+    this.componentRestrictions = componentRestrictions;
+    return this;
+  }
+  /**
+   * Set the location to geocode
+   *
+   * @param {LatLngValue} location The location to geocode
+   * @returns {Geocode}
+   */
+  setLocation(location) {
+    this.location = location;
+    return this;
+  }
+  /**
+   * Set the place id
+   *
+   * @param {string} placeId The place id
+   * @returns {Geocode}
+   */
+  setPlaceId(placeId) {
+    this.placeId = placeId;
+    return this;
+  }
+  /**
+   * Set the region code
+   *
+   * @param {string} region The region code
+   * @returns {Geocode}
+   */
+  setRegion(region) {
+    this.region = region;
+    return this;
+  }
+  /**
+   * Sets the options for the popup
+   *
+   * @param {GeocodeOptions} options Geocode options
+   * @returns {Geocode}
+   */
+  setOptions(options) {
+    if (options.address) {
+      this.address = options.address;
+    }
+    if (options.bounds) {
+      this.bounds = options.bounds;
+    }
+    if (options.componentRestrictions) {
+      this.componentRestrictions = options.componentRestrictions;
+    }
+    if (options.location) {
+      this.location = options.location;
+    }
+    if (options.placeId) {
+      this.placeId = options.placeId;
+    }
+    if (options.region) {
+      this.region = options.region;
+    }
+    return this;
+  }
+};
+_address = new WeakMap();
+_bounds2 = new WeakMap();
+_componentRestrictions = new WeakMap();
+_location = new WeakMap();
+_placeId = new WeakMap();
+_region = new WeakMap();
+_runGeocode = new WeakMap();
+var geocode = (options) => {
+  if (options instanceof Geocode) {
+    return options;
+  }
+  return new Geocode(options);
+};
+
 // src/lib/AutocompleteSearchBox.ts
-var _bounds2, _countryRestriction, _fields, _input, _place, _placeBounds, _searchBox, _strictBounds, _types, _createAutocompleteSearchBox;
+var _bounds3, _countryRestriction, _fields, _input, _place, _placeBounds, _searchBox, _strictBounds, _types, _createAutocompleteSearchBox;
 var AutocompleteSearchBox = class extends Evented {
   /**
    * Constructor
@@ -2202,7 +2562,7 @@ var AutocompleteSearchBox = class extends Evented {
      * @private
      * @type {LatLngBounds | undefined}
      */
-    __privateAdd(this, _bounds2, void 0);
+    __privateAdd(this, _bounds3, void 0);
     /**
      * Holds the region to use for biasing query predictions.
      *
@@ -2271,8 +2631,8 @@ var AutocompleteSearchBox = class extends Evented {
         const options = {
           strictBounds: __privateGet(this, _strictBounds)
         };
-        if (__privateGet(this, _bounds2)) {
-          options.bounds = yield __privateGet(this, _bounds2).toGoogle();
+        if (__privateGet(this, _bounds3)) {
+          options.bounds = yield __privateGet(this, _bounds3).toGoogle();
         }
         if (__privateGet(this, _countryRestriction)) {
           options.componentRestrictions = { country: __privateGet(this, _countryRestriction) };
@@ -2320,7 +2680,7 @@ var AutocompleteSearchBox = class extends Evented {
    */
   get bounds() {
     var _a;
-    return (_a = __privateGet(this, _bounds2)) != null ? _a : void 0;
+    return (_a = __privateGet(this, _bounds3)) != null ? _a : void 0;
   }
   /**
    * Sets the region to use for biasing query predictions.
@@ -2331,7 +2691,7 @@ var AutocompleteSearchBox = class extends Evented {
    */
   set bounds(value) {
     const boundsValue = latLngBounds(value);
-    __privateSet(this, _bounds2, boundsValue);
+    __privateSet(this, _bounds3, boundsValue);
     if (__privateGet(this, _searchBox)) {
       boundsValue.toGoogle().then((bounds) => {
         __privateGet(this, _searchBox).setBounds(bounds);
@@ -2724,7 +3084,7 @@ var AutocompleteSearchBox = class extends Evented {
     return this;
   }
 };
-_bounds2 = new WeakMap();
+_bounds3 = new WeakMap();
 _countryRestriction = new WeakMap();
 _fields = new WeakMap();
 _input = new WeakMap();
@@ -4556,7 +4916,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -4596,7 +4956,7 @@ var Map = class extends Evented {
      * @private
      * @type {LatLngBounds}
      */
-    __privateAdd(this, _bounds3, void 0);
+    __privateAdd(this, _bounds4, void 0);
     /**
      * Holds the custom controls that need to be added to the map
      *
@@ -5157,10 +5517,10 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   addToBounds(value) {
-    if (!__privateGet(this, _bounds3)) {
-      __privateSet(this, _bounds3, latLngBounds());
+    if (!__privateGet(this, _bounds4)) {
+      __privateSet(this, _bounds4, latLngBounds());
     }
-    __privateGet(this, _bounds3).extend(value);
+    __privateGet(this, _bounds4).extend(value);
     return this;
   }
   /**
@@ -5169,7 +5529,7 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   clearBounds() {
-    __privateSet(this, _bounds3, latLngBounds());
+    __privateSet(this, _bounds4, latLngBounds());
     return this;
   }
   /**
@@ -5226,8 +5586,8 @@ var Map = class extends Evented {
       latLngBounds(bounds).toGoogle().then((googleBounds) => {
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
-    } else if (__privateGet(this, _bounds3)) {
-      __privateGet(this, _bounds3).toGoogle().then((googleBounds) => {
+    } else if (__privateGet(this, _bounds4)) {
+      __privateGet(this, _bounds4).toGoogle().then((googleBounds) => {
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
     }
@@ -5780,7 +6140,7 @@ var Map = class extends Evented {
     return __privateGet(this, _map2);
   }
 };
-_bounds3 = new WeakMap();
+_bounds4 = new WeakMap();
 _customControls = new WeakMap();
 _fullscreenControl = new WeakMap();
 _latitude2 = new WeakMap();
@@ -11534,6 +11894,7 @@ export {
   ControlPosition,
   Evented,
   FullscreenControl,
+  Geocode,
   Icon,
   InfoWindow,
   LatLng,
@@ -11571,6 +11932,7 @@ export {
   convertControlPosition,
   convertMapTypeControlStyle,
   fullscreenControl,
+  geocode,
   getBoolean,
   getNumber,
   getPixelsFromLatLng,
