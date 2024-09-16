@@ -90,7 +90,7 @@ export class LatLngBounds extends Base {
      * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
      *      See comments on the extended method for the types of values that latLngValue can be.
      */
-    constructor(latLngValue?: LatLngValue | LatLngValue[]) {
+    constructor(latLngValue?: LatLngValue | LatLngValue[] | LatLngBoundsEdges | LatLngBoundsLiteral) {
         super('latlngbounds');
         if (latLngValue) {
             if (isObjectWithValues(latLngValue)) {
@@ -127,7 +127,7 @@ export class LatLngBounds extends Base {
                         this.#southWest = sw;
                     }
                 } else {
-                    this.extend(latLngValue);
+                    this.extend(latLngValue as LatLngValue);
                 }
             } else {
                 this.extend(latLngValue);
@@ -559,7 +559,7 @@ export class LatLngBounds extends Base {
     }
 }
 
-export type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
+export type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBoundsEdges | LatLngBoundsLiteral | LatLngBounds;
 
 /**
  * Helper function to set up the LatLngBounds object
