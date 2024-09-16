@@ -23,21 +23,24 @@ G.loader({ apiKey: apiKey, }).load().then(() => {
         address: '221 B Baker St, London, England',
         // bounds: bounds,
         // location: {
-        //     lat: 44.7,
-        //     lng: -69.8,
+        //     // lat: 44.7,
+        //     // lng: -69.8,
+        //     lat: -75.290330,
+        //     lng: 38.653861
         // },
         // region: 'US',
     });
     geocoder.run().then((response) => {
         console.log('Response: ', response);
+        console.log('response[0].geometry.location: ', response[0].geometry.location.lat(), response[0].geometry.location.lng());
     })
         .catch((error) => {
             console.error('Error: ', error);
         });
 
-    G.geocode().run({
-        address: '04938',
-    }).then((response) => {
-        console.log('Response 2: ', response);
-    });
+    // G.geocode().run({
+    //     address: '04938',
+    // }).then((response) => {
+    //     console.log('Response 2: ', response);
+    // });
 });
