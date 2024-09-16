@@ -20,12 +20,13 @@ G.loader({ apiKey: apiKey, }).load().then(() => {
         //     country: 'US',
         // },
         // address: '04938',
-        bounds: bounds,
-        location: {
-            lat: 44.7,
-            lng: -69.8,
-        },
-        region: 'US',
+        address: '1398 N. "E" Street, San Bernardino, CA 92405',
+        // bounds: bounds,
+        // location: {
+        //     lat: 44.7,
+        //     lng: -69.8,
+        // },
+        // region: 'US',
     });
     geocoder.geocode().then((response) => {
         console.log('Response: ', response);

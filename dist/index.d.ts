@@ -951,6 +951,13 @@ type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
  */
 declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
 
+type GeocodeComponentRestrictions = {
+    administrativeArea?: string;
+    country?: string;
+    locality?: string;
+    postalCode?: string;
+    route?: string;
+};
 type GeocodeOptions = {
     address?: string;
     bounds?: LatLngBoundsValue;
@@ -958,13 +965,6 @@ type GeocodeOptions = {
     location?: LatLngValue;
     placeId?: string;
     region?: string;
-};
-type GeocodeComponentRestrictions = {
-    administrativeArea?: string;
-    country?: string;
-    locality?: string;
-    postalCode?: string;
-    route?: string;
 };
 /**
  * The Geocode class

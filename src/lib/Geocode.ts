@@ -3,21 +3,13 @@
     https://developers.google.com/maps/documentation/javascript/geocoding
 =========================================================================== */
 
+/* global google */
+
 import Base from './Base';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import { latLngBounds, LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import { loader } from './Loader';
 import { checkForGoogleMaps, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
-
-// Options to pass the Geocode constructor
-export type GeocodeOptions = {
-    address?: string;
-    bounds?: LatLngBoundsValue;
-    componentRestrictions?: GeocodeComponentRestrictions;
-    location?: LatLngValue;
-    placeId?: string;
-    region?: string;
-};
 
 // Component restriction options
 // https://developers.google.com/maps/documentation/javascript/reference/geocoder#GeocoderComponentRestrictions
@@ -27,6 +19,16 @@ export type GeocodeComponentRestrictions = {
     locality?: string;
     postalCode?: string;
     route?: string;
+};
+
+// Options to pass the Geocode constructor
+export type GeocodeOptions = {
+    address?: string;
+    bounds?: LatLngBoundsValue;
+    componentRestrictions?: GeocodeComponentRestrictions;
+    location?: LatLngValue;
+    placeId?: string;
+    region?: string;
 };
 
 /**
