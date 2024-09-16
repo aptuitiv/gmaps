@@ -26,6 +26,7 @@ export type GeocodeOptions = {
     address?: string;
     bounds?: LatLngBoundsValue;
     componentRestrictions?: GeocodeComponentRestrictions;
+    language?: string; // See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
     location?: LatLngValue;
     placeId?: string;
     region?: string;
@@ -58,6 +59,16 @@ export class Geocode extends Base {
      * @private
      */
     #componentRestrictions?: GeocodeComponentRestrictions;
+
+    /**
+     * The language to use for the geocode
+     *
+     * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+     *
+     * @type {string}
+     * @private
+     */
+    #language?: string;
 
     /**
      * The location to geocode
@@ -158,6 +169,28 @@ export class Geocode extends Base {
                 }
             });
             this.#componentRestrictions = restrictions;
+        }
+    }
+
+    /**
+     * Get the language to use for the geocode
+     *
+     * @returns {string|undefined}
+     */
+    get language(): string | undefined {
+        return this.#language;
+    }
+
+    /**
+     * Set the language to use for the geocode
+     *
+     * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+     *
+     * @param {string} language The language to use for the geocode
+     */
+    set language(language: string) {
+        if (isStringWithValue(language)) {
+            this.#language = language;
         }
     }
 
@@ -277,6 +310,9 @@ export class Geocode extends Base {
             if (this.#componentRestrictions) {
                 options.componentRestrictions = this.#componentRestrictions;
             }
+            if (this.#language) {
+                options.language = this.#language;
+            }
             if (this.#region) {
                 options.region = this.#region;
             }
@@ -321,6 +357,11 @@ export class Geocode extends Base {
      */
     setComponentRestrictions(componentRestrictions: GeocodeComponentRestrictions): Geocode {
         this.componentRestrictions = componentRestrictions;
+        return this;
+    }
+
+    setLanguage(language: string): Geocode {
+        this.language = language;
         return this;
     }
 
@@ -372,6 +413,9 @@ export class Geocode extends Base {
         }
         if (options.componentRestrictions) {
             this.componentRestrictions = options.componentRestrictions;
+        }
+        if (options.language) {
+            this.language = options.language;
         }
         if (options.location) {
             this.location = options.location;
