@@ -261,6 +261,18 @@ export class Geocode extends Base {
     /**
      * Call the Google Maps Geocoder service
      *
+     * Alias for the geocode method
+     *
+     * @param {GeocodeOptions} [options] The Geocode options
+     * @returns {Promise<GeocodeResult[]>}
+     */
+    fetch(options?: GeocodeOptions): Promise<GeocodeResult[]> {
+        return this.geocode(options);
+    }
+
+    /**
+     * Call the Google Maps Geocoder service
+     *
      * @param {GeocodeOptions} [options] The Geocode options
      * @returns {Promise<GeocodeResult[]>}
      */
@@ -291,18 +303,6 @@ export class Geocode extends Base {
                 });
             }
         });
-    }
-
-    /**
-     * Call the Google Maps Geocoder service
-     *
-     * Alias for the geocode method
-     *
-     * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<GeocodeResult[]>}
-     */
-    run(options?: GeocodeOptions): Promise<GeocodeResult[]> {
-        return this.geocode(options);
     }
 
     /**

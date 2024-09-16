@@ -1068,19 +1068,19 @@ declare class Geocode extends Base {
     /**
      * Call the Google Maps Geocoder service
      *
-     * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<GeocodeResult[]>}
-     */
-    geocode(options?: GeocodeOptions): Promise<GeocodeResult[]>;
-    /**
-     * Call the Google Maps Geocoder service
-     *
      * Alias for the geocode method
      *
      * @param {GeocodeOptions} [options] The Geocode options
      * @returns {Promise<GeocodeResult[]>}
      */
-    run(options?: GeocodeOptions): Promise<GeocodeResult[]>;
+    fetch(options?: GeocodeOptions): Promise<GeocodeResult[]>;
+    /**
+     * Call the Google Maps Geocoder service
+     *
+     * @param {GeocodeOptions} [options] The Geocode options
+     * @returns {Promise<GeocodeResult[]>}
+     */
+    geocode(options?: GeocodeOptions): Promise<GeocodeResult[]>;
     /**
      * Set the address to geocode
      *

@@ -2563,6 +2563,17 @@ var Geocode = class extends Base_default {
   /**
    * Call the Google Maps Geocoder service
    *
+   * Alias for the geocode method
+   *
+   * @param {GeocodeOptions} [options] The Geocode options
+   * @returns {Promise<GeocodeResult[]>}
+   */
+  fetch(options) {
+    return this.geocode(options);
+  }
+  /**
+   * Call the Google Maps Geocoder service
+   *
    * @param {GeocodeOptions} [options] The Geocode options
    * @returns {Promise<GeocodeResult[]>}
    */
@@ -2587,17 +2598,6 @@ var Geocode = class extends Base_default {
         });
       }
     });
-  }
-  /**
-   * Call the Google Maps Geocoder service
-   *
-   * Alias for the geocode method
-   *
-   * @param {GeocodeOptions} [options] The Geocode options
-   * @returns {Promise<GeocodeResult[]>}
-   */
-  run(options) {
-    return this.geocode(options);
   }
   /**
    * Set the address to geocode
