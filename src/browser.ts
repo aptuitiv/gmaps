@@ -18,6 +18,7 @@
 // the lowercase objects should be used (i.e. marker, polyline, etc.).
 import { autocompleteSearchBox, AutocompleteSearchBox } from './lib/AutocompleteSearchBox';
 import { ControlPosition, MapTypeControlStyle, MapTypeId } from './lib/constants';
+import { geocode, Geocode } from './lib/Geocode';
 import { icon, Icon } from './lib/Icon';
 import { infoWindow, InfoWindow } from './lib/InfoWindow';
 import { latLng, LatLng } from './lib/LatLng';
@@ -54,6 +55,8 @@ type GlobalObj = {
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
     fullscreenControl: typeof fullscreenControl;
     FullscreenControl: typeof FullscreenControl;
+    geocode: typeof geocode;
+    Geocode: typeof Geocode;
     icon: typeof icon;
     Icon: typeof Icon;
     infoWindow: typeof infoWindow;
@@ -116,6 +119,8 @@ const G: GlobalObj = {
     AutocompleteSearchBox,
     fullscreenControl,
     FullscreenControl,
+    geocode,
+    Geocode,
     icon,
     Icon,
     infoWindow,
