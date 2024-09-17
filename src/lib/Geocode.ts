@@ -287,7 +287,12 @@ export class Geocode extends Base {
                         resolve(results);
                     })
                     .catch((status) => {
-                        reject(status);
+                        // https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
+                        if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+                            resolve([]);
+                        } else {
+                            reject(status);
+                        }
                     });
             } else {
                 // The Google maps object isn't available yet. Wait for it to load.
@@ -298,7 +303,12 @@ export class Geocode extends Base {
                             resolve(results);
                         })
                         .catch((status) => {
-                            reject(status);
+                            // https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
+                            if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+                                resolve([]);
+                            } else {
+                                reject(status);
+                            }
                         });
                 });
             }
