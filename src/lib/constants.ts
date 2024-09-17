@@ -167,6 +167,21 @@ export const GeocoderErrorStatus = Object.freeze({
 export type GeocoderErrorStatusValue = (typeof GeocoderErrorStatus)[keyof typeof GeocoderErrorStatus];
 
 /**
+ * The type of location returned by the Geocoder.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderLocationType
+ */
+export const GeocoderLocationType = Object.freeze({
+    APPROXIMATE: 'APPROXIMATE',
+    GEOMETRIC_CENTER: 'GEOMETRIC_CENTER',
+    RANGE_INTERPOLATED: 'RANGE_INTERPOLATED',
+    ROOFTOP: 'ROOFTOP',
+});
+
+// Type for the GeocoderLocationType values
+export type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
+
+/**
  * Style values for common MapTypesControls.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/control#MapTypeControlStyle

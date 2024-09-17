@@ -320,6 +320,19 @@ var convertControlPosition = (value) => {
   });
   return returnValue;
 };
+var GeocoderErrorStatus = Object.freeze({
+  ERROR: "ERROR",
+  INVALID_REQUEST: "INVALID_REQUEST",
+  OVER_QUERY_LIMIT: "OVER_QUERY_LIMIT",
+  REQUEST_DENIED: "REQUEST_DENIED",
+  UNKNOWN_ERROR: "UNKNOWN_ERROR"
+});
+var GeocoderLocationType = Object.freeze({
+  APPROXIMATE: "APPROXIMATE",
+  GEOMETRIC_CENTER: "GEOMETRIC_CENTER",
+  RANGE_INTERPOLATED: "RANGE_INTERPOLATED",
+  ROOFTOP: "ROOFTOP"
+});
 var MapTypeControlStyle = Object.freeze({
   /**
    * Uses the default map type control. When the <code>DEFAULT</code> control
@@ -2215,8 +2228,903 @@ var latLngBounds = (latLngValue) => {
   return new LatLngBounds(latLngValue);
 };
 
+// src/lib/Geocode/AddressTypes.ts
+var _types;
+var GeocodeAddressTypes = class {
+  /**
+   * Constructor
+   *
+   * @param {string[]} [types] The types for the address
+   */
+  constructor(types) {
+    /**
+     * Holds the types for the address
+     *
+     * @private
+     * @type {string[]}
+     */
+    __privateAdd(this, _types, []);
+    if (Array.isArray(types)) {
+      __privateSet(this, _types, types);
+    }
+  }
+  /**
+   * Gets the address types
+   *
+   * @returns {string[]}
+   */
+  getTypes() {
+    return __privateGet(this, _types);
+  }
+  /**
+   * Returns if the address is an administrative area level 1.
+   *
+   * This is the highest level of administrative area below the country level.
+   * In the United States, these administrative levels are states.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel1() {
+    return __privateGet(this, _types).includes("administrative_area_level_1");
+  }
+  /**
+   * Returns if the address is an administrative area level 2.
+   *
+   * Within the United States this would be a county.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel2() {
+    return __privateGet(this, _types).includes("administrative_area_level_2");
+  }
+  /**
+   * Returns if the address is an administrative area level 3.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel3() {
+    return __privateGet(this, _types).includes("administrative_area_level_3");
+  }
+  /**
+   * Returns if the address is an administrative area level 4.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel4() {
+    return __privateGet(this, _types).includes("administrative_area_level_4");
+  }
+  /**
+   * Returns if the address is an administrative area level 5.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel5() {
+    return __privateGet(this, _types).includes("administrative_area_level_5");
+  }
+  /**
+   * Returns if the address is an administrative area level 6.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel6() {
+    return __privateGet(this, _types).includes("administrative_area_level_6");
+  }
+  /**
+   * Returns if the address is an administrative area level 7.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel7() {
+    return __privateGet(this, _types).includes("administrative_area_level_7");
+  }
+  /**
+   * Returns if the address is an airport.
+   *
+   * @returns {boolean}
+   */
+  isAirport() {
+    return __privateGet(this, _types).includes("airport");
+  }
+  /**
+   * Returns if the address is a bus station or bus stop.
+   *
+   * @returns {boolean}
+   */
+  isBusStation() {
+    return __privateGet(this, _types).includes("bus_station");
+  }
+  /**
+   * Returns if the address is a city.
+   *
+   * This is an alias for isLocality()
+   *
+   * @returns {boolean}
+   */
+  isCity() {
+    return this.isLocality();
+  }
+  /**
+   * Returns if the address is a commonly used alternative name for the entity.
+   *
+   * @returns {boolean}
+   */
+  isColloquialArea() {
+    return __privateGet(this, _types).includes("colloquial_area");
+  }
+  /**
+   * Returns if the address is a country.
+   *
+   * @returns {boolean}
+   */
+  isCountry() {
+    return __privateGet(this, _types).includes("country");
+  }
+  /**
+   * Returns if the address is a county.
+   *
+   * This is an alias for isAdministrativeAreaLevel2()
+   *
+   * @returns {boolean}
+   */
+  isCounty() {
+    return __privateGet(this, _types).includes("administrative_area_level_2");
+  }
+  /**
+   * Returns if the address is a place that hasn't yet been categorized.
+   *
+   * @returns {boolean}
+   */
+  isEstablishment() {
+    return __privateGet(this, _types).includes("establishment");
+  }
+  /**
+   * Returns if the address is a floor in a building.
+   *
+   * @returns {boolean}
+   */
+  isFloor() {
+    return __privateGet(this, _types).includes("floor");
+  }
+  /**
+   * Returns if the address is a major intersection, usually of two major roads.
+   *
+   * @returns {boolean}
+   */
+  isIntersection() {
+    return __privateGet(this, _types).includes("intersection");
+  }
+  /**
+   * Returns if the address is a landmark.
+   *
+   * @returns {boolean}
+   */
+  isLandmark() {
+    return __privateGet(this, _types).includes("landmark");
+  }
+  /**
+   * Returns if the address is a locality.
+   *
+   * @returns {boolean}
+   */
+  isLocality() {
+    return __privateGet(this, _types).includes("locality");
+  }
+  /**
+   * Returns if the address is a prominent natural feature.
+   *
+   * @returns {boolean}
+   */
+  isNaturalFeature() {
+    return __privateGet(this, _types).includes("natural_feature");
+  }
+  /**
+   * Returns if the address is a neighborhood.
+   *
+   * @returns {boolean}
+   */
+  isNeighborhood() {
+    return __privateGet(this, _types).includes("neighborhood");
+  }
+  /**
+   * Returns if the address is a plus code.
+   *
+   * See https://plus.codes/ for more information.
+   *
+   * @returns {boolean}
+   */
+  isPlusCode() {
+    return __privateGet(this, _types).includes("plus_code");
+  }
+  /**
+   * Returns if the address is a named park.
+   *
+   * @returns {boolean}
+   */
+  isPark() {
+    return __privateGet(this, _types).includes("park");
+  }
+  /**
+   * Returns if the address is a parking lot.
+   *
+   * @returns {boolean}
+   */
+  isParking() {
+    return __privateGet(this, _types).includes("parking");
+  }
+  /**
+   * Returns if the address is a point of interest.
+   *
+   * @returns {boolean}
+   */
+  isPointOfInterest() {
+    return __privateGet(this, _types).includes("point_of_interest");
+  }
+  /**
+   * Returns if the address is a political entity. This would usually be some type of civil administration.
+   *
+   * @returns {boolean}
+   */
+  isPolitical() {
+    return __privateGet(this, _types).includes("political");
+  }
+  /**
+   * Returns if the address is a specific post box.
+   *
+   * @returns {boolean}
+   */
+  isPostBox() {
+    return __privateGet(this, _types).includes("post_box");
+  }
+  /**
+   * Returns if the address is a postal code.
+   *
+   * @returns {boolean}
+   */
+  isPostalCode() {
+    return __privateGet(this, _types).includes("postal_code");
+  }
+  /**
+   * Returns if the address is a grouping of geographic areas.
+   *
+   * @returns {boolean}
+   */
+  isPostalTown() {
+    return __privateGet(this, _types).includes("postal_town");
+  }
+  /**
+   * Returns if the location is a named location, usually a building or collection of buildings with a common name.
+   *
+   * @returns {boolean}
+   */
+  isPremise() {
+    return __privateGet(this, _types).includes("premise");
+  }
+  /**
+   * Returns if the address is a room of a building.
+   *
+   * @returns {boolean}
+   */
+  isRoom() {
+    return __privateGet(this, _types).includes("room");
+  }
+  /**
+   * Returns if the address is a named route (such as "US 101").
+   *
+   * @returns {boolean}
+   */
+  isRoute() {
+    return __privateGet(this, _types).includes("route");
+  }
+  /**
+   * Returns if the address is a state or province.
+   *
+   * This is an alias for isAdministrativeAreaLevel1()
+   *
+   * @returns {boolean}
+   */
+  isState() {
+    return this.isAdministrativeAreaLevel1();
+  }
+  /**
+   * Returns if the address is a street address
+   *
+   * @returns {boolean}
+   */
+  isStreetAddress() {
+    return __privateGet(this, _types).includes("street_address");
+  }
+  /**
+   * Returns if the address indicates a precise street number.
+   *
+   * @returns {boolean}
+   */
+  isStreetNumber() {
+    return __privateGet(this, _types).includes("street_number");
+  }
+  /**
+   * Returns if the address is a sublocality.
+   *
+   * @returns {boolean}
+   */
+  isSubLocality() {
+    return __privateGet(this, _types).includes("sublocality");
+  }
+  /**
+   * Returns if the address is a sublocality level 1.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel1() {
+    return __privateGet(this, _types).includes("sublocality_level_1");
+  }
+  /**
+   * Returns if the address is a sublocality level 2.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel2() {
+    return __privateGet(this, _types).includes("sublocality_level_2");
+  }
+  /**
+   * Returns if the address is a sublocality level 3.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel3() {
+    return __privateGet(this, _types).includes("sublocality_level_3");
+  }
+  /**
+   * Returns if the address is a sublocality level 4.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel4() {
+    return __privateGet(this, _types).includes("sublocality_level_4");
+  }
+  /**
+   * Returns if the address is a sublocality level 5.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel5() {
+    return __privateGet(this, _types).includes("sublocality_level_5");
+  }
+  /**
+   * Returns if the location is a subpremise.
+   *
+   * This is the next level below a premise, usually a single building in a collection of buildings with a common name.
+   *
+   * @returns {boolean}
+   */
+  isSubPremise() {
+    return __privateGet(this, _types).includes("subpremise");
+  }
+  /**
+   * Returns if the address is a town.
+   *
+   * This is an alias for isLocality()
+   *
+   * @returns {boolean}
+   */
+  isTown() {
+    return this.isLocality();
+  }
+  /**
+   * Returns if the address is a train station.
+   *
+   * @returns {boolean}
+   */
+  isTrainStation() {
+    return __privateGet(this, _types).includes("train_station");
+  }
+  /**
+   * Returns if the address is a transit station.
+   *
+   * @returns {boolean}
+   */
+  isTransitStation() {
+    return __privateGet(this, _types).includes("transit_station");
+  }
+};
+_types = new WeakMap();
+var AddressTypes_default = GeocodeAddressTypes;
+
+// src/lib/Geocode/AddressComponent.ts
+var _component, _types2;
+var GeocodeAddressComponent = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {google.maps.GeocoderAddressComponent} component The Google Maps GeocoderAddressComponent object
+   */
+  constructor(component) {
+    super("addressComponent");
+    /**
+     * Holds the original GeocoderAddressComponent object
+     *
+     * @private
+     * @type {google.maps.GeocoderAddressComponent}
+     */
+    __privateAdd(this, _component, void 0);
+    /**
+     * Holds the types for the address component
+     *
+     * @private
+     * @type {GeocodeAddressTypes}
+     */
+    __privateAdd(this, _types2, void 0);
+    __privateSet(this, _component, component);
+    if (isObjectWithValues(component) && Array.isArray(component.types)) {
+      __privateSet(this, _types2, new AddressTypes_default(component.types));
+    } else {
+      __privateSet(this, _types2, new AddressTypes_default());
+    }
+  }
+  /**
+   * Gets the full name of the address component
+   *
+   * @returns {string}
+   */
+  getLongName() {
+    return __privateGet(this, _component).long_name;
+  }
+  /**
+   * Gets the abbreviated name of the address component
+   *
+   * @returns {string}
+   */
+  getShortName() {
+    return __privateGet(this, _component).short_name;
+  }
+  /**
+   * Gets the array of types objects for the address component
+   *
+   * @returns {GeocodeAddressTypes}
+   */
+  getTypes() {
+    return __privateGet(this, _types2);
+  }
+  /**
+   * Gets the array of types for the address component
+   *
+   * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+   *
+   * @returns {string[]}
+   */
+  getTypesArray() {
+    return __privateGet(this, _types2).getTypes();
+  }
+  /**
+   * Get the original Google Maps GeocoderAddressComponent object
+   *
+   * @returns {google.maps.GeocoderAddressComponent}
+   */
+  toGoogle() {
+    return __privateGet(this, _component);
+  }
+};
+_component = new WeakMap();
+_types2 = new WeakMap();
+var AddressComponent_default = GeocodeAddressComponent;
+
+// src/lib/Geocode/Result.ts
+var _addressComponents, _formattedAddress, _geometryLocationBounds, _geometryLocation, _geometryLocationType, _geometryLocationViewport, _partialMatch, _placeId, _plusCode, _plusCodeCompound, _postalCodeLocalities, _result, _types3;
+var GeocodeResult = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {google.maps.GeocoderResult} [result] The Google Maps GeocoderResult object
+   */
+  constructor(result) {
+    super("geocodeResult");
+    /**
+     * Holds the address components
+     *
+     * @private
+     * @type {GeocodeAddressComponent[]}
+     */
+    __privateAdd(this, _addressComponents, []);
+    /**
+     * Holds the formatted address
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _formattedAddress, "");
+    /**
+     * Holds the bounds of the location
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _geometryLocationBounds, void 0);
+    /**
+     * Holds the latitude and longitude of the location
+     *
+     * @private
+     * @type {LatLng}
+     */
+    __privateAdd(this, _geometryLocation, void 0);
+    /**
+     * Holds the type of location
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _geometryLocationType, "");
+    /**
+     * Holds the bounds of the recommended viewport for displaying the returned result
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _geometryLocationViewport, void 0);
+    /**
+     * Holds whether the geocode result is a partial match
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _partialMatch, false);
+    /**
+     * Holds the place id associated with the location
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _placeId, "");
+    /**
+     * Holds the plus code associated with the location
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/3.56/places-service?hl=en#PlacePlusCode
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _plusCode, "");
+    /**
+     * Holds the compund plus code associated with the location
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/3.56/places-service?hl=en#PlacePlusCode
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _plusCodeCompound, "");
+    /**
+     * Holds the postcode localities for the location. This is only populated when the result is a postal code
+     * that contains multiple localities.
+     *
+     * @private
+     * @type {string[]}
+     */
+    __privateAdd(this, _postalCodeLocalities, []);
+    /**
+     * Holds the original GeocoderResult object
+     *
+     * @private
+     * @type {google.maps.GeocoderResult | object}
+     */
+    __privateAdd(this, _result, void 0);
+    /**
+     * Holds the types for the returned geocoded element
+     *
+     * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+     *
+     * @private
+     * @type {GeocodeAddressTypes}
+     */
+    __privateAdd(this, _types3, void 0);
+    if (isObjectWithValues(result)) {
+      __privateSet(this, _result, result);
+      if (Array.isArray(result.address_components)) {
+        result.address_components.forEach((component) => {
+          __privateGet(this, _addressComponents).push(new AddressComponent_default(component));
+        });
+      }
+      if (isStringWithValue(result.formatted_address)) {
+        __privateSet(this, _formattedAddress, result.formatted_address);
+      }
+      if (isObjectWithValues(result.geometry)) {
+        if (result.geometry.bounds) {
+          __privateSet(this, _geometryLocationBounds, latLngBounds());
+          __privateGet(this, _geometryLocationBounds).union(result.geometry.bounds);
+        }
+        if (result.geometry.location) {
+          __privateSet(this, _geometryLocation, latLng(result.geometry.location));
+        }
+        if (isStringWithValue(result.geometry.location_type)) {
+          __privateSet(this, _geometryLocationType, result.geometry.location_type);
+        }
+        if (result.geometry.viewport) {
+          __privateSet(this, _geometryLocationViewport, latLngBounds());
+          __privateGet(this, _geometryLocationViewport).union(result.geometry.viewport);
+        }
+      }
+      if (isBoolean(result.partial_match)) {
+        __privateSet(this, _partialMatch, result.partial_match);
+      }
+      if (isStringWithValue(result.place_id)) {
+        __privateSet(this, _placeId, result.place_id);
+      }
+      if (isObjectWithValues(result.plus_code)) {
+        if (isStringWithValue(result.plus_code.global_code)) {
+          __privateSet(this, _plusCode, result.plus_code.global_code);
+        }
+        if (isStringWithValue(result.plus_code.compound_code)) {
+          __privateSet(this, _plusCodeCompound, result.plus_code.compound_code);
+        }
+      }
+      if (Array.isArray(result.postcode_localities)) {
+        __privateSet(this, _postalCodeLocalities, result.postcode_localities);
+      }
+      if (Array.isArray(result.types)) {
+        __privateSet(this, _types3, new AddressTypes_default(result.types));
+      } else {
+        __privateSet(this, _types3, new AddressTypes_default());
+      }
+    } else {
+      __privateSet(this, _result, {});
+      __privateSet(this, _types3, new AddressTypes_default());
+    }
+  }
+  /**
+   * Get the address component objects
+   *
+   * @returns {GeocodeAddressComponent[]}
+   */
+  getAddressComponents() {
+    return __privateGet(this, _addressComponents);
+  }
+  /**
+   * Get the precise bounds of the result, if available
+   *
+   * @returns {LatLngBounds|undefined}
+   */
+  getBounds() {
+    return __privateGet(this, _geometryLocationBounds);
+  }
+  /**
+   * Get the compound plus code associated with the location
+   *
+   * @returns {string}
+   */
+  getCompoundPlusCode() {
+    return __privateGet(this, _plusCodeCompound);
+  }
+  /**
+   * Gets the formatted address for the location.
+   *
+   * @returns {string}
+   */
+  getFormattedAddress() {
+    return __privateGet(this, _formattedAddress);
+  }
+  /**
+   * Get the latitude of the location.
+   *
+   * This is a shorcut to getting the geometry location latitude.
+   *
+   * @returns {number|undefined}
+   */
+  getLatitude() {
+    let returnValue;
+    if (typeof __privateGet(this, _geometryLocation) !== "undefined" && __privateGet(this, _geometryLocation).isValid()) {
+      returnValue = __privateGet(this, _geometryLocation).lat;
+    }
+    return returnValue;
+  }
+  /**
+   * Gets the LatLng object for the result
+   *
+   * @returns {LatLng|undefined}
+   */
+  getLocation() {
+    return __privateGet(this, _geometryLocation);
+  }
+  /**
+   * Gets the location type
+   *
+   * @returns {string}
+   */
+  getLocationType() {
+    return __privateGet(this, _geometryLocationType);
+  }
+  /**
+   * Get the longitude of the location.
+   *
+   * This is a shorcut to getting the geometry location longitude.
+   *
+   * @returns {number|undefined}
+   */
+  getLongitude() {
+    let returnValue;
+    if (typeof __privateGet(this, _geometryLocation) !== "undefined" && __privateGet(this, _geometryLocation).isValid()) {
+      returnValue = __privateGet(this, _geometryLocation).lng;
+    }
+    return returnValue;
+  }
+  /**
+   * Get the place id for the location.
+   *
+   * @returns {string}
+   */
+  getPlaceId() {
+    return __privateGet(this, _placeId);
+  }
+  /**
+   * Get the plus code associated with the location
+   *
+   * @returns {string}
+   */
+  getPlusCode() {
+    return __privateGet(this, _plusCode);
+  }
+  /**
+   * Gets the postal code localities for the location.
+   *
+   * This is only populated when the result is a postal code that contains multiple localities.
+   *
+   * @returns {string[]}
+   */
+  getPostalCodeLocalities() {
+    return __privateGet(this, _postalCodeLocalities);
+  }
+  /**
+   * Gets the types object for the returned geocoded element.
+   *
+   * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+   *
+   * @returns {GeocodeAddressTypes}
+   */
+  getTypes() {
+    return __privateGet(this, _types3);
+  }
+  /**
+   * Gets the types for the returned geocoded element.
+   *
+   * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+   *
+   * @returns {string[]}
+   */
+  getTypesArray() {
+    return __privateGet(this, _types3).getTypes();
+  }
+  /**
+   * Returns if the location is an approximate location.
+   *
+   * @returns {boolean}
+   */
+  isLocationApproximate() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.APPROXIMATE;
+  }
+  /**
+   * Returns if the location is a geometic center of a result.
+   *
+   * @returns {boolean}
+   */
+  isLocationGeometricCenter() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.GEOMETRIC_CENTER;
+  }
+  /**
+   * Returns if the location is an approximation interpolated between two precise locations.
+   *
+   * @returns {boolean}
+   */
+  isLocationRangeInterpolated() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.RANGE_INTERPOLATED;
+  }
+  /**
+   * Returns if the location is a rooftop location, which is the most precise location available.
+   *
+   * @returns {boolean}
+   */
+  isLocationRooftop() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.ROOFTOP;
+  }
+  /**
+   * Returns if the location is a partial match for the original request.
+   *
+   * @returns {boolean}
+   */
+  isPartialMatch() {
+    return __privateGet(this, _partialMatch);
+  }
+  /**
+   * Get the original Google Maps GeocoderResult object
+   *
+   * If the result is empty, an empty object is returned.
+   *
+   * @returns {google.maps.GeocoderResult | object}
+   */
+  toGoogle() {
+    return __privateGet(this, _result);
+  }
+};
+_addressComponents = new WeakMap();
+_formattedAddress = new WeakMap();
+_geometryLocationBounds = new WeakMap();
+_geometryLocation = new WeakMap();
+_geometryLocationType = new WeakMap();
+_geometryLocationViewport = new WeakMap();
+_partialMatch = new WeakMap();
+_placeId = new WeakMap();
+_plusCode = new WeakMap();
+_plusCodeCompound = new WeakMap();
+_postalCodeLocalities = new WeakMap();
+_result = new WeakMap();
+_types3 = new WeakMap();
+var Result_default = GeocodeResult;
+
+// src/lib/Geocode/Results.ts
+var _results;
+var GeocodeResults = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {google.maps.GeocoderResult[]} [results] The Google Maps GeocoderResult objects
+   */
+  constructor(results) {
+    super("geocodeResults");
+    /**
+     * Holds the original GeocoderResult objects
+     *
+     * @private
+     * @type {GeocodeResult[]}
+     */
+    __privateAdd(this, _results, []);
+    if (Array.isArray(results)) {
+      results.forEach((result) => {
+        __privateGet(this, _results).push(new Result_default(result));
+      });
+    }
+  }
+  /**
+   * Gets the first result
+   *
+   * @returns {GeocodeResult}
+   */
+  getFirst() {
+    let returnValue;
+    if (__privateGet(this, _results).length > 0) {
+      [returnValue] = __privateGet(this, _results);
+    } else {
+      returnValue = new Result_default();
+    }
+    return returnValue;
+  }
+  /**
+   * Returns the results
+   *
+   * @returns {GeocodeResult[]}
+   */
+  getResults() {
+    return __privateGet(this, _results);
+  }
+  /**
+   * Returns whether any results were found
+   *
+   * @returns {boolean}
+   */
+  hasResults() {
+    return __privateGet(this, _results).length > 0;
+  }
+};
+_results = new WeakMap();
+var Results_default = GeocodeResults;
+
 // src/lib/Geocode.ts
-var _address, _bounds2, _componentRestrictions, _language, _location, _placeId, _region, _runGeocode;
+var _address, _bounds2, _componentRestrictions, _language, _location, _placeId2, _region, _runGeocode;
 var Geocode = class extends Base_default {
   /**
    * Constructor
@@ -2268,7 +3176,7 @@ var Geocode = class extends Base_default {
      * @type {string}
      * @private
      */
-    __privateAdd(this, _placeId, void 0);
+    __privateAdd(this, _placeId2, void 0);
     /**
      * The region code to influence the geocoding
      *
@@ -2279,7 +3187,7 @@ var Geocode = class extends Base_default {
     /**
      * Runs the geocode request
      *
-     * @returns {Promise<GeocodeResult[]>}
+     * @returns {Promise<GeocodeResults>}
      */
     __privateAdd(this, _runGeocode, () => new Promise((resolve, reject) => {
       const options = {};
@@ -2287,8 +3195,8 @@ var Geocode = class extends Base_default {
         options.address = __privateGet(this, _address);
       } else if (__privateGet(this, _location)) {
         options.location = __privateGet(this, _location).toGoogle();
-      } else if (__privateGet(this, _placeId)) {
-        options.placeId = __privateGet(this, _placeId);
+      } else if (__privateGet(this, _placeId2)) {
+        options.placeId = __privateGet(this, _placeId2);
       }
       if (__privateGet(this, _bounds2)) {
         (() => __async(this, null, function* () {
@@ -2307,7 +3215,8 @@ var Geocode = class extends Base_default {
       const geocoder = new google.maps.Geocoder();
       geocoder.geocode(options, (results, status) => {
         if (status === google.maps.GeocoderStatus.OK) {
-          resolve(results);
+          const resultsObj = new Results_default(results);
+          resolve(resultsObj);
         } else {
           reject(status);
         }
@@ -2421,7 +3330,7 @@ var Geocode = class extends Base_default {
    * @returns {string|undefined}
    */
   get placeId() {
-    return __privateGet(this, _placeId);
+    return __privateGet(this, _placeId2);
   }
   /**
    * Set the place id
@@ -2430,7 +3339,7 @@ var Geocode = class extends Base_default {
    */
   set placeId(placeId) {
     if (isStringWithValue(placeId)) {
-      __privateSet(this, _placeId, placeId);
+      __privateSet(this, _placeId2, placeId);
     }
   }
   /**
@@ -2457,7 +3366,7 @@ var Geocode = class extends Base_default {
    * Alias for the geocode method
    *
    * @param {GeocodeOptions} [options] The Geocode options
-   * @returns {Promise<GeocodeResult[]>}
+   * @returns {Promise<GeocodeResults>}
    */
   fetch(options) {
     return this.geocode(options);
@@ -2466,7 +3375,7 @@ var Geocode = class extends Base_default {
    * Call the Google Maps Geocoder service
    *
    * @param {GeocodeOptions} [options] The Geocode options
-   * @returns {Promise<GeocodeResult[]>}
+   * @returns {Promise<GeocodeResults>}
    */
   geocode(options) {
     return new Promise((resolve, reject) => {
@@ -2477,14 +3386,22 @@ var Geocode = class extends Base_default {
         __privateGet(this, _runGeocode).call(this).then((results) => {
           resolve(results);
         }).catch((status) => {
-          reject(status);
+          if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+            resolve(new Results_default());
+          } else {
+            reject(status);
+          }
         });
       } else {
         loader().once("map_loaded", () => {
           __privateGet(this, _runGeocode).call(this).then((results) => {
             resolve(results);
           }).catch((status) => {
-            reject(status);
+            if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+              resolve(new Results_default());
+            } else {
+              reject(status);
+            }
           });
         });
       }
@@ -2597,7 +3514,7 @@ _bounds2 = new WeakMap();
 _componentRestrictions = new WeakMap();
 _language = new WeakMap();
 _location = new WeakMap();
-_placeId = new WeakMap();
+_placeId2 = new WeakMap();
 _region = new WeakMap();
 _runGeocode = new WeakMap();
 var geocode = (options) => {
@@ -2608,7 +3525,7 @@ var geocode = (options) => {
 };
 
 // src/lib/AutocompleteSearchBox.ts
-var _bounds3, _countryRestriction, _fields, _input, _place, _placeBounds, _searchBox, _strictBounds, _types, _createAutocompleteSearchBox;
+var _bounds3, _countryRestriction, _fields, _input, _place, _placeBounds, _searchBox, _strictBounds, _types4, _createAutocompleteSearchBox;
 var AutocompleteSearchBox = class extends Evented {
   /**
    * Constructor
@@ -2682,7 +3599,7 @@ var AutocompleteSearchBox = class extends Evented {
      * @private
      * @type {string[]}
      */
-    __privateAdd(this, _types, void 0);
+    __privateAdd(this, _types4, void 0);
     /**
      * Create the places search box object
      *
@@ -2702,8 +3619,8 @@ var AutocompleteSearchBox = class extends Evented {
         if (__privateGet(this, _fields)) {
           options.fields = __privateGet(this, _fields);
         }
-        if (__privateGet(this, _types)) {
-          options.types = __privateGet(this, _types);
+        if (__privateGet(this, _types4)) {
+          options.types = __privateGet(this, _types4);
         }
         __privateSet(this, _searchBox, new google.maps.places.Autocomplete(__privateGet(this, _input), options));
         __privateGet(this, _searchBox).addListener("place_changed", () => {
@@ -2856,7 +3773,7 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {string[] | undefined}
    */
   get types() {
-    return __privateGet(this, _types);
+    return __privateGet(this, _types4);
   }
   /**
    * Set the types of predictions to be returned.
@@ -2867,14 +3784,14 @@ var AutocompleteSearchBox = class extends Evented {
    */
   set types(value) {
     if (Array.isArray(value)) {
-      __privateSet(this, _types, value);
+      __privateSet(this, _types4, value);
     } else if (isString(value)) {
-      __privateSet(this, _types, [value]);
+      __privateSet(this, _types4, [value]);
     } else {
-      __privateSet(this, _types, []);
+      __privateSet(this, _types4, []);
     }
     if (__privateGet(this, _searchBox)) {
-      __privateGet(this, _searchBox).setTypes(__privateGet(this, _types));
+      __privateGet(this, _searchBox).setTypes(__privateGet(this, _types4));
     }
   }
   /**
@@ -2941,7 +3858,7 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {string[] | undefined}
    */
   getTypes() {
-    return __privateGet(this, _types);
+    return __privateGet(this, _types4);
   }
   /**
    * Initialize the places search box object
@@ -3154,7 +4071,7 @@ _place = new WeakMap();
 _placeBounds = new WeakMap();
 _searchBox = new WeakMap();
 _strictBounds = new WeakMap();
-_types = new WeakMap();
+_types4 = new WeakMap();
 _createAutocompleteSearchBox = new WeakMap();
 var autocompleteSearchBox = (input, options) => {
   if (input instanceof AutocompleteSearchBox) {
@@ -11957,6 +12874,10 @@ export {
   Evented,
   FullscreenControl,
   Geocode,
+  Result_default as GeocodeResult,
+  Results_default as GeocodeResults,
+  GeocoderErrorStatus,
+  GeocoderLocationType,
   Icon,
   InfoWindow,
   LatLng,

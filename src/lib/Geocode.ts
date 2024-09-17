@@ -10,6 +10,7 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import { latLngBounds, LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import { loader } from './Loader';
 import { checkForGoogleMaps, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
+import GeocodeResults from './Geocode/Results';
 
 // Component restriction options
 // https://developers.google.com/maps/documentation/javascript/reference/geocoder#GeocoderComponentRestrictions
@@ -31,9 +32,6 @@ export type GeocodeOptions = {
     placeId?: string;
     region?: string;
 };
-
-// The result from the geocoding request
-export type GeocodeResult = google.maps.GeocoderResult;
 
 /**
  * The Geocode class
@@ -264,9 +262,9 @@ export class Geocode extends Base {
      * Alias for the geocode method
      *
      * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<GeocodeResult[]>}
+     * @returns {Promise<GeocodeResults>}
      */
-    fetch(options?: GeocodeOptions): Promise<GeocodeResult[]> {
+    fetch(options?: GeocodeOptions): Promise<GeocodeResults> {
         return this.geocode(options);
     }
 
@@ -274,9 +272,9 @@ export class Geocode extends Base {
      * Call the Google Maps Geocoder service
      *
      * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<GeocodeResult[]>}
+     * @returns {Promise<GeocodeResults>}
      */
-    geocode(options?: GeocodeOptions): Promise<GeocodeResult[]> {
+    geocode(options?: GeocodeOptions): Promise<GeocodeResults> {
         return new Promise((resolve, reject) => {
             if (isObject(options)) {
                 this.setOptions(options);
@@ -289,7 +287,7 @@ export class Geocode extends Base {
                     .catch((status) => {
                         // https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
                         if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
-                            resolve([]);
+                            resolve(new GeocodeResults());
                         } else {
                             reject(status);
                         }
@@ -305,7 +303,7 @@ export class Geocode extends Base {
                         .catch((status) => {
                             // https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
                             if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
-                                resolve([]);
+                                resolve(new GeocodeResults());
                             } else {
                                 reject(status);
                             }
@@ -318,9 +316,9 @@ export class Geocode extends Base {
     /**
      * Runs the geocode request
      *
-     * @returns {Promise<GeocodeResult[]>}
+     * @returns {Promise<GeocodeResults>}
      */
-    #runGeocode = (): Promise<GeocodeResult[]> =>
+    #runGeocode = (): Promise<GeocodeResults> =>
         new Promise((resolve, reject) => {
             const options: google.maps.GeocoderRequest = {};
             if (this.#address) {
@@ -349,7 +347,8 @@ export class Geocode extends Base {
             const geocoder = new google.maps.Geocoder();
             geocoder.geocode(options, (results, status) => {
                 if (status === google.maps.GeocoderStatus.OK) {
-                    resolve(results);
+                    const resultsObj = new GeocodeResults(results);
+                    resolve(resultsObj);
                 } else {
                     reject(status);
                 }

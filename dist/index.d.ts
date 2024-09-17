@@ -229,6 +229,31 @@ type ControlPositionValue = (typeof ControlPosition)[keyof typeof ControlPositio
  */
 declare const convertControlPosition: (value: string) => google.maps.ControlPosition;
 /**
+ * Error status value for the Geocode object.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
+ */
+declare const GeocoderErrorStatus: Readonly<{
+    ERROR: "ERROR";
+    INVALID_REQUEST: "INVALID_REQUEST";
+    OVER_QUERY_LIMIT: "OVER_QUERY_LIMIT";
+    REQUEST_DENIED: "REQUEST_DENIED";
+    UNKNOWN_ERROR: "UNKNOWN_ERROR";
+}>;
+type GeocoderErrorStatusValue = (typeof GeocoderErrorStatus)[keyof typeof GeocoderErrorStatus];
+/**
+ * The type of location returned by the Geocoder.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderLocationType
+ */
+declare const GeocoderLocationType: Readonly<{
+    APPROXIMATE: "APPROXIMATE";
+    GEOMETRIC_CENTER: "GEOMETRIC_CENTER";
+    RANGE_INTERPOLATED: "RANGE_INTERPOLATED";
+    ROOFTOP: "ROOFTOP";
+}>;
+type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
+/**
  * Style values for common MapTypesControls.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/control#MapTypeControlStyle
@@ -951,6 +976,534 @@ type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBoundsEdges | LatLn
  */
 declare const latLngBounds: (latLngValue?: LatLngBoundsValue) => LatLngBounds;
 
+declare class GeocodeAddressTypes {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string[]} [types] The types for the address
+     */
+    constructor(types?: string[]);
+    /**
+     * Gets the address types
+     *
+     * @returns {string[]}
+     */
+    getTypes(): string[];
+    /**
+     * Returns if the address is an administrative area level 1.
+     *
+     * This is the highest level of administrative area below the country level.
+     * In the United States, these administrative levels are states.
+     *
+     * @returns {boolean}
+     */
+    isAdministrativeAreaLevel1(): boolean;
+    /**
+     * Returns if the address is an administrative area level 2.
+     *
+     * Within the United States this would be a county.
+     *
+     * @returns {boolean}
+     */
+    isAdministrativeAreaLevel2(): boolean;
+    /**
+     * Returns if the address is an administrative area level 3.
+     *
+     * This is a minor civil division.
+     *
+     * @returns {boolean}
+     */
+    isAdministrativeAreaLevel3(): boolean;
+    /**
+     * Returns if the address is an administrative area level 4.
+     *
+     * This is a minor civil division.
+     *
+     * @returns {boolean}
+     */
+    isAdministrativeAreaLevel4(): boolean;
+    /**
+     * Returns if the address is an administrative area level 5.
+     *
+     * This is a minor civil division.
+     *
+     * @returns {boolean}
+     */
+    isAdministrativeAreaLevel5(): boolean;
+    /**
+     * Returns if the address is an administrative area level 6.
+     *
+     * This is a minor civil division.
+     *
+     * @returns {boolean}
+     */
+    isAdministrativeAreaLevel6(): boolean;
+    /**
+     * Returns if the address is an administrative area level 7.
+     *
+     * This is a minor civil division.
+     *
+     * @returns {boolean}
+     */
+    isAdministrativeAreaLevel7(): boolean;
+    /**
+     * Returns if the address is an airport.
+     *
+     * @returns {boolean}
+     */
+    isAirport(): boolean;
+    /**
+     * Returns if the address is a bus station or bus stop.
+     *
+     * @returns {boolean}
+     */
+    isBusStation(): boolean;
+    /**
+     * Returns if the address is a city.
+     *
+     * This is an alias for isLocality()
+     *
+     * @returns {boolean}
+     */
+    isCity(): boolean;
+    /**
+     * Returns if the address is a commonly used alternative name for the entity.
+     *
+     * @returns {boolean}
+     */
+    isColloquialArea(): boolean;
+    /**
+     * Returns if the address is a country.
+     *
+     * @returns {boolean}
+     */
+    isCountry(): boolean;
+    /**
+     * Returns if the address is a county.
+     *
+     * This is an alias for isAdministrativeAreaLevel2()
+     *
+     * @returns {boolean}
+     */
+    isCounty(): boolean;
+    /**
+     * Returns if the address is a place that hasn't yet been categorized.
+     *
+     * @returns {boolean}
+     */
+    isEstablishment(): boolean;
+    /**
+     * Returns if the address is a floor in a building.
+     *
+     * @returns {boolean}
+     */
+    isFloor(): boolean;
+    /**
+     * Returns if the address is a major intersection, usually of two major roads.
+     *
+     * @returns {boolean}
+     */
+    isIntersection(): boolean;
+    /**
+     * Returns if the address is a landmark.
+     *
+     * @returns {boolean}
+     */
+    isLandmark(): boolean;
+    /**
+     * Returns if the address is a locality.
+     *
+     * @returns {boolean}
+     */
+    isLocality(): boolean;
+    /**
+     * Returns if the address is a prominent natural feature.
+     *
+     * @returns {boolean}
+     */
+    isNaturalFeature(): boolean;
+    /**
+     * Returns if the address is a neighborhood.
+     *
+     * @returns {boolean}
+     */
+    isNeighborhood(): boolean;
+    /**
+     * Returns if the address is a plus code.
+     *
+     * See https://plus.codes/ for more information.
+     *
+     * @returns {boolean}
+     */
+    isPlusCode(): boolean;
+    /**
+     * Returns if the address is a named park.
+     *
+     * @returns {boolean}
+     */
+    isPark(): boolean;
+    /**
+     * Returns if the address is a parking lot.
+     *
+     * @returns {boolean}
+     */
+    isParking(): boolean;
+    /**
+     * Returns if the address is a point of interest.
+     *
+     * @returns {boolean}
+     */
+    isPointOfInterest(): boolean;
+    /**
+     * Returns if the address is a political entity. This would usually be some type of civil administration.
+     *
+     * @returns {boolean}
+     */
+    isPolitical(): boolean;
+    /**
+     * Returns if the address is a specific post box.
+     *
+     * @returns {boolean}
+     */
+    isPostBox(): boolean;
+    /**
+     * Returns if the address is a postal code.
+     *
+     * @returns {boolean}
+     */
+    isPostalCode(): boolean;
+    /**
+     * Returns if the address is a grouping of geographic areas.
+     *
+     * @returns {boolean}
+     */
+    isPostalTown(): boolean;
+    /**
+     * Returns if the location is a named location, usually a building or collection of buildings with a common name.
+     *
+     * @returns {boolean}
+     */
+    isPremise(): boolean;
+    /**
+     * Returns if the address is a room of a building.
+     *
+     * @returns {boolean}
+     */
+    isRoom(): boolean;
+    /**
+     * Returns if the address is a named route (such as "US 101").
+     *
+     * @returns {boolean}
+     */
+    isRoute(): boolean;
+    /**
+     * Returns if the address is a state or province.
+     *
+     * This is an alias for isAdministrativeAreaLevel1()
+     *
+     * @returns {boolean}
+     */
+    isState(): boolean;
+    /**
+     * Returns if the address is a street address
+     *
+     * @returns {boolean}
+     */
+    isStreetAddress(): boolean;
+    /**
+     * Returns if the address indicates a precise street number.
+     *
+     * @returns {boolean}
+     */
+    isStreetNumber(): boolean;
+    /**
+     * Returns if the address is a sublocality.
+     *
+     * @returns {boolean}
+     */
+    isSubLocality(): boolean;
+    /**
+     * Returns if the address is a sublocality level 1.
+     *
+     * @returns {boolean}
+     */
+    isSubLocalityLevel1(): boolean;
+    /**
+     * Returns if the address is a sublocality level 2.
+     *
+     * @returns {boolean}
+     */
+    isSubLocalityLevel2(): boolean;
+    /**
+     * Returns if the address is a sublocality level 3.
+     *
+     * @returns {boolean}
+     */
+    isSubLocalityLevel3(): boolean;
+    /**
+     * Returns if the address is a sublocality level 4.
+     *
+     * @returns {boolean}
+     */
+    isSubLocalityLevel4(): boolean;
+    /**
+     * Returns if the address is a sublocality level 5.
+     *
+     * @returns {boolean}
+     */
+    isSubLocalityLevel5(): boolean;
+    /**
+     * Returns if the location is a subpremise.
+     *
+     * This is the next level below a premise, usually a single building in a collection of buildings with a common name.
+     *
+     * @returns {boolean}
+     */
+    isSubPremise(): boolean;
+    /**
+     * Returns if the address is a town.
+     *
+     * This is an alias for isLocality()
+     *
+     * @returns {boolean}
+     */
+    isTown(): boolean;
+    /**
+     * Returns if the address is a train station.
+     *
+     * @returns {boolean}
+     */
+    isTrainStation(): boolean;
+    /**
+     * Returns if the address is a transit station.
+     *
+     * @returns {boolean}
+     */
+    isTransitStation(): boolean;
+}
+
+/**
+ * The geocode address component class
+ */
+declare class GeocodeAddressComponent extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {google.maps.GeocoderAddressComponent} component The Google Maps GeocoderAddressComponent object
+     */
+    constructor(component: google.maps.GeocoderAddressComponent);
+    /**
+     * Gets the full name of the address component
+     *
+     * @returns {string}
+     */
+    getLongName(): string;
+    /**
+     * Gets the abbreviated name of the address component
+     *
+     * @returns {string}
+     */
+    getShortName(): string;
+    /**
+     * Gets the array of types objects for the address component
+     *
+     * @returns {GeocodeAddressTypes}
+     */
+    getTypes(): GeocodeAddressTypes;
+    /**
+     * Gets the array of types for the address component
+     *
+     * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+     *
+     * @returns {string[]}
+     */
+    getTypesArray(): string[];
+    /**
+     * Get the original Google Maps GeocoderAddressComponent object
+     *
+     * @returns {google.maps.GeocoderAddressComponent}
+     */
+    toGoogle(): google.maps.GeocoderAddressComponent;
+}
+
+/**
+ * The geocode result class
+ *
+ * This is intended to be an internal class and not instantiated directly outside this library.
+ * It is used to wrap the Google Maps GeocoderResult object.
+ */
+declare class GeocodeResult extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {google.maps.GeocoderResult} [result] The Google Maps GeocoderResult object
+     */
+    constructor(result?: google.maps.GeocoderResult);
+    /**
+     * Get the address component objects
+     *
+     * @returns {GeocodeAddressComponent[]}
+     */
+    getAddressComponents(): GeocodeAddressComponent[];
+    /**
+     * Get the precise bounds of the result, if available
+     *
+     * @returns {LatLngBounds|undefined}
+     */
+    getBounds(): LatLngBounds | undefined;
+    /**
+     * Get the compound plus code associated with the location
+     *
+     * @returns {string}
+     */
+    getCompoundPlusCode(): string;
+    /**
+     * Gets the formatted address for the location.
+     *
+     * @returns {string}
+     */
+    getFormattedAddress(): string;
+    /**
+     * Get the latitude of the location.
+     *
+     * This is a shorcut to getting the geometry location latitude.
+     *
+     * @returns {number|undefined}
+     */
+    getLatitude(): number;
+    /**
+     * Gets the LatLng object for the result
+     *
+     * @returns {LatLng|undefined}
+     */
+    getLocation(): LatLng | undefined;
+    /**
+     * Gets the location type
+     *
+     * @returns {string}
+     */
+    getLocationType(): string;
+    /**
+     * Get the longitude of the location.
+     *
+     * This is a shorcut to getting the geometry location longitude.
+     *
+     * @returns {number|undefined}
+     */
+    getLongitude(): number;
+    /**
+     * Get the place id for the location.
+     *
+     * @returns {string}
+     */
+    getPlaceId(): string;
+    /**
+     * Get the plus code associated with the location
+     *
+     * @returns {string}
+     */
+    getPlusCode(): string;
+    /**
+     * Gets the postal code localities for the location.
+     *
+     * This is only populated when the result is a postal code that contains multiple localities.
+     *
+     * @returns {string[]}
+     */
+    getPostalCodeLocalities(): string[];
+    /**
+     * Gets the types object for the returned geocoded element.
+     *
+     * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+     *
+     * @returns {GeocodeAddressTypes}
+     */
+    getTypes(): GeocodeAddressTypes;
+    /**
+     * Gets the types for the returned geocoded element.
+     *
+     * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+     *
+     * @returns {string[]}
+     */
+    getTypesArray(): string[];
+    /**
+     * Returns if the location is an approximate location.
+     *
+     * @returns {boolean}
+     */
+    isLocationApproximate(): boolean;
+    /**
+     * Returns if the location is a geometic center of a result.
+     *
+     * @returns {boolean}
+     */
+    isLocationGeometricCenter(): boolean;
+    /**
+     * Returns if the location is an approximation interpolated between two precise locations.
+     *
+     * @returns {boolean}
+     */
+    isLocationRangeInterpolated(): boolean;
+    /**
+     * Returns if the location is a rooftop location, which is the most precise location available.
+     *
+     * @returns {boolean}
+     */
+    isLocationRooftop(): boolean;
+    /**
+     * Returns if the location is a partial match for the original request.
+     *
+     * @returns {boolean}
+     */
+    isPartialMatch(): boolean;
+    /**
+     * Get the original Google Maps GeocoderResult object
+     *
+     * If the result is empty, an empty object is returned.
+     *
+     * @returns {google.maps.GeocoderResult | object}
+     */
+    toGoogle(): google.maps.GeocoderResult | object;
+}
+
+/**
+ * The geocode result class
+ *
+ * This is intended to be an internal class and not instantiated directly outside this library.
+ * It is used to wrap the array of Google Maps GeocoderResult objects and hold them as GeocodeResult objects.
+ */
+declare class GeocodeResults extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {google.maps.GeocoderResult[]} [results] The Google Maps GeocoderResult objects
+     */
+    constructor(results?: google.maps.GeocoderResult[]);
+    /**
+     * Gets the first result
+     *
+     * @returns {GeocodeResult}
+     */
+    getFirst(): GeocodeResult;
+    /**
+     * Returns the results
+     *
+     * @returns {GeocodeResult[]}
+     */
+    getResults(): GeocodeResult[];
+    /**
+     * Returns whether any results were found
+     *
+     * @returns {boolean}
+     */
+    hasResults(): boolean;
+}
+
 type GeocodeComponentRestrictions = {
     administrativeArea?: string;
     country?: string;
@@ -967,7 +1520,6 @@ type GeocodeOptions = {
     placeId?: string;
     region?: string;
 };
-type GeocodeResult = google.maps.GeocoderResult;
 /**
  * The Geocode class
  */
@@ -1071,16 +1623,16 @@ declare class Geocode extends Base {
      * Alias for the geocode method
      *
      * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<GeocodeResult[]>}
+     * @returns {Promise<GeocodeResults>}
      */
-    fetch(options?: GeocodeOptions): Promise<GeocodeResult[]>;
+    fetch(options?: GeocodeOptions): Promise<GeocodeResults>;
     /**
      * Call the Google Maps Geocoder service
      *
      * @param {GeocodeOptions} [options] The Geocode options
-     * @returns {Promise<GeocodeResult[]>}
+     * @returns {Promise<GeocodeResults>}
      */
-    geocode(options?: GeocodeOptions): Promise<GeocodeResult[]>;
+    geocode(options?: GeocodeOptions): Promise<GeocodeResults>;
     /**
      * Set the address to geocode
      *
@@ -5708,4 +6260,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, type GeocodeResult, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
