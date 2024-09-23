@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.0 (September 23, 2024)
+
+- Added Geocode object to support geocoding with the Google Maps API.
+- Added additional ways to set up the LatLngBounds object.
+- Updated packages.
+- Updated the export types. This was needed for Typescript to accurately find the correct types.
+- Changed the CommonJs output file to have the “.cjs” extension.
+
 ## 0.14.1 (September 10, 2024)
 
 - Updated caniuse-lite.
