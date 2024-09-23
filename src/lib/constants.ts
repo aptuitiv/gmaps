@@ -151,6 +151,37 @@ export const convertControlPosition = (value: string): google.maps.ControlPositi
 };
 
 /**
+ * Error status value for the Geocode object.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
+ */
+export const GeocoderErrorStatus = Object.freeze({
+    ERROR: 'ERROR',
+    INVALID_REQUEST: 'INVALID_REQUEST',
+    OVER_QUERY_LIMIT: 'OVER_QUERY_LIMIT',
+    REQUEST_DENIED: 'REQUEST_DENIED',
+    UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+});
+
+// Type for the GeocoderErrorStatus values
+export type GeocoderErrorStatusValue = (typeof GeocoderErrorStatus)[keyof typeof GeocoderErrorStatus];
+
+/**
+ * The type of location returned by the Geocoder.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderLocationType
+ */
+export const GeocoderLocationType = Object.freeze({
+    APPROXIMATE: 'APPROXIMATE',
+    GEOMETRIC_CENTER: 'GEOMETRIC_CENTER',
+    RANGE_INTERPOLATED: 'RANGE_INTERPOLATED',
+    ROOFTOP: 'ROOFTOP',
+});
+
+// Type for the GeocoderLocationType values
+export type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
+
+/**
  * Style values for common MapTypesControls.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/control#MapTypeControlStyle

@@ -41,6 +41,18 @@ G.loader({ apiKey: apiKey, }).load().then(() => {
     console.log('center: ', bounds.getCenter());
     // });
 
+    const bounds3 = G.latLngBounds({
+        sw: G.latLng(44, -68),
+        ne: G.latLng(44.7, -70.8),
+    });
+    console.log('bounds3: ', bounds3.toJson());
 
+    const bounds4 = G.latLngBounds({
+        north: 23.7,
+        east: -10.8,
+        south: -15.3,
+        west: -45.3,
+    });
+    console.log('bounds4: ', bounds4.toJson());
 
 });

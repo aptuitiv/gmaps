@@ -9,9 +9,45 @@
 /* global google */
 
 import Base from './Base';
-import { checkForGoogleMaps, isNumber, isObject } from './helpers';
+import { checkForGoogleMaps, isNumber, isObject, isObjectWithValues } from './helpers';
 import { latLng, latLngConvert, LatLng, LatLngValue } from './LatLng';
 import { loader } from './Loader';
+
+// This is the same as the Google Maps LatLngBoundsLiteral type
+export type LatLngBoundsLiteral = {
+    /**
+     * East longitude in degrees. Values outside the range [-180, 180] will be
+     * wrapped to the range [-180, 180). For example, a value of -190 will be
+     * converted to 170. A value of 190 will be converted to -170. This reflects
+     * the fact that longitudes wrap around the globe.
+     */
+    east: number;
+    /**
+     * North latitude in degrees. Values will be clamped to the range [-90, 90].
+     * This means that if the value specified is less than -90, it will be set
+     * to -90. And if the value is greater than 90, it will be set to 90.
+     */
+    north: number;
+    /**
+     * South latitude in degrees. Values will be clamped to the range [-90, 90].
+     * This means that if the value specified is less than -90, it will be set
+     * to -90. And if the value is greater than 90, it will be set to 90.
+     */
+    south: number;
+    /**
+     * West longitude in degrees. Values outside the range [-180, 180] will be
+     * wrapped to the range [-180, 180). For example, a value of -190 will be
+     * converted to 170. A value of 190 will be converted to -170. This reflects
+     * the fact that longitudes wrap around the globe.
+     */
+    west: number;
+};
+
+// This lets you set a LatLng bounds object using the north-east and south-west corners
+export type LatLngBoundsEdges = {
+    ne: LatLngValue;
+    sw: LatLngValue;
+};
 
 /**
  * The LatLngBounds class to set up and manage latitude/longitude bounds
@@ -54,10 +90,48 @@ export class LatLngBounds extends Base {
      * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
      *      See comments on the extended method for the types of values that latLngValue can be.
      */
-    constructor(latLngValue?: LatLngValue | LatLngValue[]) {
+    constructor(latLngValue?: LatLngValue | LatLngValue[] | LatLngBoundsEdges | LatLngBoundsLiteral) {
         super('latlngbounds');
         if (latLngValue) {
-            this.extend(latLngValue);
+            if (isObjectWithValues(latLngValue)) {
+                if (
+                    typeof (latLngValue as LatLngBoundsEdges).ne !== 'undefined' &&
+                    typeof (latLngValue as LatLngBoundsEdges).sw !== 'undefined'
+                ) {
+                    const ne = latLng((latLngValue as LatLngBoundsEdges).ne);
+                    if (ne.isValid()) {
+                        this.#northEast = ne;
+                    }
+                    const sw = latLng((latLngValue as LatLngBoundsEdges).sw);
+                    if (sw.isValid()) {
+                        this.#southWest = sw;
+                    }
+                } else if (
+                    typeof (latLngValue as LatLngBoundsLiteral).north !== 'undefined' &&
+                    typeof (latLngValue as LatLngBoundsLiteral).south !== 'undefined' &&
+                    typeof (latLngValue as LatLngBoundsLiteral).east !== 'undefined' &&
+                    typeof (latLngValue as LatLngBoundsLiteral).west !== 'undefined'
+                ) {
+                    const ne = latLng([
+                        (latLngValue as LatLngBoundsLiteral).north,
+                        (latLngValue as LatLngBoundsLiteral).east,
+                    ]);
+                    const sw = latLng([
+                        (latLngValue as LatLngBoundsLiteral).south,
+                        (latLngValue as LatLngBoundsLiteral).west,
+                    ]);
+                    if (ne.isValid()) {
+                        this.#northEast = ne;
+                    }
+                    if (sw.isValid()) {
+                        this.#southWest = sw;
+                    }
+                } else {
+                    this.extend(latLngValue as LatLngValue);
+                }
+            } else {
+                this.extend(latLngValue);
+            }
         }
     }
 
@@ -485,7 +559,7 @@ export class LatLngBounds extends Base {
     }
 }
 
-export type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBounds;
+export type LatLngBoundsValue = LatLngValue | LatLngValue[] | LatLngBoundsEdges | LatLngBoundsLiteral | LatLngBounds;
 
 /**
  * Helper function to set up the LatLngBounds object

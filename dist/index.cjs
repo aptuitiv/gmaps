@@ -6,6 +6,9 @@ var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
 var __reflectGet = Reflect.get;
+var __typeError = (msg) => {
+  throw TypeError(msg);
+};
 var __pow = Math.pow;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __spreadValues = (a, b) => {
@@ -32,28 +35,11 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __accessCheck = (obj, member, msg) => {
-  if (!member.has(obj))
-    throw TypeError("Cannot " + msg);
-};
-var __privateGet = (obj, member, getter) => {
-  __accessCheck(obj, member, "read from private field");
-  return getter ? getter.call(obj) : member.get(obj);
-};
-var __privateAdd = (obj, member, value) => {
-  if (member.has(obj))
-    throw TypeError("Cannot add the same private member more than once");
-  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-};
-var __privateSet = (obj, member, value, setter) => {
-  __accessCheck(obj, member, "write to private field");
-  setter ? setter.call(obj, value) : member.set(obj, value);
-  return value;
-};
-var __privateMethod = (obj, member, method) => {
-  __accessCheck(obj, member, "access private method");
-  return method;
-};
+var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 var __superGet = (cls, obj, key) => __reflectGet(__getProtoOf(cls), key, obj);
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -84,6 +70,11 @@ __export(src_exports, {
   ControlPosition: () => ControlPosition,
   Evented: () => Evented,
   FullscreenControl: () => FullscreenControl,
+  Geocode: () => Geocode,
+  GeocodeResult: () => Result_default,
+  GeocodeResults: () => Results_default,
+  GeocoderErrorStatus: () => GeocoderErrorStatus,
+  GeocoderLocationType: () => GeocoderLocationType,
   Icon: () => Icon,
   InfoWindow: () => InfoWindow,
   LatLng: () => LatLng,
@@ -121,6 +112,7 @@ __export(src_exports, {
   convertControlPosition: () => convertControlPosition,
   convertMapTypeControlStyle: () => convertMapTypeControlStyle,
   fullscreenControl: () => fullscreenControl,
+  geocode: () => geocode,
   getBoolean: () => getBoolean,
   getNumber: () => getNumber,
   getPixelsFromLatLng: () => getPixelsFromLatLng,
@@ -183,7 +175,7 @@ var Base = class {
      * @private
      * @type {string}
      */
-    __privateAdd(this, _objectType, void 0);
+    __privateAdd(this, _objectType);
     __privateSet(this, _objectType, objectType);
   }
   /**
@@ -427,6 +419,19 @@ var convertControlPosition = (value) => {
   });
   return returnValue;
 };
+var GeocoderErrorStatus = Object.freeze({
+  ERROR: "ERROR",
+  INVALID_REQUEST: "INVALID_REQUEST",
+  OVER_QUERY_LIMIT: "OVER_QUERY_LIMIT",
+  REQUEST_DENIED: "REQUEST_DENIED",
+  UNKNOWN_ERROR: "UNKNOWN_ERROR"
+});
+var GeocoderLocationType = Object.freeze({
+  APPROXIMATE: "APPROXIMATE",
+  GEOMETRIC_CENTER: "GEOMETRIC_CENTER",
+  RANGE_INTERPOLATED: "RANGE_INTERPOLATED",
+  ROOFTOP: "ROOFTOP"
+});
 var MapTypeControlStyle = Object.freeze({
   /**
    * Uses the default map type control. When the <code>DEFAULT</code> control
@@ -609,21 +614,21 @@ var _LatLng = class _LatLng extends Base_default {
      * @private
      * @type {google.maps.LatLng}
      */
-    __privateAdd(this, _latLngObject, void 0);
+    __privateAdd(this, _latLngObject);
     /**
      * Holds the latitude
      *
      * @private
      * @type {number}
      */
-    __privateAdd(this, _latitude, void 0);
+    __privateAdd(this, _latitude);
     /**
      * Holds the longitude
      *
      * @private
      * @type {number}
      */
-    __privateAdd(this, _longitude, void 0);
+    __privateAdd(this, _longitude);
     /**
      * Whether the latitude/longitude pair values have changed since the last time they were set
      *
@@ -870,15 +875,15 @@ var _Point = class _Point extends Base_default {
     /**
      * Holds the Google maps point object
      */
-    __privateAdd(this, _pointObject, void 0);
+    __privateAdd(this, _pointObject);
     /**
      * The X value
      */
-    __privateAdd(this, _x, void 0);
+    __privateAdd(this, _x);
     /**
      * The Y value
      */
-    __privateAdd(this, _y, void 0);
+    __privateAdd(this, _y);
     if (typeof x !== "undefined") {
       this.set(x, y);
     }
@@ -1166,7 +1171,7 @@ var Point = _Point;
 var point = (x, y) => new Point(x, y);
 
 // src/lib/Evented.ts
-var _eventsCalled, _eventListeners, _onlyEventListeners, _googleObject, _isOnLoadEventSet, _pendingLoadEventListeners, _pendingMapObjectEventListeners, _testObject, _testLibrary, _on, on_fn, _isGoogleObjectSet, isGoogleObjectSet_fn;
+var _eventsCalled, _eventListeners, _onlyEventListeners, _googleObject, _isOnLoadEventSet, _pendingLoadEventListeners, _pendingMapObjectEventListeners, _testObject, _testLibrary, _Evented_instances, on_fn, isGoogleObjectSet_fn;
 var Evented = class extends Base_default {
   /**
    * Constructor
@@ -1177,26 +1182,7 @@ var Evented = class extends Base_default {
    */
   constructor(objectType, testObject, testLibrary) {
     super(objectType);
-    /**
-     * Add an event listener to the object
-     *
-     * config:
-     * - context: object - The context to bind the callback function to
-     * - once: boolean - If true then the event listener will only be called once
-     * - onlyOnce: boolean - If true then the event listener will only be called once and only one listener will be added for this event type.
-     * - callImmediate: boolean - If true then the event listener will be called immediately if the event has already been dispatched
-     *
-     * @param {string} type The event type
-     * @param {Function} callback The event listener callback function
-     * @param {EventConfig} [config] Configuration for the event.
-     */
-    __privateAdd(this, _on);
-    /**
-     * Returns if the Google object is set and ready to work with events
-     *
-     * @returns {boolean}
-     */
-    __privateAdd(this, _isGoogleObjectSet);
+    __privateAdd(this, _Evented_instances);
     /**
      * Holds the events that have been called
      */
@@ -1221,7 +1207,7 @@ var Evented = class extends Base_default {
      * @private
      * @type {google.maps.MVCObject| google.maps.marker.AdvancedMarkerElement}
      */
-    __privateAdd(this, _googleObject, void 0);
+    __privateAdd(this, _googleObject);
     /**
      * Holds whether the onload event was set on the Loader class to
      * set up the pending event listeners after the Google Maps API library is loaded.
@@ -1252,7 +1238,7 @@ var Evented = class extends Base_default {
      * @private
      * @type {string}
      */
-    __privateAdd(this, _testObject, void 0);
+    __privateAdd(this, _testObject);
     /**
      * An optional Google maps library class to check for. This needs to be part of the google.maps object.
      *
@@ -1261,7 +1247,7 @@ var Evented = class extends Base_default {
      * @private
      * @type {string}
      */
-    __privateAdd(this, _testLibrary, void 0);
+    __privateAdd(this, _testLibrary);
     __privateSet(this, _testObject, testObject);
     if (isString(testLibrary)) {
       __privateSet(this, _testLibrary, testLibrary);
@@ -1375,7 +1361,7 @@ var Evented = class extends Base_default {
           __privateGet(this, _onlyEventListeners).splice(index, 1);
         }
       }
-      if (__privateGet(this, _eventListeners)[type].length === 0 && __privateMethod(this, _isGoogleObjectSet, isGoogleObjectSet_fn).call(this)) {
+      if (__privateGet(this, _eventListeners)[type].length === 0 && __privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
         google.maps.event.clearListeners(__privateGet(this, _googleObject), type);
       }
     } else {
@@ -1388,7 +1374,7 @@ var Evented = class extends Base_default {
   offAll() {
     __privateSet(this, _eventListeners, {});
     __privateSet(this, _onlyEventListeners, []);
-    if (__privateMethod(this, _isGoogleObjectSet, isGoogleObjectSet_fn).call(this)) {
+    if (__privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
       google.maps.event.clearInstanceListeners(__privateGet(this, _googleObject));
     }
   }
@@ -1400,7 +1386,7 @@ var Evented = class extends Base_default {
    * @param {EventConfig} [config] Configuration for the event.
    */
   on(type, callback, config) {
-    __privateMethod(this, _on, on_fn).call(this, type, callback, config);
+    __privateMethod(this, _Evented_instances, on_fn).call(this, type, callback, config);
   }
   /**
    * Add an event listener to the object. It will be called immediately if the event has already been dispatched.
@@ -1520,13 +1506,26 @@ _pendingLoadEventListeners = new WeakMap();
 _pendingMapObjectEventListeners = new WeakMap();
 _testObject = new WeakMap();
 _testLibrary = new WeakMap();
-_on = new WeakSet();
+_Evented_instances = new WeakSet();
+/**
+ * Add an event listener to the object
+ *
+ * config:
+ * - context: object - The context to bind the callback function to
+ * - once: boolean - If true then the event listener will only be called once
+ * - onlyOnce: boolean - If true then the event listener will only be called once and only one listener will be added for this event type.
+ * - callImmediate: boolean - If true then the event listener will be called immediately if the event has already been dispatched
+ *
+ * @param {string} type The event type
+ * @param {Function} callback The event listener callback function
+ * @param {EventConfig} [config] Configuration for the event.
+ */
 on_fn = function(type, callback, config) {
   if (isFunction(callback)) {
     if (!Array.isArray(__privateGet(this, _eventListeners)[type])) {
       let setupPending = false;
       if (checkForGoogleMaps(__privateGet(this, _testObject), __privateGet(this, _testLibrary), false)) {
-        if (__privateMethod(this, _isGoogleObjectSet, isGoogleObjectSet_fn).call(this)) {
+        if (__privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
           __privateGet(this, _googleObject).addListener(type, (e) => {
             this.dispatch(type, e);
           });
@@ -1586,7 +1585,11 @@ on_fn = function(type, callback, config) {
     throw new Error(`The "${type}" event handler needs a callback function`);
   }
 };
-_isGoogleObjectSet = new WeakSet();
+/**
+ * Returns if the Google object is set and ready to work with events
+ *
+ * @returns {boolean}
+ */
 isGoogleObjectSet_fn = function() {
   let isSet = __privateGet(this, _googleObject) instanceof google.maps.MVCObject;
   if (!isSet && typeof google.maps.marker !== "undefined" && typeof google.maps.marker.AdvancedMarkerElement !== "undefined") {
@@ -1612,7 +1615,7 @@ var Loader = class extends EventTarget {
      * @private
      * @type {string}
      */
-    __privateAdd(this, _apiKey, void 0);
+    __privateAdd(this, _apiKey);
     /**
      * Holds the loading state
      *
@@ -1640,7 +1643,7 @@ var Loader = class extends EventTarget {
      * @private
      * @type {GoogleLoader}
      */
-    __privateAdd(this, _loader, void 0);
+    __privateAdd(this, _loader);
     /**
      * Holds the version of the Google Maps API to load
      *
@@ -1863,7 +1866,7 @@ var loader = (config) => {
 };
 
 // src/lib/LatLngBounds.ts
-var _bounds, _boundValues, _northEast, _southWest, _extendGoogle, extendGoogle_fn, _extend, extend_fn, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn, _createLatLngBoundsObject, createLatLngBoundsObject_fn, _union, union_fn;
+var _bounds, _boundValues, _northEast, _southWest, _LatLngBounds_instances, extendGoogle_fn, extend_fn, setupGoogleLatLngBounds_fn, createLatLngBoundsObject_fn, union_fn;
 var _LatLngBounds = class _LatLngBounds extends Base_default {
   /**
    * Constructor
@@ -1873,48 +1876,11 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    */
   constructor(latLngValue) {
     super("latlngbounds");
-    /**
-     * Extends this bounds using the Google Maps LatLngBounds object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
-     *
-     * @param {LatLng} latLngObject The LatLng object
-     * @returns {void}
-     */
-    __privateAdd(this, _extendGoogle);
-    /**
-     * Extends this bounds using the internal method
-     *
-     * Based on the Leaflet library
-     *
-     * @param {LatLng} latLngObject The LatLng object
-     * @returns {void}
-     */
-    __privateAdd(this, _extend);
-    /**
-     * Set up the Google maps LatLngBounds object if necessary
-     *
-     * @private
-     * @returns {Promise<void>}
-     */
-    __privateAdd(this, _setupGoogleLatLngBounds);
-    /**
-     * Create the LatLngBounds object
-     *
-     * @private
-     */
-    __privateAdd(this, _createLatLngBoundsObject);
-    /**
-     * Extends this bounds to contain the union of this and the given bounds
-     *
-     * @param {LatLngBounds} other The LatLngBounds object to join with
-     * @returns {Promise<void>}
-     */
-    __privateAdd(this, _union);
+    __privateAdd(this, _LatLngBounds_instances);
     /**
      * Holds the Google maps LatLngBounds object
      */
-    __privateAdd(this, _bounds, void 0);
+    __privateAdd(this, _bounds);
     /**
      * Holds the values to extend the bounds with
      *
@@ -1930,16 +1896,46 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
      * @private
      * @type {LatLng}
      */
-    __privateAdd(this, _northEast, void 0);
+    __privateAdd(this, _northEast);
     /**
      * Holds the south-west corner of the LatLngBounds
      *
      * @private
      * @type {LatLng}
      */
-    __privateAdd(this, _southWest, void 0);
+    __privateAdd(this, _southWest);
     if (latLngValue) {
-      this.extend(latLngValue);
+      if (isObjectWithValues(latLngValue)) {
+        if (typeof latLngValue.ne !== "undefined" && typeof latLngValue.sw !== "undefined") {
+          const ne = latLng(latLngValue.ne);
+          if (ne.isValid()) {
+            __privateSet(this, _northEast, ne);
+          }
+          const sw = latLng(latLngValue.sw);
+          if (sw.isValid()) {
+            __privateSet(this, _southWest, sw);
+          }
+        } else if (typeof latLngValue.north !== "undefined" && typeof latLngValue.south !== "undefined" && typeof latLngValue.east !== "undefined" && typeof latLngValue.west !== "undefined") {
+          const ne = latLng([
+            latLngValue.north,
+            latLngValue.east
+          ]);
+          const sw = latLng([
+            latLngValue.south,
+            latLngValue.west
+          ]);
+          if (ne.isValid()) {
+            __privateSet(this, _northEast, ne);
+          }
+          if (sw.isValid()) {
+            __privateSet(this, _southWest, sw);
+          }
+        } else {
+          this.extend(latLngValue);
+        }
+      } else {
+        this.extend(latLngValue);
+      }
     }
   }
   /**
@@ -2030,9 +2026,9 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
       const latLngObject = latLng(latLngValue);
       if (latLngObject.isValid()) {
         if (__privateGet(this, _bounds)) {
-          __privateMethod(this, _extendGoogle, extendGoogle_fn).call(this, latLngObject);
+          __privateMethod(this, _LatLngBounds_instances, extendGoogle_fn).call(this, latLngObject);
         } else {
-          __privateMethod(this, _extend, extend_fn).call(this, latLngObject);
+          __privateMethod(this, _LatLngBounds_instances, extend_fn).call(this, latLngObject);
         }
       } else {
         throw new Error(
@@ -2090,7 +2086,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    */
   init() {
     return new Promise((resolve) => {
-      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+      __privateMethod(this, _LatLngBounds_instances, setupGoogleLatLngBounds_fn).call(this).then(() => {
         resolve();
       });
     });
@@ -2148,7 +2144,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
+      __privateMethod(this, _LatLngBounds_instances, setupGoogleLatLngBounds_fn).call(this).then(() => {
         resolve(__privateGet(this, _bounds));
       });
     });
@@ -2207,12 +2203,12 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
   union(other) {
     return new Promise((resolve) => {
       if (__privateGet(this, _bounds)) {
-        __privateMethod(this, _union, union_fn).call(this, other).then(() => {
+        __privateMethod(this, _LatLngBounds_instances, union_fn).call(this, other).then(() => {
           resolve();
         });
       } else {
-        __privateMethod(this, _setupGoogleLatLngBounds, setupGoogleLatLngBounds_fn).call(this).then(() => {
-          __privateMethod(this, _union, union_fn).call(this, other).then(() => {
+        __privateMethod(this, _LatLngBounds_instances, setupGoogleLatLngBounds_fn).call(this).then(() => {
+          __privateMethod(this, _LatLngBounds_instances, union_fn).call(this, other).then(() => {
             resolve();
           });
         });
@@ -2224,11 +2220,26 @@ _bounds = new WeakMap();
 _boundValues = new WeakMap();
 _northEast = new WeakMap();
 _southWest = new WeakMap();
-_extendGoogle = new WeakSet();
+_LatLngBounds_instances = new WeakSet();
+/**
+ * Extends this bounds using the Google Maps LatLngBounds object
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
+ *
+ * @param {LatLng} latLngObject The LatLng object
+ * @returns {void}
+ */
 extendGoogle_fn = function(latLngObject) {
   __privateGet(this, _bounds).extend(latLngObject.toGoogle());
 };
-_extend = new WeakSet();
+/**
+ * Extends this bounds using the internal method
+ *
+ * Based on the Leaflet library
+ *
+ * @param {LatLng} latLngObject The LatLng object
+ * @returns {void}
+ */
 extend_fn = function(latLngObject) {
   __privateGet(this, _boundValues).push(latLngObject.clone());
   if (__privateGet(this, _northEast) && __privateGet(this, _southWest)) {
@@ -2241,16 +2252,21 @@ extend_fn = function(latLngObject) {
     __privateSet(this, _southWest, latLngObject.clone());
   }
 };
-_setupGoogleLatLngBounds = new WeakSet();
+/**
+ * Set up the Google maps LatLngBounds object if necessary
+ *
+ * @private
+ * @returns {Promise<void>}
+ */
 setupGoogleLatLngBounds_fn = function() {
   return new Promise((resolve) => {
     if (!isObject(__privateGet(this, _bounds))) {
       if (checkForGoogleMaps("LatLngBounds", "LatLngBounds", false)) {
-        __privateMethod(this, _createLatLngBoundsObject, createLatLngBoundsObject_fn).call(this);
+        __privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this);
         resolve();
       } else {
         loader().once("map_loaded", () => {
-          __privateMethod(this, _createLatLngBoundsObject, createLatLngBoundsObject_fn).call(this);
+          __privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this);
           resolve();
         });
       }
@@ -2259,7 +2275,11 @@ setupGoogleLatLngBounds_fn = function() {
     }
   });
 };
-_createLatLngBoundsObject = new WeakSet();
+/**
+ * Create the LatLngBounds object
+ *
+ * @private
+ */
 createLatLngBoundsObject_fn = function() {
   if (!__privateGet(this, _bounds)) {
     __privateSet(this, _bounds, new google.maps.LatLngBounds());
@@ -2270,7 +2290,12 @@ createLatLngBoundsObject_fn = function() {
     }
   }
 };
-_union = new WeakSet();
+/**
+ * Extends this bounds to contain the union of this and the given bounds
+ *
+ * @param {LatLngBounds} other The LatLngBounds object to join with
+ * @returns {Promise<void>}
+ */
 union_fn = function(other) {
   return new Promise((resolve) => {
     if (other instanceof _LatLngBounds) {
@@ -2292,8 +2317,1304 @@ var latLngBounds = (latLngValue) => {
   return new LatLngBounds(latLngValue);
 };
 
+// src/lib/Geocode/AddressTypes.ts
+var _types;
+var GeocodeAddressTypes = class {
+  /**
+   * Constructor
+   *
+   * @param {string[]} [types] The types for the address
+   */
+  constructor(types) {
+    /**
+     * Holds the types for the address
+     *
+     * @private
+     * @type {string[]}
+     */
+    __privateAdd(this, _types, []);
+    if (Array.isArray(types)) {
+      __privateSet(this, _types, types);
+    }
+  }
+  /**
+   * Gets the address types
+   *
+   * @returns {string[]}
+   */
+  getTypes() {
+    return __privateGet(this, _types);
+  }
+  /**
+   * Returns if the address is an administrative area level 1.
+   *
+   * This is the highest level of administrative area below the country level.
+   * In the United States, these administrative levels are states.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel1() {
+    return __privateGet(this, _types).includes("administrative_area_level_1");
+  }
+  /**
+   * Returns if the address is an administrative area level 2.
+   *
+   * Within the United States this would be a county.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel2() {
+    return __privateGet(this, _types).includes("administrative_area_level_2");
+  }
+  /**
+   * Returns if the address is an administrative area level 3.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel3() {
+    return __privateGet(this, _types).includes("administrative_area_level_3");
+  }
+  /**
+   * Returns if the address is an administrative area level 4.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel4() {
+    return __privateGet(this, _types).includes("administrative_area_level_4");
+  }
+  /**
+   * Returns if the address is an administrative area level 5.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel5() {
+    return __privateGet(this, _types).includes("administrative_area_level_5");
+  }
+  /**
+   * Returns if the address is an administrative area level 6.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel6() {
+    return __privateGet(this, _types).includes("administrative_area_level_6");
+  }
+  /**
+   * Returns if the address is an administrative area level 7.
+   *
+   * This is a minor civil division.
+   *
+   * @returns {boolean}
+   */
+  isAdministrativeAreaLevel7() {
+    return __privateGet(this, _types).includes("administrative_area_level_7");
+  }
+  /**
+   * Returns if the address is an airport.
+   *
+   * @returns {boolean}
+   */
+  isAirport() {
+    return __privateGet(this, _types).includes("airport");
+  }
+  /**
+   * Returns if the address is a bus station or bus stop.
+   *
+   * @returns {boolean}
+   */
+  isBusStation() {
+    return __privateGet(this, _types).includes("bus_station");
+  }
+  /**
+   * Returns if the address is a city.
+   *
+   * This is an alias for isLocality()
+   *
+   * @returns {boolean}
+   */
+  isCity() {
+    return this.isLocality();
+  }
+  /**
+   * Returns if the address is a commonly used alternative name for the entity.
+   *
+   * @returns {boolean}
+   */
+  isColloquialArea() {
+    return __privateGet(this, _types).includes("colloquial_area");
+  }
+  /**
+   * Returns if the address is a country.
+   *
+   * @returns {boolean}
+   */
+  isCountry() {
+    return __privateGet(this, _types).includes("country");
+  }
+  /**
+   * Returns if the address is a county.
+   *
+   * This is an alias for isAdministrativeAreaLevel2()
+   *
+   * @returns {boolean}
+   */
+  isCounty() {
+    return __privateGet(this, _types).includes("administrative_area_level_2");
+  }
+  /**
+   * Returns if the address is a place that hasn't yet been categorized.
+   *
+   * @returns {boolean}
+   */
+  isEstablishment() {
+    return __privateGet(this, _types).includes("establishment");
+  }
+  /**
+   * Returns if the address is a floor in a building.
+   *
+   * @returns {boolean}
+   */
+  isFloor() {
+    return __privateGet(this, _types).includes("floor");
+  }
+  /**
+   * Returns if the address is a major intersection, usually of two major roads.
+   *
+   * @returns {boolean}
+   */
+  isIntersection() {
+    return __privateGet(this, _types).includes("intersection");
+  }
+  /**
+   * Returns if the address is a landmark.
+   *
+   * @returns {boolean}
+   */
+  isLandmark() {
+    return __privateGet(this, _types).includes("landmark");
+  }
+  /**
+   * Returns if the address is a locality.
+   *
+   * @returns {boolean}
+   */
+  isLocality() {
+    return __privateGet(this, _types).includes("locality");
+  }
+  /**
+   * Returns if the address is a prominent natural feature.
+   *
+   * @returns {boolean}
+   */
+  isNaturalFeature() {
+    return __privateGet(this, _types).includes("natural_feature");
+  }
+  /**
+   * Returns if the address is a neighborhood.
+   *
+   * @returns {boolean}
+   */
+  isNeighborhood() {
+    return __privateGet(this, _types).includes("neighborhood");
+  }
+  /**
+   * Returns if the address is a plus code.
+   *
+   * See https://plus.codes/ for more information.
+   *
+   * @returns {boolean}
+   */
+  isPlusCode() {
+    return __privateGet(this, _types).includes("plus_code");
+  }
+  /**
+   * Returns if the address is a named park.
+   *
+   * @returns {boolean}
+   */
+  isPark() {
+    return __privateGet(this, _types).includes("park");
+  }
+  /**
+   * Returns if the address is a parking lot.
+   *
+   * @returns {boolean}
+   */
+  isParking() {
+    return __privateGet(this, _types).includes("parking");
+  }
+  /**
+   * Returns if the address is a point of interest.
+   *
+   * @returns {boolean}
+   */
+  isPointOfInterest() {
+    return __privateGet(this, _types).includes("point_of_interest");
+  }
+  /**
+   * Returns if the address is a political entity. This would usually be some type of civil administration.
+   *
+   * @returns {boolean}
+   */
+  isPolitical() {
+    return __privateGet(this, _types).includes("political");
+  }
+  /**
+   * Returns if the address is a specific post box.
+   *
+   * @returns {boolean}
+   */
+  isPostBox() {
+    return __privateGet(this, _types).includes("post_box");
+  }
+  /**
+   * Returns if the address is a postal code.
+   *
+   * @returns {boolean}
+   */
+  isPostalCode() {
+    return __privateGet(this, _types).includes("postal_code");
+  }
+  /**
+   * Returns if the address is a grouping of geographic areas.
+   *
+   * @returns {boolean}
+   */
+  isPostalTown() {
+    return __privateGet(this, _types).includes("postal_town");
+  }
+  /**
+   * Returns if the location is a named location, usually a building or collection of buildings with a common name.
+   *
+   * @returns {boolean}
+   */
+  isPremise() {
+    return __privateGet(this, _types).includes("premise");
+  }
+  /**
+   * Returns if the address is a room of a building.
+   *
+   * @returns {boolean}
+   */
+  isRoom() {
+    return __privateGet(this, _types).includes("room");
+  }
+  /**
+   * Returns if the address is a named route (such as "US 101").
+   *
+   * @returns {boolean}
+   */
+  isRoute() {
+    return __privateGet(this, _types).includes("route");
+  }
+  /**
+   * Returns if the address is a state or province.
+   *
+   * This is an alias for isAdministrativeAreaLevel1()
+   *
+   * @returns {boolean}
+   */
+  isState() {
+    return this.isAdministrativeAreaLevel1();
+  }
+  /**
+   * Returns if the address is a street address
+   *
+   * @returns {boolean}
+   */
+  isStreetAddress() {
+    return __privateGet(this, _types).includes("street_address");
+  }
+  /**
+   * Returns if the address indicates a precise street number.
+   *
+   * @returns {boolean}
+   */
+  isStreetNumber() {
+    return __privateGet(this, _types).includes("street_number");
+  }
+  /**
+   * Returns if the address is a sublocality.
+   *
+   * @returns {boolean}
+   */
+  isSubLocality() {
+    return __privateGet(this, _types).includes("sublocality");
+  }
+  /**
+   * Returns if the address is a sublocality level 1.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel1() {
+    return __privateGet(this, _types).includes("sublocality_level_1");
+  }
+  /**
+   * Returns if the address is a sublocality level 2.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel2() {
+    return __privateGet(this, _types).includes("sublocality_level_2");
+  }
+  /**
+   * Returns if the address is a sublocality level 3.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel3() {
+    return __privateGet(this, _types).includes("sublocality_level_3");
+  }
+  /**
+   * Returns if the address is a sublocality level 4.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel4() {
+    return __privateGet(this, _types).includes("sublocality_level_4");
+  }
+  /**
+   * Returns if the address is a sublocality level 5.
+   *
+   * @returns {boolean}
+   */
+  isSubLocalityLevel5() {
+    return __privateGet(this, _types).includes("sublocality_level_5");
+  }
+  /**
+   * Returns if the location is a subpremise.
+   *
+   * This is the next level below a premise, usually a single building in a collection of buildings with a common name.
+   *
+   * @returns {boolean}
+   */
+  isSubPremise() {
+    return __privateGet(this, _types).includes("subpremise");
+  }
+  /**
+   * Returns if the address is a town.
+   *
+   * This is an alias for isLocality()
+   *
+   * @returns {boolean}
+   */
+  isTown() {
+    return this.isLocality();
+  }
+  /**
+   * Returns if the address is a train station.
+   *
+   * @returns {boolean}
+   */
+  isTrainStation() {
+    return __privateGet(this, _types).includes("train_station");
+  }
+  /**
+   * Returns if the address is a transit station.
+   *
+   * @returns {boolean}
+   */
+  isTransitStation() {
+    return __privateGet(this, _types).includes("transit_station");
+  }
+};
+_types = new WeakMap();
+var AddressTypes_default = GeocodeAddressTypes;
+
+// src/lib/Geocode/AddressComponent.ts
+var _component, _types2;
+var GeocodeAddressComponent = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {google.maps.GeocoderAddressComponent} component The Google Maps GeocoderAddressComponent object
+   */
+  constructor(component) {
+    super("addressComponent");
+    /**
+     * Holds the original GeocoderAddressComponent object
+     *
+     * @private
+     * @type {google.maps.GeocoderAddressComponent}
+     */
+    __privateAdd(this, _component);
+    /**
+     * Holds the types for the address component
+     *
+     * @private
+     * @type {GeocodeAddressTypes}
+     */
+    __privateAdd(this, _types2);
+    __privateSet(this, _component, component);
+    if (isObjectWithValues(component) && Array.isArray(component.types)) {
+      __privateSet(this, _types2, new AddressTypes_default(component.types));
+    } else {
+      __privateSet(this, _types2, new AddressTypes_default());
+    }
+  }
+  /**
+   * Gets the full name of the address component
+   *
+   * @returns {string}
+   */
+  getLongName() {
+    return __privateGet(this, _component).long_name;
+  }
+  /**
+   * Gets the abbreviated name of the address component
+   *
+   * @returns {string}
+   */
+  getShortName() {
+    return __privateGet(this, _component).short_name;
+  }
+  /**
+   * Gets the array of types objects for the address component
+   *
+   * @returns {GeocodeAddressTypes}
+   */
+  getTypes() {
+    return __privateGet(this, _types2);
+  }
+  /**
+   * Gets the array of types for the address component
+   *
+   * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+   *
+   * @returns {string[]}
+   */
+  getTypesArray() {
+    return __privateGet(this, _types2).getTypes();
+  }
+  /**
+   * Get the original Google Maps GeocoderAddressComponent object
+   *
+   * @returns {google.maps.GeocoderAddressComponent}
+   */
+  toGoogle() {
+    return __privateGet(this, _component);
+  }
+};
+_component = new WeakMap();
+_types2 = new WeakMap();
+var AddressComponent_default = GeocodeAddressComponent;
+
+// src/lib/Geocode/Result.ts
+var _addressComponents, _formattedAddress, _geometryLocationBounds, _geometryLocation, _geometryLocationType, _geometryLocationViewport, _partialMatch, _placeId, _plusCode, _plusCodeCompound, _postalCodeLocalities, _result, _types3;
+var GeocodeResult = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {google.maps.GeocoderResult} [result] The Google Maps GeocoderResult object
+   */
+  constructor(result) {
+    super("geocodeResult");
+    /**
+     * Holds the address components
+     *
+     * @private
+     * @type {GeocodeAddressComponent[]}
+     */
+    __privateAdd(this, _addressComponents, []);
+    /**
+     * Holds the formatted address
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _formattedAddress, "");
+    /**
+     * Holds the bounds of the location
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _geometryLocationBounds);
+    /**
+     * Holds the latitude and longitude of the location
+     *
+     * @private
+     * @type {LatLng}
+     */
+    __privateAdd(this, _geometryLocation);
+    /**
+     * Holds the type of location
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _geometryLocationType, "");
+    /**
+     * Holds the bounds of the recommended viewport for displaying the returned result
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _geometryLocationViewport);
+    /**
+     * Holds whether the geocode result is a partial match
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _partialMatch, false);
+    /**
+     * Holds the place id associated with the location
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _placeId, "");
+    /**
+     * Holds the plus code associated with the location
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/3.56/places-service?hl=en#PlacePlusCode
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _plusCode, "");
+    /**
+     * Holds the compund plus code associated with the location
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/3.56/places-service?hl=en#PlacePlusCode
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _plusCodeCompound, "");
+    /**
+     * Holds the postcode localities for the location. This is only populated when the result is a postal code
+     * that contains multiple localities.
+     *
+     * @private
+     * @type {string[]}
+     */
+    __privateAdd(this, _postalCodeLocalities, []);
+    /**
+     * Holds the original GeocoderResult object
+     *
+     * @private
+     * @type {google.maps.GeocoderResult | object}
+     */
+    __privateAdd(this, _result);
+    /**
+     * Holds the types for the returned geocoded element
+     *
+     * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+     *
+     * @private
+     * @type {GeocodeAddressTypes}
+     */
+    __privateAdd(this, _types3);
+    if (isObjectWithValues(result)) {
+      __privateSet(this, _result, result);
+      if (Array.isArray(result.address_components)) {
+        result.address_components.forEach((component) => {
+          __privateGet(this, _addressComponents).push(new AddressComponent_default(component));
+        });
+      }
+      if (isStringWithValue(result.formatted_address)) {
+        __privateSet(this, _formattedAddress, result.formatted_address);
+      }
+      if (isObjectWithValues(result.geometry)) {
+        if (result.geometry.bounds) {
+          __privateSet(this, _geometryLocationBounds, latLngBounds());
+          __privateGet(this, _geometryLocationBounds).union(result.geometry.bounds);
+        }
+        if (result.geometry.location) {
+          __privateSet(this, _geometryLocation, latLng(result.geometry.location));
+        }
+        if (isStringWithValue(result.geometry.location_type)) {
+          __privateSet(this, _geometryLocationType, result.geometry.location_type);
+        }
+        if (result.geometry.viewport) {
+          __privateSet(this, _geometryLocationViewport, latLngBounds());
+          __privateGet(this, _geometryLocationViewport).union(result.geometry.viewport);
+        }
+      }
+      if (isBoolean(result.partial_match)) {
+        __privateSet(this, _partialMatch, result.partial_match);
+      }
+      if (isStringWithValue(result.place_id)) {
+        __privateSet(this, _placeId, result.place_id);
+      }
+      if (isObjectWithValues(result.plus_code)) {
+        if (isStringWithValue(result.plus_code.global_code)) {
+          __privateSet(this, _plusCode, result.plus_code.global_code);
+        }
+        if (isStringWithValue(result.plus_code.compound_code)) {
+          __privateSet(this, _plusCodeCompound, result.plus_code.compound_code);
+        }
+      }
+      if (Array.isArray(result.postcode_localities)) {
+        __privateSet(this, _postalCodeLocalities, result.postcode_localities);
+      }
+      if (Array.isArray(result.types)) {
+        __privateSet(this, _types3, new AddressTypes_default(result.types));
+      } else {
+        __privateSet(this, _types3, new AddressTypes_default());
+      }
+    } else {
+      __privateSet(this, _result, {});
+      __privateSet(this, _types3, new AddressTypes_default());
+    }
+  }
+  /**
+   * Get the address component objects
+   *
+   * @returns {GeocodeAddressComponent[]}
+   */
+  getAddressComponents() {
+    return __privateGet(this, _addressComponents);
+  }
+  /**
+   * Get the precise bounds of the result, if available
+   *
+   * @returns {LatLngBounds|undefined}
+   */
+  getBounds() {
+    return __privateGet(this, _geometryLocationBounds);
+  }
+  /**
+   * Get the compound plus code associated with the location
+   *
+   * @returns {string}
+   */
+  getCompoundPlusCode() {
+    return __privateGet(this, _plusCodeCompound);
+  }
+  /**
+   * Gets the formatted address for the location.
+   *
+   * @returns {string}
+   */
+  getFormattedAddress() {
+    return __privateGet(this, _formattedAddress);
+  }
+  /**
+   * Get the latitude of the location.
+   *
+   * This is a shorcut to getting the geometry location latitude.
+   *
+   * @returns {number|undefined}
+   */
+  getLatitude() {
+    let returnValue;
+    if (typeof __privateGet(this, _geometryLocation) !== "undefined" && __privateGet(this, _geometryLocation).isValid()) {
+      returnValue = __privateGet(this, _geometryLocation).lat;
+    }
+    return returnValue;
+  }
+  /**
+   * Gets the LatLng object for the result
+   *
+   * @returns {LatLng|undefined}
+   */
+  getLocation() {
+    return __privateGet(this, _geometryLocation);
+  }
+  /**
+   * Gets the location type
+   *
+   * @returns {string}
+   */
+  getLocationType() {
+    return __privateGet(this, _geometryLocationType);
+  }
+  /**
+   * Get the longitude of the location.
+   *
+   * This is a shorcut to getting the geometry location longitude.
+   *
+   * @returns {number|undefined}
+   */
+  getLongitude() {
+    let returnValue;
+    if (typeof __privateGet(this, _geometryLocation) !== "undefined" && __privateGet(this, _geometryLocation).isValid()) {
+      returnValue = __privateGet(this, _geometryLocation).lng;
+    }
+    return returnValue;
+  }
+  /**
+   * Get the place id for the location.
+   *
+   * @returns {string}
+   */
+  getPlaceId() {
+    return __privateGet(this, _placeId);
+  }
+  /**
+   * Get the plus code associated with the location
+   *
+   * @returns {string}
+   */
+  getPlusCode() {
+    return __privateGet(this, _plusCode);
+  }
+  /**
+   * Gets the postal code localities for the location.
+   *
+   * This is only populated when the result is a postal code that contains multiple localities.
+   *
+   * @returns {string[]}
+   */
+  getPostalCodeLocalities() {
+    return __privateGet(this, _postalCodeLocalities);
+  }
+  /**
+   * Gets the types object for the returned geocoded element.
+   *
+   * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+   *
+   * @returns {GeocodeAddressTypes}
+   */
+  getTypes() {
+    return __privateGet(this, _types3);
+  }
+  /**
+   * Gets the types for the returned geocoded element.
+   *
+   * https://developers.google.com/maps/documentation/javascript/geocoding?hl=en#GeocodingAddressTypes
+   *
+   * @returns {string[]}
+   */
+  getTypesArray() {
+    return __privateGet(this, _types3).getTypes();
+  }
+  /**
+   * Returns if the location is an approximate location.
+   *
+   * @returns {boolean}
+   */
+  isLocationApproximate() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.APPROXIMATE;
+  }
+  /**
+   * Returns if the location is a geometic center of a result.
+   *
+   * @returns {boolean}
+   */
+  isLocationGeometricCenter() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.GEOMETRIC_CENTER;
+  }
+  /**
+   * Returns if the location is an approximation interpolated between two precise locations.
+   *
+   * @returns {boolean}
+   */
+  isLocationRangeInterpolated() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.RANGE_INTERPOLATED;
+  }
+  /**
+   * Returns if the location is a rooftop location, which is the most precise location available.
+   *
+   * @returns {boolean}
+   */
+  isLocationRooftop() {
+    return __privateGet(this, _geometryLocationType) === GeocoderLocationType.ROOFTOP;
+  }
+  /**
+   * Returns if the location is a partial match for the original request.
+   *
+   * @returns {boolean}
+   */
+  isPartialMatch() {
+    return __privateGet(this, _partialMatch);
+  }
+  /**
+   * Get the original Google Maps GeocoderResult object
+   *
+   * If the result is empty, an empty object is returned.
+   *
+   * @returns {google.maps.GeocoderResult | object}
+   */
+  toGoogle() {
+    return __privateGet(this, _result);
+  }
+};
+_addressComponents = new WeakMap();
+_formattedAddress = new WeakMap();
+_geometryLocationBounds = new WeakMap();
+_geometryLocation = new WeakMap();
+_geometryLocationType = new WeakMap();
+_geometryLocationViewport = new WeakMap();
+_partialMatch = new WeakMap();
+_placeId = new WeakMap();
+_plusCode = new WeakMap();
+_plusCodeCompound = new WeakMap();
+_postalCodeLocalities = new WeakMap();
+_result = new WeakMap();
+_types3 = new WeakMap();
+var Result_default = GeocodeResult;
+
+// src/lib/Geocode/Results.ts
+var _results;
+var GeocodeResults = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {google.maps.GeocoderResult[]} [results] The Google Maps GeocoderResult objects
+   */
+  constructor(results) {
+    super("geocodeResults");
+    /**
+     * Holds the original GeocoderResult objects
+     *
+     * @private
+     * @type {GeocodeResult[]}
+     */
+    __privateAdd(this, _results, []);
+    if (Array.isArray(results)) {
+      results.forEach((result) => {
+        __privateGet(this, _results).push(new Result_default(result));
+      });
+    }
+  }
+  /**
+   * Gets the first result
+   *
+   * @returns {GeocodeResult}
+   */
+  getFirst() {
+    let returnValue;
+    if (__privateGet(this, _results).length > 0) {
+      [returnValue] = __privateGet(this, _results);
+    } else {
+      returnValue = new Result_default();
+    }
+    return returnValue;
+  }
+  /**
+   * Returns the results
+   *
+   * @returns {GeocodeResult[]}
+   */
+  getResults() {
+    return __privateGet(this, _results);
+  }
+  /**
+   * Returns whether any results were found
+   *
+   * @returns {boolean}
+   */
+  hasResults() {
+    return __privateGet(this, _results).length > 0;
+  }
+};
+_results = new WeakMap();
+var Results_default = GeocodeResults;
+
+// src/lib/Geocode.ts
+var _address, _bounds2, _componentRestrictions, _language, _location, _placeId2, _region, _runGeocode;
+var Geocode = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {GeocodeOptions} [options] The Geocode options
+   */
+  constructor(options) {
+    super("geocode");
+    /**
+     * The address to geocode
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _address);
+    /**
+     * The bounds within which to bias geocode results more prominently
+     *
+     * @type {LatLngBounds}
+     * @private
+     */
+    __privateAdd(this, _bounds2);
+    /**
+     * Holds the component restrictions
+     *
+     * @type {GeocodeComponentRestrictions}
+     * @private
+     */
+    __privateAdd(this, _componentRestrictions);
+    /**
+     * The language to use for the geocode
+     *
+     * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _language);
+    /**
+     * The location to geocode
+     *
+     * @type {LatLng}
+     * @private
+     */
+    __privateAdd(this, _location);
+    /**
+     * Holds the id of the place to geocode
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _placeId2);
+    /**
+     * The region code to influence the geocoding
+     *
+     * @type {string}
+     * @private
+     */
+    __privateAdd(this, _region);
+    /**
+     * Runs the geocode request
+     *
+     * @returns {Promise<GeocodeResults>}
+     */
+    __privateAdd(this, _runGeocode, () => new Promise((resolve, reject) => {
+      const options = {};
+      if (__privateGet(this, _address)) {
+        options.address = __privateGet(this, _address);
+      } else if (__privateGet(this, _location)) {
+        options.location = __privateGet(this, _location).toGoogle();
+      } else if (__privateGet(this, _placeId2)) {
+        options.placeId = __privateGet(this, _placeId2);
+      }
+      if (__privateGet(this, _bounds2)) {
+        (() => __async(this, null, function* () {
+          options.bounds = yield __privateGet(this, _bounds2).toGoogle();
+        }))();
+      }
+      if (__privateGet(this, _componentRestrictions)) {
+        options.componentRestrictions = __privateGet(this, _componentRestrictions);
+      }
+      if (__privateGet(this, _language)) {
+        options.language = __privateGet(this, _language);
+      }
+      if (__privateGet(this, _region)) {
+        options.region = __privateGet(this, _region);
+      }
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(options, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK) {
+          const resultsObj = new Results_default(results);
+          resolve(resultsObj);
+        } else {
+          reject(status);
+        }
+      });
+    }));
+    if (isObject(options)) {
+      this.setOptions(options);
+    }
+  }
+  /**
+   * Returns the address
+   *
+   * @returns {string|undefined}
+   */
+  get address() {
+    return __privateGet(this, _address);
+  }
+  /**
+   * Sets the address to geocode
+   *
+   * @param {string} address The address to geocode
+   */
+  set address(address) {
+    if (isString(address)) {
+      __privateSet(this, _address, address);
+    }
+  }
+  /**
+   * Returns the bounds
+   *
+   * @returns {LatLngBounds|undefined}
+   */
+  get bounds() {
+    return __privateGet(this, _bounds2);
+  }
+  /**
+   * Sets the bounds within which to bias geocode results more prominently
+   *
+   * @param {LatLngBoundsValue} bounds The bounds within which to bias geocode results more prominently
+   */
+  set bounds(bounds) {
+    __privateSet(this, _bounds2, latLngBounds(bounds));
+  }
+  /**
+   * Get the component restrictions
+   *
+   * @returns {GeocodeComponentRestrictions|undefined}
+   */
+  get componentRestrictions() {
+    return __privateGet(this, _componentRestrictions);
+  }
+  /**
+   * Set the component restrictions
+   *
+   * @param {GeocodeComponentRestrictions} componentRestrictions The component restrictions
+   */
+  set componentRestrictions(componentRestrictions) {
+    if (isObjectWithValues(componentRestrictions)) {
+      const restrictions = {};
+      const keys = ["administrativeArea", "country", "locality", "postalCode", "route"];
+      keys.forEach((key) => {
+        if (isStringWithValue(componentRestrictions[key])) {
+          restrictions[key] = componentRestrictions[key];
+        }
+      });
+      __privateSet(this, _componentRestrictions, restrictions);
+    }
+  }
+  /**
+   * Get the language to use for the geocode
+   *
+   * @returns {string|undefined}
+   */
+  get language() {
+    return __privateGet(this, _language);
+  }
+  /**
+   * Set the language to use for the geocode
+   *
+   * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+   *
+   * @param {string} language The language to use for the geocode
+   */
+  set language(language) {
+    if (isStringWithValue(language)) {
+      __privateSet(this, _language, language);
+    }
+  }
+  /**
+   * Get the location to geocode
+   *
+   * @returns {LatLng|undefined}
+   */
+  get location() {
+    return __privateGet(this, _location);
+  }
+  /**
+   * Set the location to geocode
+   *
+   * @param {LatLngValue} location The location to geocode
+   */
+  set location(location) {
+    const value = latLng(location);
+    if (value.isValid()) {
+      __privateSet(this, _location, value);
+    }
+  }
+  /**
+   * Get the place id
+   *
+   * @returns {string|undefined}
+   */
+  get placeId() {
+    return __privateGet(this, _placeId2);
+  }
+  /**
+   * Set the place id
+   *
+   * @param {string} placeId The place id
+   */
+  set placeId(placeId) {
+    if (isStringWithValue(placeId)) {
+      __privateSet(this, _placeId2, placeId);
+    }
+  }
+  /**
+   * Get the region code
+   *
+   * @returns {string|undefined}
+   */
+  get region() {
+    return __privateGet(this, _region);
+  }
+  /**
+   * Set the region code
+   *
+   * @param {string} region The region code
+   */
+  set region(region) {
+    if (isStringWithValue(region)) {
+      __privateSet(this, _region, region);
+    }
+  }
+  /**
+   * Call the Google Maps Geocoder service
+   *
+   * Alias for the geocode method
+   *
+   * @param {GeocodeOptions} [options] The Geocode options
+   * @returns {Promise<GeocodeResults>}
+   */
+  fetch(options) {
+    return this.geocode(options);
+  }
+  /**
+   * Call the Google Maps Geocoder service
+   *
+   * @param {GeocodeOptions} [options] The Geocode options
+   * @returns {Promise<GeocodeResults>}
+   */
+  geocode(options) {
+    return new Promise((resolve, reject) => {
+      if (isObject(options)) {
+        this.setOptions(options);
+      }
+      if (checkForGoogleMaps("Geocoder", "Geocoder", false)) {
+        __privateGet(this, _runGeocode).call(this).then((results) => {
+          resolve(results);
+        }).catch((status) => {
+          if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+            resolve(new Results_default());
+          } else {
+            reject(status);
+          }
+        });
+      } else {
+        loader().once("map_loaded", () => {
+          __privateGet(this, _runGeocode).call(this).then((results) => {
+            resolve(results);
+          }).catch((status) => {
+            if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+              resolve(new Results_default());
+            } else {
+              reject(status);
+            }
+          });
+        });
+      }
+    });
+  }
+  /**
+   * Set the address to geocode
+   *
+   * @param {string} address The address to geocode
+   * @returns {Geocode}
+   */
+  setAddress(address) {
+    this.address = address;
+    return this;
+  }
+  /**
+   * Set the bounds within which to bias geocode results more prominently
+   *
+   * @param {LatLngBoundsValue} bounds The bounds within which to bias geocode results more prominently
+   * @returns {Geocode}
+   */
+  setBounds(bounds) {
+    this.bounds = bounds;
+    return this;
+  }
+  /**
+   * Set the component restrictions
+   *
+   * @param {GeocodeComponentRestrictions} componentRestrictions The component restrictions
+   * @returns {Geocode}
+   */
+  setComponentRestrictions(componentRestrictions) {
+    this.componentRestrictions = componentRestrictions;
+    return this;
+  }
+  /**
+   * Set the language to use for the geocode
+   * See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
+   *
+   * @param {string} language The language to use for the geocode
+   * @returns {Geocode}
+   */
+  setLanguage(language) {
+    this.language = language;
+    return this;
+  }
+  /**
+   * Set the location to geocode
+   *
+   * @param {LatLngValue} location The location to geocode
+   * @returns {Geocode}
+   */
+  setLocation(location) {
+    this.location = location;
+    return this;
+  }
+  /**
+   * Set the place id
+   *
+   * @param {string} placeId The place id
+   * @returns {Geocode}
+   */
+  setPlaceId(placeId) {
+    this.placeId = placeId;
+    return this;
+  }
+  /**
+   * Set the region code
+   *
+   * @param {string} region The region code
+   * @returns {Geocode}
+   */
+  setRegion(region) {
+    this.region = region;
+    return this;
+  }
+  /**
+   * Sets the options for the popup
+   *
+   * @param {GeocodeOptions} options Geocode options
+   * @returns {Geocode}
+   */
+  setOptions(options) {
+    if (options.address) {
+      this.address = options.address;
+    }
+    if (options.bounds) {
+      this.bounds = options.bounds;
+    }
+    if (options.componentRestrictions) {
+      this.componentRestrictions = options.componentRestrictions;
+    }
+    if (options.language) {
+      this.language = options.language;
+    }
+    if (options.location) {
+      this.location = options.location;
+    }
+    if (options.placeId) {
+      this.placeId = options.placeId;
+    }
+    if (options.region) {
+      this.region = options.region;
+    }
+    return this;
+  }
+};
+_address = new WeakMap();
+_bounds2 = new WeakMap();
+_componentRestrictions = new WeakMap();
+_language = new WeakMap();
+_location = new WeakMap();
+_placeId2 = new WeakMap();
+_region = new WeakMap();
+_runGeocode = new WeakMap();
+var geocode = (options) => {
+  if (options instanceof Geocode) {
+    return options;
+  }
+  return new Geocode(options);
+};
+
 // src/lib/AutocompleteSearchBox.ts
-var _bounds2, _countryRestriction, _fields, _input, _place, _placeBounds, _searchBox, _strictBounds, _types, _createAutocompleteSearchBox;
+var _bounds3, _countryRestriction, _fields, _input, _place, _placeBounds, _searchBox, _strictBounds, _types4, _createAutocompleteSearchBox;
 var AutocompleteSearchBox = class extends Evented {
   /**
    * Constructor
@@ -2309,7 +3630,7 @@ var AutocompleteSearchBox = class extends Evented {
      * @private
      * @type {LatLngBounds | undefined}
      */
-    __privateAdd(this, _bounds2, void 0);
+    __privateAdd(this, _bounds3);
     /**
      * Holds the region to use for biasing query predictions.
      *
@@ -2332,28 +3653,28 @@ var AutocompleteSearchBox = class extends Evented {
      * @private
      * @type {HTMLInputElement}
      */
-    __privateAdd(this, _input, void 0);
+    __privateAdd(this, _input);
     /**
      * Holds the place that has been found.
      *
      * @private
      * @type {google.maps.places.PlaceResult}
      */
-    __privateAdd(this, _place, void 0);
+    __privateAdd(this, _place);
     /**
      * Holds the map bounds based on the place that has been found
      *
      * @private
      * @type {LatLngBounds}
      */
-    __privateAdd(this, _placeBounds, void 0);
+    __privateAdd(this, _placeBounds);
     /**
      * Holds the reference to the Google Maps SearchBox object
      *
      * @private
      * @type {google.maps.places.Autocomplete}
      */
-    __privateAdd(this, _searchBox, void 0);
+    __privateAdd(this, _searchBox);
     /**
      * Sets whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
      *
@@ -2367,7 +3688,7 @@ var AutocompleteSearchBox = class extends Evented {
      * @private
      * @type {string[]}
      */
-    __privateAdd(this, _types, void 0);
+    __privateAdd(this, _types4);
     /**
      * Create the places search box object
      *
@@ -2378,8 +3699,8 @@ var AutocompleteSearchBox = class extends Evented {
         const options = {
           strictBounds: __privateGet(this, _strictBounds)
         };
-        if (__privateGet(this, _bounds2)) {
-          options.bounds = yield __privateGet(this, _bounds2).toGoogle();
+        if (__privateGet(this, _bounds3)) {
+          options.bounds = yield __privateGet(this, _bounds3).toGoogle();
         }
         if (__privateGet(this, _countryRestriction)) {
           options.componentRestrictions = { country: __privateGet(this, _countryRestriction) };
@@ -2387,8 +3708,8 @@ var AutocompleteSearchBox = class extends Evented {
         if (__privateGet(this, _fields)) {
           options.fields = __privateGet(this, _fields);
         }
-        if (__privateGet(this, _types)) {
-          options.types = __privateGet(this, _types);
+        if (__privateGet(this, _types4)) {
+          options.types = __privateGet(this, _types4);
         }
         __privateSet(this, _searchBox, new google.maps.places.Autocomplete(__privateGet(this, _input), options));
         __privateGet(this, _searchBox).addListener("place_changed", () => {
@@ -2427,7 +3748,7 @@ var AutocompleteSearchBox = class extends Evented {
    */
   get bounds() {
     var _a;
-    return (_a = __privateGet(this, _bounds2)) != null ? _a : void 0;
+    return (_a = __privateGet(this, _bounds3)) != null ? _a : void 0;
   }
   /**
    * Sets the region to use for biasing query predictions.
@@ -2438,7 +3759,7 @@ var AutocompleteSearchBox = class extends Evented {
    */
   set bounds(value) {
     const boundsValue = latLngBounds(value);
-    __privateSet(this, _bounds2, boundsValue);
+    __privateSet(this, _bounds3, boundsValue);
     if (__privateGet(this, _searchBox)) {
       boundsValue.toGoogle().then((bounds) => {
         __privateGet(this, _searchBox).setBounds(bounds);
@@ -2541,7 +3862,7 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {string[] | undefined}
    */
   get types() {
-    return __privateGet(this, _types);
+    return __privateGet(this, _types4);
   }
   /**
    * Set the types of predictions to be returned.
@@ -2552,14 +3873,14 @@ var AutocompleteSearchBox = class extends Evented {
    */
   set types(value) {
     if (Array.isArray(value)) {
-      __privateSet(this, _types, value);
+      __privateSet(this, _types4, value);
     } else if (isString(value)) {
-      __privateSet(this, _types, [value]);
+      __privateSet(this, _types4, [value]);
     } else {
-      __privateSet(this, _types, []);
+      __privateSet(this, _types4, []);
     }
     if (__privateGet(this, _searchBox)) {
-      __privateGet(this, _searchBox).setTypes(__privateGet(this, _types));
+      __privateGet(this, _searchBox).setTypes(__privateGet(this, _types4));
     }
   }
   /**
@@ -2626,7 +3947,7 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {string[] | undefined}
    */
   getTypes() {
-    return __privateGet(this, _types);
+    return __privateGet(this, _types4);
   }
   /**
    * Initialize the places search box object
@@ -2831,7 +4152,7 @@ var AutocompleteSearchBox = class extends Evented {
     return this;
   }
 };
-_bounds2 = new WeakMap();
+_bounds3 = new WeakMap();
 _countryRestriction = new WeakMap();
 _fields = new WeakMap();
 _input = new WeakMap();
@@ -2839,7 +4160,7 @@ _place = new WeakMap();
 _placeBounds = new WeakMap();
 _searchBox = new WeakMap();
 _strictBounds = new WeakMap();
-_types = new WeakMap();
+_types4 = new WeakMap();
 _createAutocompleteSearchBox = new WeakMap();
 var autocompleteSearchBox = (input, options) => {
   if (input instanceof AutocompleteSearchBox) {
@@ -2865,20 +4186,20 @@ var _Size = class _Size extends Base_default {
      * @private
      * @type {google.maps.Size}
      */
-    __privateAdd(this, _sizeObject, void 0);
+    __privateAdd(this, _sizeObject);
     /**
      * The width value
      *
      * @private
      * @type {number}
      */
-    __privateAdd(this, _width, void 0);
+    __privateAdd(this, _width);
     /**
      * The height value
      *
      * @type {number}
      */
-    __privateAdd(this, _height, void 0);
+    __privateAdd(this, _height);
     __privateSet(this, _height, 0);
     __privateSet(this, _width, 0);
     if (typeof width !== "undefined") {
@@ -3049,7 +4370,7 @@ var Icon = class extends Base_default {
     /**
      * Holds the Google maps icon options
      */
-    __privateAdd(this, _options, void 0);
+    __privateAdd(this, _options);
     __privateSet(this, _options, { url: "" });
     if (typeof url === "string") {
       __privateSet(this, _options, {
@@ -3480,7 +4801,7 @@ var MapRestriction = class {
      * @private
      * @type {LatLngBounds}
      */
-    __privateAdd(this, _latLngBounds, void 0);
+    __privateAdd(this, _latLngBounds);
     /**
      * If true, anything outside of the latLngBounds will be hidden when zooming. This can restrict how much the user can zoom out.
      *
@@ -3676,7 +4997,7 @@ var MapTypeControl = class {
      * @private
      * @type {MapTypeId[]}
      */
-    __privateAdd(this, _mapTypeIds, void 0);
+    __privateAdd(this, _mapTypeIds);
     /**
      * The position of the control on the map
      *
@@ -4663,7 +5984,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds3, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _getMapOptions, getMapOptions_fn, _load, load_fn, _showMap, showMap_fn;
+var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, getMapOptions_fn, load_fn, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -4674,36 +5995,14 @@ var Map = class extends Evented {
    */
   constructor(selector, options) {
     super("map", "Map");
-    /**
-     * Get the map options for showing the map
-     *
-     * @private
-     * @returns {google.maps.MapOptions}
-     */
-    __privateAdd(this, _getMapOptions);
-    /**
-     * Load and show the map
-     *
-     * @param {Function} callback The callback function to call after the map loads
-     * @returns {Promise<void>}
-     */
-    __privateAdd(this, _load);
-    /**
-     * Show the map
-     *
-     * This also dispatches the "visible" and "map_loaded" events,
-     * and calls the callback function.
-     *
-     * @returns {Promise<void>}
-     */
-    __privateAdd(this, _showMap);
+    __privateAdd(this, _Map_instances);
     /**
      * The bounds to fit the map to
      *
      * @private
      * @type {LatLngBounds}
      */
-    __privateAdd(this, _bounds3, void 0);
+    __privateAdd(this, _bounds4);
     /**
      * Holds the custom controls that need to be added to the map
      *
@@ -4717,7 +6016,7 @@ var Map = class extends Evented {
      * @private
      * @type {FullscreenControl}
      */
-    __privateAdd(this, _fullscreenControl, void 0);
+    __privateAdd(this, _fullscreenControl);
     /**
      * Holds the latitude portion of the center point for the map
      *
@@ -4766,14 +6065,14 @@ var Map = class extends Evented {
      * @private
      * @type {google.maps.Map}
      */
-    __privateAdd(this, _map2, void 0);
+    __privateAdd(this, _map2);
     /**
      * Holds the map type control object
      *
      * @private
      * @type {MapTypeControl}
      */
-    __privateAdd(this, _mapTypeControl, void 0);
+    __privateAdd(this, _mapTypeControl);
     /**
      * Holds the map options
      *
@@ -4787,35 +6086,35 @@ var Map = class extends Evented {
      * @private
      * @type {MapRestriction}
      */
-    __privateAdd(this, _restriction, void 0);
+    __privateAdd(this, _restriction);
     /**
      * Holds the rotate control object
      *
      * @private
      * @type {RotateControl}
      */
-    __privateAdd(this, _rotateControl, void 0);
+    __privateAdd(this, _rotateControl);
     /**
      * Holds the scale control object
      *
      * @private
      * @type {ScaleControl}
      */
-    __privateAdd(this, _scaleControl, void 0);
+    __privateAdd(this, _scaleControl);
     /**
      * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
      *
      * @private
      * @type {string|HTMLElement}
      */
-    __privateAdd(this, _selector, void 0);
+    __privateAdd(this, _selector);
     /**
      * Holds the street view control object
      *
      * @private
      * @type {StreetViewControl}
      */
-    __privateAdd(this, _streetViewControl, void 0);
+    __privateAdd(this, _streetViewControl);
     /**
      * Holds the styles to apply to the map
      *
@@ -4829,14 +6128,14 @@ var Map = class extends Evented {
      * @private
      * @type {number}
      */
-    __privateAdd(this, _watchId, void 0);
+    __privateAdd(this, _watchId);
     /**
      * Holds the zoom control object
      *
      * @private
      * @type {ZoomControl}
      */
-    __privateAdd(this, _zoomControl, void 0);
+    __privateAdd(this, _zoomControl);
     __privateGet(this, _options2).mapTypeId = MapTypeId.ROADMAP;
     __privateGet(this, _options2).center = latLng(0, 0);
     __privateGet(this, _options2).zoom = 6;
@@ -5264,10 +6563,10 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   addToBounds(value) {
-    if (!__privateGet(this, _bounds3)) {
-      __privateSet(this, _bounds3, latLngBounds());
+    if (!__privateGet(this, _bounds4)) {
+      __privateSet(this, _bounds4, latLngBounds());
     }
-    __privateGet(this, _bounds3).extend(value);
+    __privateGet(this, _bounds4).extend(value);
     return this;
   }
   /**
@@ -5276,7 +6575,7 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   clearBounds() {
-    __privateSet(this, _bounds3, latLngBounds());
+    __privateSet(this, _bounds4, latLngBounds());
     return this;
   }
   /**
@@ -5333,8 +6632,8 @@ var Map = class extends Evented {
       latLngBounds(bounds).toGoogle().then((googleBounds) => {
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
-    } else if (__privateGet(this, _bounds3)) {
-      __privateGet(this, _bounds3).toGoogle().then((googleBounds) => {
+    } else if (__privateGet(this, _bounds4)) {
+      __privateGet(this, _bounds4).toGoogle().then((googleBounds) => {
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
     }
@@ -5366,7 +6665,7 @@ var Map = class extends Evented {
       if (!__privateGet(this, _isInitialized) && !__privateGet(this, _isVisible2)) {
         if (!__privateGet(this, _isInitializing)) {
           __privateSet(this, _isInitializing, true);
-          __privateMethod(this, _load, load_fn).call(this, () => {
+          __privateMethod(this, _Map_instances, load_fn).call(this, () => {
             callCallback(callback);
             resolve(this);
           });
@@ -5822,7 +7121,7 @@ var Map = class extends Evented {
         }
       });
       if (__privateGet(this, _map2)) {
-        __privateMethod(this, _getMapOptions, getMapOptions_fn).call(this).then((mapOptions) => {
+        __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
           __privateGet(this, _map2).setOptions(mapOptions);
         });
       }
@@ -5853,13 +7152,13 @@ var Map = class extends Evented {
   show(callback) {
     return new Promise((resolve) => {
       if (checkForGoogleMaps("Map", "Map", false)) {
-        __privateMethod(this, _showMap, showMap_fn).call(this).then(() => {
+        __privateMethod(this, _Map_instances, showMap_fn).call(this).then(() => {
           callCallback(callback);
           resolve(this);
         });
       } else {
         loader().once("load", () => {
-          __privateMethod(this, _showMap, showMap_fn).call(this).then(() => {
+          __privateMethod(this, _Map_instances, showMap_fn).call(this).then(() => {
             callCallback(callback);
             resolve(this);
           });
@@ -5887,7 +7186,7 @@ var Map = class extends Evented {
     return __privateGet(this, _map2);
   }
 };
-_bounds3 = new WeakMap();
+_bounds4 = new WeakMap();
 _customControls = new WeakMap();
 _fullscreenControl = new WeakMap();
 _latitude2 = new WeakMap();
@@ -5907,7 +7206,13 @@ _streetViewControl = new WeakMap();
 _styles2 = new WeakMap();
 _watchId = new WeakMap();
 _zoomControl = new WeakMap();
-_getMapOptions = new WeakSet();
+_Map_instances = new WeakSet();
+/**
+ * Get the map options for showing the map
+ *
+ * @private
+ * @returns {google.maps.MapOptions}
+ */
 getMapOptions_fn = function() {
   return new Promise((resolve) => {
     const mapOptions = {};
@@ -5985,11 +7290,16 @@ getMapOptions_fn = function() {
     }))();
   });
 };
-_load = new WeakSet();
+/**
+ * Load and show the map
+ *
+ * @param {Function} callback The callback function to call after the map loads
+ * @returns {Promise<void>}
+ */
 load_fn = function(callback) {
   return new Promise((resolve, reject) => {
     loader().load().then(() => {
-      __privateMethod(this, _showMap, showMap_fn).call(this).then(() => {
+      __privateMethod(this, _Map_instances, showMap_fn).call(this).then(() => {
         callCallback(callback);
         resolve();
       });
@@ -5998,7 +7308,14 @@ load_fn = function(callback) {
     });
   });
 };
-_showMap = new WeakSet();
+/**
+ * Show the map
+ *
+ * This also dispatches the "visible" and "map_loaded" events,
+ * and calls the callback function.
+ *
+ * @returns {Promise<void>}
+ */
 showMap_fn = function() {
   return new Promise((resolve) => {
     if (!__privateGet(this, _isVisible2) && !__privateGet(this, _isGettingMapOptions)) {
@@ -6014,7 +7331,7 @@ showMap_fn = function() {
           "The map element could not be found. Make sure the map selector is correct and the element exists."
         );
       }
-      __privateMethod(this, _getMapOptions, getMapOptions_fn).call(this).then((mapOptions) => {
+      __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
         __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
         this.setEventGoogleObject(__privateGet(this, _map2));
         if (__privateGet(this, _customControls).length > 0) {
@@ -6053,7 +7370,7 @@ var SvgSymbol = class extends Base_default {
      * @private
      * @type {google.maps.Symbol}
      */
-    __privateAdd(this, _options3, void 0);
+    __privateAdd(this, _options3);
     __privateSet(this, _options3, {
       anchor: point([0, 0]),
       fillColor: "#000000",
@@ -6431,7 +7748,7 @@ var svgSymbol = (path, options) => {
 };
 
 // src/lib/Marker.ts
-var _marker, _options4, _setAnchorPoint, setAnchorPoint_fn, _setCursor, setCursor_fn, _setDraggable, setDraggable_fn, _setIcon, setIcon_fn, _setLabel, setLabel_fn, _setMap, setMap_fn, _setPosition, setPosition_fn, _setTitle, setTitle_fn, _setupGoogleMarker, setupGoogleMarker_fn, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn, _createMarkerObject, createMarkerObject_fn;
+var _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
 var _Marker = class _Marker extends Layer_default {
   /**
    * Constructor
@@ -6441,79 +7758,14 @@ var _Marker = class _Marker extends Layer_default {
    */
   constructor(position, options) {
     super("marker", "Marker");
-    /**
-     * Set the anchor point for the marker
-     *
-     * @param {PointValue} value The anchor point for the marker
-     */
-    __privateAdd(this, _setAnchorPoint);
-    /**
-     * Set the cursor for the marker
-     *
-     * @param {string} value The cursor type to show on hover
-     */
-    __privateAdd(this, _setCursor);
-    /**
-     * Set whether the marker can be dragged on the map
-     *
-     * @param {boolean} value Whether the marker can be dragged on the map
-     */
-    __privateAdd(this, _setDraggable);
-    /**
-     * Set the latitude and longitude value for the marker
-     *
-     * @param {Icon | SvgSymbol | string} value The icon for the marker
-     */
-    __privateAdd(this, _setIcon);
-    /**
-     * Set the latitude and longitude value for the marker
-     *
-     * @param {string | number | MarkerLabel} value The latitude/longitude position for the marker
-     */
-    __privateAdd(this, _setLabel);
-    /**
-     * Set the map object
-     *
-     * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
-     */
-    __privateAdd(this, _setMap);
-    /**
-     * Set the latitude and longitude value for the marker
-     *
-     * @param {LatLngValue} value The latitude/longitude position for the marker
-     */
-    __privateAdd(this, _setPosition);
-    /**
-     * Set the title for the marker
-     *
-     * @param {string} value The title to show on hover
-     */
-    __privateAdd(this, _setTitle);
-    /**
-     * Set up the Google maps marker object if necessary
-     *
-     * @private
-     * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
-     * @returns {Promise<void>}
-     */
-    __privateAdd(this, _setupGoogleMarker);
-    /**
-     * Set up the Google maps marker object syncronously.
-     */
-    __privateAdd(this, _setupGoogleMarkerSync);
-    /**
-     * Create the marker object
-     *
-     * @private
-     */
-    __privateAdd(this, _createMarkerObject);
+    __privateAdd(this, _Marker_instances);
     /**
      * Holds the Google maps marker object
      *
      * @private
      * @type {google.maps.Marker}
      */
-    __privateAdd(this, _marker, void 0);
+    __privateAdd(this, _marker);
     /**
      * Holds the marker options
      *
@@ -6712,7 +7964,7 @@ var _Marker = class _Marker extends Layer_default {
    */
   init() {
     return new Promise((resolve) => {
-      __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this).then(() => {
+      __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this).then(() => {
         resolve();
       });
     });
@@ -6773,8 +8025,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setAnchorPoint(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _setAnchorPoint, setAnchorPoint_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setAnchorPoint_fn).call(this, value);
       return this;
     });
   }
@@ -6789,8 +8041,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setAnchorPointSync(value) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setAnchorPoint, setAnchorPoint_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setAnchorPoint_fn).call(this, value);
     return this;
   }
   /**
@@ -6801,8 +8053,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setCursor(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _setCursor, setCursor_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setCursor_fn).call(this, value);
       return this;
     });
   }
@@ -6817,8 +8069,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setCursorSync(value) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setCursor, setCursor_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setCursor_fn).call(this, value);
     return this;
   }
   /**
@@ -6829,8 +8081,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setDraggable(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _setDraggable, setDraggable_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setDraggable_fn).call(this, value);
       return this;
     });
   }
@@ -6845,8 +8097,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setDraggableSync(value) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setDraggable, setDraggable_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setDraggable_fn).call(this, value);
     return this;
   }
   /**
@@ -6857,8 +8109,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setIcon(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _setIcon, setIcon_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setIcon_fn).call(this, value);
       return this;
     });
   }
@@ -6873,8 +8125,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setIconSync(value) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setIcon, setIcon_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setIcon_fn).call(this, value);
     return this;
   }
   /**
@@ -6885,8 +8137,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setLabel(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _setLabel, setLabel_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setLabel_fn).call(this, value);
       return this;
     });
   }
@@ -6901,8 +8153,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setLabelSync(value) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setLabel, setLabel_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setLabel_fn).call(this, value);
     return this;
   }
   /**
@@ -6915,8 +8167,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setMap(map2) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this, map2);
-      __privateMethod(this, _setMap, setMap_fn).call(this, map2);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this, map2);
+      __privateMethod(this, _Marker_instances, setMap_fn).call(this, map2);
       return this;
     });
   }
@@ -6931,8 +8183,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setMapSync(map2) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setMap, setMap_fn).call(this, map2);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setMap_fn).call(this, map2);
     return this;
   }
   /**
@@ -7004,8 +8256,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setPosition(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _setPosition, setPosition_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setPosition_fn).call(this, value);
       return this;
     });
   }
@@ -7020,8 +8272,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setPositionSync(value) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setPosition, setPosition_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setPosition_fn).call(this, value);
     return this;
   }
   /**
@@ -7032,8 +8284,8 @@ var _Marker = class _Marker extends Layer_default {
    */
   setTitle(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _setTitle, setTitle_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setTitle_fn).call(this, value);
       return this;
     });
   }
@@ -7048,8 +8300,8 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setTitleSync(value) {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _setTitle, setTitle_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setTitle_fn).call(this, value);
     return this;
   }
   /**
@@ -7072,7 +8324,7 @@ var _Marker = class _Marker extends Layer_default {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      __privateMethod(this, _setupGoogleMarker, setupGoogleMarker_fn).call(this).then(() => {
+      __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this).then(() => {
         resolve(__privateGet(this, _marker));
       });
     });
@@ -7089,13 +8341,18 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {google.maps.Marker}
    */
   toGoogleSync() {
-    __privateMethod(this, _setupGoogleMarkerSync, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
     return __privateGet(this, _marker);
   }
 };
 _marker = new WeakMap();
 _options4 = new WeakMap();
-_setAnchorPoint = new WeakSet();
+_Marker_instances = new WeakSet();
+/**
+ * Set the anchor point for the marker
+ *
+ * @param {PointValue} value The anchor point for the marker
+ */
 setAnchorPoint_fn = function(value) {
   const anchor = point(value);
   if (anchor.isValid()) {
@@ -7105,7 +8362,11 @@ setAnchorPoint_fn = function(value) {
   }
   __privateGet(this, _marker).setOptions({ anchorPoint: __privateGet(this, _options4).anchorPoint.toGoogle() });
 };
-_setCursor = new WeakSet();
+/**
+ * Set the cursor for the marker
+ *
+ * @param {string} value The cursor type to show on hover
+ */
 setCursor_fn = function(value) {
   if (isStringWithValue(value)) {
     __privateGet(this, _options4).cursor = value;
@@ -7114,14 +8375,22 @@ setCursor_fn = function(value) {
   }
   __privateGet(this, _marker).setCursor(__privateGet(this, _options4).cursor);
 };
-_setDraggable = new WeakSet();
+/**
+ * Set whether the marker can be dragged on the map
+ *
+ * @param {boolean} value Whether the marker can be dragged on the map
+ */
 setDraggable_fn = function(value) {
   if (isBoolean(value)) {
     __privateGet(this, _options4).draggable = value;
     __privateGet(this, _marker).setDraggable(value);
   }
 };
-_setIcon = new WeakSet();
+/**
+ * Set the latitude and longitude value for the marker
+ *
+ * @param {Icon | SvgSymbol | string} value The icon for the marker
+ */
 setIcon_fn = function(value) {
   if (isString(value) || value instanceof Icon || value instanceof SvgSymbol) {
     __privateGet(this, _options4).icon = value;
@@ -7134,7 +8403,11 @@ setIcon_fn = function(value) {
     __privateGet(this, _marker).setIcon(__privateGet(this, _options4).icon.toGoogle());
   }
 };
-_setLabel = new WeakSet();
+/**
+ * Set the latitude and longitude value for the marker
+ *
+ * @param {string | number | MarkerLabel} value The latitude/longitude position for the marker
+ */
 setLabel_fn = function(value) {
   if (isStringWithValue(value)) {
     __privateGet(this, _options4).label = value;
@@ -7158,7 +8431,11 @@ setLabel_fn = function(value) {
   }
   __privateGet(this, _marker).setLabel(__privateGet(this, _options4).label);
 };
-_setMap = new WeakSet();
+/**
+ * Set the map object
+ *
+ * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
+ */
 setMap_fn = function(value) {
   if (value instanceof Map) {
     __privateGet(this, _options4).map = value;
@@ -7172,7 +8449,11 @@ setMap_fn = function(value) {
     }
   }
 };
-_setPosition = new WeakSet();
+/**
+ * Set the latitude and longitude value for the marker
+ *
+ * @param {LatLngValue} value The latitude/longitude position for the marker
+ */
 setPosition_fn = function(value) {
   const position = latLng(value);
   if (position.isValid()) {
@@ -7180,7 +8461,11 @@ setPosition_fn = function(value) {
     __privateGet(this, _marker).setPosition(__privateGet(this, _options4).position.toGoogle());
   }
 };
-_setTitle = new WeakSet();
+/**
+ * Set the title for the marker
+ *
+ * @param {string} value The title to show on hover
+ */
 setTitle_fn = function(value) {
   if (isStringWithValue(value)) {
     __privateGet(this, _options4).title = value;
@@ -7189,16 +8474,22 @@ setTitle_fn = function(value) {
   }
   __privateGet(this, _marker).setTitle(__privateGet(this, _options4).title);
 };
-_setupGoogleMarker = new WeakSet();
+/**
+ * Set up the Google maps marker object if necessary
+ *
+ * @private
+ * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
+ * @returns {Promise<void>}
+ */
 setupGoogleMarker_fn = function(map2) {
   return new Promise((resolve) => {
     if (!isObject(__privateGet(this, _marker))) {
       if (checkForGoogleMaps("Marker", "Marker", false)) {
-        __privateMethod(this, _createMarkerObject, createMarkerObject_fn).call(this);
+        __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
         resolve();
       } else {
         loader().once("map_loaded", () => {
-          __privateMethod(this, _createMarkerObject, createMarkerObject_fn).call(this);
+          __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
           const thisMap = this.getMap();
           if (__privateGet(this, _marker) && thisMap) {
             __privateGet(this, _marker).setMap(thisMap.toGoogle());
@@ -7214,11 +8505,13 @@ setupGoogleMarker_fn = function(map2) {
     }
   });
 };
-_setupGoogleMarkerSync = new WeakSet();
+/**
+ * Set up the Google maps marker object syncronously.
+ */
 setupGoogleMarkerSync_fn = function() {
   if (!isObject(__privateGet(this, _marker))) {
     if (checkForGoogleMaps("Marker", "Marker", false)) {
-      __privateMethod(this, _createMarkerObject, createMarkerObject_fn).call(this);
+      __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
     } else {
       throw new Error(
         "The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first."
@@ -7226,7 +8519,11 @@ setupGoogleMarkerSync_fn = function() {
     }
   }
 };
-_createMarkerObject = new WeakSet();
+/**
+ * Create the marker object
+ *
+ * @private
+ */
 createMarkerObject_fn = function() {
   if (!__privateGet(this, _marker)) {
     const markerOptions = {};
@@ -7265,7 +8562,7 @@ var marker = (position, options) => {
 };
 
 // src/lib/InfoWindow.ts
-var _autoClose, _event, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn;
+var _autoClose, _event, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _InfoWindow_instances, setupGoogleInfoWindow_fn;
 var InfoWindow = class extends Layer_default {
   /**
    * Constructor
@@ -7274,12 +8571,7 @@ var InfoWindow = class extends Layer_default {
    */
   constructor(options) {
     super("infowindow", "InfoWindow");
-    /**
-     * Set up the Google maps InfoWindow object if necessary
-     *
-     * @private
-     */
-    __privateAdd(this, _setupGoogleInfoWindow);
+    __privateAdd(this, _InfoWindow_instances);
     /**
      * Whether to automatically close other open InfoWindows when opening this one
      *
@@ -7335,7 +8627,7 @@ var InfoWindow = class extends Layer_default {
      * @private
      * @type {google.maps.InfoWindow}
      */
-    __privateAdd(this, _infoWindow, void 0);
+    __privateAdd(this, _infoWindow);
     __privateGet(this, _options5).pixelOffset = size(0, -4);
     if (isObject(options)) {
       if (options instanceof HTMLElement || options instanceof Text) {
@@ -7363,7 +8655,7 @@ var InfoWindow = class extends Layer_default {
   set ariaLabel(ariaLabel) {
     if (isStringWithValue(ariaLabel) || isNumber(ariaLabel)) {
       __privateGet(this, _options5).ariaLabel = ariaLabel.toString();
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ ariaLabel: __privateGet(this, _options5).ariaLabel });
       }
@@ -7385,7 +8677,7 @@ var InfoWindow = class extends Layer_default {
   set content(content) {
     if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
       __privateGet(this, _options5).content = content;
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setContent(content);
       }
@@ -7407,7 +8699,7 @@ var InfoWindow = class extends Layer_default {
   set disableAutoPan(disableAutoPan) {
     if (typeof disableAutoPan !== "boolean") {
       __privateGet(this, _options5).disableAutoPan = disableAutoPan;
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ disableAutoPan: __privateGet(this, _options5).disableAutoPan });
       }
@@ -7453,7 +8745,7 @@ var InfoWindow = class extends Layer_default {
         width = Number(width);
       }
       __privateGet(this, _options5).maxWidth = width;
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ maxWidth: __privateGet(this, _options5).maxWidth });
       }
@@ -7479,7 +8771,7 @@ var InfoWindow = class extends Layer_default {
         width = Number(width);
       }
       __privateGet(this, _options5).minWidth = width;
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ minWidth: __privateGet(this, _options5).minWidth });
       }
@@ -7501,7 +8793,7 @@ var InfoWindow = class extends Layer_default {
   set pixelOffset(pixelOffset) {
     const sizeValue = size(pixelOffset);
     if (sizeValue.isValid()) {
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       __privateGet(this, _options5).pixelOffset = sizeValue;
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ pixelOffset: __privateGet(this, _options5).pixelOffset.toGoogle() });
@@ -7524,7 +8816,7 @@ var InfoWindow = class extends Layer_default {
   set position(position) {
     const latLngValue = latLng(position);
     if (latLngValue.isValid()) {
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       __privateGet(this, _options5).position = latLngValue;
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setPosition(__privateGet(this, _options5).position.toGoogle());
@@ -7551,7 +8843,7 @@ var InfoWindow = class extends Layer_default {
         zIndexValue = Number(zIndexValue);
       }
       __privateGet(this, _options5).zIndex = zIndexValue;
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setOptions({ zIndex: __privateGet(this, _options5).zIndex });
       }
@@ -7802,7 +9094,7 @@ var InfoWindow = class extends Layer_default {
    */
   show(element) {
     return new Promise((resolve) => {
-      __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+      __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       const collection = InfoWindowCollection.getInstance();
       if (collection.has(this) && __privateGet(this, _isOpen)) {
         if (__privateGet(this, _toggleDisplay)) {
@@ -7856,7 +9148,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {google.maps.InfoWindow}
    */
   toGoogle() {
-    __privateMethod(this, _setupGoogleInfoWindow, setupGoogleInfoWindow_fn).call(this);
+    __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
     return __privateGet(this, _infoWindow);
   }
 };
@@ -7868,7 +9160,12 @@ _isOpen = new WeakMap();
 _options5 = new WeakMap();
 _toggleDisplay = new WeakMap();
 _infoWindow = new WeakMap();
-_setupGoogleInfoWindow = new WeakSet();
+_InfoWindow_instances = new WeakSet();
+/**
+ * Set up the Google maps InfoWindow object if necessary
+ *
+ * @private
+ */
 setupGoogleInfoWindow_fn = function() {
   if (!isObject(__privateGet(this, _infoWindow))) {
     if (checkForGoogleMaps("InfoWindow", "InfoWindow", false)) {
@@ -8007,17 +9304,10 @@ var import_markerclusterer2 = require("@googlemaps/markerclusterer");
 
 // src/lib/MarkerCluster/DefaultRender.ts
 var import_markerclusterer = require("@googlemaps/markerclusterer");
-var _colors, _colorRangeBottom, _colorRangeTop, _centerOpacity, _middleOpacity, _outerOpacity, _labelFontFamily, _labelFontSize, _showNumber, _getColor, getColor_fn;
+var _colors, _colorRangeBottom, _colorRangeTop, _centerOpacity, _middleOpacity, _outerOpacity, _labelFontFamily, _labelFontSize, _showNumber, _DefaultRenderer_instances, getColor_fn;
 var DefaultRenderer = class {
   constructor() {
-    /**
-     * Get the color for the cluster.
-     *
-     * @param {number} count The number of markers in the cluster.
-     * @param {number} mean The average number of markers in a cluster.
-     * @returns {ClusterColor}
-     */
-    __privateAdd(this, _getColor);
+    __privateAdd(this, _DefaultRenderer_instances);
     /**
      * The colors to use for the clusters.
      */
@@ -8184,7 +9474,7 @@ var DefaultRenderer = class {
    */
   render(cluster, stats, map2) {
     const { count, position } = cluster;
-    const color = __privateMethod(this, _getColor, getColor_fn).call(this, count, stats.clusters.markers.mean);
+    const color = __privateMethod(this, _DefaultRenderer_instances, getColor_fn).call(this, count, stats.clusters.markers.mean);
     const svg = `<svg fill="${color.bgColor}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
                 <circle cx="25" cy="25" opacity="${__privateGet(this, _centerOpacity)}" r="16" />
                 <circle cx="25" cy="25" opacity="${__privateGet(this, _middleOpacity)}" r="22" />
@@ -8227,7 +9517,14 @@ _outerOpacity = new WeakMap();
 _labelFontFamily = new WeakMap();
 _labelFontSize = new WeakMap();
 _showNumber = new WeakMap();
-_getColor = new WeakSet();
+_DefaultRenderer_instances = new WeakSet();
+/**
+ * Get the color for the cluster.
+ *
+ * @param {number} count The number of markers in the cluster.
+ * @param {number} mean The average number of markers in a cluster.
+ * @returns {ClusterColor}
+ */
 getColor_fn = function(count, mean) {
   const keys = Object.keys(__privateGet(this, _colors));
   let color = __privateGet(this, _colorRangeBottom);
@@ -8279,21 +9576,21 @@ var ImageRenderer = class {
      * @private
      * @type {string}
      */
-    __privateAdd(this, _labelClassName, void 0);
+    __privateAdd(this, _labelClassName);
     /**
      * The color of the label text. Default color is black.
      *
      * @private
      * @type {string}
      */
-    __privateAdd(this, _labelColor, void 0);
+    __privateAdd(this, _labelColor);
     /**
      * Holds the font family for the cluster marker label.
      *
      * @private
      * @type {string}
      */
-    __privateAdd(this, _labelFontFamily2, void 0);
+    __privateAdd(this, _labelFontFamily2);
     /**
      * Holds the font size for the cluster marker
      *
@@ -8307,14 +9604,14 @@ var ImageRenderer = class {
      * @private
      * @type {string}
      */
-    __privateAdd(this, _labelFontWeight, void 0);
+    __privateAdd(this, _labelFontWeight);
     /**
      * The map object
      *
      * @private
      * @type {Map}
      */
-    __privateAdd(this, _map3, void 0);
+    __privateAdd(this, _map3);
     /**
      * Holds if the number of markers in the cluster should be displayed
      *
@@ -8494,7 +9791,7 @@ _map3 = new WeakMap();
 _showNumber2 = new WeakMap();
 
 // src/lib/MarkerCluster.ts
-var _clusterer, _pendingMarkers, _setupCluster, setupCluster_fn;
+var _clusterer, _pendingMarkers, _MarkerCluster_instances, setupCluster_fn;
 var MarkerCluster = class extends Base_default {
   /**
    * The constructor for the MarkerCluster class
@@ -8505,21 +9802,14 @@ var MarkerCluster = class extends Base_default {
    */
   constructor(map2, markers, options) {
     super("markercluster");
-    /**
-     * Set up the marker cluster
-     *
-     * @param {Map} map The map object
-     * @param {Marker[]|MarkerClusterOptions} [markers] Markers to cluster. You can also use addMarker() instead of adding the markers here.
-     * @param {MarkerClusterOptions} [options] Options for the marker clusterer
-     */
-    __privateAdd(this, _setupCluster);
+    __privateAdd(this, _MarkerCluster_instances);
     /**
      * The MarkerClusterer object
      *
      * @private
      * @type {MarkerClusterer}
      */
-    __privateAdd(this, _clusterer, void 0);
+    __privateAdd(this, _clusterer);
     /**
      * Holds any markers to add to the cluster once the map is loaded
      *
@@ -8531,10 +9821,10 @@ var MarkerCluster = class extends Base_default {
       throw new Error("You must pass a valid map object to the MarkerCluster object.");
     }
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
-      __privateMethod(this, _setupCluster, setupCluster_fn).call(this, map2, markers, options);
+      __privateMethod(this, _MarkerCluster_instances, setupCluster_fn).call(this, map2, markers, options);
     } else {
       loader().on("map_loaded", () => {
-        __privateMethod(this, _setupCluster, setupCluster_fn).call(this, map2, markers, options);
+        __privateMethod(this, _MarkerCluster_instances, setupCluster_fn).call(this, map2, markers, options);
       });
     }
   }
@@ -8628,7 +9918,14 @@ var MarkerCluster = class extends Base_default {
 };
 _clusterer = new WeakMap();
 _pendingMarkers = new WeakMap();
-_setupCluster = new WeakSet();
+_MarkerCluster_instances = new WeakSet();
+/**
+ * Set up the marker cluster
+ *
+ * @param {Map} map The map object
+ * @param {Marker[]|MarkerClusterOptions} [markers] Markers to cluster. You can also use addMarker() instead of adding the markers here.
+ * @param {MarkerClusterOptions} [options] Options for the marker clusterer
+ */
 setupCluster_fn = function(map2, markers, options) {
   const clusterOptions = {
     map: map2.toGoogle()
@@ -8869,7 +10166,7 @@ var MarkerCollection = class {
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var _offset, _overlay, _overlayView, _position6, _styles3, _setupGoogleOverlay, setupGoogleOverlay_fn;
+var _offset, _overlay, _overlayView, _position6, _styles3, _Overlay_instances, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -8880,19 +10177,14 @@ var Overlay = class extends Layer_default {
    */
   constructor(objectType, testObject, testLibrary) {
     super(objectType, testObject, testLibrary || "OverlayView");
-    /**
-     * Set up the Google maps overlay object if necessary
-     *
-     * @private
-     */
-    __privateAdd(this, _setupGoogleOverlay);
+    __privateAdd(this, _Overlay_instances);
     /**
      * Holds the offset for the overlay
      *
      * @private
      * @type {Point}
      */
-    __privateAdd(this, _offset, void 0);
+    __privateAdd(this, _offset);
     /**
      * Holds the overlay HTML element. This is the container element that the
      * content for the overlay will get displayed in.
@@ -8902,21 +10194,21 @@ var Overlay = class extends Layer_default {
      *
      * @type {HTMLElement}
      */
-    __privateAdd(this, _overlay, void 0);
+    __privateAdd(this, _overlay);
     /**
      * Holds the overlay view class instance
      *
      * @private
      * @type {google.maps.OverlayView}
      */
-    __privateAdd(this, _overlayView, void 0);
+    __privateAdd(this, _overlayView);
     /**
      * Holds the position of the overlay
      *
      * @private
      * @type {LatLng}
      */
-    __privateAdd(this, _position6, void 0);
+    __privateAdd(this, _position6);
     /**
      * Holds the styles for the tooltip. These are applied to the tooltip container (i.e. the overlay element).
      *
@@ -9238,7 +10530,7 @@ var Overlay = class extends Layer_default {
   show(map2) {
     return new Promise((resolve) => {
       if (map2 instanceof Map) {
-        __privateMethod(this, _setupGoogleOverlay, setupGoogleOverlay_fn).call(this);
+        __privateMethod(this, _Overlay_instances, setupGoogleOverlay_fn).call(this);
         if (__privateGet(this, _overlayView)) {
           __privateGet(this, _overlayView).setMap(map2.toGoogle());
           this.isVisible = true;
@@ -9247,7 +10539,7 @@ var Overlay = class extends Layer_default {
           resolve(this);
         } else {
           loader().once("map_loaded", () => {
-            __privateMethod(this, _setupGoogleOverlay, setupGoogleOverlay_fn).call(this);
+            __privateMethod(this, _Overlay_instances, setupGoogleOverlay_fn).call(this);
             if (__privateGet(this, _overlayView)) {
               __privateGet(this, _overlayView).setMap(map2.toGoogle());
               this.isVisible = true;
@@ -9331,7 +10623,12 @@ _overlay = new WeakMap();
 _overlayView = new WeakMap();
 _position6 = new WeakMap();
 _styles3 = new WeakMap();
-_setupGoogleOverlay = new WeakSet();
+_Overlay_instances = new WeakSet();
+/**
+ * Set up the Google maps overlay object if necessary
+ *
+ * @private
+ */
 setupGoogleOverlay_fn = function() {
   if (!isObject(__privateGet(this, _overlayView))) {
     if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
@@ -9356,7 +10653,7 @@ var getOverlayViewClass = (classObject) => {
        * @private
        * @type {Overlay}
        */
-      __privateAdd(this, _overlay2, void 0);
+      __privateAdd(this, _overlay2);
       __privateSet(this, _overlay2, overlay2);
     }
     /**
@@ -9405,7 +10702,7 @@ var PlacesSearchBox = class extends Evented {
      * @private
      * @type {HTMLInputElement}
      */
-    __privateAdd(this, _input2, void 0);
+    __privateAdd(this, _input2);
     /**
      * Holds the array of places that have been found.
      *
@@ -9421,14 +10718,14 @@ var PlacesSearchBox = class extends Evented {
      * @private
      * @type {LatLngBounds}
      */
-    __privateAdd(this, _placesBounds, void 0);
+    __privateAdd(this, _placesBounds);
     /**
      * Holds the reference to the Google Maps SearchBox object
      *
      * @private
      * @type {google.maps.places.SearchBox}
      */
-    __privateAdd(this, _searchBox2, void 0);
+    __privateAdd(this, _searchBox2);
     /**
      * Holds the options for the places search box
      *
@@ -9724,7 +11021,7 @@ var placesSearchBox = (input, options) => {
 };
 
 // src/lib/Polyline.ts
-var _highlightPolyline, _isHighlighted, _options7, _polyline, _setupGooglePolyline, setupGooglePolyline_fn, _setupGooglePolylineSync, setupGooglePolylineSync_fn, _createPolylineObject, createPolylineObject_fn;
+var _highlightPolyline, _isHighlighted, _options7, _polyline, _Polyline_instances, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -9733,23 +11030,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   constructor(options) {
     super("polyline", "Polyline");
-    /**
-     * Set up the Google maps Polyline object if necessary
-     *
-     * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
-     * @private
-     */
-    __privateAdd(this, _setupGooglePolyline);
-    /**
-     * Set up the Google maps polyline object syncronously.
-     */
-    __privateAdd(this, _setupGooglePolylineSync);
-    /**
-     * Create the polyline object
-     *
-     * @private
-     */
-    __privateAdd(this, _createPolylineObject);
+    __privateAdd(this, _Polyline_instances);
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
      * when the mouse hovers over this polyline.
@@ -9757,7 +11038,7 @@ var _Polyline = class _Polyline extends Layer_default {
      * @private
      * @type {Polyline}
      */
-    __privateAdd(this, _highlightPolyline, void 0);
+    __privateAdd(this, _highlightPolyline);
     // eslint-disable-line no-use-before-define
     /**
      * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
@@ -9779,7 +11060,7 @@ var _Polyline = class _Polyline extends Layer_default {
      * @private
      * @type {google.maps.Polyline}
      */
-    __privateAdd(this, _polyline, void 0);
+    __privateAdd(this, _polyline);
     if (isObject(options)) {
       this.setOptions(options);
     }
@@ -10077,7 +11358,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   init() {
     return new Promise((resolve) => {
-      __privateMethod(this, _setupGooglePolyline, setupGooglePolyline_fn).call(this).then(() => {
+      __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this).then(() => {
         resolve();
       });
     });
@@ -10159,7 +11440,7 @@ var _Polyline = class _Polyline extends Layer_default {
       if (__privateGet(this, _highlightPolyline)) {
         __privateGet(this, _highlightPolyline).setMap(value);
       }
-      yield __privateMethod(this, _setupGooglePolyline, setupGooglePolyline_fn).call(this, value);
+      yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value);
       if (value instanceof Map) {
         this.visible = true;
         __privateGet(this, _options7).map = value;
@@ -10295,7 +11576,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      __privateMethod(this, _setupGooglePolyline, setupGooglePolyline_fn).call(this).then(() => {
+      __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this).then(() => {
         resolve(__privateGet(this, _polyline));
       });
     });
@@ -10317,16 +11598,22 @@ _highlightPolyline = new WeakMap();
 _isHighlighted = new WeakMap();
 _options7 = new WeakMap();
 _polyline = new WeakMap();
-_setupGooglePolyline = new WeakSet();
+_Polyline_instances = new WeakSet();
+/**
+ * Set up the Google maps Polyline object if necessary
+ *
+ * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
+ * @private
+ */
 setupGooglePolyline_fn = function(map2) {
   return new Promise((resolve) => {
     if (!isObject(__privateGet(this, _polyline))) {
       if (checkForGoogleMaps("Polyline", "Polyline", false)) {
-        __privateMethod(this, _createPolylineObject, createPolylineObject_fn).call(this);
+        __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
         resolve();
       } else {
         loader().once("map_loaded", () => {
-          __privateMethod(this, _createPolylineObject, createPolylineObject_fn).call(this);
+          __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
           const thisMap = this.getMap();
           if (__privateGet(this, _polyline) && thisMap) {
             __privateGet(this, _polyline).setMap(thisMap.toGoogle());
@@ -10345,11 +11632,13 @@ setupGooglePolyline_fn = function(map2) {
     }
   });
 };
-_setupGooglePolylineSync = new WeakSet();
+/**
+ * Set up the Google maps polyline object syncronously.
+ */
 setupGooglePolylineSync_fn = function() {
   if (!isObject(__privateGet(this, _polyline))) {
     if (checkForGoogleMaps("Polyline", "Polyline", false)) {
-      __privateMethod(this, _createPolylineObject, createPolylineObject_fn).call(this);
+      __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
     } else {
       throw new Error(
         "The Google maps libray is not available so the polyline object cannot be created. Load the Google maps library first."
@@ -10357,7 +11646,11 @@ setupGooglePolylineSync_fn = function() {
     }
   }
 };
-_createPolylineObject = new WeakSet();
+/**
+ * Create the polyline object
+ *
+ * @private
+ */
 createPolylineObject_fn = function() {
   if (!__privateGet(this, _polyline)) {
     const polylineOptions = {};
@@ -10551,7 +11844,7 @@ var PolylineCollection = class {
 var polylineCollection = () => new PolylineCollection();
 
 // src/lib/Popup.ts
-var _autoClose2, _center, _clearance, _closeElement, _content, _event2, _firstDraw, _fit, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _fitPopup, fitPopup_fn, _handleCloseClick, _setupCloseClick;
+var _autoClose2, _center, _clearance, _closeElement, _content, _event2, _firstDraw, _fit, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _Popup_instances, fitPopup_fn, _handleCloseClick, _setupCloseClick;
 var Popup = class extends Overlay {
   /**
    * Constructor
@@ -10560,12 +11853,7 @@ var Popup = class extends Overlay {
    */
   constructor(options) {
     super("popup", "Popup");
-    /**
-     * Fit the popup within the map viewport when it's displayed
-     *
-     * @returns {void}
-     */
-    __privateAdd(this, _fitPopup);
+    __privateAdd(this, _Popup_instances);
     /**
      * Whether to automatically close other open popups when opening this one
      *
@@ -10588,14 +11876,14 @@ var Popup = class extends Overlay {
      * @private
      * @type {Size}
      */
-    __privateAdd(this, _clearance, void 0);
+    __privateAdd(this, _clearance);
     /**
      * The element to close the popup. This can be a CSS selector or an HTMLElement.
      *
      * @private
      * @type {HTMLElement|string}
      */
-    __privateAdd(this, _closeElement, void 0);
+    __privateAdd(this, _closeElement);
     /**
      * Holds the popup content.
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
@@ -10603,7 +11891,7 @@ var Popup = class extends Overlay {
      * @private
      * @type {string|HTMLElement}
      */
-    __privateAdd(this, _content, void 0);
+    __privateAdd(this, _content);
     /**
      * The event to trigger the popup
      *
@@ -10650,7 +11938,7 @@ var Popup = class extends Overlay {
      * @private
      * @type {Point}
      */
-    __privateAdd(this, _popupOffset, void 0);
+    __privateAdd(this, _popupOffset);
     /**
      * The theme to use for the popup.
      *
@@ -11145,7 +12433,7 @@ var Popup = class extends Overlay {
       }
       if (!__privateGet(this, _firstDraw)) {
         __privateSet(this, _firstDraw, true);
-        __privateMethod(this, _fitPopup, fitPopup_fn).call(this);
+        __privateMethod(this, _Popup_instances, fitPopup_fn).call(this);
       }
     }
   }
@@ -11163,7 +12451,12 @@ _isOpen2 = new WeakMap();
 _popupOffset = new WeakMap();
 _theme = new WeakMap();
 _toggleDisplay2 = new WeakMap();
-_fitPopup = new WeakSet();
+_Popup_instances = new WeakSet();
+/**
+ * Fit the popup within the map viewport when it's displayed
+ *
+ * @returns {void}
+ */
 fitPopup_fn = function() {
   if (this.event !== "hover") {
     const map2 = this.getMap();
@@ -11336,7 +12629,7 @@ var Tooltip = class extends Overlay {
      * @private
      * @type {string|HTMLElement}
      */
-    __privateAdd(this, _content2, void 0);
+    __privateAdd(this, _content2);
     /**
      * The event to trigger the tooltip
      *
@@ -11637,6 +12930,11 @@ Map.include(tooltipMixin);
   ControlPosition,
   Evented,
   FullscreenControl,
+  Geocode,
+  GeocodeResult,
+  GeocodeResults,
+  GeocoderErrorStatus,
+  GeocoderLocationType,
   Icon,
   InfoWindow,
   LatLng,
@@ -11674,6 +12972,7 @@ Map.include(tooltipMixin);
   convertControlPosition,
   convertMapTypeControlStyle,
   fullscreenControl,
+  geocode,
   getBoolean,
   getNumber,
   getPixelsFromLatLng,

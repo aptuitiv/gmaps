@@ -1,15 +1,23 @@
 {
     "name": "@aptuitiv/gmaps",
-    "version": "0.14.1",
+    "version": "0.15.0",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
-    "main": "dist/index.cjs.js",
-    "module": "dist/index.esm.js",
-    "exports": {
-        "import": "./dist/index.esm.js",
-        "require": "./dist/index.cjs.js"
-    },
-    "types": "dist/index.d.ts",
     "type": "module",
+    "main": "dist/index.cjs",
+    "module": "dist/index.esm.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        }
+    },
     "engines": {
         "node": ">=17.0.0"
     },
@@ -21,6 +29,7 @@
         "site-build": "eleventy",
         "site-serve": "eleventy --serve --incremental",
         "test": "echo \"Error: no test specified\" && exit 1",
+        "typescriptTest": "tsc --traceResolution",
         "watch": "tsup --watch",
         "watch-all": "npm run watch & npm run css-watch & npm run site-serve"
     },
@@ -36,26 +45,26 @@
     "homepage": "https://github.com/aptuitiv/gmaps#readme",
     "devDependencies": {
         "@11ty/eleventy": "^2.0.1",
-        "@types/google.maps": "^3.54.10",
+        "@types/google.maps": "^3.58.0",
         "@typescript-eslint/eslint-plugin": "^6.19.0",
         "@typescript-eslint/parser": "^6.19.0",
-        "autoprefixer": "^10.4.17",
+        "autoprefixer": "^10.4.20",
         "cacao-css": "^4.3.0",
         "chalk": "^5.3.0",
         "cssnano": "^6.0.3",
-        "dotenv": "^16.4.1",
+        "dotenv": "^16.4.5",
         "esbuild-plugin-eslint": "^0.3.12",
         "eslint": "^8.56.0",
         "eslint-config-airbnb-base": "^15.0.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-jsdoc": "^48.0.4",
-        "log-symbols": "^6.0.0",
-        "postcss": "^8.4.33",
+        "log-symbols": "^7.0.0",
+        "postcss": "^8.4.47",
         "postcss-cli": "^11.0.0",
-        "postcss-custom-media": "^10.0.2",
-        "postcss-import": "^16.0.0",
+        "postcss-custom-media": "^11.0.1",
+        "postcss-import": "^16.1.0",
         "ts-node": "^10.9.2",
-        "tsup": "^8.0.2",
+        "tsup": "^8.3.0",
         "typescript": "^5.3.3"
     },
     "dependencies": {
