@@ -3,7 +3,7 @@
     "version": "0.14.1",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
     "type": "module",
-    "main": "dist/index.cjs.js",
+    "main": "dist/index.cjs",
     "module": "dist/index.esm.js",
     "types": "./dist/index.d.ts",
     "exports": {
@@ -14,7 +14,7 @@
             },
             "require": {
                 "types": "./dist/index.d.cts",
-                "default": "./dist/index.cjs.js"
+                "default": "./dist/index.cjs"
             }
         }
     },

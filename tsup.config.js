@@ -47,8 +47,14 @@ export default defineConfig([
         minify: false,
         outDir: 'dist',
         outExtension({ format }) {
-            return {
-                js: `.${format}.js`,
+            if (format === 'cjs') {
+                return {
+                    js: `.cjs`,
+                }
+            } else {
+                return {
+                    js: `.${format}.js`,
+                }
             }
         },
         platform: 'node',
