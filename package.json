@@ -2,14 +2,22 @@
     "name": "@aptuitiv/gmaps",
     "version": "0.14.1",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
+    "type": "module",
     "main": "dist/index.cjs.js",
     "module": "dist/index.esm.js",
+    "types": "./dist/index.d.ts",
     "exports": {
-        "import": "./dist/index.esm.js",
-        "require": "./dist/index.cjs.js"
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs.js"
+            }
+        }
     },
-    "types": "dist/index.d.ts",
-    "type": "module",
     "engines": {
         "node": ">=17.0.0"
     },
@@ -21,6 +29,7 @@
         "site-build": "eleventy",
         "site-serve": "eleventy --serve --incremental",
         "test": "echo \"Error: no test specified\" && exit 1",
+        "typescriptTest": "tsc --traceResolution",
         "watch": "tsup --watch",
         "watch-all": "npm run watch & npm run css-watch & npm run site-serve"
     },
