@@ -47,7 +47,7 @@ import { zoomControl, ZoomControl } from './Map/ZoomControl';
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 
 // Map events that are not part of the Google Maps API
-type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
+type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
 // Google Maps library map events
 type GMEvent =
     | 'bounds_changed'
@@ -149,12 +149,12 @@ export class Map extends Evented {
     #isInitializing: boolean = false;
 
     /**
-     * Holds if the layer is visible or not
+     * Holds if the map is loaded and ready for use
      *
      * @private
      * @type {boolean}
      */
-    #isVisible: boolean = false;
+    #isReady: boolean = false;
 
     /**
      * Holds the Google map object
@@ -854,7 +854,7 @@ export class Map extends Evented {
      */
     init(callback?: () => void): Promise<Map> {
         return new Promise((resolve) => {
-            if (!this.#isInitialized && !this.#isVisible) {
+            if (!this.#isInitialized && !this.#isReady) {
                 // The map has not been initialized or displayed
                 if (!this.#isInitializing) {
                     // The map is not initializing, so start the initialization process
@@ -865,7 +865,7 @@ export class Map extends Evented {
                     });
                 } else {
                     // The map is initializing, so wait for it to finish
-                    this.onceImmediate('visible', () => {
+                    this.onceImmediate('ready', () => {
                         callCallback(callback);
                         resolve(this);
                     });
@@ -1024,12 +1024,12 @@ export class Map extends Evented {
     }
 
     /**
-     * Gets whether the map is visible. This also means that the map library is loaded.
+     * Gets whether the map is ready for use. This also means that the map library is loaded and the map is visible.
      *
      * @returns {boolean}
      */
-    getIsVisible(): boolean {
-        return this.#isVisible;
+    getIsReady(): boolean {
+        return this.#isReady;
     }
 
     /**
@@ -1063,13 +1063,13 @@ export class Map extends Evented {
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'visible' event
-     *   map.on('visible', () => {
+     * 2. Listen for the 'ready' event
+     *   map.on('ready', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'visible' event only once. The event
+     * 2a. Use the once() function to listen for the 'ready' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('visible', () => {
+     *   map.once('ready', () => {
      *     // Do something after the map loads
      *   });
      *
@@ -1230,6 +1230,17 @@ export class Map extends Evented {
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void {
         super.onlyOnce(type, callback, config);
+    }
+
+    /**
+     * Callback for when the map is ready and visible
+     *
+     * This is a "shortcut" to "on('ready', callback)"
+     *
+     * @param {EventCallback} [callback] The event listener callback function
+     */
+    onReady(callback: EventCallback): void {
+        this.onceImmediate('ready', callback);
     }
 
     /**
@@ -1547,7 +1558,7 @@ export class Map extends Evented {
     #showMap(): Promise<void> {
         return new Promise((resolve) => {
             // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
-            if (!this.#isVisible && !this.#isGettingMapOptions) {
+            if (!this.#isReady && !this.#isGettingMapOptions) {
                 this.#isGettingMapOptions = true;
 
                 // Get the DOM element to attach the map to
@@ -1621,8 +1632,8 @@ export class Map extends Evented {
                 }
                 this.#customControls = [];
 
-                // Dispatch the event to say that the map is visible
-                this.dispatch('visible');
+                // Dispatch the event to say that the map is visible and ready
+                this.dispatch('ready');
                 // Dispatch the event on the loader to say that the map is fully loaded.
                 // This is done because the map is loaded after the loader's "load" event is dispatched
                 // and some objects depend on the map being loaded before they can be set up.
@@ -1632,7 +1643,7 @@ export class Map extends Evented {
                 this.#isInitialized = true;
 
                 // Set that the map is visible
-                this.#isVisible = true;
+                this.#isReady = true;
 
                 resolve();
             });
