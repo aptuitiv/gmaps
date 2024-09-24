@@ -787,19 +787,20 @@ export class Map extends Evented {
      * Then call map.fitBounds() to set the viewport to contain the markers.
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
      * @returns {Map}
      */
-    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number): Map {
+    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map {
         if (bounds) {
             latLngBounds(bounds)
                 .toGoogle()
                 .then((googleBounds) => {
-                    this.#handleZoomAfterFitBounds(maxZoom);
+                    this.#handleZoomAfterFitBounds(maxZoom, minZoom);
                     this.#map.fitBounds(googleBounds);
                 });
         } else if (this.#bounds) {
             this.#bounds.toGoogle().then((googleBounds) => {
-                this.#handleZoomAfterFitBounds(maxZoom);
+                this.#handleZoomAfterFitBounds(maxZoom, minZoom);
                 this.#map.fitBounds(googleBounds);
             });
         }
@@ -811,21 +812,30 @@ export class Map extends Evented {
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
      * @returns {Map}
      */
-    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number): Map {
-        return this.fitBounds(bounds, maxZoom);
+    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map {
+        return this.fitBounds(bounds, maxZoom, minZoom);
     }
 
     /**
      * Make sure that the zoom level doesn't exceed the maxZoom value
      *
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
      */
-    #handleZoomAfterFitBounds(maxZoom?: number): void {
+    #handleZoomAfterFitBounds(maxZoom?: number, minZoom?: number): void {
         if (isNumberOrNumberString(maxZoom)) {
             this.once('bounds_changed', () => {
-                this.zoom = Math.min(this.zoom, Number(maxZoom));
+                let { zoom } = this;
+                if (isNumberOrNumberString(minZoom)) {
+                    const mz = Number(minZoom);
+                    if (zoom < mz) {
+                        zoom = mz;
+                    }
+                }
+                this.zoom = Math.min(zoom, Number(maxZoom));
             });
         }
     }
