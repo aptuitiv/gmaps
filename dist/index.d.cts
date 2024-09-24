@@ -3207,7 +3207,7 @@ type LocationPosition = {
 type LocationOnSuccess = (position: LocationPosition) => void;
 
 type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
-type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
+type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
 type GMEvent = 'bounds_changed' | 'center_changed' | 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'heading_changed' | 'idle' | 'isfractionalzoomenabled_changed' | 'mapcapabilities_changed' | 'maptypeid_changed' | 'mousemove' | 'mouseout' | 'mouseover' | 'projection_changed' | 'renderingtype_changed' | 'tilesloaded' | 'tilt_changed' | 'zoom_changed';
 type MapEvent = GMEvent | InternalEvent;
 /**
@@ -3512,11 +3512,11 @@ declare class Map extends Evented {
      */
     getDiv(): HTMLElement | undefined;
     /**
-     * Gets whether the map is visible. This also means that the map library is loaded.
+     * Gets whether the map is ready for use. This also means that the map library is loaded and the map is visible.
      *
      * @returns {boolean}
      */
-    getIsVisible(): boolean;
+    getIsReady(): boolean;
     /**
      * Gets the current projection for the map.
      *
@@ -3539,13 +3539,13 @@ declare class Map extends Evented {
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'visible' event
-     *   map.on('visible', () => {
+     * 2. Listen for the 'ready' event
+     *   map.on('ready', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'visible' event only once. The event
+     * 2a. Use the once() function to listen for the 'ready' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('visible', () => {
+     *   map.once('ready', () => {
      *     // Do something after the map loads
      *   });
      *
@@ -3608,6 +3608,14 @@ declare class Map extends Evented {
      * @inheritdoc
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Callback for when the map is ready and visible
+     *
+     * This is a "shortcut" to "on('ready', callback)"
+     *
+     * @param {EventCallback} [callback] The event listener callback function
+     */
+    onReady(callback: EventCallback): void;
     /**
      * Changes the center of the map by the given distance in pixels.
      *

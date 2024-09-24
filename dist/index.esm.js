@@ -5873,7 +5873,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject;
+var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -5942,12 +5942,12 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _isInitializing, false);
     /**
-     * Holds if the layer is visible or not
+     * Holds if the map is loaded and ready for use
      *
      * @private
      * @type {boolean}
      */
-    __privateAdd(this, _isVisible2, false);
+    __privateAdd(this, _isReady, false);
     /**
      * Holds the Google map object
      *
@@ -6041,10 +6041,10 @@ var Map = class extends Evented {
           });
         }
         __privateSet(this, _customControls, []);
-        this.dispatch("visible");
+        this.dispatch("ready");
         loader().dispatch("map_loaded");
         __privateSet(this, _isInitialized, true);
-        __privateSet(this, _isVisible2, true);
+        __privateSet(this, _isReady, true);
         resolve();
       });
     }));
@@ -6580,7 +6580,7 @@ var Map = class extends Evented {
    */
   init(callback) {
     return new Promise((resolve) => {
-      if (!__privateGet(this, _isInitialized) && !__privateGet(this, _isVisible2)) {
+      if (!__privateGet(this, _isInitialized) && !__privateGet(this, _isReady)) {
         if (!__privateGet(this, _isInitializing)) {
           __privateSet(this, _isInitializing, true);
           __privateMethod(this, _Map_instances, load_fn).call(this, () => {
@@ -6588,7 +6588,7 @@ var Map = class extends Evented {
             resolve(this);
           });
         } else {
-          this.onceImmediate("visible", () => {
+          this.onceImmediate("ready", () => {
             callCallback(callback);
             resolve(this);
           });
@@ -6639,12 +6639,12 @@ var Map = class extends Evented {
     return void 0;
   }
   /**
-   * Gets whether the map is visible. This also means that the map library is loaded.
+   * Gets whether the map is ready for use. This also means that the map library is loaded and the map is visible.
    *
    * @returns {boolean}
    */
-  getIsVisible() {
-    return __privateGet(this, _isVisible2);
+  getIsReady() {
+    return __privateGet(this, _isReady);
   }
   /**
    * Gets the current projection for the map.
@@ -6675,13 +6675,13 @@ var Map = class extends Evented {
    *   map.load(() => {
    *     // Do something after the map loads
    *   });
-   * 2. Listen for the 'visible' event
-   *   map.on('visible', () => {
+   * 2. Listen for the 'ready' event
+   *   map.on('ready', () => {
    *      // Do something after the map loads
    *   });
-   * 2a. Use the once() function to listen for the 'visible' event only once. The event
+   * 2a. Use the once() function to listen for the 'ready' event only once. The event
    *     listener will be removed after the event is dispatched.
-   *   map.once('visible', () => {
+   *   map.once('ready', () => {
    *     // Do something after the map loads
    *   });
    *
@@ -6808,6 +6808,16 @@ var Map = class extends Evented {
    */
   onlyOnce(type, callback, config) {
     super.onlyOnce(type, callback, config);
+  }
+  /**
+   * Callback for when the map is ready and visible
+   *
+   * This is a "shortcut" to "on('ready', callback)"
+   *
+   * @param {EventCallback} [callback] The event listener callback function
+   */
+  onReady(callback) {
+    this.onceImmediate("ready", callback);
   }
   /**
    * Changes the center of the map by the given distance in pixels.
@@ -7112,7 +7122,7 @@ _longitude2 = new WeakMap();
 _isGettingMapOptions = new WeakMap();
 _isInitialized = new WeakMap();
 _isInitializing = new WeakMap();
-_isVisible2 = new WeakMap();
+_isReady = new WeakMap();
 _map2 = new WeakMap();
 _mapTypeControl = new WeakMap();
 _options2 = new WeakMap();
@@ -7256,7 +7266,7 @@ load_fn = function(callback) {
  */
 showMap_fn = function() {
   return new Promise((resolve) => {
-    if (!__privateGet(this, _isVisible2) && !__privateGet(this, _isGettingMapOptions)) {
+    if (!__privateGet(this, _isReady) && !__privateGet(this, _isGettingMapOptions)) {
       __privateSet(this, _isGettingMapOptions, true);
       let element = null;
       if (typeof __privateGet(this, _selector) === "string") {
