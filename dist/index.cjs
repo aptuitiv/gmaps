@@ -5986,7 +5986,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn;
+var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -6138,6 +6138,29 @@ var Map = class extends Evented {
      * @type {ZoomControl}
      */
     __privateAdd(this, _zoomControl);
+    /**
+     * Set up the map object
+     *
+     * @param {HTMLElement} element THe HTML elemen to attach the map to
+     * @returns {Promise<void>}
+     */
+    __privateAdd(this, _setupMapObject, (element) => new Promise((resolve) => {
+      __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
+        __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
+        this.setEventGoogleObject(__privateGet(this, _map2));
+        if (__privateGet(this, _customControls).length > 0) {
+          __privateGet(this, _customControls).forEach((control) => {
+            __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
+          });
+        }
+        __privateSet(this, _customControls, []);
+        this.dispatch("visible");
+        loader().dispatch("map_loaded");
+        __privateSet(this, _isInitialized, true);
+        __privateSet(this, _isVisible2, true);
+        resolve();
+      });
+    }));
     __privateGet(this, _options2).mapTypeId = MapTypeId.ROADMAP;
     __privateGet(this, _options2).center = latLng(0, 0);
     __privateGet(this, _options2).zoom = 6;
@@ -7359,26 +7382,35 @@ showMap_fn = function() {
           "The map element could not be found. Make sure the map selector is correct and the element exists."
         );
       }
-      __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
-        __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
-        this.setEventGoogleObject(__privateGet(this, _map2));
-        if (__privateGet(this, _customControls).length > 0) {
-          __privateGet(this, _customControls).forEach((control) => {
-            __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
-          });
-        }
-        __privateSet(this, _customControls, []);
-        this.dispatch("visible");
-        loader().dispatch("map_loaded");
-        __privateSet(this, _isInitialized, true);
-        __privateSet(this, _isVisible2, true);
-        resolve();
-      });
+      const elementDisplay = element.computedStyleMap().get("display").value;
+      if (elementDisplay === "none" || element.offsetHeight === 1 || element.offsetWidth === 0) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                observer.disconnect();
+                __privateGet(this, _setupMapObject).call(this, element).then(() => {
+                  resolve();
+                });
+              }
+            });
+          },
+          {
+            root: document.documentElement
+          }
+        );
+        observer.observe(element);
+      } else {
+        __privateGet(this, _setupMapObject).call(this, element).then(() => {
+          resolve();
+        });
+      }
     } else {
       resolve();
     }
   });
 };
+_setupMapObject = new WeakMap();
 var map = (selector, config) => new Map(selector, config);
 
 // src/lib/SvgSymbol.ts
