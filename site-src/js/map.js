@@ -234,17 +234,17 @@ enableUI.addEventListener('click', () => {
 });
 
 
-// const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
-// map2.show();
-// map2.setMapTypeId(G.MapTypeId.SATELLITE);
+const map2 = G.map('#map2', { center: [35.6764, 139.6500] });
+map2.show();
+map2.setMapTypeId(G.MapTypeId.SATELLITE);
 
-// const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
-// map3.show();
-// map3.mapTypeId = G.MapTypeId.HYBRID;
+const map3 = G.map('.map3Selector', { center: [51.5074, -0.1278] });
+map3.show();
+map3.mapTypeId = G.MapTypeId.HYBRID;
 
-// const map4Element = document.getElementById('map4');
-// const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
-// map4.show();
+const map4Element = document.getElementById('map4');
+const map4 = G.map(map4Element, { center: [34.0522, -118.2437] });
+map4.show();
 
 function changeMapOptions() {
     map1.setOptions({ center: [36.224, -81.688], zoom: 8 });
