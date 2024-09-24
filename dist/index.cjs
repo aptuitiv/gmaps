@@ -1522,13 +1522,15 @@ _Evented_instances = new WeakSet();
  */
 on_fn = function(type, callback, config) {
   if (isFunction(callback)) {
-    if (!Array.isArray(__privateGet(this, _eventListeners)[type])) {
+    if (!Array.isArray(__privateGet(this, _eventListeners)[type]) || __privateGet(this, _eventListeners)[type].length === 0) {
       let setupPending = false;
       if (checkForGoogleMaps(__privateGet(this, _testObject), __privateGet(this, _testLibrary), false)) {
         if (__privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
-          __privateGet(this, _googleObject).addListener(type, (e) => {
-            this.dispatch(type, e);
-          });
+          if (!google.maps.event.hasListeners(__privateGet(this, _googleObject), type)) {
+            __privateGet(this, _googleObject).addListener(type, (e) => {
+              this.dispatch(type, e);
+            });
+          }
         } else {
           setupPending = true;
         }
@@ -5984,7 +5986,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, getMapOptions_fn, load_fn, showMap_fn;
+var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -6625,15 +6627,18 @@ var Map = class extends Evented {
    * Add marks to the map.
    * Then call map.fitBounds() to set the viewport to contain the markers.
    * @param {LatLngBoundsValue} bounds The bounds to fit
+   * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
    * @returns {Map}
    */
-  fitBounds(bounds) {
+  fitBounds(bounds, maxZoom) {
     if (bounds) {
       latLngBounds(bounds).toGoogle().then((googleBounds) => {
+        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom);
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
     } else if (__privateGet(this, _bounds4)) {
       __privateGet(this, _bounds4).toGoogle().then((googleBounds) => {
+        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom);
         __privateGet(this, _map2).fitBounds(googleBounds);
       });
     }
@@ -6643,10 +6648,11 @@ var Map = class extends Evented {
    * Alias to fitBounds
    *
    * @param {LatLngBoundsValue} bounds The bounds to fit
+   * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
    * @returns {Map}
    */
-  fitToBounds(bounds) {
-    return this.fitBounds(bounds);
+  fitToBounds(bounds, maxZoom) {
+    return this.fitBounds(bounds, maxZoom);
   }
   /**
    * Initialize the map if necessary
@@ -7207,6 +7213,18 @@ _styles2 = new WeakMap();
 _watchId = new WeakMap();
 _zoomControl = new WeakMap();
 _Map_instances = new WeakSet();
+/**
+ * Make sure that the zoom level doesn't exceed the maxZoom value
+ *
+ * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+ */
+handleZoomAfterFitBounds_fn = function(maxZoom) {
+  if (isNumberOrNumberString(maxZoom)) {
+    this.once("bounds_changed", () => {
+      this.zoom = Math.min(this.zoom, Number(maxZoom));
+    });
+  }
+};
 /**
  * Get the map options for showing the map
  *
