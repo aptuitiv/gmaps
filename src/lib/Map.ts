@@ -1563,39 +1563,80 @@ export class Map extends Evented {
                     );
                 }
 
-                // Get the map options
-                this.#getMapOptions().then((mapOptions) => {
-                    this.#map = new google.maps.Map(element, mapOptions);
-                    this.setEventGoogleObject(this.#map);
+                // If the element is not visible then wait for it to be visible before setting up the map.
+                // This is intended to prevent issue where the map does not render correctly when it's first hidden.
+                // Issues that can happen if the element is hidden include:
+                // - tiles won't load
+                // - map controls don't display
+                // - markers don't display.
+                // The solution is to wait until the map is visible. Then it's set up and displayed.
+                const elementDisplay = (element.computedStyleMap().get('display') as CSSKeywordValue).value;
+                if (elementDisplay === 'none' || element.offsetHeight === 1 || element.offsetWidth === 0) {
+                    const observer = new IntersectionObserver(
+                        (entries) => {
+                            entries.forEach((entry) => {
+                                if (entry.isIntersecting) {
+                                    observer.disconnect();
+                                    this.#setupMapObject(element).then(() => {
+                                        resolve();
+                                    });
+                                }
+                            });
+                        },
+                        {
+                            root: document.documentElement,
+                        }
+                    );
 
-                    // Add any custom controls to the map
-                    if (this.#customControls.length > 0) {
-                        this.#customControls.forEach((control) => {
-                            this.#map.controls[convertControlPosition(control.position)].push(control.element);
-                        });
-                    }
-                    this.#customControls = [];
-
-                    // Dispatch the event to say that the map is visible
-                    this.dispatch('visible');
-                    // Dispatch the event on the loader to say that the map is fully loaded.
-                    // This is done because the map is loaded after the loader's "load" event is dispatched
-                    // and some objects depend on the map being loaded before they can be set up.
-                    loader().dispatch('map_loaded');
-
-                    // Set that the map is initialized
-                    this.#isInitialized = true;
-
-                    // Set that the map is visible
-                    this.#isVisible = true;
-
-                    resolve();
-                });
+                    observer.observe(element);
+                } else {
+                    this.#setupMapObject(element).then(() => {
+                        resolve();
+                    });
+                }
             } else {
                 resolve();
             }
         });
     }
+
+    /**
+     * Set up the map object
+     *
+     * @param {HTMLElement} element THe HTML elemen to attach the map to
+     * @returns {Promise<void>}
+     */
+    #setupMapObject = (element: HTMLElement): Promise<void> =>
+        new Promise((resolve) => {
+            // Get the map options
+            this.#getMapOptions().then((mapOptions) => {
+                this.#map = new google.maps.Map(element, mapOptions);
+                this.setEventGoogleObject(this.#map);
+
+                // Add any custom controls to the map
+                if (this.#customControls.length > 0) {
+                    this.#customControls.forEach((control) => {
+                        this.#map.controls[convertControlPosition(control.position)].push(control.element);
+                    });
+                }
+                this.#customControls = [];
+
+                // Dispatch the event to say that the map is visible
+                this.dispatch('visible');
+                // Dispatch the event on the loader to say that the map is fully loaded.
+                // This is done because the map is loaded after the loader's "load" event is dispatched
+                // and some objects depend on the map being loaded before they can be set up.
+                loader().dispatch('map_loaded');
+
+                // Set that the map is initialized
+                this.#isInitialized = true;
+
+                // Set that the map is visible
+                this.#isVisible = true;
+
+                resolve();
+            });
+        });
 
     /**
      * Stop watching for the user's location
