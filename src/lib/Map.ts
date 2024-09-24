@@ -786,17 +786,20 @@ export class Map extends Evented {
      * Add marks to the map.
      * Then call map.fitBounds() to set the viewport to contain the markers.
      * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
      * @returns {Map}
      */
-    fitBounds(bounds?: LatLngBoundsValue): Map {
+    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number): Map {
         if (bounds) {
             latLngBounds(bounds)
                 .toGoogle()
                 .then((googleBounds) => {
+                    this.#handleZoomAfterFitBounds(maxZoom);
                     this.#map.fitBounds(googleBounds);
                 });
         } else if (this.#bounds) {
             this.#bounds.toGoogle().then((googleBounds) => {
+                this.#handleZoomAfterFitBounds(maxZoom);
                 this.#map.fitBounds(googleBounds);
             });
         }
@@ -807,10 +810,24 @@ export class Map extends Evented {
      * Alias to fitBounds
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
      * @returns {Map}
      */
-    fitToBounds(bounds?: LatLngBoundsValue): Map {
-        return this.fitBounds(bounds);
+    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number): Map {
+        return this.fitBounds(bounds, maxZoom);
+    }
+
+    /**
+     * Make sure that the zoom level doesn't exceed the maxZoom value
+     *
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     */
+    #handleZoomAfterFitBounds(maxZoom?: number): void {
+        if (isNumberOrNumberString(maxZoom)) {
+            this.once('bounds_changed', () => {
+                this.zoom = Math.min(this.zoom, Number(maxZoom));
+            });
+        }
     }
 
     /**
