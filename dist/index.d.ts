@@ -3464,17 +3464,19 @@ declare class Map extends Evented {
      * Then call map.fitBounds() to set the viewport to contain the markers.
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
      * @returns {Map}
      */
-    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number): Map;
+    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map;
     /**
      * Alias to fitBounds
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
      * @returns {Map}
      */
-    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number): Map;
+    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map;
     /**
      * Initialize the map if necessary
      *
