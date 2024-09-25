@@ -820,21 +820,21 @@ export class Map extends Evented {
      */
     #fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<void> {
         return new Promise((resolve) => {
-        if (bounds) {
-            latLngBounds(bounds)
-                .toGoogle()
-                .then((googleBounds) => {
+            if (bounds) {
+                latLngBounds(bounds)
+                    .toGoogle()
+                    .then((googleBounds) => {
+                        this.#handleZoomAfterFitBounds(maxZoom, minZoom);
+                        this.#map.fitBounds(googleBounds);
+                        resolve();
+                    });
+            } else if (this.#bounds) {
+                this.#bounds.toGoogle().then((googleBounds) => {
                     this.#handleZoomAfterFitBounds(maxZoom, minZoom);
                     this.#map.fitBounds(googleBounds);
-                        resolve();
-                });
-        } else if (this.#bounds) {
-            this.#bounds.toGoogle().then((googleBounds) => {
-                this.#handleZoomAfterFitBounds(maxZoom, minZoom);
-                this.#map.fitBounds(googleBounds);
                     resolve();
-            });
-        }
+                });
+            }
         });
     }
 
@@ -1308,6 +1308,38 @@ export class Map extends Evented {
     }
 
     /**
+     * Resize the the map container to force the map to redraw itself.
+     *
+     * This is useful when the map is not displaying correctly, such as when the map is hidden and then shown.
+     *
+     * This will resize the element that the map is rendered in by default. If you need to resize a different element,
+     * pass that element as the first argument.
+     *
+     * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
+     */
+    resize = (element?: HTMLElement | string): void => {
+        let el: HTMLElement;
+        if (typeof element === 'string') {
+            el = document.querySelector(element);
+        } else if (element instanceof HTMLElement) {
+            el = element;
+        } else {
+            el = this.#element;
+        }
+
+        if (el) {
+            const currentHeight = el.getBoundingClientRect().height;
+            el.style.height = `${currentHeight + 1}px`;
+            // Wait a brief period before setting the height back to the original height.
+            // This will trigger the Google map to resize itself to fit the new height and thus
+            // fix any layout issues.
+            setTimeout(() => {
+                el.style.height = `${currentHeight}px`;
+            }, 100);
+        }
+    };
+
+    /**
      * Set the API key
      *
      * @param {string} key The API key
@@ -1621,7 +1653,7 @@ export class Map extends Evented {
                                         // This ensures that the tiles properly load and that the map is fully set up.
                                         setTimeout(() => {
                                             this.#setMapAsReady();
-                                        resolve();
+                                            resolve();
                                         }, 100);
                                     });
                                 }
@@ -1679,18 +1711,18 @@ export class Map extends Evented {
      * Set the map as ready
      */
     #setMapAsReady = () => {
-                // Dispatch the event to say that the map is visible and ready
-                this.dispatch('ready');
-                // Dispatch the event on the loader to say that the map is fully loaded.
-                // This is done because the map is loaded after the loader's "load" event is dispatched
-                // and some objects depend on the map being loaded before they can be set up.
-                loader().dispatch('map_loaded');
+        // Dispatch the event to say that the map is visible and ready
+        this.dispatch('ready');
+        // Dispatch the event on the loader to say that the map is fully loaded.
+        // This is done because the map is loaded after the loader's "load" event is dispatched
+        // and some objects depend on the map being loaded before they can be set up.
+        loader().dispatch('map_loaded');
 
-                // Set that the map is initialized
-                this.#isInitialized = true;
+        // Set that the map is initialized
+        this.#isInitialized = true;
 
-                // Set that the map is visible
-                this.#isReady = true;
+        // Set that the map is visible
+        this.#isReady = true;
     };
 
     /**
