@@ -7884,7 +7884,7 @@ var svgSymbol = (path, options) => {
 };
 
 // src/lib/Marker.ts
-var _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
+var _isSettingUp, _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
 var _Marker = class _Marker extends Layer_default {
   /**
    * Constructor
@@ -7895,6 +7895,13 @@ var _Marker = class _Marker extends Layer_default {
   constructor(position, options) {
     super("marker", "Marker");
     __privateAdd(this, _Marker_instances);
+    /**
+     * Holds if the marker is setting up
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isSettingUp, false);
     /**
      * Holds the Google maps marker object
      *
@@ -8392,8 +8399,9 @@ var _Marker = class _Marker extends Layer_default {
    */
   setPosition(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
       __privateMethod(this, _Marker_instances, setPosition_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setGoogleMarkerPosition_fn).call(this);
       return this;
     });
   }
@@ -8408,8 +8416,9 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setPositionSync(value) {
-    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
     __privateMethod(this, _Marker_instances, setPosition_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setGoogleMarkerPosition_fn).call(this);
     return this;
   }
   /**
@@ -8481,6 +8490,7 @@ var _Marker = class _Marker extends Layer_default {
     return __privateGet(this, _marker);
   }
 };
+_isSettingUp = new WeakMap();
 _marker = new WeakMap();
 _options4 = new WeakMap();
 _Marker_instances = new WeakSet();
@@ -8594,8 +8604,13 @@ setPosition_fn = function(value) {
   const position = latLng(value);
   if (position.isValid()) {
     __privateGet(this, _options4).position = position;
-    __privateGet(this, _marker).setPosition(__privateGet(this, _options4).position.toGoogle());
   }
+};
+/**
+ * Set the position for the marker on the Google marker object
+ */
+setGoogleMarkerPosition_fn = function() {
+  __privateGet(this, _marker).setPosition(__privateGet(this, _options4).position.toGoogle());
 };
 /**
  * Set the title for the marker
@@ -8619,9 +8634,11 @@ setTitle_fn = function(value) {
  */
 setupGoogleMarker_fn = function(map2) {
   return new Promise((resolve) => {
-    if (!isObject(__privateGet(this, _marker))) {
+    if (!__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
+      __privateSet(this, _isSettingUp, true);
       if (checkForGoogleMaps("Marker", "Marker", false)) {
         __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
+        this.dispatch("ready");
         resolve();
       } else {
         loader().once("map_loaded", () => {
@@ -8630,12 +8647,17 @@ setupGoogleMarker_fn = function(map2) {
           if (__privateGet(this, _marker) && thisMap) {
             __privateGet(this, _marker).setMap(thisMap.toGoogle());
           }
+          this.dispatch("ready");
           resolve();
         });
         if (map2 instanceof Map) {
           map2.init();
         }
       }
+    } else if (__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
+      this.onceImmediate("ready", () => {
+        resolve();
+      });
     } else {
       resolve();
     }

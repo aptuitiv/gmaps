@@ -4872,7 +4872,7 @@ type MarkerOptions = GMMarkerOptions & {
     svgIcon?: SvgSymbolValue | string;
     tooltip?: TooltipValue;
 };
-type MarkerEvent = 'animation_changed' | 'click' | 'clickable_changed' | 'contextmenu' | 'cursor_changed' | 'dblclick' | 'drag' | 'dragend' | 'draggable_changed' | 'dragstart' | 'flat_changed' | 'icon_changed' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'position_changed' | 'shape_changed' | 'title_changed' | 'visible_changed' | 'zindex_changed';
+type MarkerEvent = 'animation_changed' | 'click' | 'clickable_changed' | 'contextmenu' | 'cursor_changed' | 'dblclick' | 'drag' | 'dragend' | 'draggable_changed' | 'dragstart' | 'flat_changed' | 'icon_changed' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'position_changed' | 'ready' | 'shape_changed' | 'title_changed' | 'visible_changed' | 'zindex_changed';
 /**
  * Marker class to set up a single marker and add it to the map
  */
