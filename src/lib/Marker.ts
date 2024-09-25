@@ -779,8 +779,9 @@ export class Marker extends Layer {
      * @returns {Promise<Marker>}
      */
     async setPosition(value: LatLngValue): Promise<Marker> {
-        await this.#setupGoogleMarker();
         this.#setPosition(value);
+        await this.#setupGoogleMarker();
+        this.#setGoogleMarkerPosition();
         return this;
     }
 
@@ -795,8 +796,9 @@ export class Marker extends Layer {
      * @returns {Marker}
      */
     setPositionSync(value: LatLngValue): Marker {
-        this.#setupGoogleMarkerSync();
         this.#setPosition(value);
+        this.#setupGoogleMarkerSync();
+        this.#setGoogleMarkerPosition();
         return this;
     }
 
@@ -809,8 +811,14 @@ export class Marker extends Layer {
         const position = latLng(value);
         if (position.isValid()) {
             this.#options.position = position;
-            this.#marker.setPosition(this.#options.position.toGoogle());
         }
+    }
+
+    /**
+     * Set the position for the marker on the Google marker object
+     */
+    #setGoogleMarkerPosition() {
+        this.#marker.setPosition(this.#options.position.toGoogle());
     }
 
     /**
