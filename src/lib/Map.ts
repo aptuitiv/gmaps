@@ -101,6 +101,14 @@ export class Map extends Evented {
     #customControls: CustomControl[] = [];
 
     /**
+     * Holds the HTML element that the map will be rendered in.
+     *
+     * @private
+     * @type {null|HTMLElement}
+     */
+    #element: null | HTMLElement = null;
+
+    /**
      * Holds the fullscreen control object
      *
      * @private
@@ -205,14 +213,6 @@ export class Map extends Evented {
     #scaleControl: ScaleControl;
 
     /**
-     * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-     *
-     * @private
-     * @type {string|HTMLElement}
-     */
-    #selector: string | HTMLElement;
-
-    /**
      * Holds the street view control object
      *
      * @private
@@ -265,7 +265,11 @@ export class Map extends Evented {
         this.#streetViewControl = streetViewControl();
         this.#zoomControl = zoomControl();
 
-        this.#selector = selector;
+        if (typeof selector === 'string') {
+            this.#element = document.querySelector(selector);
+        } else if (selector instanceof HTMLElement) {
+            this.#element = selector;
+        }
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -1589,12 +1593,7 @@ export class Map extends Evented {
                 this.#isGettingMapOptions = true;
 
                 // Get the DOM element to attach the map to
-                let element: HTMLElement = null;
-                if (typeof this.#selector === 'string') {
-                    element = document.querySelector(this.#selector);
-                } else if (this.#selector instanceof HTMLElement) {
-                    element = this.#selector;
-                }
+                const element = this.#element;
                 if (element === null) {
                     throw new Error(
                         'The map element could not be found. Make sure the map selector is correct and the element exists.'
