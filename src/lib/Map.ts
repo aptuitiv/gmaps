@@ -1638,6 +1638,11 @@ export class Map extends Evented {
                         resolve();
                     });
                 }
+            } else if (!this.#isReady) {
+                // Wait for the map options to be set up and the map to be ready
+                this.onceImmediate('ready', () => {
+                    resolve();
+                });
             } else {
                 resolve();
             }
