@@ -562,7 +562,7 @@ var checkForGoogleMaps = (object, library, throwError) => {
       msg = ` The google.maps.${library} class is not available. Did you load the Google Maps Javascript API?`;
     }
     msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
-    msg += " See https://developers.google.com/maps/documentation/javascript for more information.";
+    msg += " See https://aptuitiv.github.io/gmaps-docs/guides/load for more information.";
     if (doError) {
       throw new Error(msg);
     }
@@ -5986,7 +5986,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject;
+var _bounds4, _customControls, _element, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -6012,6 +6012,13 @@ var Map = class extends Evented {
      * @type {CustomControl[]}
      */
     __privateAdd(this, _customControls, []);
+    /**
+     * Holds the HTML element that the map will be rendered in.
+     *
+     * @private
+     * @type {null|HTMLElement}
+     */
+    __privateAdd(this, _element, null);
     /**
      * Holds the fullscreen control object
      *
@@ -6104,13 +6111,6 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _scaleControl);
     /**
-     * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-     *
-     * @private
-     * @type {string|HTMLElement}
-     */
-    __privateAdd(this, _selector);
-    /**
      * Holds the street view control object
      *
      * @private
@@ -6139,6 +6139,33 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _zoomControl);
     /**
+     * Resize the the map container to force the map to redraw itself.
+     *
+     * This is useful when the map is not displaying correctly, such as when the map is hidden and then shown.
+     *
+     * This will resize the element that the map is rendered in by default. If you need to resize a different element,
+     * pass that element as the first argument.
+     *
+     * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
+     */
+    this.resize = (element) => {
+      let el;
+      if (typeof element === "string") {
+        el = document.querySelector(element);
+      } else if (element instanceof HTMLElement) {
+        el = element;
+      } else {
+        el = __privateGet(this, _element);
+      }
+      if (el) {
+        const currentHeight = el.getBoundingClientRect().height;
+        el.style.height = `${currentHeight + 1}px`;
+        setTimeout(() => {
+          el.style.height = `${currentHeight}px`;
+        }, 100);
+      }
+    };
+    /**
      * Set up the map object
      *
      * @param {HTMLElement} element THe HTML elemen to attach the map to
@@ -6154,13 +6181,18 @@ var Map = class extends Evented {
           });
         }
         __privateSet(this, _customControls, []);
-        this.dispatch("ready");
-        loader().dispatch("map_loaded");
-        __privateSet(this, _isInitialized, true);
-        __privateSet(this, _isReady, true);
         resolve();
       });
     }));
+    /**
+     * Set the map as ready
+     */
+    __privateAdd(this, _setMapAsReady, () => {
+      this.dispatch("ready");
+      loader().dispatch("map_loaded");
+      __privateSet(this, _isInitialized, true);
+      __privateSet(this, _isReady, true);
+    });
     __privateGet(this, _options2).mapTypeId = MapTypeId.ROADMAP;
     __privateGet(this, _options2).center = latLng(0, 0);
     __privateGet(this, _options2).zoom = 6;
@@ -6170,7 +6202,11 @@ var Map = class extends Evented {
     __privateSet(this, _scaleControl, scaleControl());
     __privateSet(this, _streetViewControl, streetViewControl());
     __privateSet(this, _zoomControl, zoomControl());
-    __privateSet(this, _selector, selector);
+    if (typeof selector === "string") {
+      __privateSet(this, _element, document.querySelector(selector));
+    } else if (selector instanceof HTMLElement) {
+      __privateSet(this, _element, selector);
+    }
     if (isObject(options)) {
       this.setOptions(options);
     }
@@ -6652,21 +6688,22 @@ var Map = class extends Evented {
    * @param {LatLngBoundsValue} bounds The bounds to fit
    * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
    * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
-   * @returns {Map}
+   * @returns {Promise<Map>}
    */
   fitBounds(bounds, maxZoom, minZoom) {
-    if (bounds) {
-      latLngBounds(bounds).toGoogle().then((googleBounds) => {
-        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom, minZoom);
-        __privateGet(this, _map2).fitBounds(googleBounds);
-      });
-    } else if (__privateGet(this, _bounds4)) {
-      __privateGet(this, _bounds4).toGoogle().then((googleBounds) => {
-        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom, minZoom);
-        __privateGet(this, _map2).fitBounds(googleBounds);
-      });
-    }
-    return this;
+    return new Promise((resolve) => {
+      if (__privateGet(this, _map2)) {
+        __privateMethod(this, _Map_instances, fitBounds_fn).call(this, bounds, maxZoom, minZoom).then(() => {
+          resolve(this);
+        });
+      } else {
+        this.init().then(() => {
+          __privateMethod(this, _Map_instances, fitBounds_fn).call(this, bounds, maxZoom, minZoom).then(() => {
+            resolve(this);
+          });
+        });
+      }
+    });
   }
   /**
    * Alias to fitBounds
@@ -6674,7 +6711,7 @@ var Map = class extends Evented {
    * @param {LatLngBoundsValue} bounds The bounds to fit
    * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
    * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
-   * @returns {Map}
+   * @returns {Promise<Map>}
    */
   fitToBounds(bounds, maxZoom, minZoom) {
     return this.fitBounds(bounds, maxZoom, minZoom);
@@ -6696,7 +6733,7 @@ var Map = class extends Evented {
       if (!__privateGet(this, _isInitialized) && !__privateGet(this, _isReady)) {
         if (!__privateGet(this, _isInitializing)) {
           __privateSet(this, _isInitializing, true);
-          __privateMethod(this, _Map_instances, load_fn).call(this, () => {
+          __privateMethod(this, _Map_instances, load_fn).call(this).then(() => {
             callCallback(callback);
             resolve(this);
           });
@@ -7229,6 +7266,7 @@ var Map = class extends Evented {
 };
 _bounds4 = new WeakMap();
 _customControls = new WeakMap();
+_element = new WeakMap();
 _fullscreenControl = new WeakMap();
 _latitude2 = new WeakMap();
 _longitude2 = new WeakMap();
@@ -7242,12 +7280,36 @@ _options2 = new WeakMap();
 _restriction = new WeakMap();
 _rotateControl = new WeakMap();
 _scaleControl = new WeakMap();
-_selector = new WeakMap();
 _streetViewControl = new WeakMap();
 _styles2 = new WeakMap();
 _watchId = new WeakMap();
 _zoomControl = new WeakMap();
 _Map_instances = new WeakSet();
+/**
+ * Do the actual fitting of the bounds
+ *
+ * @param {LatLngBoundsValue} bounds The bounds to fit
+ * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+ * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+ * @returns {Promise<void>}
+ */
+fitBounds_fn = function(bounds, maxZoom, minZoom) {
+  return new Promise((resolve) => {
+    if (bounds) {
+      latLngBounds(bounds).toGoogle().then((googleBounds) => {
+        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom, minZoom);
+        __privateGet(this, _map2).fitBounds(googleBounds);
+        resolve();
+      });
+    } else if (__privateGet(this, _bounds4)) {
+      __privateGet(this, _bounds4).toGoogle().then((googleBounds) => {
+        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom, minZoom);
+        __privateGet(this, _map2).fitBounds(googleBounds);
+        resolve();
+      });
+    }
+  });
+};
 /**
  * Make sure that the zoom level doesn't exceed the maxZoom value
  *
@@ -7381,12 +7443,7 @@ showMap_fn = function() {
   return new Promise((resolve) => {
     if (!__privateGet(this, _isReady) && !__privateGet(this, _isGettingMapOptions)) {
       __privateSet(this, _isGettingMapOptions, true);
-      let element = null;
-      if (typeof __privateGet(this, _selector) === "string") {
-        element = document.querySelector(__privateGet(this, _selector));
-      } else if (__privateGet(this, _selector) instanceof HTMLElement) {
-        element = __privateGet(this, _selector);
-      }
+      const element = __privateGet(this, _element);
       if (element === null) {
         throw new Error(
           "The map element could not be found. Make sure the map selector is correct and the element exists."
@@ -7400,7 +7457,10 @@ showMap_fn = function() {
               if (entry.isIntersecting) {
                 observer.disconnect();
                 __privateGet(this, _setupMapObject).call(this, element).then(() => {
-                  resolve();
+                  setTimeout(() => {
+                    __privateGet(this, _setMapAsReady).call(this);
+                    resolve();
+                  }, 100);
                 });
               }
             });
@@ -7412,15 +7472,21 @@ showMap_fn = function() {
         observer.observe(element);
       } else {
         __privateGet(this, _setupMapObject).call(this, element).then(() => {
+          __privateGet(this, _setMapAsReady).call(this);
           resolve();
         });
       }
+    } else if (!__privateGet(this, _isReady)) {
+      this.onceImmediate("ready", () => {
+        resolve();
+      });
     } else {
       resolve();
     }
   });
 };
 _setupMapObject = new WeakMap();
+_setMapAsReady = new WeakMap();
 var map = (selector, config) => new Map(selector, config);
 
 // src/lib/SvgSymbol.ts

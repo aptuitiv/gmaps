@@ -3465,18 +3465,18 @@ declare class Map extends Evented {
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
      * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
-     * @returns {Map}
+     * @returns {Promise<Map>}
      */
-    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map;
+    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map>;
     /**
      * Alias to fitBounds
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
      * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
-     * @returns {Map}
+     * @returns {Promise<Map>}
      */
-    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map;
+    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map>;
     /**
      * Initialize the map if necessary
      *
@@ -3631,6 +3631,17 @@ declare class Map extends Evented {
      * @param {LatLngValue} value The latitude/longitude value to pan to
      */
     panTo(value: LatLngValue): void;
+    /**
+     * Resize the the map container to force the map to redraw itself.
+     *
+     * This is useful when the map is not displaying correctly, such as when the map is hidden and then shown.
+     *
+     * This will resize the element that the map is rendered in by default. If you need to resize a different element,
+     * pass that element as the first argument.
+     *
+     * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
+     */
+    resize: (element?: HTMLElement | string) => void;
     /**
      * Set the API key
      *
