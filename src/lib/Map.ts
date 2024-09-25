@@ -1616,7 +1616,13 @@ export class Map extends Evented {
                                 if (entry.isIntersecting) {
                                     observer.disconnect();
                                     this.#setupMapObject(element).then(() => {
+                                        // Set a brief timeout to make sure the map is fully set up before resolving the promise
+                                        // and dispatching the "ready" event.
+                                        // This ensures that the tiles properly load and that the map is fully set up.
+                                        setTimeout(() => {
+                                            this.#setMapAsReady();
                                         resolve();
+                                        }, 100);
                                     });
                                 }
                             });
@@ -1629,6 +1635,7 @@ export class Map extends Evented {
                     observer.observe(element);
                 } else {
                     this.#setupMapObject(element).then(() => {
+                        this.#setMapAsReady();
                         resolve();
                     });
                 }
@@ -1659,6 +1666,14 @@ export class Map extends Evented {
                 }
                 this.#customControls = [];
 
+                resolve();
+            });
+        });
+
+    /**
+     * Set the map as ready
+     */
+    #setMapAsReady = () => {
                 // Dispatch the event to say that the map is visible and ready
                 this.dispatch('ready');
                 // Dispatch the event on the loader to say that the map is fully loaded.
@@ -1671,10 +1686,7 @@ export class Map extends Evented {
 
                 // Set that the map is visible
                 this.#isReady = true;
-
-                resolve();
-            });
-        });
+    };
 
     /**
      * Stop watching for the user's location
