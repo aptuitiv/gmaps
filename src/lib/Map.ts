@@ -890,7 +890,7 @@ export class Map extends Evented {
                 if (!this.#isInitializing) {
                     // The map is not initializing, so start the initialization process
                     this.#isInitializing = true;
-                    this.#load(() => {
+                    this.#load().then(() => {
                         callCallback(callback);
                         resolve(this);
                     });
