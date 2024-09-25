@@ -788,23 +788,50 @@ export class Map extends Evented {
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
      * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
-     * @returns {Map}
+     * @returns {Promise<Map>}
      */
-    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map {
+    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map> {
+        return new Promise((resolve) => {
+            if (this.#map) {
+                this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
+                    resolve(this);
+                });
+            } else {
+                this.init().then(() => {
+                    this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
+                        resolve(this);
+                    });
+                });
+            }
+        });
+    }
+
+    /**
+     * Do the actual fitting of the bounds
+     *
+     * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+     * @returns {Promise<void>}
+     */
+    #fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<void> {
+        return new Promise((resolve) => {
         if (bounds) {
             latLngBounds(bounds)
                 .toGoogle()
                 .then((googleBounds) => {
                     this.#handleZoomAfterFitBounds(maxZoom, minZoom);
                     this.#map.fitBounds(googleBounds);
+                        resolve();
                 });
         } else if (this.#bounds) {
             this.#bounds.toGoogle().then((googleBounds) => {
                 this.#handleZoomAfterFitBounds(maxZoom, minZoom);
                 this.#map.fitBounds(googleBounds);
+                    resolve();
             });
         }
-        return this;
+        });
     }
 
     /**
@@ -813,9 +840,9 @@ export class Map extends Evented {
      * @param {LatLngBoundsValue} bounds The bounds to fit
      * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
      * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
-     * @returns {Map}
+     * @returns {Promise<Map>}
      */
-    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Map {
+    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map> {
         return this.fitBounds(bounds, maxZoom, minZoom);
     }
 
