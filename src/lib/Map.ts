@@ -1602,6 +1602,7 @@ export class Map extends Evented {
 
                 // If the element is not visible then wait for it to be visible before setting up the map.
                 // This is intended to prevent issue where the map does not render correctly when it's first hidden.
+                // https://davidwalsh.name/offsetheight-visibility
                 // Issues that can happen if the element is hidden include:
                 // - tiles won't load
                 // - map controls don't display
