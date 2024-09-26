@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0 (September 26, 2024)
+
+- Map - added support for max and min zoom when fitting bounds.
+- If the map element is initially hidden then wait until it's visible to set up the map.
+- Map - changed "visible" event to "ready".
+- Map - added `resize` method.
+- Marker - added "ready" event after the marker is set up and ready for use.
+
 ## 0.15.0 (September 23, 2024)
 
 - Added Geocode object to support geocoding with the Google Maps API.

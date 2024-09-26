@@ -430,14 +430,17 @@ export class Evented extends Base {
             // We only want to add the event listener to the Google maps object once. We can have multiple
             // internal event listeners, but because we are handling the event listener internally,
             // we only need to add it to the Google Maps object once.
-            if (!Array.isArray(this.#eventListeners[type])) {
+            if (!Array.isArray(this.#eventListeners[type]) || this.#eventListeners[type].length === 0) {
                 let setupPending = false;
                 if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                     if (this.#isGoogleObjectSet()) {
-                        // The Google maps object is set and the event listener is not already set up on it.
-                        this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
-                            this.dispatch(type, e);
-                        });
+                        // The Google maps object is set
+                        // Make sure the event listener is not already set up
+                        if (!google.maps.event.hasListeners(this.#googleObject, type)) {
+                            this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                                this.dispatch(type, e);
+                            });
+                        }
                     } else {
                         // The Google maps object is not set yet so so save the event listener so that it
                         // can be added to the Google map object once it's set up

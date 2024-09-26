@@ -47,7 +47,7 @@ import { zoomControl, ZoomControl } from './Map/ZoomControl';
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 
 // Map events that are not part of the Google Maps API
-type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
+type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
 // Google Maps library map events
 type GMEvent =
     | 'bounds_changed'
@@ -101,6 +101,14 @@ export class Map extends Evented {
     #customControls: CustomControl[] = [];
 
     /**
+     * Holds the HTML element that the map will be rendered in.
+     *
+     * @private
+     * @type {null|HTMLElement}
+     */
+    #element: null | HTMLElement = null;
+
+    /**
      * Holds the fullscreen control object
      *
      * @private
@@ -149,12 +157,12 @@ export class Map extends Evented {
     #isInitializing: boolean = false;
 
     /**
-     * Holds if the layer is visible or not
+     * Holds if the map is loaded and ready for use
      *
      * @private
      * @type {boolean}
      */
-    #isVisible: boolean = false;
+    #isReady: boolean = false;
 
     /**
      * Holds the Google map object
@@ -203,14 +211,6 @@ export class Map extends Evented {
      * @type {ScaleControl}
      */
     #scaleControl: ScaleControl;
-
-    /**
-     * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-     *
-     * @private
-     * @type {string|HTMLElement}
-     */
-    #selector: string | HTMLElement;
 
     /**
      * Holds the street view control object
@@ -265,7 +265,11 @@ export class Map extends Evented {
         this.#streetViewControl = streetViewControl();
         this.#zoomControl = zoomControl();
 
-        this.#selector = selector;
+        if (typeof selector === 'string') {
+            this.#element = document.querySelector(selector);
+        } else if (selector instanceof HTMLElement) {
+            this.#element = selector;
+        }
         if (isObject(options)) {
             this.setOptions(options);
         }
@@ -786,31 +790,85 @@ export class Map extends Evented {
      * Add marks to the map.
      * Then call map.fitBounds() to set the viewport to contain the markers.
      * @param {LatLngBoundsValue} bounds The bounds to fit
-     * @returns {Map}
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+     * @returns {Promise<Map>}
      */
-    fitBounds(bounds?: LatLngBoundsValue): Map {
-        if (bounds) {
-            latLngBounds(bounds)
-                .toGoogle()
-                .then((googleBounds) => {
-                    this.#map.fitBounds(googleBounds);
+    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map> {
+        return new Promise((resolve) => {
+            if (this.#map) {
+                this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
+                    resolve(this);
                 });
-        } else if (this.#bounds) {
-            this.#bounds.toGoogle().then((googleBounds) => {
-                this.#map.fitBounds(googleBounds);
-            });
-        }
-        return this;
+            } else {
+                this.init().then(() => {
+                    this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
+                        resolve(this);
+                    });
+                });
+            }
+        });
+    }
+
+    /**
+     * Do the actual fitting of the bounds
+     *
+     * @param {LatLngBoundsValue} bounds The bounds to fit
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+     * @returns {Promise<void>}
+     */
+    #fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<void> {
+        return new Promise((resolve) => {
+            if (bounds) {
+                latLngBounds(bounds)
+                    .toGoogle()
+                    .then((googleBounds) => {
+                        this.#handleZoomAfterFitBounds(maxZoom, minZoom);
+                        this.#map.fitBounds(googleBounds);
+                        resolve();
+                    });
+            } else if (this.#bounds) {
+                this.#bounds.toGoogle().then((googleBounds) => {
+                    this.#handleZoomAfterFitBounds(maxZoom, minZoom);
+                    this.#map.fitBounds(googleBounds);
+                    resolve();
+                });
+            }
+        });
     }
 
     /**
      * Alias to fitBounds
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
-     * @returns {Map}
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+     * @returns {Promise<Map>}
      */
-    fitToBounds(bounds?: LatLngBoundsValue): Map {
-        return this.fitBounds(bounds);
+    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map> {
+        return this.fitBounds(bounds, maxZoom, minZoom);
+    }
+
+    /**
+     * Make sure that the zoom level doesn't exceed the maxZoom value
+     *
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+     */
+    #handleZoomAfterFitBounds(maxZoom?: number, minZoom?: number): void {
+        if (isNumberOrNumberString(maxZoom)) {
+            this.once('bounds_changed', () => {
+                let { zoom } = this;
+                if (isNumberOrNumberString(minZoom)) {
+                    const mz = Number(minZoom);
+                    if (zoom < mz) {
+                        zoom = mz;
+                    }
+                }
+                this.zoom = Math.min(zoom, Number(maxZoom));
+            });
+        }
     }
 
     /**
@@ -827,18 +885,18 @@ export class Map extends Evented {
      */
     init(callback?: () => void): Promise<Map> {
         return new Promise((resolve) => {
-            if (!this.#isInitialized && !this.#isVisible) {
+            if (!this.#isInitialized && !this.#isReady) {
                 // The map has not been initialized or displayed
                 if (!this.#isInitializing) {
                     // The map is not initializing, so start the initialization process
                     this.#isInitializing = true;
-                    this.#load(() => {
+                    this.#load().then(() => {
                         callCallback(callback);
                         resolve(this);
                     });
                 } else {
                     // The map is initializing, so wait for it to finish
-                    this.onceImmediate('visible', () => {
+                    this.onceImmediate('ready', () => {
                         callCallback(callback);
                         resolve(this);
                     });
@@ -997,12 +1055,12 @@ export class Map extends Evented {
     }
 
     /**
-     * Gets whether the map is visible. This also means that the map library is loaded.
+     * Gets whether the map is ready for use. This also means that the map library is loaded and the map is visible.
      *
      * @returns {boolean}
      */
-    getIsVisible(): boolean {
-        return this.#isVisible;
+    getIsReady(): boolean {
+        return this.#isReady;
     }
 
     /**
@@ -1036,13 +1094,13 @@ export class Map extends Evented {
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'visible' event
-     *   map.on('visible', () => {
+     * 2. Listen for the 'ready' event
+     *   map.on('ready', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'visible' event only once. The event
+     * 2a. Use the once() function to listen for the 'ready' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('visible', () => {
+     *   map.once('ready', () => {
      *     // Do something after the map loads
      *   });
      *
@@ -1206,6 +1264,17 @@ export class Map extends Evented {
     }
 
     /**
+     * Callback for when the map is ready and visible
+     *
+     * This is a "shortcut" to "on('ready', callback)"
+     *
+     * @param {EventCallback} [callback] The event listener callback function
+     */
+    onReady(callback: EventCallback): void {
+        this.onceImmediate('ready', callback);
+    }
+
+    /**
      * Changes the center of the map by the given distance in pixels.
      *
      * @param {number} x The number of pixels to move the map in the x direction
@@ -1237,6 +1306,38 @@ export class Map extends Evented {
             });
         }
     }
+
+    /**
+     * Resize the the map container to force the map to redraw itself.
+     *
+     * This is useful when the map is not displaying correctly, such as when the map is hidden and then shown.
+     *
+     * This will resize the element that the map is rendered in by default. If you need to resize a different element,
+     * pass that element as the first argument.
+     *
+     * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
+     */
+    resize = (element?: HTMLElement | string): void => {
+        let el: HTMLElement;
+        if (typeof element === 'string') {
+            el = document.querySelector(element);
+        } else if (element instanceof HTMLElement) {
+            el = element;
+        } else {
+            el = this.#element;
+        }
+
+        if (el) {
+            const currentHeight = el.getBoundingClientRect().height;
+            el.style.height = `${currentHeight + 1}px`;
+            // Wait a brief period before setting the height back to the original height.
+            // This will trigger the Google map to resize itself to fit the new height and thus
+            // fix any layout issues.
+            setTimeout(() => {
+                el.style.height = `${currentHeight}px`;
+            }, 100);
+        }
+    };
 
     /**
      * Set the API key
@@ -1520,48 +1621,59 @@ export class Map extends Evented {
     #showMap(): Promise<void> {
         return new Promise((resolve) => {
             // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
-            if (!this.#isVisible && !this.#isGettingMapOptions) {
+            if (!this.#isReady && !this.#isGettingMapOptions) {
                 this.#isGettingMapOptions = true;
 
                 // Get the DOM element to attach the map to
-                let element: HTMLElement = null;
-                if (typeof this.#selector === 'string') {
-                    element = document.querySelector(this.#selector);
-                } else if (this.#selector instanceof HTMLElement) {
-                    element = this.#selector;
-                }
+                const element = this.#element;
                 if (element === null) {
                     throw new Error(
                         'The map element could not be found. Make sure the map selector is correct and the element exists.'
                     );
                 }
 
-                // Get the map options
-                this.#getMapOptions().then((mapOptions) => {
-                    this.#map = new google.maps.Map(element, mapOptions);
-                    this.setEventGoogleObject(this.#map);
+                // If the element is not visible then wait for it to be visible before setting up the map.
+                // This is intended to prevent issue where the map does not render correctly when it's first hidden.
+                // https://davidwalsh.name/offsetheight-visibility
+                // Issues that can happen if the element is hidden include:
+                // - tiles won't load
+                // - map controls don't display
+                // - markers don't display.
+                // The solution is to wait until the map is visible. Then it's set up and displayed.
+                const elementDisplay = (element.computedStyleMap().get('display') as CSSKeywordValue).value;
+                if (elementDisplay === 'none' || element.offsetHeight === 1 || element.offsetWidth === 0) {
+                    const observer = new IntersectionObserver(
+                        (entries) => {
+                            entries.forEach((entry) => {
+                                if (entry.isIntersecting) {
+                                    observer.disconnect();
+                                    this.#setupMapObject(element).then(() => {
+                                        // Set a brief timeout to make sure the map is fully set up before resolving the promise
+                                        // and dispatching the "ready" event.
+                                        // This ensures that the tiles properly load and that the map is fully set up.
+                                        setTimeout(() => {
+                                            this.#setMapAsReady();
+                                            resolve();
+                                        }, 100);
+                                    });
+                                }
+                            });
+                        },
+                        {
+                            root: document.documentElement,
+                        }
+                    );
 
-                    // Add any custom controls to the map
-                    if (this.#customControls.length > 0) {
-                        this.#customControls.forEach((control) => {
-                            this.#map.controls[convertControlPosition(control.position)].push(control.element);
-                        });
-                    }
-                    this.#customControls = [];
-
-                    // Dispatch the event to say that the map is visible
-                    this.dispatch('visible');
-                    // Dispatch the event on the loader to say that the map is fully loaded.
-                    // This is done because the map is loaded after the loader's "load" event is dispatched
-                    // and some objects depend on the map being loaded before they can be set up.
-                    loader().dispatch('map_loaded');
-
-                    // Set that the map is initialized
-                    this.#isInitialized = true;
-
-                    // Set that the map is visible
-                    this.#isVisible = true;
-
+                    observer.observe(element);
+                } else {
+                    this.#setupMapObject(element).then(() => {
+                        this.#setMapAsReady();
+                        resolve();
+                    });
+                }
+            } else if (!this.#isReady) {
+                // Wait for the map options to be set up and the map to be ready
+                this.onceImmediate('ready', () => {
                     resolve();
                 });
             } else {
@@ -1569,6 +1681,49 @@ export class Map extends Evented {
             }
         });
     }
+
+    /**
+     * Set up the map object
+     *
+     * @param {HTMLElement} element THe HTML elemen to attach the map to
+     * @returns {Promise<void>}
+     */
+    #setupMapObject = (element: HTMLElement): Promise<void> =>
+        new Promise((resolve) => {
+            // Get the map options
+            this.#getMapOptions().then((mapOptions) => {
+                this.#map = new google.maps.Map(element, mapOptions);
+                this.setEventGoogleObject(this.#map);
+
+                // Add any custom controls to the map
+                if (this.#customControls.length > 0) {
+                    this.#customControls.forEach((control) => {
+                        this.#map.controls[convertControlPosition(control.position)].push(control.element);
+                    });
+                }
+                this.#customControls = [];
+
+                resolve();
+            });
+        });
+
+    /**
+     * Set the map as ready
+     */
+    #setMapAsReady = () => {
+        // Dispatch the event to say that the map is visible and ready
+        this.dispatch('ready');
+        // Dispatch the event on the loader to say that the map is fully loaded.
+        // This is done because the map is loaded after the loader's "load" event is dispatched
+        // and some objects depend on the map being loaded before they can be set up.
+        loader().dispatch('map_loaded');
+
+        // Set that the map is initialized
+        this.#isInitialized = true;
+
+        // Set that the map is visible
+        this.#isReady = true;
+    };
 
     /**
      * Stop watching for the user's location

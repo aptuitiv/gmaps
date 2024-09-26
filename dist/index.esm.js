@@ -449,7 +449,7 @@ var checkForGoogleMaps = (object, library, throwError) => {
       msg = ` The google.maps.${library} class is not available. Did you load the Google Maps Javascript API?`;
     }
     msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
-    msg += " See https://developers.google.com/maps/documentation/javascript for more information.";
+    msg += " See https://aptuitiv.github.io/gmaps-docs/guides/load for more information.";
     if (doError) {
       throw new Error(msg);
     }
@@ -1409,13 +1409,15 @@ _Evented_instances = new WeakSet();
  */
 on_fn = function(type, callback, config) {
   if (isFunction(callback)) {
-    if (!Array.isArray(__privateGet(this, _eventListeners)[type])) {
+    if (!Array.isArray(__privateGet(this, _eventListeners)[type]) || __privateGet(this, _eventListeners)[type].length === 0) {
       let setupPending = false;
       if (checkForGoogleMaps(__privateGet(this, _testObject), __privateGet(this, _testLibrary), false)) {
         if (__privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
-          __privateGet(this, _googleObject).addListener(type, (e) => {
-            this.dispatch(type, e);
-          });
+          if (!google.maps.event.hasListeners(__privateGet(this, _googleObject), type)) {
+            __privateGet(this, _googleObject).addListener(type, (e) => {
+              this.dispatch(type, e);
+            });
+          }
         } else {
           setupPending = true;
         }
@@ -5871,7 +5873,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isVisible2, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _selector, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, getMapOptions_fn, load_fn, showMap_fn;
+var _bounds4, _customControls, _element, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -5897,6 +5899,13 @@ var Map = class extends Evented {
      * @type {CustomControl[]}
      */
     __privateAdd(this, _customControls, []);
+    /**
+     * Holds the HTML element that the map will be rendered in.
+     *
+     * @private
+     * @type {null|HTMLElement}
+     */
+    __privateAdd(this, _element, null);
     /**
      * Holds the fullscreen control object
      *
@@ -5940,12 +5949,12 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _isInitializing, false);
     /**
-     * Holds if the layer is visible or not
+     * Holds if the map is loaded and ready for use
      *
      * @private
      * @type {boolean}
      */
-    __privateAdd(this, _isVisible2, false);
+    __privateAdd(this, _isReady, false);
     /**
      * Holds the Google map object
      *
@@ -5989,13 +5998,6 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _scaleControl);
     /**
-     * Holds the selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-     *
-     * @private
-     * @type {string|HTMLElement}
-     */
-    __privateAdd(this, _selector);
-    /**
      * Holds the street view control object
      *
      * @private
@@ -6023,6 +6025,61 @@ var Map = class extends Evented {
      * @type {ZoomControl}
      */
     __privateAdd(this, _zoomControl);
+    /**
+     * Resize the the map container to force the map to redraw itself.
+     *
+     * This is useful when the map is not displaying correctly, such as when the map is hidden and then shown.
+     *
+     * This will resize the element that the map is rendered in by default. If you need to resize a different element,
+     * pass that element as the first argument.
+     *
+     * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
+     */
+    this.resize = (element) => {
+      let el;
+      if (typeof element === "string") {
+        el = document.querySelector(element);
+      } else if (element instanceof HTMLElement) {
+        el = element;
+      } else {
+        el = __privateGet(this, _element);
+      }
+      if (el) {
+        const currentHeight = el.getBoundingClientRect().height;
+        el.style.height = `${currentHeight + 1}px`;
+        setTimeout(() => {
+          el.style.height = `${currentHeight}px`;
+        }, 100);
+      }
+    };
+    /**
+     * Set up the map object
+     *
+     * @param {HTMLElement} element THe HTML elemen to attach the map to
+     * @returns {Promise<void>}
+     */
+    __privateAdd(this, _setupMapObject, (element) => new Promise((resolve) => {
+      __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
+        __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
+        this.setEventGoogleObject(__privateGet(this, _map2));
+        if (__privateGet(this, _customControls).length > 0) {
+          __privateGet(this, _customControls).forEach((control) => {
+            __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
+          });
+        }
+        __privateSet(this, _customControls, []);
+        resolve();
+      });
+    }));
+    /**
+     * Set the map as ready
+     */
+    __privateAdd(this, _setMapAsReady, () => {
+      this.dispatch("ready");
+      loader().dispatch("map_loaded");
+      __privateSet(this, _isInitialized, true);
+      __privateSet(this, _isReady, true);
+    });
     __privateGet(this, _options2).mapTypeId = MapTypeId.ROADMAP;
     __privateGet(this, _options2).center = latLng(0, 0);
     __privateGet(this, _options2).zoom = 6;
@@ -6032,7 +6089,11 @@ var Map = class extends Evented {
     __privateSet(this, _scaleControl, scaleControl());
     __privateSet(this, _streetViewControl, streetViewControl());
     __privateSet(this, _zoomControl, zoomControl());
-    __privateSet(this, _selector, selector);
+    if (typeof selector === "string") {
+      __privateSet(this, _element, document.querySelector(selector));
+    } else if (selector instanceof HTMLElement) {
+      __privateSet(this, _element, selector);
+    }
     if (isObject(options)) {
       this.setOptions(options);
     }
@@ -6512,28 +6573,35 @@ var Map = class extends Evented {
    * Add marks to the map.
    * Then call map.fitBounds() to set the viewport to contain the markers.
    * @param {LatLngBoundsValue} bounds The bounds to fit
-   * @returns {Map}
+   * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+   * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+   * @returns {Promise<Map>}
    */
-  fitBounds(bounds) {
-    if (bounds) {
-      latLngBounds(bounds).toGoogle().then((googleBounds) => {
-        __privateGet(this, _map2).fitBounds(googleBounds);
-      });
-    } else if (__privateGet(this, _bounds4)) {
-      __privateGet(this, _bounds4).toGoogle().then((googleBounds) => {
-        __privateGet(this, _map2).fitBounds(googleBounds);
-      });
-    }
-    return this;
+  fitBounds(bounds, maxZoom, minZoom) {
+    return new Promise((resolve) => {
+      if (__privateGet(this, _map2)) {
+        __privateMethod(this, _Map_instances, fitBounds_fn).call(this, bounds, maxZoom, minZoom).then(() => {
+          resolve(this);
+        });
+      } else {
+        this.init().then(() => {
+          __privateMethod(this, _Map_instances, fitBounds_fn).call(this, bounds, maxZoom, minZoom).then(() => {
+            resolve(this);
+          });
+        });
+      }
+    });
   }
   /**
    * Alias to fitBounds
    *
    * @param {LatLngBoundsValue} bounds The bounds to fit
-   * @returns {Map}
+   * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+   * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+   * @returns {Promise<Map>}
    */
-  fitToBounds(bounds) {
-    return this.fitBounds(bounds);
+  fitToBounds(bounds, maxZoom, minZoom) {
+    return this.fitBounds(bounds, maxZoom, minZoom);
   }
   /**
    * Initialize the map if necessary
@@ -6549,15 +6617,15 @@ var Map = class extends Evented {
    */
   init(callback) {
     return new Promise((resolve) => {
-      if (!__privateGet(this, _isInitialized) && !__privateGet(this, _isVisible2)) {
+      if (!__privateGet(this, _isInitialized) && !__privateGet(this, _isReady)) {
         if (!__privateGet(this, _isInitializing)) {
           __privateSet(this, _isInitializing, true);
-          __privateMethod(this, _Map_instances, load_fn).call(this, () => {
+          __privateMethod(this, _Map_instances, load_fn).call(this).then(() => {
             callCallback(callback);
             resolve(this);
           });
         } else {
-          this.onceImmediate("visible", () => {
+          this.onceImmediate("ready", () => {
             callCallback(callback);
             resolve(this);
           });
@@ -6608,12 +6676,12 @@ var Map = class extends Evented {
     return void 0;
   }
   /**
-   * Gets whether the map is visible. This also means that the map library is loaded.
+   * Gets whether the map is ready for use. This also means that the map library is loaded and the map is visible.
    *
    * @returns {boolean}
    */
-  getIsVisible() {
-    return __privateGet(this, _isVisible2);
+  getIsReady() {
+    return __privateGet(this, _isReady);
   }
   /**
    * Gets the current projection for the map.
@@ -6644,13 +6712,13 @@ var Map = class extends Evented {
    *   map.load(() => {
    *     // Do something after the map loads
    *   });
-   * 2. Listen for the 'visible' event
-   *   map.on('visible', () => {
+   * 2. Listen for the 'ready' event
+   *   map.on('ready', () => {
    *      // Do something after the map loads
    *   });
-   * 2a. Use the once() function to listen for the 'visible' event only once. The event
+   * 2a. Use the once() function to listen for the 'ready' event only once. The event
    *     listener will be removed after the event is dispatched.
-   *   map.once('visible', () => {
+   *   map.once('ready', () => {
    *     // Do something after the map loads
    *   });
    *
@@ -6777,6 +6845,16 @@ var Map = class extends Evented {
    */
   onlyOnce(type, callback, config) {
     super.onlyOnce(type, callback, config);
+  }
+  /**
+   * Callback for when the map is ready and visible
+   *
+   * This is a "shortcut" to "on('ready', callback)"
+   *
+   * @param {EventCallback} [callback] The event listener callback function
+   */
+  onReady(callback) {
+    this.onceImmediate("ready", callback);
   }
   /**
    * Changes the center of the map by the given distance in pixels.
@@ -7075,25 +7153,70 @@ var Map = class extends Evented {
 };
 _bounds4 = new WeakMap();
 _customControls = new WeakMap();
+_element = new WeakMap();
 _fullscreenControl = new WeakMap();
 _latitude2 = new WeakMap();
 _longitude2 = new WeakMap();
 _isGettingMapOptions = new WeakMap();
 _isInitialized = new WeakMap();
 _isInitializing = new WeakMap();
-_isVisible2 = new WeakMap();
+_isReady = new WeakMap();
 _map2 = new WeakMap();
 _mapTypeControl = new WeakMap();
 _options2 = new WeakMap();
 _restriction = new WeakMap();
 _rotateControl = new WeakMap();
 _scaleControl = new WeakMap();
-_selector = new WeakMap();
 _streetViewControl = new WeakMap();
 _styles2 = new WeakMap();
 _watchId = new WeakMap();
 _zoomControl = new WeakMap();
 _Map_instances = new WeakSet();
+/**
+ * Do the actual fitting of the bounds
+ *
+ * @param {LatLngBoundsValue} bounds The bounds to fit
+ * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+ * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+ * @returns {Promise<void>}
+ */
+fitBounds_fn = function(bounds, maxZoom, minZoom) {
+  return new Promise((resolve) => {
+    if (bounds) {
+      latLngBounds(bounds).toGoogle().then((googleBounds) => {
+        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom, minZoom);
+        __privateGet(this, _map2).fitBounds(googleBounds);
+        resolve();
+      });
+    } else if (__privateGet(this, _bounds4)) {
+      __privateGet(this, _bounds4).toGoogle().then((googleBounds) => {
+        __privateMethod(this, _Map_instances, handleZoomAfterFitBounds_fn).call(this, maxZoom, minZoom);
+        __privateGet(this, _map2).fitBounds(googleBounds);
+        resolve();
+      });
+    }
+  });
+};
+/**
+ * Make sure that the zoom level doesn't exceed the maxZoom value
+ *
+ * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+ * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+ */
+handleZoomAfterFitBounds_fn = function(maxZoom, minZoom) {
+  if (isNumberOrNumberString(maxZoom)) {
+    this.once("bounds_changed", () => {
+      let { zoom } = this;
+      if (isNumberOrNumberString(minZoom)) {
+        const mz = Number(minZoom);
+        if (zoom < mz) {
+          zoom = mz;
+        }
+      }
+      this.zoom = Math.min(zoom, Number(maxZoom));
+    });
+  }
+};
 /**
  * Get the map options for showing the map
  *
@@ -7205,32 +7328,43 @@ load_fn = function(callback) {
  */
 showMap_fn = function() {
   return new Promise((resolve) => {
-    if (!__privateGet(this, _isVisible2) && !__privateGet(this, _isGettingMapOptions)) {
+    if (!__privateGet(this, _isReady) && !__privateGet(this, _isGettingMapOptions)) {
       __privateSet(this, _isGettingMapOptions, true);
-      let element = null;
-      if (typeof __privateGet(this, _selector) === "string") {
-        element = document.querySelector(__privateGet(this, _selector));
-      } else if (__privateGet(this, _selector) instanceof HTMLElement) {
-        element = __privateGet(this, _selector);
-      }
+      const element = __privateGet(this, _element);
       if (element === null) {
         throw new Error(
           "The map element could not be found. Make sure the map selector is correct and the element exists."
         );
       }
-      __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
-        __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
-        this.setEventGoogleObject(__privateGet(this, _map2));
-        if (__privateGet(this, _customControls).length > 0) {
-          __privateGet(this, _customControls).forEach((control) => {
-            __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
-          });
-        }
-        __privateSet(this, _customControls, []);
-        this.dispatch("visible");
-        loader().dispatch("map_loaded");
-        __privateSet(this, _isInitialized, true);
-        __privateSet(this, _isVisible2, true);
+      const elementDisplay = element.computedStyleMap().get("display").value;
+      if (elementDisplay === "none" || element.offsetHeight === 1 || element.offsetWidth === 0) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                observer.disconnect();
+                __privateGet(this, _setupMapObject).call(this, element).then(() => {
+                  setTimeout(() => {
+                    __privateGet(this, _setMapAsReady).call(this);
+                    resolve();
+                  }, 100);
+                });
+              }
+            });
+          },
+          {
+            root: document.documentElement
+          }
+        );
+        observer.observe(element);
+      } else {
+        __privateGet(this, _setupMapObject).call(this, element).then(() => {
+          __privateGet(this, _setMapAsReady).call(this);
+          resolve();
+        });
+      }
+    } else if (!__privateGet(this, _isReady)) {
+      this.onceImmediate("ready", () => {
         resolve();
       });
     } else {
@@ -7238,6 +7372,8 @@ showMap_fn = function() {
     }
   });
 };
+_setupMapObject = new WeakMap();
+_setMapAsReady = new WeakMap();
 var map = (selector, config) => new Map(selector, config);
 
 // src/lib/SvgSymbol.ts
@@ -7635,7 +7771,7 @@ var svgSymbol = (path, options) => {
 };
 
 // src/lib/Marker.ts
-var _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
+var _isSettingUp, _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
 var _Marker = class _Marker extends Layer_default {
   /**
    * Constructor
@@ -7646,6 +7782,13 @@ var _Marker = class _Marker extends Layer_default {
   constructor(position, options) {
     super("marker", "Marker");
     __privateAdd(this, _Marker_instances);
+    /**
+     * Holds if the marker is setting up
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isSettingUp, false);
     /**
      * Holds the Google maps marker object
      *
@@ -8143,8 +8286,9 @@ var _Marker = class _Marker extends Layer_default {
    */
   setPosition(value) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
       __privateMethod(this, _Marker_instances, setPosition_fn).call(this, value);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setGoogleMarkerPosition_fn).call(this);
       return this;
     });
   }
@@ -8159,8 +8303,9 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Marker}
    */
   setPositionSync(value) {
-    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
     __privateMethod(this, _Marker_instances, setPosition_fn).call(this, value);
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setGoogleMarkerPosition_fn).call(this);
     return this;
   }
   /**
@@ -8232,6 +8377,7 @@ var _Marker = class _Marker extends Layer_default {
     return __privateGet(this, _marker);
   }
 };
+_isSettingUp = new WeakMap();
 _marker = new WeakMap();
 _options4 = new WeakMap();
 _Marker_instances = new WeakSet();
@@ -8345,8 +8491,13 @@ setPosition_fn = function(value) {
   const position = latLng(value);
   if (position.isValid()) {
     __privateGet(this, _options4).position = position;
-    __privateGet(this, _marker).setPosition(__privateGet(this, _options4).position.toGoogle());
   }
+};
+/**
+ * Set the position for the marker on the Google marker object
+ */
+setGoogleMarkerPosition_fn = function() {
+  __privateGet(this, _marker).setPosition(__privateGet(this, _options4).position.toGoogle());
 };
 /**
  * Set the title for the marker
@@ -8370,9 +8521,11 @@ setTitle_fn = function(value) {
  */
 setupGoogleMarker_fn = function(map2) {
   return new Promise((resolve) => {
-    if (!isObject(__privateGet(this, _marker))) {
+    if (!__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
+      __privateSet(this, _isSettingUp, true);
       if (checkForGoogleMaps("Marker", "Marker", false)) {
         __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
+        this.dispatch("ready");
         resolve();
       } else {
         loader().once("map_loaded", () => {
@@ -8381,12 +8534,17 @@ setupGoogleMarker_fn = function(map2) {
           if (__privateGet(this, _marker) && thisMap) {
             __privateGet(this, _marker).setMap(thisMap.toGoogle());
           }
+          this.dispatch("ready");
           resolve();
         });
         if (map2 instanceof Map) {
           map2.init();
         }
       }
+    } else if (__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
+      this.onceImmediate("ready", () => {
+        resolve();
+      });
     } else {
       resolve();
     }

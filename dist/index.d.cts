@@ -3207,7 +3207,7 @@ type LocationPosition = {
 type LocationOnSuccess = (position: LocationPosition) => void;
 
 type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
-type InternalEvent = 'locationerror' | 'locationfound' | 'visible';
+type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
 type GMEvent = 'bounds_changed' | 'center_changed' | 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'heading_changed' | 'idle' | 'isfractionalzoomenabled_changed' | 'mapcapabilities_changed' | 'maptypeid_changed' | 'mousemove' | 'mouseout' | 'mouseover' | 'projection_changed' | 'renderingtype_changed' | 'tilesloaded' | 'tilt_changed' | 'zoom_changed';
 type MapEvent = GMEvent | InternalEvent;
 /**
@@ -3463,16 +3463,20 @@ declare class Map extends Evented {
      * Add marks to the map.
      * Then call map.fitBounds() to set the viewport to contain the markers.
      * @param {LatLngBoundsValue} bounds The bounds to fit
-     * @returns {Map}
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+     * @returns {Promise<Map>}
      */
-    fitBounds(bounds?: LatLngBoundsValue): Map;
+    fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map>;
     /**
      * Alias to fitBounds
      *
      * @param {LatLngBoundsValue} bounds The bounds to fit
-     * @returns {Map}
+     * @param {number} [maxZoom] The maximum zoom level to zoom to when fitting the bounds. Higher numbers will zoom in more.
+     * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
+     * @returns {Promise<Map>}
      */
-    fitToBounds(bounds?: LatLngBoundsValue): Map;
+    fitToBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map>;
     /**
      * Initialize the map if necessary
      *
@@ -3508,11 +3512,11 @@ declare class Map extends Evented {
      */
     getDiv(): HTMLElement | undefined;
     /**
-     * Gets whether the map is visible. This also means that the map library is loaded.
+     * Gets whether the map is ready for use. This also means that the map library is loaded and the map is visible.
      *
      * @returns {boolean}
      */
-    getIsVisible(): boolean;
+    getIsReady(): boolean;
     /**
      * Gets the current projection for the map.
      *
@@ -3535,13 +3539,13 @@ declare class Map extends Evented {
      *   map.load(() => {
      *     // Do something after the map loads
      *   });
-     * 2. Listen for the 'visible' event
-     *   map.on('visible', () => {
+     * 2. Listen for the 'ready' event
+     *   map.on('ready', () => {
      *      // Do something after the map loads
      *   });
-     * 2a. Use the once() function to listen for the 'visible' event only once. The event
+     * 2a. Use the once() function to listen for the 'ready' event only once. The event
      *     listener will be removed after the event is dispatched.
-     *   map.once('visible', () => {
+     *   map.once('ready', () => {
      *     // Do something after the map loads
      *   });
      *
@@ -3605,6 +3609,14 @@ declare class Map extends Evented {
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
     /**
+     * Callback for when the map is ready and visible
+     *
+     * This is a "shortcut" to "on('ready', callback)"
+     *
+     * @param {EventCallback} [callback] The event listener callback function
+     */
+    onReady(callback: EventCallback): void;
+    /**
      * Changes the center of the map by the given distance in pixels.
      *
      * @param {number} x The number of pixels to move the map in the x direction
@@ -3619,6 +3631,17 @@ declare class Map extends Evented {
      * @param {LatLngValue} value The latitude/longitude value to pan to
      */
     panTo(value: LatLngValue): void;
+    /**
+     * Resize the the map container to force the map to redraw itself.
+     *
+     * This is useful when the map is not displaying correctly, such as when the map is hidden and then shown.
+     *
+     * This will resize the element that the map is rendered in by default. If you need to resize a different element,
+     * pass that element as the first argument.
+     *
+     * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
+     */
+    resize: (element?: HTMLElement | string) => void;
     /**
      * Set the API key
      *
@@ -4849,7 +4872,7 @@ type MarkerOptions = GMMarkerOptions & {
     svgIcon?: SvgSymbolValue | string;
     tooltip?: TooltipValue;
 };
-type MarkerEvent = 'animation_changed' | 'click' | 'clickable_changed' | 'contextmenu' | 'cursor_changed' | 'dblclick' | 'drag' | 'dragend' | 'draggable_changed' | 'dragstart' | 'flat_changed' | 'icon_changed' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'position_changed' | 'shape_changed' | 'title_changed' | 'visible_changed' | 'zindex_changed';
+type MarkerEvent = 'animation_changed' | 'click' | 'clickable_changed' | 'contextmenu' | 'cursor_changed' | 'dblclick' | 'drag' | 'dragend' | 'draggable_changed' | 'dragstart' | 'flat_changed' | 'icon_changed' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'position_changed' | 'ready' | 'shape_changed' | 'title_changed' | 'visible_changed' | 'zindex_changed';
 /**
  * Marker class to set up a single marker and add it to the map
  */

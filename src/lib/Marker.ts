@@ -94,6 +94,7 @@ type MarkerEvent =
     | 'mouseover'
     | 'mouseup'
     | 'position_changed'
+    | 'ready'
     | 'shape_changed'
     | 'title_changed'
     | 'visible_changed'
@@ -103,6 +104,14 @@ type MarkerEvent =
  * Marker class to set up a single marker and add it to the map
  */
 export class Marker extends Layer {
+    /**
+     * Holds if the marker is setting up
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isSettingUp: boolean = false;
+
     /**
      * Holds the Google maps marker object
      *
@@ -779,8 +788,9 @@ export class Marker extends Layer {
      * @returns {Promise<Marker>}
      */
     async setPosition(value: LatLngValue): Promise<Marker> {
-        await this.#setupGoogleMarker();
         this.#setPosition(value);
+        await this.#setupGoogleMarker();
+        this.#setGoogleMarkerPosition();
         return this;
     }
 
@@ -795,8 +805,9 @@ export class Marker extends Layer {
      * @returns {Marker}
      */
     setPositionSync(value: LatLngValue): Marker {
-        this.#setupGoogleMarkerSync();
         this.#setPosition(value);
+        this.#setupGoogleMarkerSync();
+        this.#setGoogleMarkerPosition();
         return this;
     }
 
@@ -809,8 +820,14 @@ export class Marker extends Layer {
         const position = latLng(value);
         if (position.isValid()) {
             this.#options.position = position;
-            this.#marker.setPosition(this.#options.position.toGoogle());
         }
+    }
+
+    /**
+     * Set the position for the marker on the Google marker object
+     */
+    #setGoogleMarkerPosition() {
+        this.#marker.setPosition(this.#options.position.toGoogle());
     }
 
     /**
@@ -907,9 +924,12 @@ export class Marker extends Layer {
      */
     #setupGoogleMarker(map?: Map): Promise<void> {
         return new Promise((resolve) => {
-            if (!isObject(this.#marker)) {
+            if (!this.#isSettingUp && !isObject(this.#marker)) {
+                this.#isSettingUp = true;
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
                     this.#createMarkerObject();
+                    // Dispatch the event to say that the marker is ready
+                    this.dispatch('ready');
                     resolve();
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
@@ -923,6 +943,8 @@ export class Marker extends Layer {
                         if (this.#marker && thisMap) {
                             this.#marker.setMap(thisMap.toGoogle());
                         }
+                        // Dispatch the event to say that the marker is ready
+                        this.dispatch('ready');
                         resolve();
                     });
 
@@ -931,6 +953,11 @@ export class Marker extends Layer {
                         map.init();
                     }
                 }
+            } else if (this.#isSettingUp && !isObject(this.#marker)) {
+                // The marker is already being set up. Wait for it to finish.
+                this.onceImmediate('ready', () => {
+                    resolve();
+                });
             } else {
                 resolve();
             }
