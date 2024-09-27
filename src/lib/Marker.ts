@@ -942,6 +942,8 @@ export class Marker extends Layer {
                         const thisMap = this.getMap();
                         if (this.#marker && thisMap) {
                             this.#marker.setMap(thisMap.toGoogle());
+                        } else if (this.#marker && map) {
+                            this.#marker.setMap(map.toGoogle());
                         }
                         // Dispatch the event to say that the marker is ready
                         this.dispatch('ready');
