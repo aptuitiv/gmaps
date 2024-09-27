@@ -8533,6 +8533,8 @@ setupGoogleMarker_fn = function(map2) {
           const thisMap = this.getMap();
           if (__privateGet(this, _marker) && thisMap) {
             __privateGet(this, _marker).setMap(thisMap.toGoogle());
+          } else if (__privateGet(this, _marker) && map2) {
+            __privateGet(this, _marker).setMap(map2.toGoogle());
           }
           this.dispatch("ready");
           resolve();
