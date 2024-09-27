@@ -773,7 +773,7 @@ export class Marker extends Layer {
             }
         });
 
-        // // Set the map. This must come last so that the opther options are set.
+        // Set the map. This must come last so that the other options are set.
         if (options.map) {
             this.setMap(options.map);
         }
