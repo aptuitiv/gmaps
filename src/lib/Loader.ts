@@ -299,7 +299,7 @@ export class Loader extends EventTarget {
      * All events on the loader object are set up as "once" events because the
      * load event is only dispatched one time when the Google maps API is loaded.
      *
-     * @param callback A callback function to run when the Google maps API has loaded
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
      */
     onLoad(callback: EventListenerOrEventListenerObject): void {
         this.on(LoaderEvents.LOAD, callback);
@@ -311,7 +311,7 @@ export class Loader extends EventTarget {
      * All events on the loader object are set up as "once" events because the
      * load event is only dispatched one time when the Google maps API is loaded.
      *
-     * @param callback A callback function to run when the Google maps API has loaded
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
      */
     onMapLoad(callback: EventListenerOrEventListenerObject): void {
         this.on(LoaderEvents.MAP_LOAD, callback);
@@ -330,7 +330,7 @@ export class Loader extends EventTarget {
     /**
      * Sets up an event listener for the "load" event that will only be called once.
      *
-     * @param callback A callback function to run when the Google maps API has loaded
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
      */
     onceLoad(callback: EventListenerOrEventListenerObject | null): void {
         this.on(LoaderEvents.LOAD, callback);
@@ -339,7 +339,7 @@ export class Loader extends EventTarget {
     /**
      * Sets up an event listener for the "map_load" event that will only be called once.
      *
-     * @param callback A callback function to run when the Google maps API has loaded
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
      */
     onceMapLoad(callback: EventListenerOrEventListenerObject | null): void {
         this.on(LoaderEvents.MAP_LOAD, callback);
