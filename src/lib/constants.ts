@@ -202,6 +202,49 @@ export const LoaderEvents = Object.freeze({
     // The API library is loaded and the map is loaded and visible.
     MAP_LOAD: 'map_load',
 });
+
+/**
+ * Events that can be fired by the Map.
+ *
+ * This includes references to Google Maps events https://developers.google.com/maps/documentation/javascript/reference/map#Map-Events
+ * and this library's custom events.
+ */
+export const MapEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/map#Map-Events
+    BOUNDS_CHANGED: 'bounds_changed',
+    CENTER_CHANGED: 'center_changed',
+    CLICK: 'click',
+    CONTEXT_MENU: 'contextmenu',
+    DBLCLICK: 'dblclick',
+    DRAG: 'drag',
+    DRAG_END: 'dragend',
+    DRAG_START: 'dragstart',
+    HEADING_CHANGED: 'heading_changed',
+    IDLE: 'idle',
+    IS_FRACTIONAL_ZOOM_ENABLED_CHANGED: 'isfractionalzoomenabled_changed',
+    MAP_CAPABILITIES_CHANGED: 'mapcapabilities_changed',
+    MAP_TYPE_ID_CHANGED: 'maptypeid_changed',
+    MOUSE_MOVE: 'mousemove',
+    MOUSE_OUT: 'mouseout',
+    MOUSE_OVER: 'mouseover',
+    PROJECTION_CHANGED: 'projection_changed',
+    RENDERING_TYPE_CHANGED: 'renderingtype_changed',
+    TILES_LOADED: 'tilesloaded',
+    TILT_CHANGED: 'tilt_changed',
+    ZOOM_CHANGED: 'zoom_changed',
+
+    // Custom events for this library
+    // https://aptuitiv.github.io/gmaps-docs/api-reference/map#events
+
+    // There was an error getting the user's location.
+    LOCATION_ERROR: 'locationerror',
+    // The user's location has been found.
+    LOCATION_FOUND: 'locationfound',
+    // The map is loaded, visible, and ready for use.
+    READY: 'ready',
+});
+
 /**
  * Style values for common MapTypesControls.
  *

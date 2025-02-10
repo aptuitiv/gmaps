@@ -15,7 +15,14 @@
 
 /* global google, HTMLElement */
 
-import { convertControlPosition, ControlPositionValue, MapTypeId, MapTypeIdValue } from './constants';
+import {
+    convertControlPosition,
+    ControlPositionValue,
+    LoaderEvents,
+    MapEvents,
+    MapTypeId,
+    MapTypeIdValue,
+} from './constants';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
@@ -858,7 +865,7 @@ export class Map extends Evented {
      */
     #handleZoomAfterFitBounds(maxZoom?: number, minZoom?: number): void {
         if (isNumberOrNumberString(maxZoom)) {
-            this.once('bounds_changed', () => {
+            this.once(MapEvents.BOUNDS_CHANGED, () => {
                 let { zoom } = this;
                 if (isNumberOrNumberString(minZoom)) {
                     const mz = Number(minZoom);
@@ -896,7 +903,7 @@ export class Map extends Evented {
                     });
                 } else {
                     // The map is initializing, so wait for it to finish
-                    this.onceImmediate('ready', () => {
+                    this.onceImmediate(MapEvents.READY, () => {
                         callCallback(callback);
                         resolve(this);
                     });
@@ -1264,14 +1271,221 @@ export class Map extends Evented {
     }
 
     /**
-     * Callback for when the map is ready and visible
+     * Add event listener for when the viewport bounds have changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the map bounds change
+     */
+    onBoundsChanged(callback: EventCallback): void {
+        this.on(MapEvents.BOUNDS_CHANGED, callback);
+    }
+
+    /**
+     * Add event listener for when the map center property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onCenterChanged(callback: EventCallback): void {
+        this.on(MapEvents.CENTER_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the map is clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onClick(callback: EventCallback): void {
+        this.on(MapEvents.CLICK, callback);
+    }
+
+    /**
+     * Add an event listener for when the DOM contextmenu is fired on the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onContextMenu(callback: EventCallback): void {
+        this.on(MapEvents.CONTEXT_MENU, callback);
+    }
+
+    /**
+     * Add an event listener for when the map is double clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDblClick(callback: EventCallback): void {
+        this.on(MapEvents.DBLCLICK, callback);
+    }
+
+    /**
+     * Add an event listener for when the user drags the map.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void {
+        this.on(MapEvents.DRAG, callback);
+    }
+
+    /**
+     * Add an event listener for when the user stops dragging the map.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void {
+        this.on(MapEvents.DRAG_END, callback);
+    }
+
+    /**
+     * Add an event listener for when the user starts draging the map.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void {
+        this.on(MapEvents.DRAG_START, callback);
+    }
+
+    /**
+     * Add an event listener for when the map heading value changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onHeadingChanged(callback: EventCallback): void {
+        this.on(MapEvents.HEADING_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the map becomes idle after panning or zooming.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onIdle(callback: EventCallback): void {
+        this.on(MapEvents.IDLE, callback);
+    }
+
+    /**
+     * Add an event listener for when the isFractionalZoomEnabled property has changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onIsFractionalZoomEnabledChanged(callback: EventCallback): void {
+        this.on(MapEvents.IS_FRACTIONAL_ZOOM_ENABLED_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when there is an error getting the user's location.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onLocationError(callback: EventCallback): void {
+        this.on(MapEvents.LOCATION_ERROR, callback);
+    }
+
+    /**
+     * Add an event listener for when the user's location has been found.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onLocationFound(callback: EventCallback): void {
+        this.on(MapEvents.LOCATION_FOUND, callback);
+    }
+
+    /**
+     * Add an event listener for when the map capabilities change.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMapCapabilitiesChanged(callback: EventCallback): void {
+        this.on(MapEvents.MAP_CAPABILITIES_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the mapTypeId property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMapTypeIdChanged(callback: EventCallback): void {
+        this.on(MapEvents.MAP_TYPE_ID_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the user's mouse moves over the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseMove(callback: EventCallback): void {
+        this.on(MapEvents.MOUSE_MOVE, callback);
+    }
+
+    /**
+     * Add an event listener for when the user's mouse exits the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOut(callback: EventCallback): void {
+        this.on(MapEvents.MOUSE_OUT, callback);
+    }
+
+    /**
+     * Add an event listener for when the user's mouse enters the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOver(callback: EventCallback): void {
+        this.on(MapEvents.MOUSE_OVER, callback);
+    }
+
+    /**
+     * Add an event listener for when the map projection has changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onProjectionChanged(callback: EventCallback): void {
+        this.on(MapEvents.PROJECTION_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the map is ready and visible
      *
      * This is a "shortcut" to "on('ready', callback)"
      *
-     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
      */
     onReady(callback: EventCallback): void {
-        this.onceImmediate('ready', callback);
+        this.onceImmediate(MapEvents.READY, callback);
+    }
+
+    /**
+     * Add an event listener for when the map renderingType has changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRenderingTypeChanged(callback: EventCallback): void {
+        this.on(MapEvents.RENDERING_TYPE_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the visible tiles have finished loading.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onTilesLoaded(callback: EventCallback): void {
+        this.on(MapEvents.TILES_LOADED, callback);
+    }
+
+    /**
+     * Add an event listener for when the map tilt property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onTiltChanged(callback: EventCallback): void {
+        this.on(MapEvents.TILT_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the map zoom property changes
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onZoomChanged(callback: EventCallback): void {
+        this.on(MapEvents.ZOOM_CHANGED, callback);
     }
 
     /**
@@ -1673,7 +1887,7 @@ export class Map extends Evented {
                 }
             } else if (!this.#isReady) {
                 // Wait for the map options to be set up and the map to be ready
-                this.onceImmediate('ready', () => {
+                this.onceImmediate(MapEvents.READY, () => {
                     resolve();
                 });
             } else {
@@ -1712,7 +1926,7 @@ export class Map extends Evented {
      */
     #setMapAsReady = () => {
         // Dispatch the event to say that the map is visible and ready
-        this.dispatch('ready');
+        this.dispatch(MapEvents.READY);
         // Dispatch the event on the loader to say that the map is fully loaded.
         // This is done because the map is loaded after the loader's "load" event is dispatched
         // and some objects depend on the map being loaded before they can be set up.
