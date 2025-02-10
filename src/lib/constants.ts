@@ -12,6 +12,16 @@
 /* global google */
 
 /**
+ * Events that can be fired by the Autocomplete search box.
+ *
+ * https://aptuitiv.github.io/gmaps-docs/api-reference/autocomplete-search-box#events
+ */
+export const AutocompleteSearchBoxEvents = Object.freeze({
+    // Called when the user selects a Place.
+    PLACE_CHANGED: 'place_changed',
+});
+
+/**
  * Identifiers used to specify the placement of controls on the map.
  * See https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
  */
