@@ -182,6 +182,17 @@ export const GeocoderLocationType = Object.freeze({
 export type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
 
 /**
+ * Events that can be fired by the Loader.
+ *
+ * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
+ */
+export const LoaderEvents = Object.freeze({
+    // The API library is loaded.
+    LOAD: 'load',
+    // The API library is loaded and the map is loaded and visible.
+    MAP_LOADED: 'map_loaded',
+});
+/**
  * Style values for common MapTypesControls.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/control#MapTypeControlStyle

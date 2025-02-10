@@ -18,13 +18,14 @@ loader.setApiKey('Another one').setLibraries('places').setVersion('quarterly');
 loader.libraries = 'geometry';
 
 const load = G.loader({ apiKey: apiKey, });
-load.on('load', () => { console.log('loaded event'); });
+load.on(G.LoaderEvents.LOAD, () => { console.log('loaded event'); });
+load.onLoad(() => { console.log('onload loaded event'); });
 
 
-// load.load(() => {
-//     console.log('Loaded in callback');
-//     map.show();
-// });
+load.load(() => {
+    console.log('Loaded in callback');
+    // map.show();
+});
 
 // await load.load();
 // map.show();

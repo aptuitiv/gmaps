@@ -4,6 +4,7 @@
 =========================================================================== */
 
 import { Loader as GoogleLoader, Libraries } from '@googlemaps/js-api-loader';
+import { LoaderEvents } from './constants';
 import { callCallback, isFunction, isObject, isObjectWithValues, isString, isStringWithValue } from './helpers';
 
 // Loader Options
@@ -239,7 +240,7 @@ export class Loader extends EventTarget {
                                 }
                                 this.#isLoaded = true;
                                 callCallback(callback);
-                                this.dispatch('load');
+                                this.dispatch(LoaderEvents.LOAD);
                                 resolve();
                             })
                             .catch((err) => {
@@ -250,7 +251,7 @@ export class Loader extends EventTarget {
                     }
                 } else {
                     // Wait for the Google maps API to load
-                    this.once('load', () => {
+                    this.once(LoaderEvents.LOAD, () => {
                         callCallback(callback);
                         resolve();
                     });
@@ -285,7 +286,7 @@ export class Loader extends EventTarget {
         if (isFunction(callback)) {
             this.addEventListener(type, callback, { once: true });
             if (this.#isLoaded) {
-                this.dispatch('load');
+                this.dispatch(LoaderEvents.LOAD);
             }
         } else {
             throw new Error('the event handler needs a callback function');
