@@ -17,7 +17,18 @@
 // The classes should not be used for other purposes. For all other functionality
 // the lowercase objects should be used (i.e. marker, polyline, etc.).
 import { autocompleteSearchBox, AutocompleteSearchBox } from './lib/AutocompleteSearchBox';
-import { ControlPosition, MapTypeControlStyle, MapTypeId } from './lib/constants';
+import {
+    AutocompleteSearchBoxEvents,
+    ControlPosition,
+    GeocoderErrorStatus,
+    GeocoderLocationType,
+    LoaderEvents,
+    MapEvents,
+    MapTypeControlStyle,
+    MapTypeId,
+    RenderingType,
+    StreetViewSource,
+} from './lib/constants';
 import { geocode, Geocode } from './lib/Geocode';
 import { icon, Icon } from './lib/Icon';
 import { infoWindow, InfoWindow } from './lib/InfoWindow';
@@ -48,9 +59,16 @@ import { tooltip, Tooltip } from './lib/Tooltip';
 
 // Types
 type GlobalObj = {
+    AutocompleteSearchBoxEvents: typeof AutocompleteSearchBoxEvents;
     ControlPosition: typeof ControlPosition;
+    GeocoderErrorStatus: typeof GeocoderErrorStatus;
+    GeocoderLocationType: typeof GeocoderLocationType;
+    LoaderEvents: typeof LoaderEvents;
+    MapEvents: typeof MapEvents;
     MapTypeControlStyle: typeof MapTypeControlStyle;
     MapTypeId: typeof MapTypeId;
+    RenderingType: typeof RenderingType;
+    StreetViewSource: typeof StreetViewSource;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
     fullscreenControl: typeof fullscreenControl;
@@ -112,9 +130,16 @@ type GlobalObj = {
 
 // Set up the global namespace object
 const G: GlobalObj = {
+    AutocompleteSearchBoxEvents,
     ControlPosition,
+    GeocoderErrorStatus,
+    GeocoderLocationType,
+    LoaderEvents,
+    MapEvents,
     MapTypeControlStyle,
     MapTypeId,
+    RenderingType,
+    StreetViewSource,
     autocompleteSearchBox,
     AutocompleteSearchBox,
     fullscreenControl,

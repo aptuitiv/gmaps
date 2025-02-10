@@ -102,6 +102,14 @@ declare class Base {
 }
 
 /**
+ * Events that can be fired by the Autocomplete search box.
+ *
+ * https://aptuitiv.github.io/gmaps-docs/api-reference/autocomplete-search-box#events
+ */
+declare const AutocompleteSearchBoxEvents: Readonly<{
+    PLACE_CHANGED: "place_changed";
+}>;
+/**
  * Identifiers used to specify the placement of controls on the map.
  * See https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
  */
@@ -253,6 +261,47 @@ declare const GeocoderLocationType: Readonly<{
     ROOFTOP: "ROOFTOP";
 }>;
 type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
+/**
+ * Events that can be fired by the Loader.
+ *
+ * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
+ */
+declare const LoaderEvents: Readonly<{
+    LOAD: "load";
+    MAP_LOAD: "map_load";
+}>;
+/**
+ * Events that can be fired by the Map.
+ *
+ * This includes references to Google Maps events https://developers.google.com/maps/documentation/javascript/reference/map#Map-Events
+ * and this library's custom events.
+ */
+declare const MapEvents: Readonly<{
+    BOUNDS_CHANGED: "bounds_changed";
+    CENTER_CHANGED: "center_changed";
+    CLICK: "click";
+    CONTEXT_MENU: "contextmenu";
+    DBLCLICK: "dblclick";
+    DRAG: "drag";
+    DRAG_END: "dragend";
+    DRAG_START: "dragstart";
+    HEADING_CHANGED: "heading_changed";
+    IDLE: "idle";
+    IS_FRACTIONAL_ZOOM_ENABLED_CHANGED: "isfractionalzoomenabled_changed";
+    MAP_CAPABILITIES_CHANGED: "mapcapabilities_changed";
+    MAP_TYPE_ID_CHANGED: "maptypeid_changed";
+    MOUSE_MOVE: "mousemove";
+    MOUSE_OUT: "mouseout";
+    MOUSE_OVER: "mouseover";
+    PROJECTION_CHANGED: "projection_changed";
+    RENDERING_TYPE_CHANGED: "renderingtype_changed";
+    TILES_LOADED: "tilesloaded";
+    TILT_CHANGED: "tilt_changed";
+    ZOOM_CHANGED: "zoom_changed";
+    LOCATION_ERROR: "locationerror";
+    LOCATION_FOUND: "locationfound";
+    READY: "ready";
+}>;
 /**
  * Style values for common MapTypesControls.
  *
@@ -3609,13 +3658,151 @@ declare class Map extends Evented {
      */
     onlyOnce(type: MapEvent, callback: EventCallback, config?: EventConfig): void;
     /**
-     * Callback for when the map is ready and visible
+     * Add event listener for when the viewport bounds have changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the map bounds change
+     */
+    onBoundsChanged(callback: EventCallback): void;
+    /**
+     * Add event listener for when the map center property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onCenterChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map is clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onClick(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the DOM contextmenu is fired on the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onContextMenu(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map is double clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDblClick(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user drags the map.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user stops dragging the map.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user starts draging the map.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map heading value changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onHeadingChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map becomes idle after panning or zooming.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onIdle(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the isFractionalZoomEnabled property has changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onIsFractionalZoomEnabledChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when there is an error getting the user's location.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onLocationError(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user's location has been found.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onLocationFound(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map capabilities change.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMapCapabilitiesChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the mapTypeId property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMapTypeIdChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user's mouse moves over the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseMove(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user's mouse exits the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOut(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user's mouse enters the map container.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOver(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map projection has changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onProjectionChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map is ready and visible
      *
      * This is a "shortcut" to "on('ready', callback)"
      *
-     * @param {EventCallback} [callback] The event listener callback function
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
      */
     onReady(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map renderingType has changed.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRenderingTypeChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the visible tiles have finished loading.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onTilesLoaded(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map tilt property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onTiltChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the map zoom property changes
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onZoomChanged(callback: EventCallback): void;
     /**
      * Changes the center of the map by the given distance in pixels.
      *
@@ -4193,12 +4380,42 @@ declare class Loader extends EventTarget {
      */
     on(type: string, callback: EventListenerOrEventListenerObject): void;
     /**
+     * Sets up an event listener for the "load" event.
+     *
+     * All events on the loader object are set up as "once" events because the
+     * load event is only dispatched one time when the Google maps API is loaded.
+     *
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
+     */
+    onLoad(callback: EventListenerOrEventListenerObject): void;
+    /**
+     * Sets up an event listener for the "map_load" event.
+     *
+     * All events on the loader object are set up as "once" events because the
+     * load event is only dispatched one time when the Google maps API is loaded.
+     *
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
+     */
+    onMapLoad(callback: EventListenerOrEventListenerObject): void;
+    /**
      * Sets up an event listener that will only be called once
      *
      * @param {string} type The event type
      * @param {Function} callback The event listener function
      */
     once(type: string, callback: EventListenerOrEventListenerObject | null): void;
+    /**
+     * Sets up an event listener for the "load" event that will only be called once.
+     *
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
+     */
+    onceLoad(callback: EventListenerOrEventListenerObject | null): void;
+    /**
+     * Sets up an event listener for the "map_load" event that will only be called once.
+     *
+     * @param {Function} callback A callback function to run when the Google maps API has loaded
+     */
+    onceMapLoad(callback: EventListenerOrEventListenerObject | null): void;
 }
 /**
  * Helper function to set up the loader object.
@@ -6283,4 +6500,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
