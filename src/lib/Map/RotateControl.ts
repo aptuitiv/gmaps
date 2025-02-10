@@ -144,7 +144,7 @@ export class RotateControl {
      */
     toGoogle(): Promise<google.maps.RotateControlOptions> {
         return new Promise((resolve) => {
-            loader().on('load', () => {
+            loader().onLoad(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
                 });

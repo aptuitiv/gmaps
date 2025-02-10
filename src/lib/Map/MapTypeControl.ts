@@ -365,7 +365,7 @@ export class MapTypeControl {
      */
     toGoogle(): Promise<google.maps.MapTypeControlOptions> {
         return new Promise((resolve) => {
-            loader().on('load', () => {
+            loader().onLoad(() => {
                 resolve({
                     mapTypeIds: this.#mapTypeIds,
                     position: convertControlPosition(this.#position),

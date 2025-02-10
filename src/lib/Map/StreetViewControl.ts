@@ -199,7 +199,7 @@ export class StreetViewControl {
      */
     toGoogle(): Promise<google.maps.StreetViewControlOptions> {
         return new Promise((resolve) => {
-            loader().on('load', () => {
+            loader().onLoad(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
                 });

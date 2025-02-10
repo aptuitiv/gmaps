@@ -144,7 +144,7 @@ export class ZoomControl {
      */
     toGoogle(): Promise<google.maps.ZoomControlOptions> {
         return new Promise((resolve) => {
-            loader().on('load', () => {
+            loader().onLoad(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
                 });

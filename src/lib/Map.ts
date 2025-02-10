@@ -1599,7 +1599,7 @@ export class Map extends Evented {
                 });
             } else {
                 // Wait for the loader to dispatch it's "load" event
-                loader().once('load', () => {
+                loader().onceLoad(() => {
                     this.#showMap().then(() => {
                         // Call the callback function if necessary
                         callCallback(callback);
