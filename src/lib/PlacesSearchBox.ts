@@ -214,7 +214,7 @@ export class PlacesSearchBox extends Evented {
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().once('map_loaded', () => {
+                    loader().onMapLoad(() => {
                         this.#createPlacesSearchBox().then(() => {
                             resolve();
                         });

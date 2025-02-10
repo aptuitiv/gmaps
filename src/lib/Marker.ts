@@ -934,7 +934,7 @@ export class Marker extends Layer {
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().once('map_loaded', () => {
+                    loader().onMapLoad(() => {
                         this.#createMarkerObject();
                         // Make sure that the map is still set.
                         // It's unlikely, but possible, that the developer could have removed the map

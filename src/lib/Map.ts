@@ -1613,7 +1613,7 @@ export class Map extends Evented {
     /**
      * Show the map
      *
-     * This also dispatches the "visible" and "map_loaded" events,
+     * This also dispatches the "visible" and "map_load" events,
      * and calls the callback function.
      *
      * @returns {Promise<void>}
@@ -1716,7 +1716,7 @@ export class Map extends Evented {
         // Dispatch the event on the loader to say that the map is fully loaded.
         // This is done because the map is loaded after the loader's "load" event is dispatched
         // and some objects depend on the map being loaded before they can be set up.
-        loader().dispatch('map_loaded');
+        loader().dispatch(LoaderEvents.MAP_LOAD);
 
         // Set that the map is initialized
         this.#isInitialized = true;

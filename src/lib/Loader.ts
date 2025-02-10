@@ -306,6 +306,18 @@ export class Loader extends EventTarget {
     }
 
     /**
+     * Sets up an event listener for the "map_load" event.
+     *
+     * All events on the loader object are set up as "once" events because the
+     * load event is only dispatched one time when the Google maps API is loaded.
+     *
+     * @param callback A callback function to run when the Google maps API has loaded
+     */
+    onMapLoad(callback: EventListenerOrEventListenerObject): void {
+        this.on(LoaderEvents.MAP_LOAD, callback);
+    }
+
+    /**
      * Sets up an event listener that will only be called once
      *
      * @param {string} type The event type
@@ -322,6 +334,15 @@ export class Loader extends EventTarget {
      */
     onceLoad(callback: EventListenerOrEventListenerObject | null): void {
         this.on(LoaderEvents.LOAD, callback);
+    }
+
+    /**
+     * Sets up an event listener for the "map_load" event that will only be called once.
+     *
+     * @param callback A callback function to run when the Google maps API has loaded
+     */
+    onceMapLoad(callback: EventListenerOrEventListenerObject | null): void {
+        this.on(LoaderEvents.MAP_LOAD, callback);
     }
 }
 

@@ -200,7 +200,7 @@ export const LoaderEvents = Object.freeze({
     // The API library is loaded.
     LOAD: 'load',
     // The API library is loaded and the map is loaded and visible.
-    MAP_LOADED: 'map_loaded',
+    MAP_LOAD: 'map_load',
 });
 /**
  * Style values for common MapTypesControls.

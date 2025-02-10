@@ -430,7 +430,7 @@ export class Overlay extends Layer {
                     resolve(this);
                 } else {
                     // The Google maps library isn't loaded yet. Wait for it to load.
-                    loader().once('map_loaded', () => {
+                    loader().onMapLoad(() => {
                         this.#setupGoogleOverlay();
                         if (this.#overlayView) {
                             this.#overlayView.setMap(map.toGoogle());
