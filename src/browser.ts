@@ -27,6 +27,7 @@ import {
     MapTypeControlStyle,
     MapTypeId,
     MarkerEvents,
+    PlacesSearchBoxEvents,
     RenderingType,
     StreetViewSource,
 } from './lib/constants';
@@ -69,6 +70,7 @@ type GlobalObj = {
     MapTypeControlStyle: typeof MapTypeControlStyle;
     MapTypeId: typeof MapTypeId;
     MarkerEvents: typeof MarkerEvents;
+    PlacesSearchBoxEvents: typeof PlacesSearchBoxEvents;
     RenderingType: typeof RenderingType;
     StreetViewSource: typeof StreetViewSource;
     autocompleteSearchBox: typeof autocompleteSearchBox;
@@ -141,6 +143,7 @@ const G: GlobalObj = {
     MapTypeControlStyle,
     MapTypeId,
     MarkerEvents,
+    PlacesSearchBoxEvents,
     RenderingType,
     StreetViewSource,
     autocompleteSearchBox,

@@ -357,6 +357,14 @@ export const MarkerEvents = Object.freeze({
 });
 
 /**
+ * Events that can be fired by the PlacesSearchBox.
+ */
+export const PlacesSearchBoxEvents = Object.freeze({
+    // Called when the user selects a Place.
+    PLACES_CHANGED: 'places_changed',
+});
+
+/**
  * The rendering type of the map.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
