@@ -319,6 +319,44 @@ export const MapTypeId = Object.freeze({
 export type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
 
 /**
+ * Events that can be fired by the Marker.
+ *
+ * This includes references to Google Maps marker events https://developers.google.com/maps/documentation/javascript/reference/marker#Marker-Events
+ * and this library's custom events.
+ */
+export const MarkerEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/marker#Marker-Events
+    ANIMATION_CHANGED: 'animation_changed',
+    CLICK: 'click',
+    CLICKABLE_CHANGED: 'clickable_changed',
+    CONTEXT_MENU: 'contextmenu',
+    CURSOR_CHANGED: 'cursor_changed',
+    DBLCLICK: 'dblclick',
+    DRAG: 'drag',
+    DRAG_END: 'dragend',
+    DRAGGABLE_CHANGED: 'draggable_changed',
+    DRAG_START: 'dragstart',
+    FLAT_CHANGED: 'flat_changed',
+    ICON_CHANGED: 'icon_changed',
+    MOUSE_DOWN: 'mousedown',
+    MOUSE_OUT: 'mouseout',
+    MOUSE_OVER: 'mouseover',
+    MOUSE_UP: 'mouseup',
+    POSITION_CHANGED: 'position_changed',
+    SHAPE_CHANGED: 'shape_changed',
+    TITLE_CHANGED: 'title_changed',
+    VISIBLE_CHANGED: 'visible_changed',
+    ZINDEX_CHANGED: 'zindex_changed',
+
+    // Custom events for this library
+    // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
+
+    // The marker is loaded and ready for use.
+    READY: 'ready',
+});
+
+/**
  * The rendering type of the map.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
