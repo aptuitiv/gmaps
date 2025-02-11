@@ -357,11 +357,27 @@ export const MarkerEvents = Object.freeze({
 });
 
 /**
+ * Events that can be fired by the Overlay.
+ */
+export const OverlayEvents = Object.freeze({
+    // Called when the overlay opens
+    OPEN: 'open',
+});
+
+/**
  * Events that can be fired by the PlacesSearchBox.
  */
 export const PlacesSearchBoxEvents = Object.freeze({
     // Called when the user selects a Place.
     PLACES_CHANGED: 'places_changed',
+});
+
+/**
+ * Events that can be fired by the Popup.
+ */
+export const PopupEvents = Object.freeze({
+    // Called when the popup opens
+    OPEN: 'open',
 });
 
 /**
