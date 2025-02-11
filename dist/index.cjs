@@ -93,12 +93,16 @@ __export(src_exports, {
   Marker: () => Marker,
   MarkerCluster: () => MarkerCluster,
   MarkerCollection: () => MarkerCollection,
+  MarkerEvents: () => MarkerEvents,
   Overlay: () => Overlay,
+  OverlayEvents: () => OverlayEvents,
   PlacesSearchBox: () => PlacesSearchBox,
+  PlacesSearchBoxEvents: () => PlacesSearchBoxEvents,
   Point: () => Point,
   Polyline: () => Polyline,
   PolylineCollection: () => PolylineCollection,
   Popup: () => Popup,
+  PopupEvents: () => PopupEvents,
   RenderingType: () => RenderingType,
   RotateControl: () => RotateControl,
   ScaleControl: () => ScaleControl,
@@ -522,6 +526,47 @@ var MapTypeId = Object.freeze({
    * vegetation.
    */
   TERRAIN: "terrain"
+});
+var MarkerEvents = Object.freeze({
+  // Google Maps events
+  // https://developers.google.com/maps/documentation/javascript/reference/marker#Marker-Events
+  ANIMATION_CHANGED: "animation_changed",
+  CLICK: "click",
+  CLICKABLE_CHANGED: "clickable_changed",
+  CONTEXT_MENU: "contextmenu",
+  CURSOR_CHANGED: "cursor_changed",
+  DBLCLICK: "dblclick",
+  DRAG: "drag",
+  DRAG_END: "dragend",
+  DRAGGABLE_CHANGED: "draggable_changed",
+  DRAG_START: "dragstart",
+  FLAT_CHANGED: "flat_changed",
+  ICON_CHANGED: "icon_changed",
+  MOUSE_DOWN: "mousedown",
+  MOUSE_OUT: "mouseout",
+  MOUSE_OVER: "mouseover",
+  MOUSE_UP: "mouseup",
+  POSITION_CHANGED: "position_changed",
+  SHAPE_CHANGED: "shape_changed",
+  TITLE_CHANGED: "title_changed",
+  VISIBLE_CHANGED: "visible_changed",
+  ZINDEX_CHANGED: "zindex_changed",
+  // Custom events for this library
+  // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
+  // The marker is loaded and ready for use.
+  READY: "ready"
+});
+var OverlayEvents = Object.freeze({
+  // Called when the overlay opens
+  OPEN: "open"
+});
+var PlacesSearchBoxEvents = Object.freeze({
+  // Called when the user selects a Place.
+  PLACES_CHANGED: "places_changed"
+});
+var PopupEvents = Object.freeze({
+  // Called when the popup opens
+  OPEN: "open"
 });
 var RenderingType = Object.freeze({
   // 	Indicates that the map is a raster map.
@@ -8429,6 +8474,182 @@ var _Marker = class _Marker extends Layer_default {
     super.onlyOnce(type, callback, config);
   }
   /**
+   * Add an event listener for when the marker's animation changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onAnimationChanged(callback) {
+    this.on(MarkerEvents.ANIMATION_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker icon is clicked.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onClick(callback) {
+    this.on(MarkerEvents.CLICK, callback);
+  }
+  /**
+   * Add an event listener for when the marker clickable property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onClickableChanged(callback) {
+    this.on(MarkerEvents.CLICKABLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the DOM context menu is triggered on the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onContextMenu(callback) {
+    this.on(MarkerEvents.CONTEXT_MENU, callback);
+  }
+  /**
+   * Add an event listener for when the marker cursor property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onCursorChanged(callback) {
+    this.on(MarkerEvents.CURSOR_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker is double clicked.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDblClick(callback) {
+    this.on(MarkerEvents.DBLCLICK, callback);
+  }
+  /**
+   * Add an event listener for when the user drags the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDrag(callback) {
+    this.on(MarkerEvents.DRAG, callback);
+  }
+  /**
+   * Add an event listener for when the user stops dragging the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragEnd(callback) {
+    this.on(MarkerEvents.DRAG_END, callback);
+  }
+  /**
+   * Add an event listener for when the marker draggable property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDraggableChanged(callback) {
+    this.on(MarkerEvents.DRAGGABLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the user starts dragging the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragStart(callback) {
+    this.on(MarkerEvents.DRAG_START, callback);
+  }
+  /**
+   * Add an event listener for when the marker flat property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onFlatChanged(callback) {
+    this.on(MarkerEvents.FLAT_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker icon property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onIconChanged(callback) {
+    this.on(MarkerEvents.ICON_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse is pressed down on the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseDown(callback) {
+    this.on(MarkerEvents.MOUSE_DOWN, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse leaves the marker icon.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOut(callback) {
+    this.on(MarkerEvents.MOUSE_OUT, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse enters the marker icon.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOver(callback) {
+    this.on(MarkerEvents.MOUSE_OVER, callback);
+  }
+  /**
+   * Add an event listener for the mouseup event on the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseUp(callback) {
+    this.on(MarkerEvents.MOUSE_UP, callback);
+  }
+  /**
+   * Add an event listener for when the marker's position property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onPositionChanged(callback) {
+    this.on(MarkerEvents.POSITION_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker is loaded and ready for use.
+   *
+   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+   */
+  onReady(callback) {
+    this.on(MarkerEvents.READY, callback);
+  }
+  /**
+   * Add an event listener for when the marker's shape property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onShapeChanged(callback) {
+    this.on(MarkerEvents.SHAPE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker's title property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onTitleChanged(callback) {
+    this.on(MarkerEvents.TITLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker's visible property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onVisibleChanged(callback) {
+    this.on(MarkerEvents.VISIBLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker's zindex property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onZIndexChanged(callback) {
+    this.on(MarkerEvents.ZINDEX_CHANGED, callback);
+  }
+  /**
    * Set the anchor point for the marker
    *
    * @param {PointValue} value The anchor point for the marker
@@ -8906,7 +9127,7 @@ setupGoogleMarker_fn = function(map2) {
       __privateSet(this, _isSettingUp, true);
       if (checkForGoogleMaps("Marker", "Marker", false)) {
         __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
-        this.dispatch("ready");
+        this.dispatch(MarkerEvents.READY);
         resolve();
       } else {
         loader().onMapLoad(() => {
@@ -8917,7 +9138,7 @@ setupGoogleMarker_fn = function(map2) {
           } else if (__privateGet(this, _marker) && map2) {
             __privateGet(this, _marker).setMap(map2.toGoogle());
           }
-          this.dispatch("ready");
+          this.dispatch(MarkerEvents.READY);
           resolve();
         });
         if (map2 instanceof Map) {
@@ -8925,7 +9146,7 @@ setupGoogleMarker_fn = function(map2) {
         }
       }
     } else if (__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
-      this.onceImmediate("ready", () => {
+      this.onceImmediate(MarkerEvents.READY, () => {
         resolve();
       });
     } else {
@@ -10865,11 +11086,11 @@ var Overlay = class extends Layer_default {
           __privateGet(this, _overlayView).setMap(mapObject.toGoogle());
           this.isVisible = true;
           super.setMap(mapObject);
-          this.dispatch("open");
+          this.dispatch(OverlayEvents.OPEN);
           resolve(this);
         } else {
           this.show(mapObject).then(() => {
-            this.dispatch("open");
+            this.dispatch(OverlayEvents.OPEN);
             resolve(this);
           });
         }
@@ -10877,6 +11098,14 @@ var Overlay = class extends Layer_default {
         reject(new Error("Map object is not set"));
       }
     });
+  }
+  /**
+   * Add an event listener for when the overlay is opened.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onOpen(callback) {
+    this.on(OverlayEvents.OPEN, callback);
   }
   /**
    * Removes a class name from the overlay element
@@ -10963,7 +11192,7 @@ var Overlay = class extends Layer_default {
           __privateGet(this, _overlayView).setMap(map2.toGoogle());
           this.isVisible = true;
           super.setMap(map2);
-          this.dispatch("open");
+          this.dispatch(OverlayEvents.OPEN);
           resolve(this);
         } else {
           loader().onMapLoad(() => {
@@ -10973,12 +11202,12 @@ var Overlay = class extends Layer_default {
               this.isVisible = true;
             }
             super.setMap(map2);
-            this.dispatch("open");
+            this.dispatch(OverlayEvents.OPEN);
             resolve(this);
           });
         }
       } else {
-        this.dispatch("open");
+        this.dispatch(OverlayEvents.OPEN);
         resolve(this);
       }
     });
@@ -11173,7 +11402,7 @@ var PlacesSearchBox = class extends Evented {
           options.bounds = yield __privateGet(this, _options6).bounds.toGoogle();
         }
         __privateSet(this, _searchBox2, new google.maps.places.SearchBox(__privateGet(this, _input2), options));
-        __privateGet(this, _searchBox2).addListener("places_changed", () => {
+        __privateGet(this, _searchBox2).addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
           const places = __privateGet(this, _searchBox2).getPlaces();
           const bounds = latLngBounds();
           places.forEach((place) => {
@@ -11187,7 +11416,7 @@ var PlacesSearchBox = class extends Evented {
           });
           __privateSet(this, _places, places);
           __privateSet(this, _placesBounds, bounds);
-          this.dispatch("places_changed", { places, bounds });
+          this.dispatch(PlacesSearchBoxEvents.PLACES_CHANGED, { places, bounds });
         });
       }
     }));
@@ -11360,7 +11589,7 @@ var PlacesSearchBox = class extends Evented {
    * @returns {void}
    */
   onPlacesChanged(callback) {
-    this.on("places_changed", (data) => {
+    this.on(PlacesSearchBoxEvents.PLACES_CHANGED, (data) => {
       callback(data.places, data.bounds);
     });
   }
@@ -13381,12 +13610,16 @@ Map.include(tooltipMixin);
   Marker,
   MarkerCluster,
   MarkerCollection,
+  MarkerEvents,
   Overlay,
+  OverlayEvents,
   PlacesSearchBox,
+  PlacesSearchBoxEvents,
   Point,
   Polyline,
   PolylineCollection,
   Popup,
+  PopupEvents,
   RenderingType,
   RotateControl,
   ScaleControl,

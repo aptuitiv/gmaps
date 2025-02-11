@@ -361,6 +361,54 @@ declare const MapTypeId: Readonly<{
 }>;
 type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
 /**
+ * Events that can be fired by the Marker.
+ *
+ * This includes references to Google Maps marker events https://developers.google.com/maps/documentation/javascript/reference/marker#Marker-Events
+ * and this library's custom events.
+ */
+declare const MarkerEvents: Readonly<{
+    ANIMATION_CHANGED: "animation_changed";
+    CLICK: "click";
+    CLICKABLE_CHANGED: "clickable_changed";
+    CONTEXT_MENU: "contextmenu";
+    CURSOR_CHANGED: "cursor_changed";
+    DBLCLICK: "dblclick";
+    DRAG: "drag";
+    DRAG_END: "dragend";
+    DRAGGABLE_CHANGED: "draggable_changed";
+    DRAG_START: "dragstart";
+    FLAT_CHANGED: "flat_changed";
+    ICON_CHANGED: "icon_changed";
+    MOUSE_DOWN: "mousedown";
+    MOUSE_OUT: "mouseout";
+    MOUSE_OVER: "mouseover";
+    MOUSE_UP: "mouseup";
+    POSITION_CHANGED: "position_changed";
+    SHAPE_CHANGED: "shape_changed";
+    TITLE_CHANGED: "title_changed";
+    VISIBLE_CHANGED: "visible_changed";
+    ZINDEX_CHANGED: "zindex_changed";
+    READY: "ready";
+}>;
+/**
+ * Events that can be fired by the Overlay.
+ */
+declare const OverlayEvents: Readonly<{
+    OPEN: "open";
+}>;
+/**
+ * Events that can be fired by the PlacesSearchBox.
+ */
+declare const PlacesSearchBoxEvents: Readonly<{
+    PLACES_CHANGED: "places_changed";
+}>;
+/**
+ * Events that can be fired by the Popup.
+ */
+declare const PopupEvents: Readonly<{
+    OPEN: "open";
+}>;
+/**
  * The rendering type of the map.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/map#RenderingType
@@ -4833,6 +4881,12 @@ declare class Overlay extends Layer {
      */
     move(position: LatLngValue, map?: Map): Promise<Overlay>;
     /**
+     * Add an event listener for when the overlay is opened.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onOpen(callback: EventCallback): void;
+    /**
      * Removes a class name from the overlay element
      *
      * @param {string} className The class name to remove from the overlay element
@@ -5271,6 +5325,138 @@ declare class Marker extends Layer {
      * @inheritdoc
      */
     onlyOnce(type: MarkerEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Add an event listener for when the marker's animation changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onAnimationChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker icon is clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onClick(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker clickable property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onClickableChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the DOM context menu is triggered on the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onContextMenu(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker cursor property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onCursorChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker is double clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDblClick(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user drags the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user stops dragging the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker draggable property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDraggableChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user starts dragging the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker flat property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onFlatChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker icon property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onIconChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user's mouse is pressed down on the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseDown(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user's mouse leaves the marker icon.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOut(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the user's mouse enters the marker icon.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOver(callback: EventCallback): void;
+    /**
+     * Add an event listener for the mouseup event on the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseUp(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker's position property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onPositionChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker's shape property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onShapeChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker's title property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onTitleChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker's visible property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onVisibleChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the marker's zindex property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onZIndexChanged(callback: EventCallback): void;
     /**
      * Set the anchor point for the marker
      *
@@ -6500,4 +6686,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, PlacesSearchBox, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
