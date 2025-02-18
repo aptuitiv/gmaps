@@ -18,6 +18,7 @@ import { Map } from './Map';
 import { point, Point, PointValue } from './Point';
 import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
+import { MarkerEvents } from './constants';
 import {
     checkForGoogleMaps,
     isBoolean,
@@ -417,6 +418,204 @@ export class Marker extends Layer {
     }
 
     /**
+     * Add an event listener for when the marker's animation changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onAnimationChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.ANIMATION_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker icon is clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onClick(callback: EventCallback): void {
+        this.on(MarkerEvents.CLICK, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker clickable property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onClickableChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.CLICKABLE_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the DOM context menu is triggered on the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onContextMenu(callback: EventCallback): void {
+        this.on(MarkerEvents.CONTEXT_MENU, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker cursor property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onCursorChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.CURSOR_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker is double clicked.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDblClick(callback: EventCallback): void {
+        this.on(MarkerEvents.DBLCLICK, callback);
+    }
+
+    /**
+     * Add an event listener for when the user drags the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void {
+        this.on(MarkerEvents.DRAG, callback);
+    }
+
+    /**
+     * Add an event listener for when the user stops dragging the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void {
+        this.on(MarkerEvents.DRAG_END, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker draggable property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDraggableChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.DRAGGABLE_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the user starts dragging the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void {
+        this.on(MarkerEvents.DRAG_START, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker flat property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onFlatChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.FLAT_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker icon property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onIconChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.ICON_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the user's mouse is pressed down on the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseDown(callback: EventCallback): void {
+        this.on(MarkerEvents.MOUSE_DOWN, callback);
+    }
+
+    /**
+     * Add an event listener for when the user's mouse leaves the marker icon.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOut(callback: EventCallback): void {
+        this.on(MarkerEvents.MOUSE_OUT, callback);
+    }
+
+    /**
+     * Add an event listener for when the user's mouse enters the marker icon.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOver(callback: EventCallback): void {
+        this.on(MarkerEvents.MOUSE_OVER, callback);
+    }
+
+    /**
+     * Add an event listener for the mouseup event on the marker.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseUp(callback: EventCallback): void {
+        this.on(MarkerEvents.MOUSE_UP, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker's position property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onPositionChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.POSITION_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void {
+        this.on(MarkerEvents.READY, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker's shape property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onShapeChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.SHAPE_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker's title property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onTitleChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.TITLE_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker's visible property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onVisibleChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.VISIBLE_CHANGED, callback);
+    }
+
+    /**
+     * Add an event listener for when the marker's zindex property changes.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onZIndexChanged(callback: EventCallback): void {
+        this.on(MarkerEvents.ZINDEX_CHANGED, callback);
+    }
+
+    /**
      * Set the anchor point for the marker
      *
      * @param {PointValue} value The anchor point for the marker
@@ -773,7 +972,7 @@ export class Marker extends Layer {
             }
         });
 
-        // // Set the map. This must come last so that the opther options are set.
+        // Set the map. This must come last so that the other options are set.
         if (options.map) {
             this.setMap(options.map);
         }
@@ -929,12 +1128,12 @@ export class Marker extends Layer {
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
                     this.#createMarkerObject();
                     // Dispatch the event to say that the marker is ready
-                    this.dispatch('ready');
+                    this.dispatch(MarkerEvents.READY);
                     resolve();
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().once('map_loaded', () => {
+                    loader().onMapLoad(() => {
                         this.#createMarkerObject();
                         // Make sure that the map is still set.
                         // It's unlikely, but possible, that the developer could have removed the map
@@ -942,9 +1141,11 @@ export class Marker extends Layer {
                         const thisMap = this.getMap();
                         if (this.#marker && thisMap) {
                             this.#marker.setMap(thisMap.toGoogle());
+                        } else if (this.#marker && map) {
+                            this.#marker.setMap(map.toGoogle());
                         }
                         // Dispatch the event to say that the marker is ready
-                        this.dispatch('ready');
+                        this.dispatch(MarkerEvents.READY);
                         resolve();
                     });
 
@@ -955,7 +1156,7 @@ export class Marker extends Layer {
                 }
             } else if (this.#isSettingUp && !isObject(this.#marker)) {
                 // The marker is already being set up. Wait for it to finish.
-                this.onceImmediate('ready', () => {
+                this.onceImmediate(MarkerEvents.READY, () => {
                     resolve();
                 });
             } else {

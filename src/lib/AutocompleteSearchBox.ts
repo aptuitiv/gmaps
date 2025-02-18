@@ -5,6 +5,7 @@
 
 /* global google, HTMLInputElement */
 
+import { AutocompleteSearchBoxEvents } from './constants';
 import { Evented, EventConfig, EventListenerOptions } from './Evented';
 import { checkForGoogleMaps, isBoolean, isObject, isObjectWithValues, isString } from './helpers';
 import { latLng } from './LatLng';
@@ -400,7 +401,7 @@ export class AutocompleteSearchBox extends Evented {
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().once('map_loaded', () => {
+                    loader().onMapLoad(() => {
                         this.#createAutocompleteSearchBox().then(() => {
                             resolve();
                         });
@@ -436,7 +437,7 @@ export class AutocompleteSearchBox extends Evented {
             }
             this.#searchBox = new google.maps.places.Autocomplete(this.#input, options);
             // Add the listener for when the user selects a place
-            this.#searchBox.addListener('place_changed', () => {
+            this.#searchBox.addListener(AutocompleteSearchBoxEvents.PLACE_CHANGED, () => {
                 const place = this.#searchBox.getPlace();
                 const bounds = latLngBounds();
                 // Set up the map bounds based on the place
@@ -451,7 +452,7 @@ export class AutocompleteSearchBox extends Evented {
                 }
                 this.#place = place;
                 this.#placeBounds = bounds;
-                this.dispatch('place_changed', { place, bounds });
+                this.dispatch(AutocompleteSearchBoxEvents.PLACE_CHANGED, { place, bounds });
             });
         }
     };
@@ -513,7 +514,7 @@ export class AutocompleteSearchBox extends Evented {
      * @returns {void}
      */
     onPlaceChanged(callback: (place: google.maps.places.PlaceResult, bounds: LatLngBounds) => void): void {
-        this.on('place_changed', (data) => {
+        this.on(AutocompleteSearchBoxEvents.PLACE_CHANGED, (data) => {
             callback(data.place, data.bounds);
         });
     }

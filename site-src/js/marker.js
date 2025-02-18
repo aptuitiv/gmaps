@@ -63,7 +63,7 @@ marker.on('click', otherCallback);
 
 // const loader = G.loader({ apiKey: apiKey, });
 // loader.on('load', () => { console.log('loaded event'); });
-// loader.on('map_loaded', () => { console.log('map loaded event'); });
+// loader.on('map_load', () => { console.log('map loaded event'); });
 // loader.load();
 // const map = G.map('#map1', {
 //     apiKey: apiKey,

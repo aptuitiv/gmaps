@@ -54,8 +54,8 @@ popup.clearance = [20, 40];
 popup.closeElement = closeButton;
 popup.theme = 'default';
 popup.attachTo(marker2);
-popup.on('open', () => {
-    console.log('Popup opened');
+popup.onOpen((e) => {
+    console.log('Popup opened: ', e);
 });
 
 

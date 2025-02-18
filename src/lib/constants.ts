@@ -12,6 +12,16 @@
 /* global google */
 
 /**
+ * Events that can be fired by the Autocomplete search box.
+ *
+ * https://aptuitiv.github.io/gmaps-docs/api-reference/autocomplete-search-box#events
+ */
+export const AutocompleteSearchBoxEvents = Object.freeze({
+    // Called when the user selects a Place.
+    PLACE_CHANGED: 'place_changed',
+});
+
+/**
  * Identifiers used to specify the placement of controls on the map.
  * See https://developers.google.com/maps/documentation/javascript/reference/control#ControlPosition
  */
@@ -182,6 +192,60 @@ export const GeocoderLocationType = Object.freeze({
 export type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
 
 /**
+ * Events that can be fired by the Loader.
+ *
+ * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
+ */
+export const LoaderEvents = Object.freeze({
+    // The API library is loaded.
+    LOAD: 'load',
+    // The API library is loaded and the map is loaded and visible.
+    MAP_LOAD: 'map_load',
+});
+
+/**
+ * Events that can be fired by the Map.
+ *
+ * This includes references to Google Maps events https://developers.google.com/maps/documentation/javascript/reference/map#Map-Events
+ * and this library's custom events.
+ */
+export const MapEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/map#Map-Events
+    BOUNDS_CHANGED: 'bounds_changed',
+    CENTER_CHANGED: 'center_changed',
+    CLICK: 'click',
+    CONTEXT_MENU: 'contextmenu',
+    DBLCLICK: 'dblclick',
+    DRAG: 'drag',
+    DRAG_END: 'dragend',
+    DRAG_START: 'dragstart',
+    HEADING_CHANGED: 'heading_changed',
+    IDLE: 'idle',
+    IS_FRACTIONAL_ZOOM_ENABLED_CHANGED: 'isfractionalzoomenabled_changed',
+    MAP_CAPABILITIES_CHANGED: 'mapcapabilities_changed',
+    MAP_TYPE_ID_CHANGED: 'maptypeid_changed',
+    MOUSE_MOVE: 'mousemove',
+    MOUSE_OUT: 'mouseout',
+    MOUSE_OVER: 'mouseover',
+    PROJECTION_CHANGED: 'projection_changed',
+    RENDERING_TYPE_CHANGED: 'renderingtype_changed',
+    TILES_LOADED: 'tilesloaded',
+    TILT_CHANGED: 'tilt_changed',
+    ZOOM_CHANGED: 'zoom_changed',
+
+    // Custom events for this library
+    // https://aptuitiv.github.io/gmaps-docs/api-reference/map#events
+
+    // There was an error getting the user's location.
+    LOCATION_ERROR: 'locationerror',
+    // The user's location has been found.
+    LOCATION_FOUND: 'locationfound',
+    // The map is loaded, visible, and ready for use.
+    READY: 'ready',
+});
+
+/**
  * Style values for common MapTypesControls.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/control#MapTypeControlStyle
@@ -253,6 +317,68 @@ export const MapTypeId = Object.freeze({
 
 // Type for the MapTypeId values
 export type MapTypeIdValue = (typeof MapTypeId)[keyof typeof MapTypeId];
+
+/**
+ * Events that can be fired by the Marker.
+ *
+ * This includes references to Google Maps marker events https://developers.google.com/maps/documentation/javascript/reference/marker#Marker-Events
+ * and this library's custom events.
+ */
+export const MarkerEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/marker#Marker-Events
+    ANIMATION_CHANGED: 'animation_changed',
+    CLICK: 'click',
+    CLICKABLE_CHANGED: 'clickable_changed',
+    CONTEXT_MENU: 'contextmenu',
+    CURSOR_CHANGED: 'cursor_changed',
+    DBLCLICK: 'dblclick',
+    DRAG: 'drag',
+    DRAG_END: 'dragend',
+    DRAGGABLE_CHANGED: 'draggable_changed',
+    DRAG_START: 'dragstart',
+    FLAT_CHANGED: 'flat_changed',
+    ICON_CHANGED: 'icon_changed',
+    MOUSE_DOWN: 'mousedown',
+    MOUSE_OUT: 'mouseout',
+    MOUSE_OVER: 'mouseover',
+    MOUSE_UP: 'mouseup',
+    POSITION_CHANGED: 'position_changed',
+    SHAPE_CHANGED: 'shape_changed',
+    TITLE_CHANGED: 'title_changed',
+    VISIBLE_CHANGED: 'visible_changed',
+    ZINDEX_CHANGED: 'zindex_changed',
+
+    // Custom events for this library
+    // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
+
+    // The marker is loaded and ready for use.
+    READY: 'ready',
+});
+
+/**
+ * Events that can be fired by the Overlay.
+ */
+export const OverlayEvents = Object.freeze({
+    // Called when the overlay opens
+    OPEN: 'open',
+});
+
+/**
+ * Events that can be fired by the PlacesSearchBox.
+ */
+export const PlacesSearchBoxEvents = Object.freeze({
+    // Called when the user selects a Place.
+    PLACES_CHANGED: 'places_changed',
+});
+
+/**
+ * Events that can be fired by the Popup.
+ */
+export const PopupEvents = Object.freeze({
+    // Called when the popup opens
+    OPEN: 'open',
+});
 
 /**
  * The rendering type of the map.

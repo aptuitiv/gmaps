@@ -9,12 +9,14 @@
 /* global google, HTMLElement, OverlayView */
 /* eslint-disable max-classes-per-file */
 
+import { EventCallback } from './Evented';
 import { loader } from './Loader';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
 import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './helpers';
+import { OverlayEvents } from './constants';
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -321,11 +323,11 @@ export class Overlay extends Layer {
                     this.#overlayView.setMap(mapObject.toGoogle());
                     this.isVisible = true;
                     super.setMap(mapObject);
-                    this.dispatch('open');
+                    this.dispatch(OverlayEvents.OPEN);
                     resolve(this);
                 } else {
                     this.show(mapObject).then(() => {
-                        this.dispatch('open');
+                        this.dispatch(OverlayEvents.OPEN);
                         resolve(this);
                     });
                 }
@@ -333,6 +335,15 @@ export class Overlay extends Layer {
                 reject(new Error('Map object is not set'));
             }
         });
+    }
+
+    /**
+     * Add an event listener for when the overlay is opened.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onOpen(callback: EventCallback): void {
+        this.on(OverlayEvents.OPEN, callback);
     }
 
     /**
@@ -426,23 +437,23 @@ export class Overlay extends Layer {
                     this.#overlayView.setMap(map.toGoogle());
                     this.isVisible = true;
                     super.setMap(map);
-                    this.dispatch('open');
+                    this.dispatch(OverlayEvents.OPEN);
                     resolve(this);
                 } else {
                     // The Google maps library isn't loaded yet. Wait for it to load.
-                    loader().once('map_loaded', () => {
+                    loader().onMapLoad(() => {
                         this.#setupGoogleOverlay();
                         if (this.#overlayView) {
                             this.#overlayView.setMap(map.toGoogle());
                             this.isVisible = true;
                         }
                         super.setMap(map);
-                        this.dispatch('open');
+                        this.dispatch(OverlayEvents.OPEN);
                         resolve(this);
                     });
                 }
             } else {
-                this.dispatch('open');
+                this.dispatch(OverlayEvents.OPEN);
                 resolve(this);
             }
         });

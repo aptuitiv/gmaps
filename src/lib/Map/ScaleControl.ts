@@ -93,7 +93,7 @@ export class ScaleControl {
     // eslint-disable-next-line class-methods-use-this
     toGoogle(): Promise<google.maps.ScaleControlOptions> {
         return new Promise((resolve) => {
-            loader().on('load', () => {
+            loader().onLoad(() => {
                 resolve({
                     style: google.maps.ScaleControlStyle.DEFAULT,
                 });

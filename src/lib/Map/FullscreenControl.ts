@@ -144,7 +144,7 @@ export class FullscreenControl {
      */
     toGoogle(): Promise<google.maps.FullscreenControlOptions> {
         return new Promise((resolve) => {
-            loader().on('load', () => {
+            loader().onLoad(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
                 });

@@ -182,7 +182,7 @@ export class MarkerCluster extends Base {
         if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
             this.#setupCluster(map, markers, options);
         } else {
-            loader().on('map_loaded', () => {
+            loader().onMapLoad(() => {
                 this.#setupCluster(map, markers, options);
             });
         }
@@ -360,7 +360,7 @@ export class MarkerCluster extends Base {
             });
         } else {
             this.#pendingMarkers.push(marker);
-            loader().on('map_loaded', () => {
+            loader().onMapLoad(() => {
                 this.addMarkers(this.#pendingMarkers, draw);
                 this.#pendingMarkers = [];
             });
@@ -403,7 +403,7 @@ export class MarkerCluster extends Base {
             markers.forEach((marker) => {
                 this.#pendingMarkers.push(marker);
             });
-            loader().on('map_loaded', () => {
+            loader().onMapLoad(() => {
                 add(this.#pendingMarkers, draw);
                 this.#pendingMarkers = [];
             });

@@ -185,6 +185,10 @@ _objectType = new WeakMap();
 var Base_default = Base;
 
 // src/lib/constants.ts
+var AutocompleteSearchBoxEvents = Object.freeze({
+  // Called when the user selects a Place.
+  PLACE_CHANGED: "place_changed"
+});
 var ControlPosition = Object.freeze({
   /**
    * Equivalent to BOTTOM_CENTER in both LTR and RTL.
@@ -319,6 +323,45 @@ var GeocoderLocationType = Object.freeze({
   RANGE_INTERPOLATED: "RANGE_INTERPOLATED",
   ROOFTOP: "ROOFTOP"
 });
+var LoaderEvents = Object.freeze({
+  // The API library is loaded.
+  LOAD: "load",
+  // The API library is loaded and the map is loaded and visible.
+  MAP_LOAD: "map_load"
+});
+var MapEvents = Object.freeze({
+  // Google Maps events
+  // https://developers.google.com/maps/documentation/javascript/reference/map#Map-Events
+  BOUNDS_CHANGED: "bounds_changed",
+  CENTER_CHANGED: "center_changed",
+  CLICK: "click",
+  CONTEXT_MENU: "contextmenu",
+  DBLCLICK: "dblclick",
+  DRAG: "drag",
+  DRAG_END: "dragend",
+  DRAG_START: "dragstart",
+  HEADING_CHANGED: "heading_changed",
+  IDLE: "idle",
+  IS_FRACTIONAL_ZOOM_ENABLED_CHANGED: "isfractionalzoomenabled_changed",
+  MAP_CAPABILITIES_CHANGED: "mapcapabilities_changed",
+  MAP_TYPE_ID_CHANGED: "maptypeid_changed",
+  MOUSE_MOVE: "mousemove",
+  MOUSE_OUT: "mouseout",
+  MOUSE_OVER: "mouseover",
+  PROJECTION_CHANGED: "projection_changed",
+  RENDERING_TYPE_CHANGED: "renderingtype_changed",
+  TILES_LOADED: "tilesloaded",
+  TILT_CHANGED: "tilt_changed",
+  ZOOM_CHANGED: "zoom_changed",
+  // Custom events for this library
+  // https://aptuitiv.github.io/gmaps-docs/api-reference/map#events
+  // There was an error getting the user's location.
+  LOCATION_ERROR: "locationerror",
+  // The user's location has been found.
+  LOCATION_FOUND: "locationfound",
+  // The map is loaded, visible, and ready for use.
+  READY: "ready"
+});
 var MapTypeControlStyle = Object.freeze({
   /**
    * Uses the default map type control. When the <code>DEFAULT</code> control
@@ -363,6 +406,47 @@ var MapTypeId = Object.freeze({
    * vegetation.
    */
   TERRAIN: "terrain"
+});
+var MarkerEvents = Object.freeze({
+  // Google Maps events
+  // https://developers.google.com/maps/documentation/javascript/reference/marker#Marker-Events
+  ANIMATION_CHANGED: "animation_changed",
+  CLICK: "click",
+  CLICKABLE_CHANGED: "clickable_changed",
+  CONTEXT_MENU: "contextmenu",
+  CURSOR_CHANGED: "cursor_changed",
+  DBLCLICK: "dblclick",
+  DRAG: "drag",
+  DRAG_END: "dragend",
+  DRAGGABLE_CHANGED: "draggable_changed",
+  DRAG_START: "dragstart",
+  FLAT_CHANGED: "flat_changed",
+  ICON_CHANGED: "icon_changed",
+  MOUSE_DOWN: "mousedown",
+  MOUSE_OUT: "mouseout",
+  MOUSE_OVER: "mouseover",
+  MOUSE_UP: "mouseup",
+  POSITION_CHANGED: "position_changed",
+  SHAPE_CHANGED: "shape_changed",
+  TITLE_CHANGED: "title_changed",
+  VISIBLE_CHANGED: "visible_changed",
+  ZINDEX_CHANGED: "zindex_changed",
+  // Custom events for this library
+  // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
+  // The marker is loaded and ready for use.
+  READY: "ready"
+});
+var OverlayEvents = Object.freeze({
+  // Called when the overlay opens
+  OPEN: "open"
+});
+var PlacesSearchBoxEvents = Object.freeze({
+  // Called when the user selects a Place.
+  PLACES_CHANGED: "places_changed"
+});
+var PopupEvents = Object.freeze({
+  // Called when the popup opens
+  OPEN: "open"
 });
 var RenderingType = Object.freeze({
   // 	Indicates that the map is a raster map.
@@ -1681,7 +1765,7 @@ var Loader = class extends EventTarget {
               }
               __privateSet(this, _isLoaded, true);
               callCallback(callback);
-              this.dispatch("load");
+              this.dispatch(LoaderEvents.LOAD);
               resolve();
             })).catch((err) => {
               reject(err);
@@ -1690,7 +1774,7 @@ var Loader = class extends EventTarget {
             reject(new Error("The Google Maps API key is not set"));
           }
         } else {
-          this.once("load", () => {
+          this.once(LoaderEvents.LOAD, () => {
             callCallback(callback);
             resolve();
           });
@@ -1722,11 +1806,33 @@ var Loader = class extends EventTarget {
     if (isFunction(callback)) {
       this.addEventListener(type, callback, { once: true });
       if (__privateGet(this, _isLoaded)) {
-        this.dispatch("load");
+        this.dispatch(LoaderEvents.LOAD);
       }
     } else {
       throw new Error("the event handler needs a callback function");
     }
+  }
+  /**
+   * Sets up an event listener for the "load" event.
+   *
+   * All events on the loader object are set up as "once" events because the
+   * load event is only dispatched one time when the Google maps API is loaded.
+   *
+   * @param {Function} callback A callback function to run when the Google maps API has loaded
+   */
+  onLoad(callback) {
+    this.on(LoaderEvents.LOAD, callback);
+  }
+  /**
+   * Sets up an event listener for the "map_load" event.
+   *
+   * All events on the loader object are set up as "once" events because the
+   * load event is only dispatched one time when the Google maps API is loaded.
+   *
+   * @param {Function} callback A callback function to run when the Google maps API has loaded
+   */
+  onMapLoad(callback) {
+    this.on(LoaderEvents.MAP_LOAD, callback);
   }
   /**
    * Sets up an event listener that will only be called once
@@ -1736,6 +1842,22 @@ var Loader = class extends EventTarget {
    */
   once(type, callback) {
     this.on(type, callback);
+  }
+  /**
+   * Sets up an event listener for the "load" event that will only be called once.
+   *
+   * @param {Function} callback A callback function to run when the Google maps API has loaded
+   */
+  onceLoad(callback) {
+    this.on(LoaderEvents.LOAD, callback);
+  }
+  /**
+   * Sets up an event listener for the "map_load" event that will only be called once.
+   *
+   * @param {Function} callback A callback function to run when the Google maps API has loaded
+   */
+  onceMapLoad(callback) {
+    this.on(LoaderEvents.MAP_LOAD, callback);
   }
 };
 _apiKey = new WeakMap();
@@ -2154,7 +2276,7 @@ setupGoogleLatLngBounds_fn = function() {
         __privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this);
         resolve();
       } else {
-        loader().once("map_loaded", () => {
+        loader().onMapLoad(() => {
           __privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this);
           resolve();
         });
@@ -3371,7 +3493,7 @@ var Geocode = class extends Base_default {
           }
         });
       } else {
-        loader().once("map_loaded", () => {
+        loader().onMapLoad(() => {
           __privateGet(this, _runGeocode).call(this).then((results) => {
             resolve(results);
           }).catch((status) => {
@@ -3601,7 +3723,7 @@ var AutocompleteSearchBox = class extends Evented {
           options.types = __privateGet(this, _types4);
         }
         __privateSet(this, _searchBox, new google.maps.places.Autocomplete(__privateGet(this, _input), options));
-        __privateGet(this, _searchBox).addListener("place_changed", () => {
+        __privateGet(this, _searchBox).addListener(AutocompleteSearchBoxEvents.PLACE_CHANGED, () => {
           const place = __privateGet(this, _searchBox).getPlace();
           const bounds = latLngBounds();
           if (place.geometry) {
@@ -3613,7 +3735,7 @@ var AutocompleteSearchBox = class extends Evented {
           }
           __privateSet(this, _place, place);
           __privateSet(this, _placeBounds, bounds);
-          this.dispatch("place_changed", { place, bounds });
+          this.dispatch(AutocompleteSearchBoxEvents.PLACE_CHANGED, { place, bounds });
         });
       }
     }));
@@ -3854,7 +3976,7 @@ var AutocompleteSearchBox = class extends Evented {
               resolve();
             });
           } else {
-            loader().once("map_loaded", () => {
+            loader().onMapLoad(() => {
               __privateGet(this, _createAutocompleteSearchBox).call(this).then(() => {
                 resolve();
               });
@@ -3910,7 +4032,7 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {void}
    */
   onPlaceChanged(callback) {
-    this.on("place_changed", (data) => {
+    this.on(AutocompleteSearchBoxEvents.PLACE_CHANGED, (data) => {
       callback(data.place, data.bounds);
     });
   }
@@ -4651,7 +4773,7 @@ var FullscreenControl = class {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      loader().on("load", () => {
+      loader().onLoad(() => {
         resolve({
           position: convertControlPosition(__privateGet(this, _position))
         });
@@ -5157,7 +5279,7 @@ var MapTypeControl = class {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      loader().on("load", () => {
+      loader().onLoad(() => {
         resolve({
           mapTypeIds: __privateGet(this, _mapTypeIds),
           position: convertControlPosition(__privateGet(this, _position2)),
@@ -5471,7 +5593,7 @@ var RotateControl = class {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      loader().on("load", () => {
+      loader().onLoad(() => {
         resolve({
           position: convertControlPosition(__privateGet(this, _position3))
         });
@@ -5557,7 +5679,7 @@ var ScaleControl = class {
   // eslint-disable-next-line class-methods-use-this
   toGoogle() {
     return new Promise((resolve) => {
-      loader().on("load", () => {
+      loader().onLoad(() => {
         resolve({
           style: google.maps.ScaleControlStyle.DEFAULT
         });
@@ -5726,7 +5848,7 @@ var StreetViewControl = class {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      loader().on("load", () => {
+      loader().onLoad(() => {
         resolve({
           position: convertControlPosition(__privateGet(this, _position4))
         });
@@ -5855,7 +5977,7 @@ var ZoomControl = class {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      loader().on("load", () => {
+      loader().onLoad(() => {
         resolve({
           position: convertControlPosition(__privateGet(this, _position5))
         });
@@ -6075,8 +6197,8 @@ var Map = class extends Evented {
      * Set the map as ready
      */
     __privateAdd(this, _setMapAsReady, () => {
-      this.dispatch("ready");
-      loader().dispatch("map_loaded");
+      this.dispatch(MapEvents.READY);
+      loader().dispatch(LoaderEvents.MAP_LOAD);
       __privateSet(this, _isInitialized, true);
       __privateSet(this, _isReady, true);
     });
@@ -6625,7 +6747,7 @@ var Map = class extends Evented {
             resolve(this);
           });
         } else {
-          this.onceImmediate("ready", () => {
+          this.onceImmediate(MapEvents.READY, () => {
             callCallback(callback);
             resolve(this);
           });
@@ -6847,14 +6969,198 @@ var Map = class extends Evented {
     super.onlyOnce(type, callback, config);
   }
   /**
-   * Callback for when the map is ready and visible
+   * Add event listener for when the viewport bounds have changed.
+   *
+   * @param {EventCallback} callback The callback function to call when the map bounds change
+   */
+  onBoundsChanged(callback) {
+    this.on(MapEvents.BOUNDS_CHANGED, callback);
+  }
+  /**
+   * Add event listener for when the map center property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onCenterChanged(callback) {
+    this.on(MapEvents.CENTER_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the map is clicked.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onClick(callback) {
+    this.on(MapEvents.CLICK, callback);
+  }
+  /**
+   * Add an event listener for when the DOM contextmenu is fired on the map container.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onContextMenu(callback) {
+    this.on(MapEvents.CONTEXT_MENU, callback);
+  }
+  /**
+   * Add an event listener for when the map is double clicked.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDblClick(callback) {
+    this.on(MapEvents.DBLCLICK, callback);
+  }
+  /**
+   * Add an event listener for when the user drags the map.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDrag(callback) {
+    this.on(MapEvents.DRAG, callback);
+  }
+  /**
+   * Add an event listener for when the user stops dragging the map.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragEnd(callback) {
+    this.on(MapEvents.DRAG_END, callback);
+  }
+  /**
+   * Add an event listener for when the user starts draging the map.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragStart(callback) {
+    this.on(MapEvents.DRAG_START, callback);
+  }
+  /**
+   * Add an event listener for when the map heading value changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onHeadingChanged(callback) {
+    this.on(MapEvents.HEADING_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the map becomes idle after panning or zooming.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onIdle(callback) {
+    this.on(MapEvents.IDLE, callback);
+  }
+  /**
+   * Add an event listener for when the isFractionalZoomEnabled property has changed.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onIsFractionalZoomEnabledChanged(callback) {
+    this.on(MapEvents.IS_FRACTIONAL_ZOOM_ENABLED_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when there is an error getting the user's location.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onLocationError(callback) {
+    this.on(MapEvents.LOCATION_ERROR, callback);
+  }
+  /**
+   * Add an event listener for when the user's location has been found.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onLocationFound(callback) {
+    this.on(MapEvents.LOCATION_FOUND, callback);
+  }
+  /**
+   * Add an event listener for when the map capabilities change.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMapCapabilitiesChanged(callback) {
+    this.on(MapEvents.MAP_CAPABILITIES_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the mapTypeId property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMapTypeIdChanged(callback) {
+    this.on(MapEvents.MAP_TYPE_ID_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse moves over the map container.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseMove(callback) {
+    this.on(MapEvents.MOUSE_MOVE, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse exits the map container.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOut(callback) {
+    this.on(MapEvents.MOUSE_OUT, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse enters the map container.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOver(callback) {
+    this.on(MapEvents.MOUSE_OVER, callback);
+  }
+  /**
+   * Add an event listener for when the map projection has changed.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onProjectionChanged(callback) {
+    this.on(MapEvents.PROJECTION_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the map is ready and visible
    *
    * This is a "shortcut" to "on('ready', callback)"
    *
-   * @param {EventCallback} [callback] The event listener callback function
+   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
    */
   onReady(callback) {
-    this.onceImmediate("ready", callback);
+    this.onceImmediate(MapEvents.READY, callback);
+  }
+  /**
+   * Add an event listener for when the map renderingType has changed.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onRenderingTypeChanged(callback) {
+    this.on(MapEvents.RENDERING_TYPE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the visible tiles have finished loading.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onTilesLoaded(callback) {
+    this.on(MapEvents.TILES_LOADED, callback);
+  }
+  /**
+   * Add an event listener for when the map tilt property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onTiltChanged(callback) {
+    this.on(MapEvents.TILT_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the map zoom property changes
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onZoomChanged(callback) {
+    this.on(MapEvents.ZOOM_CHANGED, callback);
   }
   /**
    * Changes the center of the map by the given distance in pixels.
@@ -7122,7 +7428,7 @@ var Map = class extends Evented {
           resolve(this);
         });
       } else {
-        loader().once("load", () => {
+        loader().onceLoad(() => {
           __privateMethod(this, _Map_instances, showMap_fn).call(this).then(() => {
             callCallback(callback);
             resolve(this);
@@ -7205,7 +7511,7 @@ fitBounds_fn = function(bounds, maxZoom, minZoom) {
  */
 handleZoomAfterFitBounds_fn = function(maxZoom, minZoom) {
   if (isNumberOrNumberString(maxZoom)) {
-    this.once("bounds_changed", () => {
+    this.once(MapEvents.BOUNDS_CHANGED, () => {
       let { zoom } = this;
       if (isNumberOrNumberString(minZoom)) {
         const mz = Number(minZoom);
@@ -7321,7 +7627,7 @@ load_fn = function(callback) {
 /**
  * Show the map
  *
- * This also dispatches the "visible" and "map_loaded" events,
+ * This also dispatches the "visible" and "map_load" events,
  * and calls the callback function.
  *
  * @returns {Promise<void>}
@@ -7364,7 +7670,7 @@ showMap_fn = function() {
         });
       }
     } else if (!__privateGet(this, _isReady)) {
-      this.onceImmediate("ready", () => {
+      this.onceImmediate(MapEvents.READY, () => {
         resolve();
       });
     } else {
@@ -8048,6 +8354,182 @@ var _Marker = class _Marker extends Layer_default {
     super.onlyOnce(type, callback, config);
   }
   /**
+   * Add an event listener for when the marker's animation changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onAnimationChanged(callback) {
+    this.on(MarkerEvents.ANIMATION_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker icon is clicked.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onClick(callback) {
+    this.on(MarkerEvents.CLICK, callback);
+  }
+  /**
+   * Add an event listener for when the marker clickable property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onClickableChanged(callback) {
+    this.on(MarkerEvents.CLICKABLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the DOM context menu is triggered on the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onContextMenu(callback) {
+    this.on(MarkerEvents.CONTEXT_MENU, callback);
+  }
+  /**
+   * Add an event listener for when the marker cursor property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onCursorChanged(callback) {
+    this.on(MarkerEvents.CURSOR_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker is double clicked.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDblClick(callback) {
+    this.on(MarkerEvents.DBLCLICK, callback);
+  }
+  /**
+   * Add an event listener for when the user drags the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDrag(callback) {
+    this.on(MarkerEvents.DRAG, callback);
+  }
+  /**
+   * Add an event listener for when the user stops dragging the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragEnd(callback) {
+    this.on(MarkerEvents.DRAG_END, callback);
+  }
+  /**
+   * Add an event listener for when the marker draggable property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDraggableChanged(callback) {
+    this.on(MarkerEvents.DRAGGABLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the user starts dragging the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragStart(callback) {
+    this.on(MarkerEvents.DRAG_START, callback);
+  }
+  /**
+   * Add an event listener for when the marker flat property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onFlatChanged(callback) {
+    this.on(MarkerEvents.FLAT_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker icon property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onIconChanged(callback) {
+    this.on(MarkerEvents.ICON_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse is pressed down on the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseDown(callback) {
+    this.on(MarkerEvents.MOUSE_DOWN, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse leaves the marker icon.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOut(callback) {
+    this.on(MarkerEvents.MOUSE_OUT, callback);
+  }
+  /**
+   * Add an event listener for when the user's mouse enters the marker icon.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOver(callback) {
+    this.on(MarkerEvents.MOUSE_OVER, callback);
+  }
+  /**
+   * Add an event listener for the mouseup event on the marker.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseUp(callback) {
+    this.on(MarkerEvents.MOUSE_UP, callback);
+  }
+  /**
+   * Add an event listener for when the marker's position property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onPositionChanged(callback) {
+    this.on(MarkerEvents.POSITION_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker is loaded and ready for use.
+   *
+   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+   */
+  onReady(callback) {
+    this.on(MarkerEvents.READY, callback);
+  }
+  /**
+   * Add an event listener for when the marker's shape property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onShapeChanged(callback) {
+    this.on(MarkerEvents.SHAPE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker's title property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onTitleChanged(callback) {
+    this.on(MarkerEvents.TITLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker's visible property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onVisibleChanged(callback) {
+    this.on(MarkerEvents.VISIBLE_CHANGED, callback);
+  }
+  /**
+   * Add an event listener for when the marker's zindex property changes.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onZIndexChanged(callback) {
+    this.on(MarkerEvents.ZINDEX_CHANGED, callback);
+  }
+  /**
    * Set the anchor point for the marker
    *
    * @param {PointValue} value The anchor point for the marker
@@ -8525,16 +9007,18 @@ setupGoogleMarker_fn = function(map2) {
       __privateSet(this, _isSettingUp, true);
       if (checkForGoogleMaps("Marker", "Marker", false)) {
         __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
-        this.dispatch("ready");
+        this.dispatch(MarkerEvents.READY);
         resolve();
       } else {
-        loader().once("map_loaded", () => {
+        loader().onMapLoad(() => {
           __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
           const thisMap = this.getMap();
           if (__privateGet(this, _marker) && thisMap) {
             __privateGet(this, _marker).setMap(thisMap.toGoogle());
+          } else if (__privateGet(this, _marker) && map2) {
+            __privateGet(this, _marker).setMap(map2.toGoogle());
           }
-          this.dispatch("ready");
+          this.dispatch(MarkerEvents.READY);
           resolve();
         });
         if (map2 instanceof Map) {
@@ -8542,7 +9026,7 @@ setupGoogleMarker_fn = function(map2) {
         }
       }
     } else if (__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
-      this.onceImmediate("ready", () => {
+      this.onceImmediate(MarkerEvents.READY, () => {
         resolve();
       });
     } else {
@@ -9873,7 +10357,7 @@ var MarkerCluster = class extends Base_default {
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
       __privateMethod(this, _MarkerCluster_instances, setupCluster_fn).call(this, map2, markers, options);
     } else {
-      loader().on("map_loaded", () => {
+      loader().onMapLoad(() => {
         __privateMethod(this, _MarkerCluster_instances, setupCluster_fn).call(this, map2, markers, options);
       });
     }
@@ -9893,7 +10377,7 @@ var MarkerCluster = class extends Base_default {
       });
     } else {
       __privateGet(this, _pendingMarkers).push(marker2);
-      loader().on("map_loaded", () => {
+      loader().onMapLoad(() => {
         this.addMarkers(__privateGet(this, _pendingMarkers), draw);
         __privateSet(this, _pendingMarkers, []);
       });
@@ -9926,7 +10410,7 @@ var MarkerCluster = class extends Base_default {
       markers.forEach((marker2) => {
         __privateGet(this, _pendingMarkers).push(marker2);
       });
-      loader().on("map_loaded", () => {
+      loader().onMapLoad(() => {
         add(__privateGet(this, _pendingMarkers), draw);
         __privateSet(this, _pendingMarkers, []);
       });
@@ -10487,11 +10971,11 @@ var Overlay = class extends Layer_default {
           __privateGet(this, _overlayView).setMap(mapObject.toGoogle());
           this.isVisible = true;
           super.setMap(mapObject);
-          this.dispatch("open");
+          this.dispatch(OverlayEvents.OPEN);
           resolve(this);
         } else {
           this.show(mapObject).then(() => {
-            this.dispatch("open");
+            this.dispatch(OverlayEvents.OPEN);
             resolve(this);
           });
         }
@@ -10499,6 +10983,14 @@ var Overlay = class extends Layer_default {
         reject(new Error("Map object is not set"));
       }
     });
+  }
+  /**
+   * Add an event listener for when the overlay is opened.
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onOpen(callback) {
+    this.on(OverlayEvents.OPEN, callback);
   }
   /**
    * Removes a class name from the overlay element
@@ -10585,22 +11077,22 @@ var Overlay = class extends Layer_default {
           __privateGet(this, _overlayView).setMap(map2.toGoogle());
           this.isVisible = true;
           super.setMap(map2);
-          this.dispatch("open");
+          this.dispatch(OverlayEvents.OPEN);
           resolve(this);
         } else {
-          loader().once("map_loaded", () => {
+          loader().onMapLoad(() => {
             __privateMethod(this, _Overlay_instances, setupGoogleOverlay_fn).call(this);
             if (__privateGet(this, _overlayView)) {
               __privateGet(this, _overlayView).setMap(map2.toGoogle());
               this.isVisible = true;
             }
             super.setMap(map2);
-            this.dispatch("open");
+            this.dispatch(OverlayEvents.OPEN);
             resolve(this);
           });
         }
       } else {
-        this.dispatch("open");
+        this.dispatch(OverlayEvents.OPEN);
         resolve(this);
       }
     });
@@ -10795,7 +11287,7 @@ var PlacesSearchBox = class extends Evented {
           options.bounds = yield __privateGet(this, _options6).bounds.toGoogle();
         }
         __privateSet(this, _searchBox2, new google.maps.places.SearchBox(__privateGet(this, _input2), options));
-        __privateGet(this, _searchBox2).addListener("places_changed", () => {
+        __privateGet(this, _searchBox2).addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
           const places = __privateGet(this, _searchBox2).getPlaces();
           const bounds = latLngBounds();
           places.forEach((place) => {
@@ -10809,7 +11301,7 @@ var PlacesSearchBox = class extends Evented {
           });
           __privateSet(this, _places, places);
           __privateSet(this, _placesBounds, bounds);
-          this.dispatch("places_changed", { places, bounds });
+          this.dispatch(PlacesSearchBoxEvents.PLACES_CHANGED, { places, bounds });
         });
       }
     }));
@@ -10926,7 +11418,7 @@ var PlacesSearchBox = class extends Evented {
               resolve();
             });
           } else {
-            loader().once("map_loaded", () => {
+            loader().onMapLoad(() => {
               __privateGet(this, _createPlacesSearchBox).call(this).then(() => {
                 resolve();
               });
@@ -10982,7 +11474,7 @@ var PlacesSearchBox = class extends Evented {
    * @returns {void}
    */
   onPlacesChanged(callback) {
-    this.on("places_changed", (data) => {
+    this.on(PlacesSearchBoxEvents.PLACES_CHANGED, (data) => {
       callback(data.places, data.bounds);
     });
   }
@@ -11662,7 +12154,7 @@ setupGooglePolyline_fn = function(map2) {
         __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
         resolve();
       } else {
-        loader().once("map_loaded", () => {
+        loader().onMapLoad(() => {
           __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
           const thisMap = this.getMap();
           if (__privateGet(this, _polyline) && thisMap) {
@@ -12975,6 +13467,7 @@ Layer_default.include(tooltipMixin);
 Map.include(tooltipMixin);
 export {
   AutocompleteSearchBox,
+  AutocompleteSearchBoxEvents,
   Base_default as Base,
   ControlPosition,
   Evented,
@@ -12990,7 +13483,9 @@ export {
   LatLngBounds,
   Layer_default as Layer,
   Loader,
+  LoaderEvents,
   Map,
+  MapEvents,
   MapRestriction,
   MapStyle,
   MapTypeControl,
@@ -12999,12 +13494,16 @@ export {
   Marker,
   MarkerCluster,
   MarkerCollection,
+  MarkerEvents,
   Overlay,
+  OverlayEvents,
   PlacesSearchBox,
+  PlacesSearchBoxEvents,
   Point,
   Polyline,
   PolylineCollection,
   Popup,
+  PopupEvents,
   RenderingType,
   RotateControl,
   ScaleControl,

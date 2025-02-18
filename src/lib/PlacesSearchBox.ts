@@ -6,6 +6,7 @@
 
 /* global google, HTMLInputElement */
 
+import { PlacesSearchBoxEvents } from './constants';
 import { Evented, EventConfig, EventListenerOptions } from './Evented';
 import { checkForGoogleMaps, isObject, isObjectWithValues, isString } from './helpers';
 import { latLng } from './LatLng';
@@ -214,7 +215,7 @@ export class PlacesSearchBox extends Evented {
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().once('map_loaded', () => {
+                    loader().onMapLoad(() => {
                         this.#createPlacesSearchBox().then(() => {
                             resolve();
                         });
@@ -239,7 +240,7 @@ export class PlacesSearchBox extends Evented {
             }
             this.#searchBox = new google.maps.places.SearchBox(this.#input, options);
             // Add the listener for when the user selects a place
-            this.#searchBox.addListener('places_changed', () => {
+            this.#searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
                 const places = this.#searchBox.getPlaces();
                 const bounds = latLngBounds();
                 places.forEach((place) => {
@@ -256,7 +257,7 @@ export class PlacesSearchBox extends Evented {
                 });
                 this.#places = places;
                 this.#placesBounds = bounds;
-                this.dispatch('places_changed', { places, bounds });
+                this.dispatch(PlacesSearchBoxEvents.PLACES_CHANGED, { places, bounds });
             });
         }
     };
@@ -310,7 +311,7 @@ export class PlacesSearchBox extends Evented {
      * @returns {void}
      */
     onPlacesChanged(callback: (places: google.maps.places.PlaceResult[], bounds: LatLngBounds) => void): void {
-        this.on('places_changed', (data) => {
+        this.on(PlacesSearchBoxEvents.PLACES_CHANGED, (data) => {
             callback(data.places, data.bounds);
         });
     }
