@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.0 (February 18, 2025)
+
+- Added event constants for Loader, Autocomplete Search Box, Map, Marker, PlacesSearchBox, Overlay, and Popup.
+- Added Loader `onLoad` and `onMapLoad` methods.
+- Added multiple "onEVENT" methods for the Map object for each of the map events.
+- Added multiple "onEVENT" methods for the Marker object for each of the marker events.
+
 ## 0.16.0 (September 26, 2024)
 
 - Map - added support for max and min zoom when fitting bounds.
