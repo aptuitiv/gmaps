@@ -864,16 +864,23 @@ export class Map extends Evented {
      * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
      */
     #handleZoomAfterFitBounds(maxZoom?: number, minZoom?: number): void {
+        let max = this.maxZoom;
+        let min = this.minZoom;
         if (isNumberOrNumberString(maxZoom)) {
+            max = Number(maxZoom);
+        }
+        if (isNumberOrNumberString(minZoom)) {
+            min = Number(minZoom);
+        }
+        if (isNumber(max) && max >= 0) {
             this.once(MapEvents.BOUNDS_CHANGED, () => {
                 let { zoom } = this;
-                if (isNumberOrNumberString(minZoom)) {
-                    const mz = Number(minZoom);
-                    if (zoom < mz) {
-                        zoom = mz;
+                if (isNumber(min) && min >= 0) {
+                    if (zoom < min) {
+                        zoom = min;
                     }
                 }
-                this.zoom = Math.min(zoom, Number(maxZoom));
+                this.zoom = Math.min(zoom, max);
             });
         }
     }
