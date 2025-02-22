@@ -124,11 +124,15 @@ export type MapOptions = {
     mapTypeControl?: boolean | MapTypeControl;
     // The map type ID to use for the map.
     mapTypeId?: MapTypeIdValue | string;
+    // The maximum zoom level to use when fitting the map to a set of bounds.
+    maxFitBoundsZoom?: number;
     // The maximum zoom level which will be displayed on the map.
     // If omitted, or set to null, the maximum zoom from the current map type is used instead.
     // Valid zoom values are numbers from zero up to the supported maximum zoom level.
     // https://developers.google.com/maps/documentation/javascript/maxzoom
     maxZoom?: number;
+    // The minimum zoom level to use when fitting the map to a set of bounds.
+    minFitBoundsZoom?: number;
     // The minimum zoom level which will be displayed on the map.
     // If omitted, or set to null, the minimum zoom from the current map type is used instead.
     // Valid zoom values are numbers from zero up to the supported maximum zoom level.
