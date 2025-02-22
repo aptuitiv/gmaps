@@ -55,6 +55,21 @@ export class PolylineCollection {
     }
 
     /**
+     * Clones the collection
+     *
+     * @returns {PolylineCollection}
+     */
+    clone(): PolylineCollection {
+        const clone = new PolylineCollection();
+        Object.keys(this.polylines).forEach((tag) => {
+            this.polylines[tag].forEach((p: Polyline) => {
+                clone.add(p, tag);
+            });
+        });
+        return clone;
+    }
+
+    /**
      * Returns true if the collection has any polylines
      *
      * @returns {boolean}

@@ -55,6 +55,21 @@ export class MarkerCollection {
     }
 
     /**
+     * Clone the collection
+     *
+     * @returns {MarkerCollection}
+     */
+    clone(): MarkerCollection {
+        const clone = new MarkerCollection();
+        Object.keys(this.markers).forEach((tag) => {
+            this.markers[tag].forEach((m: Marker) => {
+                clone.add(m, tag);
+            });
+        });
+        return clone;
+    }
+
+    /**
      * Returns true if the collection has any markers
      *
      * @returns {boolean}
