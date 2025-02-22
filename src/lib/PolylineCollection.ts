@@ -55,6 +55,30 @@ export class PolylineCollection {
     }
 
     /**
+     * Clones the collection
+     *
+     * @returns {PolylineCollection}
+     */
+    clone(): PolylineCollection {
+        const clone = new PolylineCollection();
+        Object.keys(this.polylines).forEach((tag) => {
+            this.polylines[tag].forEach((p: Polyline) => {
+                clone.add(p, tag);
+            });
+        });
+        return clone;
+    }
+
+    /**
+     * Returns true if the collection has any polylines
+     *
+     * @returns {boolean}
+     */
+    hasData(): boolean {
+        return Object.keys(this.polylines).length > 0;
+    }
+
+    /**
      * Hide the Polylines in the collection that have the tag(s) passed
      *
      * @param {string[]} tags The tag(s) to hide polylines for
@@ -104,6 +128,15 @@ export class PolylineCollection {
                 p.highlight();
             });
         });
+    }
+
+    /**
+     * Returns true if the collection has no polylines
+     *
+     * @returns {boolean}
+     */
+    isEmtpy(): boolean {
+        return Object.keys(this.polylines).length === 0;
     }
 
     /**

@@ -55,6 +55,30 @@ export class MarkerCollection {
     }
 
     /**
+     * Clone the collection
+     *
+     * @returns {MarkerCollection}
+     */
+    clone(): MarkerCollection {
+        const clone = new MarkerCollection();
+        Object.keys(this.markers).forEach((tag) => {
+            this.markers[tag].forEach((m: Marker) => {
+                clone.add(m, tag);
+            });
+        });
+        return clone;
+    }
+
+    /**
+     * Returns true if the collection has any markers
+     *
+     * @returns {boolean}
+     */
+    hasData(): boolean {
+        return Object.keys(this.markers).length > 0;
+    }
+
+    /**
      * Hide the Markers in the collection that have the tag(s) passed
      *
      * @param {string[]} tags The tag(s) to hide markers for
@@ -78,6 +102,15 @@ export class MarkerCollection {
                 marker.hide();
             });
         });
+    }
+
+    /**
+     * Returns true if the collection has no markers
+     *
+     * @returns {boolean}
+     */
+    isEmpty(): boolean {
+        return Object.keys(this.markers).length === 0;
     }
 
     /**

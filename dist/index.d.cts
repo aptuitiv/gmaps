@@ -3267,7 +3267,9 @@ type MapOptions = {
     mapId?: string;
     mapTypeControl?: boolean | MapTypeControl;
     mapTypeId?: MapTypeIdValue | string;
+    maxFitBoundsZoom?: number;
     maxZoom?: number;
+    minFitBoundsZoom?: number;
     minZoom?: number;
     noClear?: boolean;
     renderingType?: RenderingTypeValue;
@@ -3405,6 +3407,18 @@ declare class Map extends Evented {
      */
     set mapTypeId(value: string);
     /**
+     * Get the maximum zoom level for the map when fitting to bounds
+     *
+     * @returns {null|number}
+     */
+    get maxFitBoundsZoom(): null | number;
+    /**
+     * Set the maximum zoom level for the map when fitting to bounds
+     *
+     * @param {null|number} value The maximum zoom level
+     */
+    set maxFitBoundsZoom(value: null | number);
+    /**
      * Get the maximum zoom level for the map
      *
      * @returns {null|number}
@@ -3416,6 +3430,18 @@ declare class Map extends Evented {
      * @param {null|number} value The maximum zoom level
      */
     set maxZoom(value: null | number);
+    /**
+     * Get the minimum zoom level for the map when fitting to bounds
+     *
+     * @returns {null|number}
+     */
+    get minFitBoundsZoom(): null | number;
+    /**
+     * Set the minimum zoom level for the map when fitting to bounds
+     *
+     * @param {null|number} value The minimum zoom level
+     */
+    set minFitBoundsZoom(value: null | number);
     /**
      * Get the minimum zoom level for the map
      *
@@ -5856,6 +5882,18 @@ declare class MarkerCollection {
      */
     clear(): void;
     /**
+     * Clone the collection
+     *
+     * @returns {MarkerCollection}
+     */
+    clone(): MarkerCollection;
+    /**
+     * Returns true if the collection has any markers
+     *
+     * @returns {boolean}
+     */
+    hasData(): boolean;
+    /**
      * Hide the Markers in the collection that have the tag(s) passed
      *
      * @param {string[]} tags The tag(s) to hide markers for
@@ -5865,6 +5903,12 @@ declare class MarkerCollection {
      * Hides all the Markers in the collection
      */
     hideAll(): void;
+    /**
+     * Returns true if the collection has no markers
+     *
+     * @returns {boolean}
+     */
+    isEmpty(): boolean;
     /**
      * Remove the marker from the collection, optionally by tag.
      *
@@ -6383,6 +6427,18 @@ declare class PolylineCollection {
      */
     clear(): void;
     /**
+     * Clones the collection
+     *
+     * @returns {PolylineCollection}
+     */
+    clone(): PolylineCollection;
+    /**
+     * Returns true if the collection has any polylines
+     *
+     * @returns {boolean}
+     */
+    hasData(): boolean;
+    /**
      * Hide the Polylines in the collection that have the tag(s) passed
      *
      * @param {string[]} tags The tag(s) to hide polylines for
@@ -6402,6 +6458,12 @@ declare class PolylineCollection {
      * Highlight all the Polylines in the collection
      */
     highlightAll(): void;
+    /**
+     * Returns true if the collection has no polylines
+     *
+     * @returns {boolean}
+     */
+    isEmtpy(): boolean;
     /**
      * Remove the polyline from the collection, optionally by tag.
      *

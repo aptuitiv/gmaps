@@ -188,6 +188,22 @@ export class Map extends Evented {
     #mapTypeControl: MapTypeControl;
 
     /**
+     * Holds the maximum zoom level for the map when fitting to bounds
+     *
+     * @private
+     * @type {number|null}
+     */
+    #maxFitBoundsZoom: number | null;
+
+    /**
+     * Holds the minimum zoom level for the map when fitting to bounds
+     *
+     * @private
+     * @type {number|null}
+     */
+    #minFitBoundsZoom: number | null;
+
+    /**
      * Holds the map options
      *
      * @private
@@ -482,6 +498,26 @@ export class Map extends Evented {
     }
 
     /**
+     * Get the maximum zoom level for the map when fitting to bounds
+     *
+     * @returns {null|number}
+     */
+    get maxFitBoundsZoom(): null | number {
+        return this.#maxFitBoundsZoom ?? null;
+    }
+
+    /**
+     * Set the maximum zoom level for the map when fitting to bounds
+     *
+     * @param {null|number} value The maximum zoom level
+     */
+    set maxFitBoundsZoom(value: null | number) {
+        if (isNumber(value) || isNull(value)) {
+            this.#maxFitBoundsZoom = value;
+        }
+    }
+
+    /**
      * Get the maximum zoom level for the map
      *
      * @returns {null|number}
@@ -501,6 +537,26 @@ export class Map extends Evented {
             if (this.#map) {
                 this.#map.setOptions({ maxZoom: value });
             }
+        }
+    }
+
+    /**
+     * Get the minimum zoom level for the map when fitting to bounds
+     *
+     * @returns {null|number}
+     */
+    get minFitBoundsZoom(): null | number {
+        return this.#minFitBoundsZoom ?? null;
+    }
+
+    /**
+     * Set the minimum zoom level for the map when fitting to bounds
+     *
+     * @param {null|number} value The minimum zoom level
+     */
+    set minFitBoundsZoom(value: null | number) {
+        if (isNumber(value) || isNull(value)) {
+            this.#minFitBoundsZoom = value;
         }
     }
 
@@ -864,16 +920,23 @@ export class Map extends Evented {
      * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
      */
     #handleZoomAfterFitBounds(maxZoom?: number, minZoom?: number): void {
+        let max = this.maxFitBoundsZoom ?? this.maxZoom;
+        let min = this.minFitBoundsZoom ?? this.minZoom;
         if (isNumberOrNumberString(maxZoom)) {
+            max = Number(maxZoom);
+        }
+        if (isNumberOrNumberString(minZoom)) {
+            min = Number(minZoom);
+        }
+        if (isNumber(max) && max >= 0) {
             this.once(MapEvents.BOUNDS_CHANGED, () => {
                 let { zoom } = this;
-                if (isNumberOrNumberString(minZoom)) {
-                    const mz = Number(minZoom);
-                    if (zoom < mz) {
-                        zoom = mz;
+                if (isNumber(min) && min >= 0) {
+                    if (zoom < min) {
+                        zoom = min;
                     }
                 }
-                this.zoom = Math.min(zoom, Number(maxZoom));
+                this.zoom = Math.min(zoom, max);
             });
         }
     }
@@ -1681,6 +1744,12 @@ export class Map extends Evented {
             }
             if (options.mapTypeId) {
                 this.mapTypeId = options.mapTypeId;
+            }
+            if (typeof options.maxFitBoundsZoom !== 'undefined') {
+                this.maxFitBoundsZoom = options.maxFitBoundsZoom;
+            }
+            if (typeof options.minFitBoundsZoom !== 'undefined') {
+                this.minFitBoundsZoom = options.minFitBoundsZoom;
             }
             if (typeof options.maxZoom !== 'undefined') {
                 this.maxZoom = options.maxZoom;

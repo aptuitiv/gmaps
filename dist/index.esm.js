@@ -5995,7 +5995,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _element, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
+var _bounds4, _customControls, _element, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _maxFitBoundsZoom, _minFitBoundsZoom, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -6091,6 +6091,20 @@ var Map = class extends Evented {
      * @type {MapTypeControl}
      */
     __privateAdd(this, _mapTypeControl);
+    /**
+     * Holds the maximum zoom level for the map when fitting to bounds
+     *
+     * @private
+     * @type {number|null}
+     */
+    __privateAdd(this, _maxFitBoundsZoom);
+    /**
+     * Holds the minimum zoom level for the map when fitting to bounds
+     *
+     * @private
+     * @type {number|null}
+     */
+    __privateAdd(this, _minFitBoundsZoom);
     /**
      * Holds the map options
      *
@@ -6405,6 +6419,25 @@ var Map = class extends Evented {
     }
   }
   /**
+   * Get the maximum zoom level for the map when fitting to bounds
+   *
+   * @returns {null|number}
+   */
+  get maxFitBoundsZoom() {
+    var _a;
+    return (_a = __privateGet(this, _maxFitBoundsZoom)) != null ? _a : null;
+  }
+  /**
+   * Set the maximum zoom level for the map when fitting to bounds
+   *
+   * @param {null|number} value The maximum zoom level
+   */
+  set maxFitBoundsZoom(value) {
+    if (isNumber(value) || isNull(value)) {
+      __privateSet(this, _maxFitBoundsZoom, value);
+    }
+  }
+  /**
    * Get the maximum zoom level for the map
    *
    * @returns {null|number}
@@ -6424,6 +6457,25 @@ var Map = class extends Evented {
       if (__privateGet(this, _map2)) {
         __privateGet(this, _map2).setOptions({ maxZoom: value });
       }
+    }
+  }
+  /**
+   * Get the minimum zoom level for the map when fitting to bounds
+   *
+   * @returns {null|number}
+   */
+  get minFitBoundsZoom() {
+    var _a;
+    return (_a = __privateGet(this, _minFitBoundsZoom)) != null ? _a : null;
+  }
+  /**
+   * Set the minimum zoom level for the map when fitting to bounds
+   *
+   * @param {null|number} value The minimum zoom level
+   */
+  set minFitBoundsZoom(value) {
+    if (isNumber(value) || isNull(value)) {
+      __privateSet(this, _minFitBoundsZoom, value);
     }
   }
   /**
@@ -7314,6 +7366,12 @@ var Map = class extends Evented {
       if (options.mapTypeId) {
         this.mapTypeId = options.mapTypeId;
       }
+      if (typeof options.maxFitBoundsZoom !== "undefined") {
+        this.maxFitBoundsZoom = options.maxFitBoundsZoom;
+      }
+      if (typeof options.minFitBoundsZoom !== "undefined") {
+        this.minFitBoundsZoom = options.minFitBoundsZoom;
+      }
       if (typeof options.maxZoom !== "undefined") {
         this.maxZoom = options.maxZoom;
       }
@@ -7469,6 +7527,8 @@ _isInitializing = new WeakMap();
 _isReady = new WeakMap();
 _map2 = new WeakMap();
 _mapTypeControl = new WeakMap();
+_maxFitBoundsZoom = new WeakMap();
+_minFitBoundsZoom = new WeakMap();
 _options2 = new WeakMap();
 _restriction = new WeakMap();
 _rotateControl = new WeakMap();
@@ -7510,16 +7570,24 @@ fitBounds_fn = function(bounds, maxZoom, minZoom) {
  * @param {number} [minZoom] The minimum zoom level to zoom to when fitting the bounds. Lower numbers will zoom out more.
  */
 handleZoomAfterFitBounds_fn = function(maxZoom, minZoom) {
+  var _a, _b;
+  let max = (_a = this.maxFitBoundsZoom) != null ? _a : this.maxZoom;
+  let min = (_b = this.minFitBoundsZoom) != null ? _b : this.minZoom;
   if (isNumberOrNumberString(maxZoom)) {
+    max = Number(maxZoom);
+  }
+  if (isNumberOrNumberString(minZoom)) {
+    min = Number(minZoom);
+  }
+  if (isNumber(max) && max >= 0) {
     this.once(MapEvents.BOUNDS_CHANGED, () => {
       let { zoom } = this;
-      if (isNumberOrNumberString(minZoom)) {
-        const mz = Number(minZoom);
-        if (zoom < mz) {
-          zoom = mz;
+      if (isNumber(min) && min >= 0) {
+        if (zoom < min) {
+          zoom = min;
         }
       }
-      this.zoom = Math.min(zoom, Number(maxZoom));
+      this.zoom = Math.min(zoom, max);
     });
   }
 };
@@ -10589,7 +10657,7 @@ var markerCluster = (map2, markers, options) => new MarkerCluster(map2, markers,
 
 // src/lib/MarkerCollection.ts
 var defaultTag = "__default__";
-var MarkerCollection = class {
+var MarkerCollection = class _MarkerCollection {
   constructor() {
     /**
      * Holds the Marker objects by tag
@@ -10627,6 +10695,28 @@ var MarkerCollection = class {
     this.markers = {};
   }
   /**
+   * Clone the collection
+   *
+   * @returns {MarkerCollection}
+   */
+  clone() {
+    const clone = new _MarkerCollection();
+    Object.keys(this.markers).forEach((tag) => {
+      this.markers[tag].forEach((m) => {
+        clone.add(m, tag);
+      });
+    });
+    return clone;
+  }
+  /**
+   * Returns true if the collection has any markers
+   *
+   * @returns {boolean}
+   */
+  hasData() {
+    return Object.keys(this.markers).length > 0;
+  }
+  /**
    * Hide the Markers in the collection that have the tag(s) passed
    *
    * @param {string[]} tags The tag(s) to hide markers for
@@ -10649,6 +10739,14 @@ var MarkerCollection = class {
         marker2.hide();
       });
     });
+  }
+  /**
+   * Returns true if the collection has no markers
+   *
+   * @returns {boolean}
+   */
+  isEmpty() {
+    return Object.keys(this.markers).length === 0;
   }
   /**
    * Remove the marker from the collection, optionally by tag.
@@ -12227,7 +12325,7 @@ var polyline = (options) => {
 
 // src/lib/PolylineCollection.ts
 var defaultTag2 = "__default__";
-var PolylineCollection = class {
+var PolylineCollection = class _PolylineCollection {
   constructor() {
     /**
      * Holds the Polyline objects by tag
@@ -12263,6 +12361,28 @@ var PolylineCollection = class {
   clear() {
     this.hideAll();
     this.polylines = {};
+  }
+  /**
+   * Clones the collection
+   *
+   * @returns {PolylineCollection}
+   */
+  clone() {
+    const clone = new _PolylineCollection();
+    Object.keys(this.polylines).forEach((tag) => {
+      this.polylines[tag].forEach((p) => {
+        clone.add(p, tag);
+      });
+    });
+    return clone;
+  }
+  /**
+   * Returns true if the collection has any polylines
+   *
+   * @returns {boolean}
+   */
+  hasData() {
+    return Object.keys(this.polylines).length > 0;
   }
   /**
    * Hide the Polylines in the collection that have the tag(s) passed
@@ -12311,6 +12431,14 @@ var PolylineCollection = class {
         p.highlight();
       });
     });
+  }
+  /**
+   * Returns true if the collection has no polylines
+   *
+   * @returns {boolean}
+   */
+  isEmtpy() {
+    return Object.keys(this.polylines).length === 0;
   }
   /**
    * Remove the polyline from the collection, optionally by tag.
