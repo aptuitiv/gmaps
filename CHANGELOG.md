@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0 (February 22, 2025)
+
+- Added hasData and isEmpty methods to the marker and polyline collection objects.
+- Added clone methods to MarkerCollection and PolylineCollection.
+- Added methods to set the minimum and maximum zoom levels when fitting the map to a set of bounds.
+
 ## 0.17.0 (February 18, 2025)
 
 - Added event constants for Loader, Autocomplete Search Box, Map, Marker, PlacesSearchBox, Overlay, and Popup.
