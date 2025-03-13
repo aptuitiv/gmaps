@@ -8,6 +8,7 @@
 =========================================================================== */
 
 /* global google */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Custom data could be anything within an obect */
 
 import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { icon, Icon, IconValue } from './Icon';
@@ -29,9 +30,15 @@ import {
     isString,
     isStringOrNumber,
     isStringWithValue,
+    objectHasValue,
 } from './helpers';
 
 export type MarkerLabel = google.maps.MarkerLabel;
+
+// Custom data to attach to the marker object
+type CustomData = {
+    [key: string]: any;
+};
 
 // Options that will be passed to the Google maps marker object
 type GMMarkerOptions = {
@@ -58,6 +65,8 @@ type GMMarkerOptions = {
 export type MarkerOptions = GMMarkerOptions & {
     // The offset from the marker's position to the tip of an InfoWindow that has been opened with the marker as anchor.
     anchorPoint?: PointValue;
+    // An object containing custom data to attach to the marker object
+    data?: CustomData;
     // The icon value for the marker
     icon?: IconValue;
     // The latitude for the marker. You can use "lat" or "latitude" as the property name.
@@ -105,6 +114,14 @@ type MarkerEvent =
  * Marker class to set up a single marker and add it to the map
  */
 export class Marker extends Layer {
+    /**
+     * Holds any custom data to attach to the marker object
+     *
+     * @private
+     * @type {CustomData}
+     */
+    #customData: CustomData = {};
+
     /**
      * Holds if the marker is setting up
      *
@@ -189,6 +206,26 @@ export class Marker extends Layer {
      */
     set cursor(value: string) {
         this.setCursor(value);
+    }
+
+    /**
+     * Get the custom data attached to the marker object
+     *
+     * @returns {CustomData}
+     */
+    get data(): CustomData {
+        return this.#customData;
+    }
+
+    /**
+     * Set custom data to attach to the marker object
+     *
+     * @param {CustomData} value The custom data to attach to the marker object
+     */
+    set data(value: CustomData) {
+        if (isObject(value)) {
+            this.#customData = value;
+        }
     }
 
     /**
@@ -310,6 +347,24 @@ export class Marker extends Layer {
     display(map: Map): Marker {
         this.setMap(map);
         return this;
+    }
+
+    /**
+     * Get any custom data attached to the marker object.
+     *
+     * Optionally pass a data key to get the value for that key.
+     *
+     * @param {string} [key] The object key to get data for. If not set then all data is returned.
+     * @returns {any}
+     */
+    getData(key?: string): CustomData {
+        if (isStringWithValue(key)) {
+            if (objectHasValue(this.#customData, key)) {
+                return this.#customData[key];
+            }
+            return null;
+        }
+        return this.#customData;
     }
 
     /**
@@ -975,6 +1030,11 @@ export class Marker extends Layer {
         // Set the map. This must come last so that the other options are set.
         if (options.map) {
             this.setMap(options.map);
+        }
+
+        // Custom data
+        if (options.data) {
+            this.data = options.data;
         }
 
         return this;

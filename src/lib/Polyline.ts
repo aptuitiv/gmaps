@@ -7,6 +7,7 @@
 
 /* global google */
 /* eslint-disable no-use-before-define -- Done because the PolylineCollection is referenced before it's created */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Custom data could be anything within an obect */
 
 import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
@@ -22,6 +23,7 @@ import {
     isNumberString,
     isObject,
     isStringWithValue,
+    objectHasValue,
 } from './helpers';
 
 // Google Maps library polyline events
@@ -38,9 +40,16 @@ type PolylineEvent =
     | 'mouseover'
     | 'mouseup';
 
+// Custom data to attach to the marker object
+type CustomData = {
+    [key: string]: any;
+};
+
 export type PolylineOptions = {
     // Whether the polyline handles click events. Defaults to true.
     clickable?: boolean;
+    // An object containing custom data to attach to the polyline object
+    data?: CustomData;
     // The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline.
     highlightPolyline?: PolylineOptions | Polyline; // eslint-disable-line no-use-before-define
     // The map to add the polyline to.
@@ -65,6 +74,14 @@ export type PolylineOptions = {
  * Polyline class
  */
 export class Polyline extends Layer {
+    /**
+     * Holds any custom data to attach to the polyline object
+     *
+     * @private
+     * @type {CustomData}
+     */
+    #customData: CustomData = {};
+
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
      * when the mouse hovers over this polyline.
@@ -131,6 +148,26 @@ export class Polyline extends Layer {
             if (this.#polyline) {
                 this.#polyline.setOptions({ clickable: value });
             }
+        }
+    }
+
+    /**
+     * Get the custom data attached to the polyline object
+     *
+     * @returns {CustomData}
+     */
+    get data(): CustomData {
+        return this.#customData;
+    }
+
+    /**
+     * Set custom data to attach to the polyline object
+     *
+     * @param {CustomData} value The custom data to attach to the polyline object
+     */
+    set data(value: CustomData) {
+        if (isObject(value)) {
+            this.#customData = value;
         }
     }
 
@@ -399,6 +436,24 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Get any custom data attached to the marker object.
+     *
+     * Optionally pass a data key to get the value for that key.
+     *
+     * @param {string} [key] The object key to get data for. If not set then all data is returned.
+     * @returns {any}
+     */
+    getData(key?: string): CustomData {
+        if (isStringWithValue(key)) {
+            if (objectHasValue(this.#customData, key)) {
+                return this.#customData[key];
+            }
+            return null;
+        }
+        return this.#customData;
+    }
+
+    /**
      * Returns whether the polyline has a zIndex set.
      *
      * @returns {boolean}
@@ -597,6 +652,11 @@ export class Polyline extends Layer {
             // Set up the highlight polyline last so that it can use the options set above.
             if (options.highlightPolyline) {
                 this.setHighlightPolyline(options.highlightPolyline);
+            }
+
+            // Custom data
+            if (options.data) {
+                this.data = options.data;
             }
         }
         return this;

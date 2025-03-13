@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.19.0 (March 13, 2025)
+
+- Added support for attaching custom data to the marker and polyline objects.
+
 ## 0.18.0 (February 22, 2025)
 
 - Added hasData and isEmpty methods to the marker and polyline collection objects.

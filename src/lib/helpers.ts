@@ -262,6 +262,15 @@ export const objectEquals = (a: any, b: any): boolean => {
 };
 
 /**
+ * Tests to see if the object is a valid object and if the key is a valid key
+ *
+ * @param {any} obj The object to test
+ * @param {string} key The object key to test
+ * @returns {boolean}
+ */
+export const objectHasValue = (obj: any, key: string): boolean => isObject(obj) && key in obj;
+
+/**
  * Call the callback function if it is a function
  *
  * @param {Function|undefined} callback The callback function to call

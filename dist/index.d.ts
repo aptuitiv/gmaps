@@ -1960,6 +1960,14 @@ declare const checkForGoogleMaps: (object: string, library?: string, throwError?
  */
 declare const objectEquals: (a: any, b: any) => boolean;
 /**
+ * Tests to see if the object is a valid object and if the key is a valid key
+ *
+ * @param {any} obj The object to test
+ * @param {string} key The object key to test
+ * @returns {boolean}
+ */
+declare const objectHasValue: (obj: any, key: string) => boolean;
+/**
  * Call the callback function if it is a function
  *
  * @param {Function|undefined} callback The callback function to call
@@ -5148,6 +5156,9 @@ type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
 declare const tooltip: (options?: TooltipValue) => Tooltip;
 
 type MarkerLabel = google.maps.MarkerLabel;
+type CustomData$1 = {
+    [key: string]: any;
+};
 type GMMarkerOptions = {
     anchorPoint?: Point;
     cursor?: string;
@@ -5160,6 +5171,7 @@ type GMMarkerOptions = {
 };
 type MarkerOptions = GMMarkerOptions & {
     anchorPoint?: PointValue;
+    data?: CustomData$1;
     icon?: IconValue;
     lat?: number | string;
     latitude?: number | string;
@@ -5206,6 +5218,18 @@ declare class Marker extends Layer {
      * @param {string} value The cursor type to show on hover
      */
     set cursor(value: string);
+    /**
+     * Get the custom data attached to the marker object
+     *
+     * @returns {CustomData}
+     */
+    get data(): CustomData$1;
+    /**
+     * Set custom data to attach to the marker object
+     *
+     * @param {CustomData} value The custom data to attach to the marker object
+     */
+    set data(value: CustomData$1);
     /**
      * Get whether the marker can be dragged on the map
      *
@@ -5287,6 +5311,15 @@ declare class Marker extends Layer {
      * @returns {Marker}
      */
     display(map: Map): Marker;
+    /**
+     * Get any custom data attached to the marker object.
+     *
+     * Optionally pass a data key to get the value for that key.
+     *
+     * @param {string} [key] The object key to get data for. If not set then all data is returned.
+     * @returns {any}
+     */
+    getData(key?: string): CustomData$1;
     /**
      * Returns whether the marker can be dragged on the map
      *
@@ -6106,8 +6139,12 @@ type PlacesSearchBoxValue = HTMLInputElement | string | PlacesSearchBox | Places
 declare const placesSearchBox: (input?: PlacesSearchBoxValue, options?: PlacesSearchBoxOptions) => PlacesSearchBox;
 
 type PolylineEvent = 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'mousedown' | 'mousemove' | 'mouseout' | 'mouseover' | 'mouseup';
+type CustomData = {
+    [key: string]: any;
+};
 type PolylineOptions = {
     clickable?: boolean;
+    data?: CustomData;
     highlightPolyline?: PolylineOptions | Polyline;
     map?: Map;
     path?: LatLngValue[];
@@ -6141,6 +6178,18 @@ declare class Polyline extends Layer {
      * @param {boolean} value Whether the polyline handles click events.
      */
     set clickable(value: boolean);
+    /**
+     * Get the custom data attached to the polyline object
+     *
+     * @returns {CustomData}
+     */
+    get data(): CustomData;
+    /**
+     * Set custom data to attach to the polyline object
+     *
+     * @param {CustomData} value The custom data to attach to the polyline object
+     */
+    set data(value: CustomData);
     /**
      * Get the highlight polyline
      *
@@ -6245,6 +6294,15 @@ declare class Polyline extends Layer {
      * @param {number|string} value The zIndex of the polyline.
      */
     set zIndex(value: number | string);
+    /**
+     * Get any custom data attached to the marker object.
+     *
+     * Optionally pass a data key to get the value for that key.
+     *
+     * @param {string} [key] The object key to get data for. If not set then all data is returned.
+     * @returns {any}
+     */
+    getData(key?: string): CustomData;
     /**
      * Returns whether the polyline has a zIndex set.
      *
@@ -6748,4 +6806,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
