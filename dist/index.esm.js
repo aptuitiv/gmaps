@@ -562,6 +562,7 @@ var objectEquals = (a, b) => {
   }
   return keys.every((k) => objectEquals(a[k], b[k]));
 };
+var objectHasValue = (obj, key) => isObject(obj) && key in obj;
 var callCallback = (callback, ...args) => {
   if (isFunction(callback)) {
     callback(...args);
@@ -8145,7 +8146,7 @@ var svgSymbol = (path, options) => {
 };
 
 // src/lib/Marker.ts
-var _isSettingUp, _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
+var _customData, _isSettingUp, _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
 var _Marker = class _Marker extends Layer_default {
   /**
    * Constructor
@@ -8156,6 +8157,13 @@ var _Marker = class _Marker extends Layer_default {
   constructor(position, options) {
     super("marker", "Marker");
     __privateAdd(this, _Marker_instances);
+    /**
+     * Holds any custom data to attach to the marker object
+     *
+     * @private
+     * @type {CustomData}
+     */
+    __privateAdd(this, _customData, {});
     /**
      * Holds if the marker is setting up
      *
@@ -8218,6 +8226,24 @@ var _Marker = class _Marker extends Layer_default {
    */
   set cursor(value) {
     this.setCursor(value);
+  }
+  /**
+   * Get the custom data attached to the marker object
+   *
+   * @returns {CustomData}
+   */
+  get data() {
+    return __privateGet(this, _customData);
+  }
+  /**
+   * Set custom data to attach to the marker object
+   *
+   * @param {CustomData} value The custom data to attach to the marker object
+   */
+  set data(value) {
+    if (isObject(value)) {
+      __privateSet(this, _customData, value);
+    }
   }
   /**
    * Get whether the marker can be dragged on the map
@@ -8327,6 +8353,23 @@ var _Marker = class _Marker extends Layer_default {
   display(map2) {
     this.setMap(map2);
     return this;
+  }
+  /**
+   * Get any custom data attached to the marker object.
+   *
+   * Optionally pass a data key to get the value for that key.
+   *
+   * @param {string} [key] The object key to get data for. If not set then all data is returned.
+   * @returns {any}
+   */
+  getData(key) {
+    if (isStringWithValue(key)) {
+      if (objectHasValue(__privateGet(this, _customData), key)) {
+        return __privateGet(this, _customData)[key];
+      }
+      return null;
+    }
+    return __privateGet(this, _customData);
   }
   /**
    * Returns whether the marker can be dragged on the map
@@ -8826,6 +8869,9 @@ var _Marker = class _Marker extends Layer_default {
     if (options.map) {
       this.setMap(options.map);
     }
+    if (options.data) {
+      this.data = options.data;
+    }
     return this;
   }
   /**
@@ -8927,6 +8973,7 @@ var _Marker = class _Marker extends Layer_default {
     return __privateGet(this, _marker);
   }
 };
+_customData = new WeakMap();
 _isSettingUp = new WeakMap();
 _marker = new WeakMap();
 _options4 = new WeakMap();
@@ -11661,7 +11708,7 @@ var placesSearchBox = (input, options) => {
 };
 
 // src/lib/Polyline.ts
-var _highlightPolyline, _isHighlighted, _options7, _polyline, _Polyline_instances, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
+var _customData2, _highlightPolyline, _isHighlighted, _options7, _polyline, _Polyline_instances, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -11671,6 +11718,13 @@ var _Polyline = class _Polyline extends Layer_default {
   constructor(options) {
     super("polyline", "Polyline");
     __privateAdd(this, _Polyline_instances);
+    /**
+     * Holds any custom data to attach to the polyline object
+     *
+     * @private
+     * @type {CustomData}
+     */
+    __privateAdd(this, _customData2, {});
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
      * when the mouse hovers over this polyline.
@@ -11724,6 +11778,24 @@ var _Polyline = class _Polyline extends Layer_default {
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ clickable: value });
       }
+    }
+  }
+  /**
+   * Get the custom data attached to the polyline object
+   *
+   * @returns {CustomData}
+   */
+  get data() {
+    return __privateGet(this, _customData2);
+  }
+  /**
+   * Set custom data to attach to the polyline object
+   *
+   * @param {CustomData} value The custom data to attach to the polyline object
+   */
+  set data(value) {
+    if (isObject(value)) {
+      __privateSet(this, _customData2, value);
     }
   }
   /**
@@ -11954,6 +12026,23 @@ var _Polyline = class _Polyline extends Layer_default {
     }
   }
   /**
+   * Get any custom data attached to the marker object.
+   *
+   * Optionally pass a data key to get the value for that key.
+   *
+   * @param {string} [key] The object key to get data for. If not set then all data is returned.
+   * @returns {any}
+   */
+  getData(key) {
+    if (isStringWithValue(key)) {
+      if (objectHasValue(__privateGet(this, _customData2), key)) {
+        return __privateGet(this, _customData2)[key];
+      }
+      return null;
+    }
+    return __privateGet(this, _customData2);
+  }
+  /**
    * Returns whether the polyline has a zIndex set.
    *
    * @returns {boolean}
@@ -12134,6 +12223,9 @@ var _Polyline = class _Polyline extends Layer_default {
       if (options.highlightPolyline) {
         this.setHighlightPolyline(options.highlightPolyline);
       }
+      if (options.data) {
+        this.data = options.data;
+      }
     }
     return this;
   }
@@ -12234,6 +12326,7 @@ var _Polyline = class _Polyline extends Layer_default {
     return this;
   }
 };
+_customData2 = new WeakMap();
 _highlightPolyline = new WeakMap();
 _isHighlighted = new WeakMap();
 _options7 = new WeakMap();
@@ -13680,6 +13773,7 @@ export {
   markerCluster,
   markerCollection,
   objectEquals,
+  objectHasValue,
   overlay,
   placesSearchBox,
   point,
