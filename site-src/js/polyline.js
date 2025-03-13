@@ -35,8 +35,16 @@ const polyline = G.polyline({
         strokeColor: 'purple',
         strokeOpacity: 1,
         strokeWeight: 25,
-    }
+    },
+    data: { custom: 'value' }
 });
+console.log('polyline: ', polyline);
+console.log('polyline.data: ', polyline.data);
+console.log('polyline.getData: ', polyline.getData());
+polyline.data = { custom: 'new value', custom2: 'new value 2' };
+console.log('polyline.data: ', polyline.data);
+console.log('polyline.getData: ', polyline.getData());
+console.log('polyline.getData(custom2): ', polyline.getData('custom2'));
 polylineCollection.add(polyline);
 
 // const highlight = G.polyline({

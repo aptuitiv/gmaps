@@ -112,7 +112,15 @@ for (let i = 0; i < 20; i += 1) {
         longitude: lng + randomNumber(-6, 6),
         map: map,
         tooltip: `Marker ${tag}`,
+        data: { custom: 'value' }
     });
+    console.log('marker: ', marker);
+    console.log('marker.data: ', marker.data);
+    console.log('marker.getData: ', marker.getData());
+    marker.data = { custom: 'new value', custom2: 'new value 2' };
+    console.log('marker.data: ', marker.data);
+    console.log('marker.getData: ', marker.getData());
+    console.log('marker.getData(custom2): ', marker.getData('custom2'));
     markerCollection.add(marker, tag);
 }
 
