@@ -52,7 +52,7 @@ export type PolylineOptions = {
     // An object containing custom data to attach to the polyline object
     data?: CustomData;
     // The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline.
-    highlightPolyline?: PolylineOptions | Polyline;  
+    highlightPolyline?: PolylineOptions | Polyline;
     // The map to add the polyline to.
     map?: Map;
     // Array of LatLng values defining the path of the polyline.
@@ -90,7 +90,7 @@ export class Polyline extends Layer {
      * @private
      * @type {Polyline}
      */
-    #highlightPolyline: Polyline;  
+    #highlightPolyline: Polyline;
 
     /**
      * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
@@ -616,7 +616,7 @@ export class Polyline extends Layer {
      */
     async setMap(value: Map | null, isVisible: boolean = true): Promise<Polyline> {
         if (this.#highlightPolyline) {
-            this.#highlightPolyline.setMap(value);
+            this.#highlightPolyline.setMap(value, false);
         }
         await this.#setupGooglePolyline(value);
         if (value instanceof Map) {
@@ -816,7 +816,7 @@ export class Polyline extends Layer {
                             this.#polyline.setMap(thisMap.toGoogle());
                             // Add the map to the highlight polyline as well if it exists
                             if (this.#highlightPolyline) {
-                                this.#highlightPolyline.setMap(thisMap);
+                                this.#highlightPolyline.setMap(thisMap, false);
                             }
                         }
                         resolve();
