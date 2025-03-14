@@ -11825,7 +11825,7 @@ var _Polyline = class _Polyline extends Layer_default {
     __privateGet(this, _highlightPolyline).visible = false;
     __privateGet(this, _highlightPolyline).init().then(() => {
       this.init().then(() => {
-        __privateGet(this, _highlightPolyline).setMap(this.getMap());
+        __privateGet(this, _highlightPolyline).setMap(this.getMap(), false);
         super.on("mouseover", () => {
           if (!__privateGet(this, _isHighlighted)) {
             __privateGet(this, _highlightPolyline).visible = true;
@@ -12162,16 +12162,17 @@ var _Polyline = class _Polyline extends Layer_default {
    * Alternate of show()
    *
    * @param {Map} value The map object. Set to null if you want to remove the polyline from the map.
+   * @param {boolean} [isVisible] Whether the polyline as visible on the map.
    * @returns {Promise<Polyline>}
    */
-  setMap(value) {
+  setMap(value, isVisible = true) {
     return __async(this, null, function* () {
       if (__privateGet(this, _highlightPolyline)) {
         __privateGet(this, _highlightPolyline).setMap(value);
       }
       yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value);
       if (value instanceof Map) {
-        this.visible = true;
+        this.visible = isVisible;
         __privateGet(this, _options7).map = value;
         __superGet(_Polyline.prototype, this, "setMap").call(this, value);
         __privateGet(this, _polyline).setMap(value.toGoogle());
