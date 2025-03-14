@@ -6381,9 +6381,10 @@ declare class Polyline extends Layer {
      * Alternate of show()
      *
      * @param {Map} value The map object. Set to null if you want to remove the polyline from the map.
+     * @param {boolean} [isVisible] Whether the polyline as visible on the map.
      * @returns {Promise<Polyline>}
      */
-    setMap(value: Map | null): Promise<Polyline>;
+    setMap(value: Map | null, isVisible?: boolean): Promise<Polyline>;
     /**
      * Set the Polyline options
      *
