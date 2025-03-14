@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.20.0 (March 14, 2025)
+
+- Added support for setting the polyline map but not setting it to be visible.
+
 ## 0.19.0 (March 13, 2025)
 
 - Added support for attaching custom data to the marker and polyline objects.
