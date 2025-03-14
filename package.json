@@ -51,7 +51,7 @@
         "autoprefixer": "^10.4.21",
         "cacao-css": "^7.1.1",
         "chalk": "^5.4.1",
-        "cssnano": "^6.0.3",
+        "cssnano": "^7.0.6",
         "dotenv": "^16.4.7",
         "esbuild-plugin-eslint": "^0.3.12",
         "eslint": "^8.56.0",
