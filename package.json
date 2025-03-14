@@ -44,7 +44,7 @@
     },
     "homepage": "https://github.com/aptuitiv/gmaps#readme",
     "devDependencies": {
-        "@11ty/eleventy": "^2.0.1",
+        "@11ty/eleventy": "^3.0.0",
         "@aptuitiv/eslint-config-aptuitiv": "^1.1.0",
         "@types/google.maps": "^3.58.1",
         "autoprefixer": "^10.4.21",
