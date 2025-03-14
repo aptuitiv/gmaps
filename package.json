@@ -45,19 +45,16 @@
     "homepage": "https://github.com/aptuitiv/gmaps#readme",
     "devDependencies": {
         "@11ty/eleventy": "^2.0.1",
+        "@aptuitiv/eslint-config-aptuitiv": "^1.1.0",
         "@types/google.maps": "^3.58.1",
-        "@typescript-eslint/eslint-plugin": "^6.19.0",
-        "@typescript-eslint/parser": "^6.19.0",
         "autoprefixer": "^10.4.21",
         "cacao-css": "^7.1.1",
         "chalk": "^5.4.1",
         "cssnano": "^7.0.6",
         "dotenv": "^16.4.7",
         "esbuild-plugin-eslint": "^0.3.12",
-        "eslint": "^8.56.0",
-        "eslint-config-airbnb-base": "^15.0.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-jsdoc": "^48.0.4",
+        "eslint": "^9.22.0",
+        "eslint-config-prettier": "^10.1.1",
         "log-symbols": "^7.0.0",
         "postcss": "^8.5.3",
         "postcss-cli": "^11.0.1",
@@ -65,7 +62,8 @@
         "postcss-import": "^16.1.0",
         "ts-node": "^10.9.2",
         "tsup": "^8.4.0",
-        "typescript": "^5.8.2"
+        "typescript": "^5.8.2",
+        "typescript-eslint": "^8.26.1"
     },
     "dependencies": {
         "@googlemaps/js-api-loader": "^1.16.8",
