@@ -22,6 +22,7 @@ import {
     isNumberOrNumberString,
     isNumberString,
     isObject,
+    isObjectWithValues,
     isStringWithValue,
     objectHasValue,
 } from './helpers';
@@ -433,6 +434,29 @@ export class Polyline extends Layer {
                 this.#polyline.setOptions({ zIndex: Number(value) });
             }
         }
+    }
+
+    /**
+     * Clones the polyline
+     *
+     * @returns {Polyline}
+     */
+    clone(): Polyline {
+        const clone = new Polyline();
+        // Set the highlight polyline first so that any options that if the map object
+        // is set with the setOptions() method then it'll be set on the highlight polyline.
+        if (this.#highlightPolyline) {
+            clone.setHighlightPolyline(this.#highlightPolyline.clone());
+        }
+        clone.setOptions(this.#options);
+        clone.data = this.#customData;
+
+        // If there is an attached tooltip then add it
+        if (isObjectWithValues(this.tooltipConfig)) {
+            clone.attachTooltip(this.tooltipConfig);
+        }
+
+        return clone;
     }
 
     /**
