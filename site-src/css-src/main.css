@@ -3,12 +3,12 @@
 =========================================================================== */
 
 /* Config */
-@import '../../node_modules/cacao-css/src/config.css';
+@import 'cacao-css/dist/media.css';
 /* Reset */
-@import '../../node_modules/cacao-css/src/reset/reset.css';
+@import 'cacao-css/dist/reset.css';
 /* Base */
-@import '../../node_modules/cacao-css/src/base/base.css';
+@import 'cacao-css/dist/base.css';
 /* Aspect Ratios */
-@import '../../node_modules/cacao-css/src/aspect/horizontal.css';
+@import 'cacao-css/dist/aspect/horizontal.css';
 
 @import './site.css';
