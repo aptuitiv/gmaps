@@ -1847,7 +1847,7 @@ declare const isNumberString: (thing: any) => thing is string;
  * @param {any} thing The value to test
  * @returns {boolean}
  */
-declare const isNumberOrNumberString: (thing: any) => thing is string | number;
+declare const isNumberOrNumberString: (thing: any) => thing is number | string;
 /**
  * Returns if the value is a string
  *
@@ -1882,7 +1882,7 @@ declare const isUndefined: (thing: any) => thing is undefined;
  * @param {any} thing The thing to test
  * @returns {boolean}
  */
-declare const isNullOrUndefined: (thing: any) => thing is null;
+declare const isNullOrUndefined: (thing: any) => thing is null | undefined;
 /**
  * Get the number value for the given thing
  * If the thing is a number, return it
@@ -6294,6 +6294,12 @@ declare class Polyline extends Layer {
      * @param {number|string} value The zIndex of the polyline.
      */
     set zIndex(value: number | string);
+    /**
+     * Clones the polyline
+     *
+     * @returns {Polyline}
+     */
+    clone(): Polyline;
     /**
      * Get any custom data attached to the marker object.
      *
