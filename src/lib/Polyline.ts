@@ -207,7 +207,7 @@ export class Polyline extends Layer {
         // can be assigned to them and so that the map can be set.
         this.#highlightPolyline.init().then(() => {
             this.init().then(() => {
-                this.#highlightPolyline.setMap(this.getMap());
+                this.#highlightPolyline.setMap(this.getMap(), false);
 
                 // Set the hover events on this polyline to show and hide the highlight polyline.
                 // Use super.on instead of "on" so that this isn't added to the highlight polyline.
@@ -587,15 +587,16 @@ export class Polyline extends Layer {
      * Alternate of show()
      *
      * @param {Map} value The map object. Set to null if you want to remove the polyline from the map.
+     * @param {boolean} [isVisible] Whether the polyline as visible on the map.
      * @returns {Promise<Polyline>}
      */
-    async setMap(value: Map | null): Promise<Polyline> {
+    async setMap(value: Map | null, isVisible = true): Promise<Polyline> {
         if (this.#highlightPolyline) {
             this.#highlightPolyline.setMap(value);
         }
         await this.#setupGooglePolyline(value);
         if (value instanceof Map) {
-            this.visible = true;
+            this.visible = isVisible;
             // Set the map
             this.#options.map = value;
             super.setMap(value);
