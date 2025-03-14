@@ -614,7 +614,7 @@ export class Polyline extends Layer {
      * @param {boolean} [isVisible] Whether the polyline as visible on the map.
      * @returns {Promise<Polyline>}
      */
-    async setMap(value: Map | null, isVisible = true): Promise<Polyline> {
+    async setMap(value: Map | null, isVisible: boolean = true): Promise<Polyline> {
         if (this.#highlightPolyline) {
             this.#highlightPolyline.setMap(value);
         }
