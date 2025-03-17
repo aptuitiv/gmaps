@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2025-03-17
+
+### Added
+
+- Added support for cloning a Polyline object.
+
+### Changed
+
+- Updated packages.
+
+### Fixed
+
+- Fixed issue where a highlight polyline would show initially. Set it to not show when setting the map. This is necessary so that the highlight polyline isn’t automatically displayed when it’s assigned to a map. It should only show on hover.
+
 ## [0.20.0] - 2025-03-14
 
 ### Added
