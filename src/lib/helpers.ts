@@ -1,5 +1,6 @@
 /* global google */
-/*  eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types  */
+/*  eslint-disable @typescript-eslint/no-explicit-any -- The functions receive an unknown value so "any" is a required type.  */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type -- Some of the test look to see if the value is a function. Th "Function" return type is necessary. */
 
 /**
  * Returns if the value is boolean

@@ -22,6 +22,7 @@ import {
     isNumberOrNumberString,
     isNumberString,
     isObject,
+    isObjectWithValues,
     isStringWithValue,
     objectHasValue,
 } from './helpers';
@@ -51,7 +52,7 @@ export type PolylineOptions = {
     // An object containing custom data to attach to the polyline object
     data?: CustomData;
     // The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline.
-    highlightPolyline?: PolylineOptions | Polyline; // eslint-disable-line no-use-before-define
+    highlightPolyline?: PolylineOptions | Polyline;
     // The map to add the polyline to.
     map?: Map;
     // Array of LatLng values defining the path of the polyline.
@@ -89,7 +90,7 @@ export class Polyline extends Layer {
      * @private
      * @type {Polyline}
      */
-    #highlightPolyline: Polyline; // eslint-disable-line no-use-before-define
+    #highlightPolyline: Polyline;
 
     /**
      * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
@@ -436,6 +437,29 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Clones the polyline
+     *
+     * @returns {Polyline}
+     */
+    clone(): Polyline {
+        const clone = new Polyline();
+        // Set the highlight polyline first so that any options that if the map object
+        // is set with the setOptions() method then it'll be set on the highlight polyline.
+        if (this.#highlightPolyline) {
+            clone.setHighlightPolyline(this.#highlightPolyline.clone());
+        }
+        clone.setOptions(this.#options);
+        clone.data = this.#customData;
+
+        // If there is an attached tooltip then add it
+        if (isObjectWithValues(this.tooltipConfig)) {
+            clone.attachTooltip(this.tooltipConfig);
+        }
+
+        return clone;
+    }
+
+    /**
      * Get any custom data attached to the marker object.
      *
      * Optionally pass a data key to get the value for that key.
@@ -590,9 +614,9 @@ export class Polyline extends Layer {
      * @param {boolean} [isVisible] Whether the polyline as visible on the map.
      * @returns {Promise<Polyline>}
      */
-    async setMap(value: Map | null, isVisible = true): Promise<Polyline> {
+    async setMap(value: Map | null, isVisible: boolean = true): Promise<Polyline> {
         if (this.#highlightPolyline) {
-            this.#highlightPolyline.setMap(value);
+            this.#highlightPolyline.setMap(value, false);
         }
         await this.#setupGooglePolyline(value);
         if (value instanceof Map) {
@@ -792,7 +816,7 @@ export class Polyline extends Layer {
                             this.#polyline.setMap(thisMap.toGoogle());
                             // Add the map to the highlight polyline as well if it exists
                             if (this.#highlightPolyline) {
-                                this.#highlightPolyline.setMap(thisMap);
+                                this.#highlightPolyline.setMap(thisMap, false);
                             }
                         }
                         resolve();

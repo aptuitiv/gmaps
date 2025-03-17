@@ -63,8 +63,8 @@ var __async = (__this, __arguments, generator) => {
 };
 
 // src/index.ts
-var src_exports = {};
-__export(src_exports, {
+var index_exports = {};
+__export(index_exports, {
   AutocompleteSearchBox: () => AutocompleteSearchBox,
   AutocompleteSearchBoxEvents: () => AutocompleteSearchBoxEvents,
   Base: () => Base_default,
@@ -166,7 +166,7 @@ __export(src_exports, {
   tooltip: () => tooltip,
   zoomControl: () => zoomControl
 });
-module.exports = __toCommonJS(src_exports);
+module.exports = __toCommonJS(index_exports);
 
 // src/lib/Base.ts
 var _objectType;
@@ -11849,7 +11849,6 @@ var _Polyline = class _Polyline extends Layer_default {
      * @type {Polyline}
      */
     __privateAdd(this, _highlightPolyline);
-    // eslint-disable-line no-use-before-define
     /**
      * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
      *
@@ -12142,6 +12141,23 @@ var _Polyline = class _Polyline extends Layer_default {
     }
   }
   /**
+   * Clones the polyline
+   *
+   * @returns {Polyline}
+   */
+  clone() {
+    const clone = new _Polyline();
+    if (__privateGet(this, _highlightPolyline)) {
+      clone.setHighlightPolyline(__privateGet(this, _highlightPolyline).clone());
+    }
+    clone.setOptions(__privateGet(this, _options7));
+    clone.data = __privateGet(this, _customData2);
+    if (isObjectWithValues(this.tooltipConfig)) {
+      clone.attachTooltip(this.tooltipConfig);
+    }
+    return clone;
+  }
+  /**
    * Get any custom data attached to the marker object.
    *
    * Optionally pass a data key to get the value for that key.
@@ -12284,7 +12300,7 @@ var _Polyline = class _Polyline extends Layer_default {
   setMap(value, isVisible = true) {
     return __async(this, null, function* () {
       if (__privateGet(this, _highlightPolyline)) {
-        __privateGet(this, _highlightPolyline).setMap(value);
+        __privateGet(this, _highlightPolyline).setMap(value, false);
       }
       yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value);
       if (value instanceof Map) {
@@ -12468,7 +12484,7 @@ setupGooglePolyline_fn = function(map2) {
           if (__privateGet(this, _polyline) && thisMap) {
             __privateGet(this, _polyline).setMap(thisMap.toGoogle());
             if (__privateGet(this, _highlightPolyline)) {
-              __privateGet(this, _highlightPolyline).setMap(thisMap);
+              __privateGet(this, _highlightPolyline).setMap(thisMap, false);
             }
           }
           resolve();
@@ -13792,13 +13808,33 @@ var tooltip = (options) => {
 };
 var tooltipMixin = {
   /**
+   * Holds the configuration to recreate the tooltip.
+   *
+   * This is useful when cloning an object.
+   *
+   * @type {TooltipConfig|null}
+   */
+  tooltipConfig: null,
+  /**
    * Attach an Tooltip to the layer
    *
    * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
    */
   attachTooltip(tooltipValue, event) {
-    tooltip(tooltipValue).attachTo(this, event);
+    let tooltipVal = tooltipValue;
+    let tooltipEvent = event;
+    if (isObject(tooltipValue) && objectHasValue(tooltipValue, "attachConfig") && objectHasValue(tooltipValue, "attachEvent")) {
+      tooltipVal = tooltipValue.attachConfig;
+      tooltipEvent = tooltipValue.attachEvent;
+      this.tooltipConfig = tooltipValue;
+    } else {
+      this.tooltipConfig = {
+        attachConfig: tooltipVal,
+        attachEvent: tooltipEvent
+      };
+    }
+    tooltip(tooltipVal).attachTo(this, tooltipEvent);
   }
 };
 Layer_default.include(tooltipMixin);

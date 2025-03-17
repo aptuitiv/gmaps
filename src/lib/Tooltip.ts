@@ -6,7 +6,7 @@
 
 /* global google, HTMLElement, Text */
 
-import { isObject, isString, isStringWithValue } from './helpers';
+import { isObject, isString, isStringWithValue, objectHasValue } from './helpers';
 import { LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
@@ -382,18 +382,48 @@ export const tooltip = (options?: TooltipValue): Tooltip => {
     return new Tooltip(options);
 };
 
+export type TooltipConfig = {
+    attachConfig: TooltipValue;
+    attachEvent?: 'click' | 'clickon' | 'hover';
+}
+
 /**
  * Mixin to add the attachTooltip method to the Marker and Map classes
  */
 const tooltipMixin = {
+    /**
+     * Holds the configuration to recreate the tooltip.
+     *
+     * This is useful when cloning an object.
+     *
+     * @type {TooltipConfig|null}
+     */
+    tooltipConfig: null,
+
     /**
      * Attach an Tooltip to the layer
      *
      * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
      */
-    attachTooltip(tooltipValue: TooltipValue, event?: 'click' | 'clickon' | 'hover') {
-        tooltip(tooltipValue).attachTo(this, event);
+    attachTooltip(tooltipValue: TooltipValue|TooltipConfig, event?: 'click' | 'clickon' | 'hover') {
+        let tooltipVal = tooltipValue;
+        let tooltipEvent = event;
+        if (isObject(tooltipValue) && objectHasValue(tooltipValue, 'attachConfig') && objectHasValue(tooltipValue, 'attachEvent')) {
+            // The tooltipValue is a TooltipConfig object
+            tooltipVal = (tooltipValue as TooltipConfig).attachConfig;
+            tooltipEvent = (tooltipValue as TooltipConfig).attachEvent;
+            // Save the tooltip configuration so that it could be used to recreate the tooltip when cloning the object.
+            this.tooltipConfig = tooltipValue;
+        } else {
+            // Save the tooltip configuration so that it could be used to recreate the tooltip when cloning the object.
+            this.tooltipConfig = {
+                attachConfig: tooltipVal,
+                attachEvent: tooltipEvent
+            }
+        }
+
+        tooltip(tooltipVal as TooltipValue).attachTo(this, tooltipEvent);
     },
 };
 
