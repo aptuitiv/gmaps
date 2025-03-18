@@ -353,7 +353,7 @@ export class Polyline extends Layer {
                 this.#options.strokeOpacity = Number(value);
             }
             if (this.#polyline) {
-                this.#polyline.setOptions({ strokeOpacity: Number(value) });
+                this.#polyline.setOptions({ strokeOpacity: this.#options.strokeOpacity });
             }
         }
     }
