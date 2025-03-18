@@ -863,7 +863,7 @@ export class Polyline extends Layer {
                 'clickable',
                 'map',
                 'strokeColor',
-                'stokeOpacity',
+                'strokeOpacity',
                 'strokeWeight',
                 'visible',
                 'zIndex',
