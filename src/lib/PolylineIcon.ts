@@ -210,23 +210,27 @@ export class PolylineIcon extends Base {
     /**
      * Get the polyline icon options
      *
-     * @returns {google.maps.IconSequence}
+     * @returns {Promise<google.maps.IconSequence>}
      */
-    toGoogle(): google.maps.IconSequence {
-        const returnValue: google.maps.IconSequence = {};
-        if (isDefined(this.#options.fixedRotation)) {
-            returnValue.fixedRotation = this.#options.fixedRotation;
-        }
-        if (isDefined(this.#options.offset)) {
-            returnValue.offset = this.#options.offset;
-        }
-        if (isDefined(this.#options.repeat)) {
-            returnValue.repeat = this.#options.repeat;
-        }
-        if (this.#options.icon) {
-            returnValue.icon = this.#options.icon.toGoogle();
-        }
-        return returnValue;
+    toGoogle(): Promise<google.maps.IconSequence> {
+        return new Promise((resolve) => {
+            (async () => {
+                const options: google.maps.IconSequence = {};
+                if (isDefined(this.#options.fixedRotation)) {
+                    options.fixedRotation = this.#options.fixedRotation;
+                }
+                if (isDefined(this.#options.offset)) {
+                    options.offset = this.#options.offset;
+                }
+                if (isDefined(this.#options.repeat)) {
+                    options.repeat = this.#options.repeat;
+                }
+                if (this.#options.icon) {
+                    options.icon = await this.#options.icon.toGoogle();
+                }
+                resolve(options);
+            })();
+        });
     }
 }
 

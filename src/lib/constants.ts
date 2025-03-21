@@ -415,3 +415,39 @@ export const StreetViewSource = Object.freeze({
 
 // Type for the StreetViewSource values
 export type StreetViewSourceValue = (typeof StreetViewSource)[keyof typeof StreetViewSource];
+
+/**
+ * Build in symbols
+ * https://developers.google.com/maps/documentation/javascript/symbols#predefined
+ */
+export const SymbolPath = Object.freeze({
+    // A circle with a radius of 1.
+    CIRCLE: 'CIRCLE',
+    // A square with a width and height of 1.
+    BACKWARD_CLOSED_ARROW: 'BACKWARD_CLOSED_ARROW',
+    // A square with a width and height of 1.
+    FORWARD_CLOSED_ARROW: 'FORWARD_CLOSED_ARROW',
+    // A square with a width and height of 1.
+    FORWARD_OPEN_ARROW: 'FORWARD_OPEN_ARROW',
+    // A square with a width and height of 1.
+    BACKWARD_OPEN_ARROW: 'BACKWARD_OPEN_ARROW',
+});
+
+// Type for the SymbolPath values
+export type SymbolPathValue = (typeof SymbolPath)[keyof typeof SymbolPath];
+
+/**
+ * Converts a SymbolPath string value to a google.maps.SymbolPath value.
+ *
+ * @param {string} value The SymbolPath value to convert
+ * @returns {google.maps.SymbolPath}
+ */
+export const convertSymbolPath = (value: string): string => {
+    let returnValue = '';
+    Object.entries(SymbolPath).forEach((item) => {
+        if (item[1] === value) {
+            returnValue = google.maps.SymbolPath[item[0]];
+        }
+    });
+    return returnValue;
+};

@@ -32,6 +32,7 @@ import {
     PopupEvents,
     RenderingType,
     StreetViewSource,
+    SymbolPath,
 } from './lib/constants';
 import { geocode, Geocode } from './lib/Geocode';
 import { icon, Icon } from './lib/Icon';
@@ -78,6 +79,7 @@ type GlobalObj = {
     PopupEvents: typeof PopupEvents;
     RenderingType: typeof RenderingType;
     StreetViewSource: typeof StreetViewSource;
+    SymbolPath: typeof SymbolPath;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
     fullscreenControl: typeof fullscreenControl;
@@ -155,6 +157,7 @@ const G: GlobalObj = {
     PopupEvents,
     RenderingType,
     StreetViewSource,
+    SymbolPath,
     autocompleteSearchBox,
     AutocompleteSearchBox,
     fullscreenControl,
