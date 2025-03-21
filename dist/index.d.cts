@@ -6145,6 +6145,8 @@ type CustomData = {
 type PolylineOptions = {
     clickable?: boolean;
     data?: CustomData;
+    dashed?: boolean;
+    dashGap?: number;
     highlightPolyline?: PolylineOptions | Polyline;
     map?: Map;
     path?: LatLngValue[];
@@ -6178,6 +6180,30 @@ declare class Polyline extends Layer {
      * @param {boolean} value Whether the polyline handles click events.
      */
     set clickable(value: boolean);
+    /**
+     * Get whether the polyline is drawn as a dashed line.
+     *
+     * @returns {boolean}
+     */
+    get dashed(): boolean;
+    /**
+     * Set whether the polyline is drawn as a dashed line.
+     *
+     * @param {boolean} value Whether the polyline is drawn as a dashed line.
+     */
+    set dashed(value: boolean);
+    /**
+     * Get the gap between the dashes in pixels.
+     *
+     * @returns {number}
+     */
+    get dashGap(): number;
+    /**
+     * Set the gap between the dashes in pixels.
+     *
+     * @param {number} value The gap between the dashes in pixels.
+     */
+    set dashGap(value: number);
     /**
      * Get the custom data attached to the polyline object
      *
@@ -6371,6 +6397,21 @@ declare class Polyline extends Layer {
      * @inheritdoc
      */
     onlyOnce(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Sets the polyline to be drawn as a dashed line
+     *
+     * @param {boolean} dashed Whether the polyline is drawn as a dashed line
+     * @param {number} dashGap The gap between the dashes in pixels.
+     * @returns {Polyline} The polyline object
+     */
+    setDashed(dashed: boolean, dashGap?: number): Polyline;
+    /**
+     * Set the gap between the dashes in pixels.
+     *
+     * @param {number} gap The gap between the dashes in pixels. This is only used if the polyline is drawn as a dashed line.
+     * @returns {Polyline} The polyline object
+     */
+    setDashGap(gap: number): Polyline;
     /**
      * Set the highlight polyline
      *

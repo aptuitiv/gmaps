@@ -11832,7 +11832,7 @@ var placesSearchBox = (input, options) => {
 };
 
 // src/lib/Polyline.ts
-var _customData2, _highlightPolyline, _isHighlighted, _options7, _polyline, _Polyline_instances, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
+var _customData2, _dashed, _dashGap, _highlightPolyline, _isHighlighted, _options7, _polyline, _Polyline_instances, setupDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -11849,6 +11849,20 @@ var _Polyline = class _Polyline extends Layer_default {
      * @type {CustomData}
      */
     __privateAdd(this, _customData2, {});
+    /**
+     * Holds whether the polyline is drawn as a dashed line
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _dashed, false);
+    /**
+     * Holds the gap between the dashes in pixels
+     *
+     * @private
+     * @type {number}
+     */
+    __privateAdd(this, _dashGap, 15);
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
      * when the mouse hovers over this polyline.
@@ -11901,6 +11915,61 @@ var _Polyline = class _Polyline extends Layer_default {
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ clickable: value });
       }
+    }
+  }
+  /**
+   * Get whether the polyline is drawn as a dashed line.
+   *
+   * @returns {boolean}
+   */
+  get dashed() {
+    return __privateGet(this, _dashed);
+  }
+  /**
+   * Set whether the polyline is drawn as a dashed line.
+   *
+   * @param {boolean} value Whether the polyline is drawn as a dashed line.
+   */
+  set dashed(value) {
+    if (isBoolean(value)) {
+      __privateSet(this, _dashed, value);
+      __privateGet(this, _options7).dashed = value;
+    }
+    if (__privateGet(this, _polyline)) {
+      __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
+    }
+  }
+  /**
+   * Get the gap between the dashes in pixels.
+   *
+   * @returns {number}
+   */
+  get dashGap() {
+    return __privateGet(this, _dashGap);
+  }
+  /**
+   * Set the gap between the dashes in pixels.
+   *
+   * @param {number} value The gap between the dashes in pixels.
+   */
+  set dashGap(value) {
+    let isValid = false;
+    if (isNumber(value)) {
+      if (value >= 0) {
+        isValid = true;
+        __privateSet(this, _dashGap, value);
+        __privateGet(this, _options7).dashGap = value;
+      }
+    } else if (isNumberString(value)) {
+      const gap = Number(value);
+      if (gap >= 0) {
+        isValid = true;
+        __privateSet(this, _dashGap, gap);
+        __privateGet(this, _options7).dashGap = gap;
+      }
+    }
+    if (isValid && __privateGet(this, _polyline)) {
+      __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
     }
   }
   /**
@@ -12072,7 +12141,11 @@ var _Polyline = class _Polyline extends Layer_default {
         __privateGet(this, _options7).strokeOpacity = Number(value);
       }
       if (__privateGet(this, _polyline)) {
-        __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options7).strokeOpacity });
+        if (__privateGet(this, _dashed)) {
+          __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
+        } else {
+          __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options7).strokeOpacity });
+        }
       }
     }
   }
@@ -12097,7 +12170,11 @@ var _Polyline = class _Polyline extends Layer_default {
         __privateGet(this, _options7).strokeWeight = Number(value);
       }
       if (__privateGet(this, _polyline)) {
-        __privateGet(this, _polyline).setOptions({ strokeWeight: Number(value) });
+        if (__privateGet(this, _dashed)) {
+          __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
+        } else {
+          __privateGet(this, _polyline).setOptions({ strokeWeight: Number(value) });
+        }
       }
     }
   }
@@ -12160,6 +12237,7 @@ var _Polyline = class _Polyline extends Layer_default {
     }
     clone.setOptions(__privateGet(this, _options7));
     clone.data = __privateGet(this, _customData2);
+    clone.setMap(this.getMap());
     if (isObjectWithValues(this.tooltipConfig)) {
       clone.attachTooltip(this.tooltipConfig);
     }
@@ -12284,6 +12362,30 @@ var _Polyline = class _Polyline extends Layer_default {
     super.onlyOnce(type, callback, config);
   }
   /**
+   * Sets the polyline to be drawn as a dashed line
+   *
+   * @param {boolean} dashed Whether the polyline is drawn as a dashed line
+   * @param {number} dashGap The gap between the dashes in pixels.
+   * @returns {Polyline} The polyline object
+   */
+  setDashed(dashed, dashGap) {
+    this.dashed = dashed;
+    if (dashed) {
+      this.dashGap = dashGap;
+    }
+    return this;
+  }
+  /**
+   * Set the gap between the dashes in pixels.
+   *
+   * @param {number} gap The gap between the dashes in pixels. This is only used if the polyline is drawn as a dashed line.
+   * @returns {Polyline} The polyline object
+   */
+  setDashGap(gap) {
+    this.dashGap = gap;
+    return this;
+  }
+  /**
    * Set the highlight polyline
    *
    * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
@@ -12336,6 +12438,12 @@ var _Polyline = class _Polyline extends Layer_default {
     if (isObject(options)) {
       if (typeof options.clickable === "boolean") {
         this.clickable = options.clickable;
+      }
+      if (isBoolean(options.dashed)) {
+        this.dashed = options.dashed;
+      }
+      if (isNumberOrNumberString(options.dashGap)) {
+        this.dashGap = options.dashGap;
       }
       if (options.map) {
         this.setMap(options.map);
@@ -12468,11 +12576,46 @@ var _Polyline = class _Polyline extends Layer_default {
   }
 };
 _customData2 = new WeakMap();
+_dashed = new WeakMap();
+_dashGap = new WeakMap();
 _highlightPolyline = new WeakMap();
 _isHighlighted = new WeakMap();
 _options7 = new WeakMap();
 _polyline = new WeakMap();
 _Polyline_instances = new WeakSet();
+/**
+ * Set up the options for a dashed polyline
+ *
+ * See https://developers.google.com/maps/documentation/javascript/examples/overlay-symbol-dashed for details
+ *
+ * @returns {google.maps.PolylineOptions} The Google maps Polyline options
+ */
+setupDashedPolylineOptions_fn = function() {
+  const options = {};
+  if (__privateGet(this, _dashed)) {
+    const lineSymbol = {
+      path: "M 0,-1 0,1",
+      strokeOpacity: 1,
+      scale: 3
+    };
+    if (isDefined(__privateGet(this, _options7).strokeOpacity)) {
+      lineSymbol.strokeOpacity = __privateGet(this, _options7).strokeOpacity;
+    }
+    if (isDefined(__privateGet(this, _options7).strokeWeight)) {
+      lineSymbol.scale = __privateGet(this, _options7).strokeWeight;
+    }
+    options.strokeOpacity = 0;
+    options.icons = [{
+      icon: lineSymbol,
+      offset: "0",
+      repeat: `${__privateGet(this, _dashGap)}px`
+    }];
+  } else {
+    options.strokeOpacity = isNumberOrNumberString(__privateGet(this, _options7).strokeOpacity) ? __privateGet(this, _options7).strokeOpacity : 1;
+    options.icons = [];
+  }
+  return options;
+};
 /**
  * Set up the Google maps Polyline object if necessary
  *
@@ -12546,6 +12689,7 @@ createPolylineObject_fn = function() {
       polylineOptions.path = __privateGet(this, _options7).path.map((path) => latLng(path).toGoogle());
     }
     __privateSet(this, _polyline, new google.maps.Polyline(polylineOptions));
+    __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
     this.setEventGoogleObject(__privateGet(this, _polyline));
   }
 };
