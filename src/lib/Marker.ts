@@ -880,12 +880,20 @@ export class Marker extends Layer {
             this.#options.label = value;
         } else if (isObject(value) && isStringOrNumber(value.text)) {
             this.#options.label = {
-                text: value.text.toString(),
-                className: isStringWithValue(value.className) ? value.className : undefined,
-                color: isStringWithValue(value.color) ? value.color : undefined,
-                fontFamily: isStringWithValue(value.fontFamily) ? value.fontFamily : undefined,
-                fontWeight: isStringWithValue(value.fontWeight) ? value.fontWeight : undefined,
+                text: value.text.toString()
             };
+            if (isStringWithValue(value.className)) {
+                this.#options.label.className = value.className;
+            }
+            if (isStringWithValue(value.color)) {
+                this.#options.label.color = value.color;
+            }
+            if (isStringWithValue(value.fontFamily)) {
+                this.#options.label.fontFamily = value.fontFamily;
+            }
+            if (isStringWithValue(value.fontWeight)) {
+                this.#options.label.fontWeight = value.fontWeight;
+            }
             // The font size must be a string with a unit. If it's a number then add "px" to the end of it
             if (isStringWithValue(value.fontSize) || isNumber(value.fontSize)) {
                 if (isNumber(value.fontSize)) {
