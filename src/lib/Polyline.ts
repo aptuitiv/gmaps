@@ -17,6 +17,7 @@ import { Map } from './Map';
 import { TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
+    getSizeWithUnit,
     isBoolean,
     isDefined,
     isNullOrUndefined,
@@ -218,36 +219,15 @@ export class Polyline extends Layer {
      * @param {string|number} value The gap between the dashes in pixels.
      */
     set dashGap(value: string|number) {
-        let isValid = false;
-        if (isNumber(value)) {
-            if (value >= 0) {
-                isValid = true;
-                this.#dashGap = `${value}px`;
-                // Add to the options object so that it can be used when cloning the polyline
-                this.#options.dashGap = value;
+        const gap = getSizeWithUnit(value);
+        if (isStringWithValue(gap)) {
+            this.#dashGap = gap;
+            // Add to the options object so that it can be used when cloning the polyline
+            this.#options.dashGap = gap;
+
+            if (this.#polyline) {
+                this.#polyline.setOptions(this.#setupDashedPolylineOptions());
             }
-        } else if (isNumberString(value)) {
-            const gap = Number(value);
-            if (gap >= 0) {
-                isValid = true;
-                this.#dashGap = `${gap}px`;
-                // Add to the options object so that it can be used when cloning the polyline
-                this.#options.dashGap = gap;
-            }
-        } else if (isStringWithValue(value)) {
-            if ((value as string).endsWith('px') || (value as string).endsWith('%')) {
-                // Remove the "px" or "%" from the value
-                const gap = parseFloat((value as string).replace(/px|%/g, ''));
-                if (gap >= 0) {
-                    isValid = true;
-                    this.#dashGap = value;
-                    // Add to the options object so that it can be used when cloning the polyline
-                    this.#options.dashGap = value;
-                }
-            }
-        }
-        if (isValid && this.#polyline) {
-            this.#polyline.setOptions(this.#setupDashedPolylineOptions());
         }
     }
 
