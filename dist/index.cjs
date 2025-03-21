@@ -9164,12 +9164,20 @@ setLabel_fn = function(value) {
     __privateGet(this, _options4).label = value;
   } else if (isObject(value) && isStringOrNumber(value.text)) {
     __privateGet(this, _options4).label = {
-      text: value.text.toString(),
-      className: isStringWithValue(value.className) ? value.className : void 0,
-      color: isStringWithValue(value.color) ? value.color : void 0,
-      fontFamily: isStringWithValue(value.fontFamily) ? value.fontFamily : void 0,
-      fontWeight: isStringWithValue(value.fontWeight) ? value.fontWeight : void 0
+      text: value.text.toString()
     };
+    if (isStringWithValue(value.className)) {
+      __privateGet(this, _options4).label.className = value.className;
+    }
+    if (isStringWithValue(value.color)) {
+      __privateGet(this, _options4).label.color = value.color;
+    }
+    if (isStringWithValue(value.fontFamily)) {
+      __privateGet(this, _options4).label.fontFamily = value.fontFamily;
+    }
+    if (isStringWithValue(value.fontWeight)) {
+      __privateGet(this, _options4).label.fontWeight = value.fontWeight;
+    }
     if (isStringWithValue(value.fontSize) || isNumber(value.fontSize)) {
       if (isNumber(value.fontSize)) {
         __privateGet(this, _options4).label.fontSize = `${value.fontSize}px`;
@@ -10514,30 +10522,30 @@ var ImageRenderer = class {
       markerImage.setScaledSize(image.scaledSize);
     }
     const label = { text: count.toString() };
-    if (__privateGet(this, _labelClassName)) {
-      label.className = __privateGet(this, _labelClassName);
-    } else if (image.labelClassName) {
+    if (image.labelClassName) {
       label.className = image.labelClassName;
+    } else if (__privateGet(this, _labelClassName)) {
+      label.className = __privateGet(this, _labelClassName);
     }
-    if (__privateGet(this, _labelColor)) {
-      label.color = __privateGet(this, _labelColor);
-    } else if (image.labelColor) {
+    if (image.labelColor) {
       label.color = image.labelColor;
+    } else if (__privateGet(this, _labelColor)) {
+      label.color = __privateGet(this, _labelColor);
     }
-    if (__privateGet(this, _labelFontFamily2)) {
-      label.fontFamily = __privateGet(this, _labelFontFamily2);
-    } else if (image.labelFontFamily) {
+    if (image.labelFontFamily) {
       label.fontFamily = image.labelFontFamily;
+    } else if (__privateGet(this, _labelFontFamily2)) {
+      label.fontFamily = __privateGet(this, _labelFontFamily2);
     }
-    if (__privateGet(this, _labelFontSize2)) {
-      label.fontSize = __privateGet(this, _labelFontSize2).toString();
-    } else if (image.labelFontSize) {
+    if (image.labelFontSize) {
       label.fontSize = image.labelFontSize;
+    } else if (__privateGet(this, _labelFontSize2)) {
+      label.fontSize = __privateGet(this, _labelFontSize2).toString();
     }
-    if (__privateGet(this, _labelFontWeight)) {
-      label.fontWeight = __privateGet(this, _labelFontWeight);
-    } else if (image.labelFontWeight) {
+    if (image.labelFontWeight) {
       label.fontWeight = image.labelFontWeight;
+    } else if (__privateGet(this, _labelFontWeight)) {
+      label.fontWeight = __privateGet(this, _labelFontWeight);
     }
     const clusterMarker = marker();
     clusterMarker.setPositionSync({ lat: position.lat(), lng: position.lng() });
@@ -12064,7 +12072,7 @@ var _Polyline = class _Polyline extends Layer_default {
         __privateGet(this, _options7).strokeOpacity = Number(value);
       }
       if (__privateGet(this, _polyline)) {
-        __privateGet(this, _polyline).setOptions({ strokeOpacity: Number(value) });
+        __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options7).strokeOpacity });
       }
     }
   }
@@ -12524,7 +12532,7 @@ createPolylineObject_fn = function() {
       "clickable",
       "map",
       "strokeColor",
-      "stokeOpacity",
+      "strokeOpacity",
       "strokeWeight",
       "visible",
       "zIndex"
