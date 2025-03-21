@@ -65,16 +65,7 @@ export class SvgSymbol extends Base {
         super('svgsymbol');
         // Set up the initial options object
         this.#options = {
-            anchor: point([0, 0]),
-            fillColor: '#000000',
-            fillOpacity: 1,
-            labelOrigin: point([0, 0]),
             path: '',
-            rotation: 0,
-            scale: 1,
-            strokeColor: '#000000',
-            strokeOpacity: 1,
-            strokeWeight: undefined,
         };
         if (typeof path === 'string') {
             this.#options.path = path;
