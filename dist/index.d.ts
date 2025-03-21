@@ -6193,17 +6193,19 @@ declare class Polyline extends Layer {
      */
     set dashed(value: boolean);
     /**
-     * Get the gap between the dashes in pixels.
+     * Get the gap between the dashes in pixels or percentage.
      *
-     * @returns {number}
+     * @returns {string}
      */
-    get dashGap(): number;
+    get dashGap(): string;
     /**
-     * Set the gap between the dashes in pixels.
+     * Set the gap between the dashes in pixels or percentage.
      *
-     * @param {number} value The gap between the dashes in pixels.
+     * If a number is set them it will be converted to a string with "px" appended.
+     *
+     * @param {string|number} value The gap between the dashes in pixels.
      */
-    set dashGap(value: number);
+    set dashGap(value: string | number);
     /**
      * Get the custom data attached to the polyline object
      *
@@ -6401,17 +6403,17 @@ declare class Polyline extends Layer {
      * Sets the polyline to be drawn as a dashed line
      *
      * @param {boolean} dashed Whether the polyline is drawn as a dashed line
-     * @param {number} dashGap The gap between the dashes in pixels.
+     * @param {string|number} [dashGap] The gap between the dashes in pixels or percentage.
      * @returns {Polyline} The polyline object
      */
-    setDashed(dashed: boolean, dashGap?: number): Polyline;
+    setDashed(dashed: boolean, dashGap?: string | number): Polyline;
     /**
      * Set the gap between the dashes in pixels.
      *
-     * @param {number} gap The gap between the dashes in pixels. This is only used if the polyline is drawn as a dashed line.
+     * @param {string|number} gap The gap between the dashes in pixels or percentage. This is only used if the polyline is drawn as a dashed line.
      * @returns {Polyline} The polyline object
      */
-    setDashGap(gap: number): Polyline;
+    setDashGap(gap: string | number): Polyline;
     /**
      * Set the highlight polyline
      *

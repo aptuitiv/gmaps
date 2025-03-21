@@ -11857,12 +11857,14 @@ var _Polyline = class _Polyline extends Layer_default {
      */
     __privateAdd(this, _dashed, false);
     /**
-     * Holds the gap between the dashes in pixels
+     * Holds the gap between the dashes in pixels or percentage
+     *
+     * https://developers.google.com/maps/documentation/javascript/symbols#add_to_polyline
      *
      * @private
-     * @type {number}
+     * @type {string}
      */
-    __privateAdd(this, _dashGap, 15);
+    __privateAdd(this, _dashGap, "15px");
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
      * when the mouse hovers over this polyline.
@@ -11940,32 +11942,43 @@ var _Polyline = class _Polyline extends Layer_default {
     }
   }
   /**
-   * Get the gap between the dashes in pixels.
+   * Get the gap between the dashes in pixels or percentage.
    *
-   * @returns {number}
+   * @returns {string}
    */
   get dashGap() {
     return __privateGet(this, _dashGap);
   }
   /**
-   * Set the gap between the dashes in pixels.
+   * Set the gap between the dashes in pixels or percentage.
    *
-   * @param {number} value The gap between the dashes in pixels.
+   * If a number is set them it will be converted to a string with "px" appended.
+   *
+   * @param {string|number} value The gap between the dashes in pixels.
    */
   set dashGap(value) {
     let isValid = false;
     if (isNumber(value)) {
       if (value >= 0) {
         isValid = true;
-        __privateSet(this, _dashGap, value);
+        __privateSet(this, _dashGap, `${value}px`);
         __privateGet(this, _options7).dashGap = value;
       }
     } else if (isNumberString(value)) {
       const gap = Number(value);
       if (gap >= 0) {
         isValid = true;
-        __privateSet(this, _dashGap, gap);
+        __privateSet(this, _dashGap, `${gap}px`);
         __privateGet(this, _options7).dashGap = gap;
+      }
+    } else if (isStringWithValue(value)) {
+      if (value.endsWith("px") || value.endsWith("%")) {
+        const gap = parseFloat(value.replace(/px|%/g, ""));
+        if (gap >= 0) {
+          isValid = true;
+          __privateSet(this, _dashGap, value);
+          __privateGet(this, _options7).dashGap = value;
+        }
       }
     }
     if (isValid && __privateGet(this, _polyline)) {
@@ -12365,7 +12378,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * Sets the polyline to be drawn as a dashed line
    *
    * @param {boolean} dashed Whether the polyline is drawn as a dashed line
-   * @param {number} dashGap The gap between the dashes in pixels.
+   * @param {string|number} [dashGap] The gap between the dashes in pixels or percentage.
    * @returns {Polyline} The polyline object
    */
   setDashed(dashed, dashGap) {
@@ -12378,7 +12391,7 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Set the gap between the dashes in pixels.
    *
-   * @param {number} gap The gap between the dashes in pixels. This is only used if the polyline is drawn as a dashed line.
+   * @param {string|number} gap The gap between the dashes in pixels or percentage. This is only used if the polyline is drawn as a dashed line.
    * @returns {Polyline} The polyline object
    */
   setDashGap(gap) {
@@ -12442,7 +12455,7 @@ var _Polyline = class _Polyline extends Layer_default {
       if (isBoolean(options.dashed)) {
         this.dashed = options.dashed;
       }
-      if (isNumberOrNumberString(options.dashGap)) {
+      if (isDefined(options.dashGap)) {
         this.dashGap = options.dashGap;
       }
       if (options.map) {
@@ -12608,7 +12621,7 @@ setupDashedPolylineOptions_fn = function() {
     options.icons = [{
       icon: lineSymbol,
       offset: "0",
-      repeat: `${__privateGet(this, _dashGap)}px`
+      repeat: __privateGet(this, _dashGap)
     }];
   } else {
     options.strokeOpacity = isNumberOrNumberString(__privateGet(this, _options7).strokeOpacity) ? __privateGet(this, _options7).strokeOpacity : 1;
