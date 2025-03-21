@@ -14,6 +14,8 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { loader } from './Loader';
 import { Map } from './Map';
+import { polylineIcon } from './PolylineIcon';
+import { svgSymbol } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
@@ -927,11 +929,12 @@ export class Polyline extends Layer {
     #setupDashedPolylineOptions(): google.maps.PolylineOptions {
         const options: google.maps.PolylineOptions = {};
         if (this.#dashed) {
-            const lineSymbol = {
+            // Set up the icon symbol that will be displayed as a dash
+            const lineSymbol = svgSymbol({
                 path: 'M 0,-1 0,1',
                 strokeOpacity: 1,
                 scale: 3,
-            };
+            });
             if (isDefined(this.#options.strokeOpacity)) {
                 lineSymbol.strokeOpacity = this.#options.strokeOpacity;
             }
@@ -939,11 +942,14 @@ export class Polyline extends Layer {
                 lineSymbol.scale = this.#options.strokeWeight;
             }
             options.strokeOpacity = 0;
-            options.icons = [{
+
+            // Set the icon to be used for the dashes
+            const icon = polylineIcon({
                 icon: lineSymbol,
                 offset: '0',
                 repeat: this.#dashGap,
-            }];
+            })
+            options.icons = [icon.toGoogle()];
         } else {
             options.strokeOpacity = isNumberOrNumberString(this.#options.strokeOpacity) ? this.#options.strokeOpacity : 1;
             options.icons = []; // Remove any icons if the polyline is not dashed
