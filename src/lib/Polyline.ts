@@ -58,8 +58,8 @@ export type PolylineOptions = {
     data?: CustomData;
     // Whether the polyline is drawn as a dashed line. Defaults to false.
     dashed?: boolean;
-    // The gap between the dashes in pixels. Defaults to 15.
-    dashGap?: number;
+    // The gap between the dashes in pixels or percentage. Defaults to 15px.
+    dashGap?: string|number;
     // The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline.
     highlightPolyline?: PolylineOptions | Polyline;
     // The map to add the polyline to.
