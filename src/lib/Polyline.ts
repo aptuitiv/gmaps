@@ -98,12 +98,14 @@ export class Polyline extends Layer {
     #dashed: boolean = false;
 
     /**
-     * Holds the gap between the dashes in pixels
+     * Holds the gap between the dashes in pixels or percentage
+     *
+     * https://developers.google.com/maps/documentation/javascript/symbols#add_to_polyline
      *
      * @private
-     * @type {number}
+     * @type {string}
      */
-    #dashGap: number = 15;
+    #dashGap: string = '15px';
 
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
@@ -200,25 +202,27 @@ export class Polyline extends Layer {
     }
 
     /**
-     * Get the gap between the dashes in pixels.
+     * Get the gap between the dashes in pixels or percentage.
      *
-     * @returns {number}
+     * @returns {string}
      */
-    get dashGap(): number {
+    get dashGap(): string {
         return this.#dashGap;
     }
 
     /**
-     * Set the gap between the dashes in pixels.
+     * Set the gap between the dashes in pixels or percentage.
      *
-     * @param {number} value The gap between the dashes in pixels.
+     * If a number is set them it will be converted to a string with "px" appended.
+     *
+     * @param {string|number} value The gap between the dashes in pixels.
      */
-    set dashGap(value: number) {
+    set dashGap(value: string|number) {
         let isValid = false;
         if (isNumber(value)) {
             if (value >= 0) {
                 isValid = true;
-                this.#dashGap = value;
+                this.#dashGap = `${value}px`;
                 // Add to the options object so that it can be used when cloning the polyline
                 this.#options.dashGap = value;
             }
@@ -226,9 +230,20 @@ export class Polyline extends Layer {
             const gap = Number(value);
             if (gap >= 0) {
                 isValid = true;
-                this.#dashGap = gap;
+                this.#dashGap = `${gap}px`;
                 // Add to the options object so that it can be used when cloning the polyline
                 this.#options.dashGap = gap;
+            }
+        } else if (isStringWithValue(value)) {
+            if ((value as string).endsWith('px') || (value as string).endsWith('%')) {
+                // Remove the "px" or "%" from the value
+                const gap = parseFloat((value as string).replace(/px|%/g, ''));
+                if (gap >= 0) {
+                    isValid = true;
+                    this.#dashGap = value;
+                    // Add to the options object so that it can be used when cloning the polyline
+                    this.#options.dashGap = value;
+                }
             }
         }
         if (isValid && this.#polyline) {
@@ -694,10 +709,10 @@ export class Polyline extends Layer {
      * Sets the polyline to be drawn as a dashed line
      *
      * @param {boolean} dashed Whether the polyline is drawn as a dashed line
-     * @param {number} dashGap The gap between the dashes in pixels.
+     * @param {string|number} [dashGap] The gap between the dashes in pixels or percentage.
      * @returns {Polyline} The polyline object
      */
-    setDashed(dashed: boolean, dashGap?: number): Polyline {
+    setDashed(dashed: boolean, dashGap?: string|number): Polyline {
         this.dashed = dashed;
         if (dashed) {
             this.dashGap = dashGap;
@@ -708,10 +723,10 @@ export class Polyline extends Layer {
     /**
      * Set the gap between the dashes in pixels.
      *
-     * @param {number} gap The gap between the dashes in pixels. This is only used if the polyline is drawn as a dashed line.
+     * @param {string|number} gap The gap between the dashes in pixels or percentage. This is only used if the polyline is drawn as a dashed line.
      * @returns {Polyline} The polyline object
      */
-    setDashGap(gap: number): Polyline {
+    setDashGap(gap: string|number): Polyline {
         this.dashGap = gap;
         return this;
     }
@@ -775,7 +790,7 @@ export class Polyline extends Layer {
             if (isBoolean(options.dashed)) {
                 this.dashed = options.dashed;
             }
-            if (isNumberOrNumberString(options.dashGap)) {
+            if (isDefined(options.dashGap)) {
                 this.dashGap = options.dashGap;
             }
             if (options.map) {
@@ -947,7 +962,7 @@ export class Polyline extends Layer {
             options.icons = [{
                 icon: lineSymbol,
                 offset: '0',
-                repeat: `${this.#dashGap}px`,
+                repeat: this.#dashGap,
             }];
         } else {
             options.strokeOpacity = isNumberOrNumberString(this.#options.strokeOpacity) ? this.#options.strokeOpacity : 1;
