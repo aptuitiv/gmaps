@@ -5,6 +5,8 @@
     https://developers.google.com/maps/documentation/javascript/reference/polygon#IconSequence
 =========================================================================== */
 
+/* global google */
+
 import Base from './Base';
 import { getSizeWithUnit, isBoolean, isDefined, isObject, isStringWithValue } from './helpers';
 import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
@@ -158,7 +160,9 @@ export class PolylineIcon extends Base {
     /**
      * Set the distance from the start of the line at which an icon is to be rendered.
      *
-     * @param {number|string} value The distance from the start of the line at which an icon is to be rendered. This distance may be expressed as a percentage of line's length (e.g. '50%') or in pixels (e.g. '50px').
+     * @param {number|string} value The distance from the start of the line at which an icon is to be rendered.
+     *      This distance may be expressed as a percentage of line's length (e.g. '50%') or in pixels (e.g. '50px').
+     * @returns {PolylineIcon} The PolylineIcon instance for method chaining
      */
     setOffset(value: number|string): PolylineIcon {
         this.offset = value;
@@ -172,6 +176,7 @@ export class PolylineIcon extends Base {
      * To disable repeating icons, set the repeat value to 0, '0px' or '0%'.
      *
      * @param {number|string} value The repeat value. It can be a number, a number string, or a string with 'px' or '%' suffix.
+     * @returns {PolylineIcon} The PolylineIcon instance for method chaining
      */
     setRepeat(value: number|string): PolylineIcon {
         this.repeat = value;
