@@ -102,6 +102,55 @@ for (let i = 0; i < 10; i += 1) {
     polylineCollection.add(polyline, tag);
 }
 
+// Dashed polyline
+const dashedPath = [];
+const dashedLat = 47;
+const dashedLng = 3;
+for (let i = 0; i < 10; i += 1) {
+    dashedPath.push({
+        latitude: dashedLat + (randomNumber(0, 0.2) * i),
+        longitude: dashedLng + (randomNumber(0, .2) * i),
+    });
+}
+
+const dashedPolyline = G.polyline({
+    clickable: true,
+    path: dashedPath,
+    map: map,
+    strokeColor: '#A16D33',
+    strokeWeight: 3,
+    dashed: true,
+    dashGap: 25,
+    strokeWeight: 4,
+    strokeOpacity: 1,
+});
+map.onReady(() => {
+    // setTimeout(() => {
+    //     // dashedPolyline.dashed = false;
+    //     dashedPolyline.setDashed(false, 13);
+    //     dashedPolyline.setStrokeOpacity(0.5);
+    //     dashedPolyline.strokeWeight = 1;
+    // }, 1500);
+});
+
+map.onReady(() => {
+    setTimeout(() => {
+        // dashedPolyline.dashGap = 40;
+        // Clone the dashed line
+        const dashedPath2 = [];
+        const dashedLat2 = 48;
+        const dashedLng2 = 4;
+        for (let i = 0; i < 10; i += 1) {
+            dashedPath2.push({
+                latitude: dashedLat2 + (randomNumber(0, 0.2) * i),
+                longitude: dashedLng2 + (randomNumber(0, .2) * i),
+            });
+        }
+        const dashedClone = dashedPolyline.clone();
+        console.log('dashedClone: ', dashedClone);
+        dashedClone.setPath(dashedPath2);
+    }, 1500);
+});
 
 // Buttons to show/hide the polyline
 const hideButton = document.createElement('button');
