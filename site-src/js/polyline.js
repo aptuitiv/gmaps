@@ -120,7 +120,7 @@ const dashedPolyline = G.polyline({
     strokeColor: '#A16D33',
     strokeWeight: 3,
     dashed: true,
-    dashGap: '5%',
+    dashGap: '10%',
     strokeWeight: 4,
     strokeOpacity: 1,
 });
