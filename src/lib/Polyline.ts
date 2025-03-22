@@ -364,7 +364,6 @@ export class Polyline extends Layer {
         if (Array.isArray(value)) {
             setValue = true;
             this.#options.icons = value.map((iconValue) => polylineIcon(iconValue));
-            console.log('icons', this.#options.icons);
         } else {
             // If it's not an array then assume it's a single icon value
             this.#options.icons = [polylineIcon(value)];
