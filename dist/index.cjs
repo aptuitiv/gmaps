@@ -101,6 +101,7 @@ __export(index_exports, {
   Point: () => Point,
   Polyline: () => Polyline,
   PolylineCollection: () => PolylineCollection,
+  PolylineIcon: () => PolylineIcon,
   Popup: () => Popup,
   PopupEvents: () => PopupEvents,
   RenderingType: () => RenderingType,
@@ -110,6 +111,7 @@ __export(index_exports, {
   StreetViewControl: () => StreetViewControl,
   StreetViewSource: () => StreetViewSource,
   SvgSymbol: () => SvgSymbol,
+  SymbolPath: () => SymbolPath,
   Tooltip: () => Tooltip,
   ZoomControl: () => ZoomControl,
   autocompleteSearchBox: () => autocompleteSearchBox,
@@ -118,11 +120,13 @@ __export(index_exports, {
   closeAllPopups: () => closeAllPopups,
   convertControlPosition: () => convertControlPosition,
   convertMapTypeControlStyle: () => convertMapTypeControlStyle,
+  convertSymbolPath: () => convertSymbolPath,
   fullscreenControl: () => fullscreenControl,
   geocode: () => geocode,
   getBoolean: () => getBoolean,
   getNumber: () => getNumber,
   getPixelsFromLatLng: () => getPixelsFromLatLng,
+  getSizeWithUnit: () => getSizeWithUnit,
   icon: () => icon,
   infoWindow: () => infoWindow,
   isBoolean: () => isBoolean,
@@ -157,6 +161,7 @@ __export(index_exports, {
   point: () => point,
   polyline: () => polyline,
   polylineCollection: () => polylineCollection,
+  polylineIcon: () => polylineIcon,
   popup: () => popup,
   rotateControl: () => rotateControl,
   scaleControl: () => scaleControl,
@@ -588,6 +593,27 @@ var StreetViewSource = Object.freeze({
   // this is not supported.
   OUTDOOR: "outdoor"
 });
+var SymbolPath = Object.freeze({
+  // A circle with a radius of 1.
+  CIRCLE: "CIRCLE",
+  // A square with a width and height of 1.
+  BACKWARD_CLOSED_ARROW: "BACKWARD_CLOSED_ARROW",
+  // A square with a width and height of 1.
+  FORWARD_CLOSED_ARROW: "FORWARD_CLOSED_ARROW",
+  // A square with a width and height of 1.
+  FORWARD_OPEN_ARROW: "FORWARD_OPEN_ARROW",
+  // A square with a width and height of 1.
+  BACKWARD_OPEN_ARROW: "BACKWARD_OPEN_ARROW"
+});
+var convertSymbolPath = (value) => {
+  let returnValue = "";
+  Object.entries(SymbolPath).forEach((item) => {
+    if (item[1] === value) {
+      returnValue = google.maps.SymbolPath[item[0]];
+    }
+  });
+  return returnValue;
+};
 
 // src/lib/helpers.ts
 var isBoolean = (thing) => typeof thing === "boolean";
@@ -660,6 +686,34 @@ var checkForGoogleMaps = (object, library, throwError) => {
     }
   }
   return passed;
+};
+var getSizeWithUnit = (value, defaultUnit = "px", allowedUnits = ["%", "px"], allowNegative = false) => {
+  let returnValue = false;
+  if (isNumber(value)) {
+    if (value >= 0) {
+      returnValue = `${value}${defaultUnit}`;
+    }
+  } else if (isNumberString(value)) {
+    const val = Number(value);
+    if (allowNegative || val >= 0) {
+      returnValue = `${val}${defaultUnit}`;
+    }
+  } else if (isStringWithValue(value)) {
+    let pass = false;
+    for (const unit of allowedUnits) {
+      if (value.endsWith(unit)) {
+        pass = true;
+        break;
+      }
+    }
+    if (pass) {
+      const val = parseFloat(value.replace(`${allowedUnits.join("|")}/g`, ""));
+      if (val >= 0) {
+        returnValue = value;
+      }
+    }
+  }
+  return returnValue;
 };
 var objectEquals = (a, b) => {
   if (a === b) {
@@ -7891,16 +7945,7 @@ var SvgSymbol = class extends Base_default {
      */
     __privateAdd(this, _options3);
     __privateSet(this, _options3, {
-      anchor: point([0, 0]),
-      fillColor: "#000000",
-      fillOpacity: 1,
-      labelOrigin: point([0, 0]),
-      path: "",
-      rotation: 0,
-      scale: 1,
-      strokeColor: "#000000",
-      strokeOpacity: 1,
-      strokeWeight: void 0
+      path: ""
     });
     if (typeof path === "string") {
       __privateGet(this, _options3).path = path;
@@ -8245,17 +8290,24 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the icon options
    *
-   * @returns {google.maps.Symbol}
+   * @returns {Promise<google.maps.Symbol>}
    */
   toGoogle() {
-    const options = __spreadValues({}, __privateGet(this, _options3));
-    if (options.anchor instanceof Point) {
-      options.anchor = options.anchor.toGoogle();
-    }
-    if (options.labelOrigin instanceof Point) {
-      options.labelOrigin = options.labelOrigin.toGoogle();
-    }
-    return options;
+    return new Promise((resolve) => {
+      loader().onLoad(() => {
+        const options = __spreadValues({}, __privateGet(this, _options3));
+        if (options.anchor instanceof Point) {
+          options.anchor = options.anchor.toGoogle();
+        }
+        if (options.labelOrigin instanceof Point) {
+          options.labelOrigin = options.labelOrigin.toGoogle();
+        }
+        if (isStringWithValue(options.path) && Object.keys(SymbolPath).includes(options.path)) {
+          options.path = convertSymbolPath(options.path);
+        }
+        resolve(options);
+      });
+    });
   }
 };
 _options3 = new WeakMap();
@@ -9151,7 +9203,13 @@ setIcon_fn = function(value) {
   if (isString(__privateGet(this, _options4).icon)) {
     __privateGet(this, _marker).setIcon(__privateGet(this, _options4).icon);
   } else {
-    __privateGet(this, _marker).setIcon(__privateGet(this, _options4).icon.toGoogle());
+    if (__privateGet(this, _options4).icon instanceof SvgSymbol) {
+      __privateGet(this, _options4).icon.toGoogle().then((markerIcon) => {
+        __privateGet(this, _marker).setIcon(markerIcon);
+      });
+    } else {
+      __privateGet(this, _marker).setIcon(__privateGet(this, _options4).icon.toGoogle());
+    }
   }
 };
 /**
@@ -9250,20 +9308,22 @@ setupGoogleMarker_fn = function(map2) {
     if (!__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
       __privateSet(this, _isSettingUp, true);
       if (checkForGoogleMaps("Marker", "Marker", false)) {
-        __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
-        this.dispatch(MarkerEvents.READY);
-        resolve();
-      } else {
-        loader().onMapLoad(() => {
-          __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
-          const thisMap = this.getMap();
-          if (__privateGet(this, _marker) && thisMap) {
-            __privateGet(this, _marker).setMap(thisMap.toGoogle());
-          } else if (__privateGet(this, _marker) && map2) {
-            __privateGet(this, _marker).setMap(map2.toGoogle());
-          }
+        __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this).then(() => {
           this.dispatch(MarkerEvents.READY);
           resolve();
+        });
+      } else {
+        loader().onMapLoad(() => {
+          __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this).then(() => {
+            const thisMap = this.getMap();
+            if (__privateGet(this, _marker) && thisMap) {
+              __privateGet(this, _marker).setMap(thisMap.toGoogle());
+            } else if (__privateGet(this, _marker) && map2) {
+              __privateGet(this, _marker).setMap(map2.toGoogle());
+            }
+            this.dispatch(MarkerEvents.READY);
+            resolve();
+          });
         });
         if (map2 instanceof Map) {
           map2.init();
@@ -9296,35 +9356,43 @@ setupGoogleMarkerSync_fn = function() {
  * Create the marker object
  *
  * @private
+ * @returns {Promise<void>}
  */
 createMarkerObject_fn = function() {
-  if (!__privateGet(this, _marker)) {
-    const markerOptions = {};
-    const optionsToSet = ["cursor", "title"];
-    optionsToSet.forEach((key) => {
-      if (typeof __privateGet(this, _options4)[key] !== "undefined") {
-        markerOptions[key] = __privateGet(this, _options4)[key];
-      }
-    });
-    if (__privateGet(this, _options4).anchorPoint) {
-      markerOptions.anchorPoint = __privateGet(this, _options4).anchorPoint.toGoogle();
+  return new Promise((resolve) => {
+    if (!__privateGet(this, _marker)) {
+      (() => __async(this, null, function* () {
+        const markerOptions = {};
+        const optionsToSet = ["cursor", "title"];
+        optionsToSet.forEach((key) => {
+          if (typeof __privateGet(this, _options4)[key] !== "undefined") {
+            markerOptions[key] = __privateGet(this, _options4)[key];
+          }
+        });
+        if (__privateGet(this, _options4).anchorPoint) {
+          markerOptions.anchorPoint = __privateGet(this, _options4).anchorPoint.toGoogle();
+        }
+        if (__privateGet(this, _options4).icon) {
+          if (isString(__privateGet(this, _options4).icon)) {
+            markerOptions.icon = __privateGet(this, _options4).icon;
+          } else if (__privateGet(this, _options4).icon instanceof Icon || __privateGet(this, _options4).icon instanceof SvgSymbol) {
+            markerOptions.icon = yield __privateGet(this, _options4).icon.toGoogle();
+          }
+        }
+        if (__privateGet(this, _options4).map) {
+          markerOptions.map = __privateGet(this, _options4).map.toGoogle();
+        }
+        if (__privateGet(this, _options4).position) {
+          markerOptions.position = __privateGet(this, _options4).position.toGoogle();
+        }
+        __privateSet(this, _marker, new google.maps.Marker(markerOptions));
+        this.setEventGoogleObject(__privateGet(this, _marker));
+        resolve();
+      }))();
+    } else {
+      resolve();
     }
-    if (__privateGet(this, _options4).icon) {
-      if (isString(__privateGet(this, _options4).icon)) {
-        markerOptions.icon = __privateGet(this, _options4).icon;
-      } else if (__privateGet(this, _options4).icon instanceof Icon || __privateGet(this, _options4).icon instanceof SvgSymbol) {
-        markerOptions.icon = __privateGet(this, _options4).icon.toGoogle();
-      }
-    }
-    if (__privateGet(this, _options4).map) {
-      markerOptions.map = __privateGet(this, _options4).map.toGoogle();
-    }
-    if (__privateGet(this, _options4).position) {
-      markerOptions.position = __privateGet(this, _options4).position.toGoogle();
-    }
-    __privateSet(this, _marker, new google.maps.Marker(markerOptions));
-    this.setEventGoogleObject(__privateGet(this, _marker));
-  }
+  });
 };
 var Marker = _Marker;
 var marker = (position, options) => {
@@ -11831,8 +11899,212 @@ var placesSearchBox = (input, options) => {
   return new PlacesSearchBox(input, options);
 };
 
+// src/lib/PolylineIcon.ts
+var _options7;
+var PolylineIcon = class extends Base_default {
+  /**
+   * Constructor
+   *
+   * @param {PolylineIconOptions} [options] The polyline icon options
+   */
+  constructor(options) {
+    super("polylineIcon");
+    /**
+     * Holds the options for the Google maps polyline icon
+     *
+     * @private
+     * @type {PolylineGoogleOptions}
+     */
+    __privateAdd(this, _options7);
+    __privateSet(this, _options7, {});
+    if (isObject(options)) {
+      this.setOptions(options);
+    }
+  }
+  /**
+   * Get the fixed rotation setting for the icon
+   *
+   * @returns {boolean} True if the icon has a fixed rotation, false otherwise
+   */
+  get fixedRotation() {
+    return !!__privateGet(this, _options7).fixedRotation;
+  }
+  /**
+   * Set the fixed rotation setting for the icon
+   *
+   * @param {boolean} fixedRotation If true, each icon in the sequence has the same fixed rotation
+   *      regardless of the angle of the edge on which it lies. If false, case each icon in the
+   *      sequence is rotated to align with its edge.
+   */
+  set fixedRotation(fixedRotation) {
+    if (isBoolean(fixedRotation)) {
+      __privateGet(this, _options7).fixedRotation = fixedRotation;
+    }
+  }
+  /**
+   * Get the icon value
+   *
+   * @returns {SvgSymbol|undefined} The icon value or undefined if not set
+   */
+  get icon() {
+    return __privateGet(this, _options7).icon;
+  }
+  /**
+   * Set the icon value
+   *
+   * @param {SvgSymbolValue} icon The icon value to set. It can be a string, an object, or an instance of SvgSymbol.
+   * @see {@link SvgSymbol} for more details on the icon value
+   */
+  set icon(icon2) {
+    __privateGet(this, _options7).icon = svgSymbol(icon2);
+  }
+  /**
+   * Get the offset value
+   *
+   * @returns {string|undefined} The offset value or undefined if not set
+   */
+  get offset() {
+    return __privateGet(this, _options7).offset;
+  }
+  /**
+   * Set the distance from the start of the line at which an icon is to be rendered.
+   *
+   * @param {number|string} value The distance from the start of the line at which an icon is to be rendered.
+   *      is distance may be expressed as a percentage of line's length (e.g. '50%') or in pixels (e.g. '50px').
+   */
+  set offset(value) {
+    const val = getSizeWithUnit(value);
+    if (isStringWithValue(val)) {
+      __privateGet(this, _options7).offset = val;
+    }
+  }
+  /**
+   * Get the repeat value
+   *
+   * @returns {string|undefined} The repeat value or undefined if not set
+   */
+  get repeat() {
+    return __privateGet(this, _options7).repeat;
+  }
+  /**
+   * Set the repeat value. This sets the distance between consecutive icons along the polyline.
+   * The repeat value can be expressed in pixels (e.g. '20px') or as a percentage of the polyline's length (e.g. '10%').
+   * If the value is a number, it is treated as pixels (e.g. 20 becomes '20px').
+   * To disable repeating icons, set the repeat value to 0, '0px' or '0%'.
+   *
+   * @param {number|string} value The repeat value. It can be a number, a number string, or a string with 'px' or '%' suffix.
+   */
+  set repeat(value) {
+    const val = getSizeWithUnit(value);
+    if (isStringWithValue(val)) {
+      __privateGet(this, _options7).repeat = val;
+    }
+  }
+  /**
+   * Set the fixed rotation value
+   *
+   * @param {boolean} fixedRotation If true, each icon in the sequence has the same fixed rotation
+   *      regardless of the angle of the edge on which it lies. If false, case each icon in the
+   *      sequence is rotated to align with its edge.
+   * @returns {PolylineIcon}
+   */
+  setFixedRotation(fixedRotation) {
+    this.fixedRotation = fixedRotation;
+    return this;
+  }
+  /**
+   * Set the icon value
+   *
+   * @param {SvgSymbolValue} icon The icon value to set. It can be a string, an object, or an instance of SvgSymbol.
+   * @returns {PolylineIcon} The PolylineIcon instance for method chaining
+   */
+  setIcon(icon2) {
+    this.icon = icon2;
+    return this;
+  }
+  /**
+   * Set the distance from the start of the line at which an icon is to be rendered.
+   *
+   * @param {number|string} value The distance from the start of the line at which an icon is to be rendered.
+   *      This distance may be expressed as a percentage of line's length (e.g. '50%') or in pixels (e.g. '50px').
+   * @returns {PolylineIcon} The PolylineIcon instance for method chaining
+   */
+  setOffset(value) {
+    this.offset = value;
+    return this;
+  }
+  /**
+   * Set the repeat value. This sets the distance between consecutive icons along the polyline.
+   * The repeat value can be expressed in pixels (e.g. '20px') or as a percentage of the polyline's length (e.g. '10%').
+   * If the value is a number, it is treated as pixels (e.g. 20 becomes '20px').
+   * To disable repeating icons, set the repeat value to 0, '0px' or '0%'.
+   *
+   * @param {number|string} value The repeat value. It can be a number, a number string, or a string with 'px' or '%' suffix.
+   * @returns {PolylineIcon} The PolylineIcon instance for method chaining
+   */
+  setRepeat(value) {
+    this.repeat = value;
+    return this;
+  }
+  /**
+   * Set the icon options
+   *
+   * @param {PolylineIconOptions} options The polyline icon options
+   * @returns {PolylineIcon}
+   */
+  setOptions(options) {
+    if (isObject(options)) {
+      if (isDefined(options.fixedRotation)) {
+        this.fixedRotation = options.fixedRotation;
+      }
+      if (isDefined(options.icon)) {
+        this.icon = options.icon;
+      }
+      if (isDefined(options.offset)) {
+        this.offset = options.offset;
+      }
+      if (isDefined(options.repeat)) {
+        this.repeat = options.repeat;
+      }
+    }
+    return this;
+  }
+  /**
+   * Get the polyline icon options
+   *
+   * @returns {Promise<google.maps.IconSequence>}
+   */
+  toGoogle() {
+    return new Promise((resolve) => {
+      (() => __async(this, null, function* () {
+        const options = {};
+        if (isDefined(__privateGet(this, _options7).fixedRotation)) {
+          options.fixedRotation = __privateGet(this, _options7).fixedRotation;
+        }
+        if (isDefined(__privateGet(this, _options7).offset)) {
+          options.offset = __privateGet(this, _options7).offset;
+        }
+        if (isDefined(__privateGet(this, _options7).repeat)) {
+          options.repeat = __privateGet(this, _options7).repeat;
+        }
+        if (__privateGet(this, _options7).icon) {
+          options.icon = yield __privateGet(this, _options7).icon.toGoogle();
+        }
+        resolve(options);
+      }))();
+    });
+  }
+};
+_options7 = new WeakMap();
+var polylineIcon = (options) => {
+  if (options instanceof PolylineIcon) {
+    return options;
+  }
+  return new PolylineIcon(options);
+};
+
 // src/lib/Polyline.ts
-var _customData2, _dashed, _dashGap, _highlightPolyline, _isHighlighted, _options7, _polyline, _Polyline_instances, setupDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
+var _customData2, _dashed, _dashGap, _highlightPolyline, _isHighlighted, _options8, _polyline, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -11886,7 +12158,7 @@ var _Polyline = class _Polyline extends Layer_default {
      * @private
      * @type {PolylineOptions}
      */
-    __privateAdd(this, _options7, {});
+    __privateAdd(this, _options8, {});
     /**
      * Holds the Google maps Polyline object
      *
@@ -11904,7 +12176,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {boolean}
    */
   get clickable() {
-    return __privateGet(this, _options7).clickable;
+    return __privateGet(this, _options8).clickable;
   }
   /**
    * Set whether the polyline handles click events.
@@ -11913,7 +12185,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   set clickable(value) {
     if (typeof value === "boolean") {
-      __privateGet(this, _options7).clickable = value;
+      __privateGet(this, _options8).clickable = value;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ clickable: value });
       }
@@ -11935,10 +12207,12 @@ var _Polyline = class _Polyline extends Layer_default {
   set dashed(value) {
     if (isBoolean(value)) {
       __privateSet(this, _dashed, value);
-      __privateGet(this, _options7).dashed = value;
+      __privateGet(this, _options8).dashed = value;
     }
     if (__privateGet(this, _polyline)) {
-      __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
+      __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
+        __privateGet(this, _polyline).setOptions(opts);
+      });
     }
   }
   /**
@@ -11957,32 +12231,15 @@ var _Polyline = class _Polyline extends Layer_default {
    * @param {string|number} value The gap between the dashes in pixels.
    */
   set dashGap(value) {
-    let isValid = false;
-    if (isNumber(value)) {
-      if (value >= 0) {
-        isValid = true;
-        __privateSet(this, _dashGap, `${value}px`);
-        __privateGet(this, _options7).dashGap = value;
+    const gap = getSizeWithUnit(value);
+    if (isStringWithValue(gap)) {
+      __privateSet(this, _dashGap, gap);
+      __privateGet(this, _options8).dashGap = gap;
+      if (__privateGet(this, _polyline)) {
+        __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
+          __privateGet(this, _polyline).setOptions(opts);
+        });
       }
-    } else if (isNumberString(value)) {
-      const gap = Number(value);
-      if (gap >= 0) {
-        isValid = true;
-        __privateSet(this, _dashGap, `${gap}px`);
-        __privateGet(this, _options7).dashGap = gap;
-      }
-    } else if (isStringWithValue(value)) {
-      if (value.endsWith("px") || value.endsWith("%")) {
-        const gap = parseFloat(value.replace(/px|%/g, ""));
-        if (gap >= 0) {
-          isValid = true;
-          __privateSet(this, _dashGap, value);
-          __privateGet(this, _options7).dashGap = value;
-        }
-      }
-    }
-    if (isValid && __privateGet(this, _polyline)) {
-      __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
     }
   }
   /**
@@ -12023,7 +12280,7 @@ var _Polyline = class _Polyline extends Layer_default {
     if (value instanceof _Polyline) {
       __privateSet(this, _highlightPolyline, value);
     } else if (isObject(value)) {
-      __privateSet(this, _highlightPolyline, new _Polyline(__spreadValues(__spreadValues({}, __privateGet(this, _options7)), value)));
+      __privateSet(this, _highlightPolyline, new _Polyline(__spreadValues(__spreadValues({}, __privateGet(this, _options8)), value)));
     }
     __privateGet(this, _highlightPolyline).clickable = true;
     __privateGet(this, _highlightPolyline).path = this.path;
@@ -12064,12 +12321,42 @@ var _Polyline = class _Polyline extends Layer_default {
     }
   }
   /**
+   * Get the icons for the polyline
+   *
+   * @returns {PolylineIcon[]}
+   */
+  get icons() {
+    return __privateGet(this, _options8).icons || [];
+  }
+  /**
+   * Set the icons for the polyline
+   *
+   * You can pass a single icon value or an array of icon values.
+   * Each icon value can be an object containing the icon options or a SvgSymbol object.
+   *
+   * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
+   */
+  set icons(value) {
+    let setValue = false;
+    if (Array.isArray(value)) {
+      setValue = true;
+      __privateGet(this, _options8).icons = value.map((iconValue) => polylineIcon(iconValue));
+      console.log("icons", __privateGet(this, _options8).icons);
+    } else {
+      __privateGet(this, _options8).icons = [polylineIcon(value)];
+      setValue = true;
+    }
+    if (setValue && __privateGet(this, _polyline)) {
+      __privateGet(this, _polyline).set("icons", __privateGet(this, _options8).icons.map((icon2) => icon2.toGoogle()));
+    }
+  }
+  /**
    * Get the map object
    *
    * @returns {Map}
    */
   get map() {
-    return __privateGet(this, _options7).map;
+    return __privateGet(this, _options8).map;
   }
   /**
    * Set the map object
@@ -12087,7 +12374,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {LatLngValue[]}
    */
   get path() {
-    return __privateGet(this, _options7).path;
+    return __privateGet(this, _options8).path;
   }
   /**
    * Set the path of the polyline.
@@ -12105,7 +12392,7 @@ var _Polyline = class _Polyline extends Layer_default {
           paths.push(position);
         }
       });
-      __privateGet(this, _options7).path = paths;
+      __privateGet(this, _options8).path = paths;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setPath(paths.map((path) => path.toGoogle()));
       }
@@ -12117,7 +12404,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {string}
    */
   get strokeColor() {
-    return __privateGet(this, _options7).strokeColor;
+    return __privateGet(this, _options8).strokeColor;
   }
   /**
    * Set the SVG stroke color.
@@ -12126,7 +12413,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   set strokeColor(value) {
     if (isStringWithValue(value)) {
-      __privateGet(this, _options7).strokeColor = value;
+      __privateGet(this, _options8).strokeColor = value;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ strokeColor: value });
       }
@@ -12139,7 +12426,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {number}
    */
   get strokeOpacity() {
-    return __privateGet(this, _options7).strokeOpacity;
+    return __privateGet(this, _options8).strokeOpacity;
   }
   /**
    * Set the opacity of the stroke.
@@ -12149,15 +12436,17 @@ var _Polyline = class _Polyline extends Layer_default {
   set strokeOpacity(value) {
     if (isNumberOrNumberString(value)) {
       if (isNumber(value)) {
-        __privateGet(this, _options7).strokeOpacity = value;
+        __privateGet(this, _options8).strokeOpacity = value;
       } else if (isNumberString(value)) {
-        __privateGet(this, _options7).strokeOpacity = Number(value);
+        __privateGet(this, _options8).strokeOpacity = Number(value);
       }
       if (__privateGet(this, _polyline)) {
         if (__privateGet(this, _dashed)) {
-          __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
+          __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
+            __privateGet(this, _polyline).setOptions(opts);
+          });
         } else {
-          __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options7).strokeOpacity });
+          __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options8).strokeOpacity });
         }
       }
     }
@@ -12168,7 +12457,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {number}
    */
   get strokeWeight() {
-    return __privateGet(this, _options7).strokeWeight;
+    return __privateGet(this, _options8).strokeWeight;
   }
   /**
    * Set the weight of the stroke.
@@ -12178,13 +12467,15 @@ var _Polyline = class _Polyline extends Layer_default {
   set strokeWeight(value) {
     if (isNumberOrNumberString(value)) {
       if (isNumber(value)) {
-        __privateGet(this, _options7).strokeWeight = value;
+        __privateGet(this, _options8).strokeWeight = value;
       } else if (isNumberString(value)) {
-        __privateGet(this, _options7).strokeWeight = Number(value);
+        __privateGet(this, _options8).strokeWeight = Number(value);
       }
       if (__privateGet(this, _polyline)) {
         if (__privateGet(this, _dashed)) {
-          __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
+          __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
+            __privateGet(this, _polyline).setOptions(opts);
+          });
         } else {
           __privateGet(this, _polyline).setOptions({ strokeWeight: Number(value) });
         }
@@ -12197,7 +12488,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {boolean}
    */
   get visible() {
-    return __privateGet(this, _options7).visible;
+    return __privateGet(this, _options8).visible;
   }
   /**
    * Set whether the polyline is visible on the map.
@@ -12206,7 +12497,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   set visible(value) {
     if (typeof value === "boolean") {
-      __privateGet(this, _options7).visible = value;
+      __privateGet(this, _options8).visible = value;
       this.isVisible = value;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setVisible(value);
@@ -12219,7 +12510,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {number}
    */
   get zIndex() {
-    return __privateGet(this, _options7).zIndex;
+    return __privateGet(this, _options8).zIndex;
   }
   /**
    * Set the zIndex of the polyline.
@@ -12229,9 +12520,9 @@ var _Polyline = class _Polyline extends Layer_default {
   set zIndex(value) {
     if (isNumberOrNumberString(value)) {
       if (isNumber(value)) {
-        __privateGet(this, _options7).zIndex = value;
+        __privateGet(this, _options8).zIndex = value;
       } else if (isNumberString(value)) {
-        __privateGet(this, _options7).zIndex = Number(value);
+        __privateGet(this, _options8).zIndex = Number(value);
       }
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ zIndex: Number(value) });
@@ -12248,7 +12539,7 @@ var _Polyline = class _Polyline extends Layer_default {
     if (__privateGet(this, _highlightPolyline)) {
       clone.setHighlightPolyline(__privateGet(this, _highlightPolyline).clone());
     }
-    clone.setOptions(__privateGet(this, _options7));
+    clone.setOptions(__privateGet(this, _options8));
     clone.data = __privateGet(this, _customData2);
     clone.setMap(this.getMap());
     if (isObjectWithValues(this.tooltipConfig)) {
@@ -12279,7 +12570,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {boolean}
    */
   hasZIndex() {
-    return typeof __privateGet(this, _options7).zIndex !== "undefined";
+    return typeof __privateGet(this, _options8).zIndex !== "undefined";
   }
   /**
    * Hide the polyline
@@ -12412,6 +12703,19 @@ var _Polyline = class _Polyline extends Layer_default {
     return this;
   }
   /**
+   * Set the icons for the polyline
+   *
+   * You can pass a single icon value or an array of icon values.
+   * Each icon value can be an object containing the icon options or a SvgSymbol object.
+   *
+   * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
+   * @returns {Polyline} The polyline object
+   */
+  setIcons(value) {
+    this.icons = value;
+    return this;
+  }
+  /**
    * Adds the polyline to the map object
    *
    * Alternate of show()
@@ -12428,11 +12732,11 @@ var _Polyline = class _Polyline extends Layer_default {
       yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value);
       if (value instanceof Map) {
         this.visible = isVisible;
-        __privateGet(this, _options7).map = value;
+        __privateGet(this, _options8).map = value;
         __superGet(_Polyline.prototype, this, "setMap").call(this, value);
         __privateGet(this, _polyline).setMap(value.toGoogle());
       } else if (isNullOrUndefined(value)) {
-        __privateGet(this, _options7).map = null;
+        __privateGet(this, _options8).map = null;
         __superGet(_Polyline.prototype, this, "setMap").call(this, null);
         if (__privateGet(this, _polyline)) {
           __privateGet(this, _polyline).setMap(null);
@@ -12457,6 +12761,9 @@ var _Polyline = class _Polyline extends Layer_default {
       }
       if (isDefined(options.dashGap)) {
         this.dashGap = options.dashGap;
+      }
+      if (options.icons) {
+        this.icons = options.icons;
       }
       if (options.map) {
         this.setMap(options.map);
@@ -12593,41 +12900,62 @@ _dashed = new WeakMap();
 _dashGap = new WeakMap();
 _highlightPolyline = new WeakMap();
 _isHighlighted = new WeakMap();
-_options7 = new WeakMap();
+_options8 = new WeakMap();
 _polyline = new WeakMap();
 _Polyline_instances = new WeakSet();
 /**
- * Set up the options for a dashed polyline
+ * Set up the options for a dashed polyline and icons
  *
  * See https://developers.google.com/maps/documentation/javascript/examples/overlay-symbol-dashed for details
  *
- * @returns {google.maps.PolylineOptions} The Google maps Polyline options
+ * @returns {Promise<google.maps.PolylineOptions>} The Google maps Polyline options
  */
-setupDashedPolylineOptions_fn = function() {
-  const options = {};
-  if (__privateGet(this, _dashed)) {
-    const lineSymbol = {
-      path: "M 0,-1 0,1",
-      strokeOpacity: 1,
-      scale: 3
-    };
-    if (isDefined(__privateGet(this, _options7).strokeOpacity)) {
-      lineSymbol.strokeOpacity = __privateGet(this, _options7).strokeOpacity;
-    }
-    if (isDefined(__privateGet(this, _options7).strokeWeight)) {
-      lineSymbol.scale = __privateGet(this, _options7).strokeWeight;
-    }
-    options.strokeOpacity = 0;
-    options.icons = [{
-      icon: lineSymbol,
-      offset: "0",
-      repeat: __privateGet(this, _dashGap)
-    }];
-  } else {
-    options.strokeOpacity = isNumberOrNumberString(__privateGet(this, _options7).strokeOpacity) ? __privateGet(this, _options7).strokeOpacity : 1;
-    options.icons = [];
-  }
-  return options;
+setupIconsAndDashedPolylineOptions_fn = function() {
+  return new Promise((resolve) => {
+    (() => __async(this, null, function* () {
+      const options = {};
+      if (__privateGet(this, _dashed)) {
+        const lineSymbol = svgSymbol({
+          path: "M 0,-1 0,1",
+          strokeOpacity: 1,
+          scale: 3
+        });
+        if (isDefined(__privateGet(this, _options8).strokeOpacity)) {
+          lineSymbol.strokeOpacity = __privateGet(this, _options8).strokeOpacity;
+        }
+        if (isDefined(__privateGet(this, _options8).strokeWeight)) {
+          lineSymbol.scale = __privateGet(this, _options8).strokeWeight;
+        }
+        options.strokeOpacity = 0;
+        const icon2 = polylineIcon({
+          icon: lineSymbol,
+          offset: "0",
+          repeat: __privateGet(this, _dashGap)
+        });
+        options.icons = [yield icon2.toGoogle()];
+        if (Array.isArray(__privateGet(this, _options8).icons) && __privateGet(this, _options8).icons.length > 0) {
+          const additionalIcons = yield Promise.all(__privateGet(this, _options8).icons.map((icn) => {
+            const returnIcon = polylineIcon(icn);
+            const iconIcn = returnIcon.icon;
+            if (isDefined(__privateGet(this, _options8).strokeOpacity)) {
+              iconIcn.strokeOpacity = __privateGet(this, _options8).strokeOpacity;
+            } else {
+              iconIcn.strokeOpacity = 1;
+            }
+            return returnIcon.toGoogle();
+          }));
+          options.icons = options.icons.concat(additionalIcons);
+        }
+      } else {
+        options.strokeOpacity = isNumberOrNumberString(__privateGet(this, _options8).strokeOpacity) ? __privateGet(this, _options8).strokeOpacity : 1;
+        options.icons = [];
+        if (Array.isArray(__privateGet(this, _options8).icons) && __privateGet(this, _options8).icons.length > 0) {
+          options.icons = yield Promise.all(__privateGet(this, _options8).icons.map((icn) => icn.toGoogle()));
+        }
+      }
+      resolve(options);
+    }))();
+  });
 };
 /**
  * Set up the Google maps Polyline object if necessary
@@ -12694,16 +13022,18 @@ createPolylineObject_fn = function() {
       "zIndex"
     ];
     optionsToSet.forEach((key) => {
-      if (typeof __privateGet(this, _options7)[key] !== "undefined") {
-        polylineOptions[key] = __privateGet(this, _options7)[key];
+      if (typeof __privateGet(this, _options8)[key] !== "undefined") {
+        polylineOptions[key] = __privateGet(this, _options8)[key];
       }
     });
-    if (Array.isArray(__privateGet(this, _options7).path)) {
-      polylineOptions.path = __privateGet(this, _options7).path.map((path) => latLng(path).toGoogle());
+    if (Array.isArray(__privateGet(this, _options8).path)) {
+      polylineOptions.path = __privateGet(this, _options8).path.map((path) => latLng(path).toGoogle());
     }
     __privateSet(this, _polyline, new google.maps.Polyline(polylineOptions));
-    __privateGet(this, _polyline).setOptions(__privateMethod(this, _Polyline_instances, setupDashedPolylineOptions_fn).call(this));
-    this.setEventGoogleObject(__privateGet(this, _polyline));
+    __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
+      __privateGet(this, _polyline).setOptions(opts);
+      this.setEventGoogleObject(__privateGet(this, _polyline));
+    });
   }
 };
 var Polyline = _Polyline;
@@ -14042,6 +14372,7 @@ Map.include(tooltipMixin);
   Point,
   Polyline,
   PolylineCollection,
+  PolylineIcon,
   Popup,
   PopupEvents,
   RenderingType,
@@ -14051,6 +14382,7 @@ Map.include(tooltipMixin);
   StreetViewControl,
   StreetViewSource,
   SvgSymbol,
+  SymbolPath,
   Tooltip,
   ZoomControl,
   autocompleteSearchBox,
@@ -14059,11 +14391,13 @@ Map.include(tooltipMixin);
   closeAllPopups,
   convertControlPosition,
   convertMapTypeControlStyle,
+  convertSymbolPath,
   fullscreenControl,
   geocode,
   getBoolean,
   getNumber,
   getPixelsFromLatLng,
+  getSizeWithUnit,
   icon,
   infoWindow,
   isBoolean,
@@ -14098,6 +14432,7 @@ Map.include(tooltipMixin);
   point,
   polyline,
   polylineCollection,
+  polylineIcon,
   popup,
   rotateControl,
   scaleControl,
