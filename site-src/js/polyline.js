@@ -120,9 +120,14 @@ const dashedPolyline = G.polyline({
     strokeColor: '#A16D33',
     strokeWeight: 3,
     dashed: true,
-    dashGap: '10%',
+    dashGap: '5%',
     strokeWeight: 4,
     strokeOpacity: 1,
+    highlightPolyline: {
+        strokeColor: 'blue',
+        strokeOpacity: 0.5,
+        strokeWeight: 10,
+    }
 });
 map.onReady(() => {
     // setTimeout(() => {
@@ -151,6 +156,61 @@ map.onReady(() => {
 //         dashedClone.setPath(dashedPath2);
 //     }, 1500);
 // });
+
+
+// Polyline with icons
+const iconPath = [];
+const iconLat = 48;
+const iconLng = -2;
+for (let i = 0; i < 20; i += 1) {
+    iconPath.push({
+        latitude: iconLat + (randomNumber(0, 0.2) * i),
+        longitude: iconLng + (randomNumber(0, .2) * i),
+    });
+}
+const icon = G.svgSymbol({
+    path: G.SymbolPath.CIRCLE,
+    strokeColor: '#000000',
+    scale: 2
+});
+const polylineIcon = G.polylineIcon({
+    icon: {
+        path: "M -2,-2 2,2 M 2,-2 -2,2",
+        strokeColor: "#22229B",
+        strokeWeight: 4,
+    }
+    , offset: '100%'
+});
+const iconPolyline = G.polyline({
+    path: iconPath,
+    map: map,
+    strokeColor: 'purple',
+    strokeWeight: 3,
+    strokeWeight: 4,
+    strokeOpacity: 1,
+    dashed: true,
+    icons: [{
+        icon: icon,
+        offset: '50%',
+    },
+        polylineIcon,
+    // {
+    //     icon: {
+    //         path: "M -2,-2 2,2 M 2,-2 -2,2",
+    //         strokeColor: "#9B2222",
+    //         strokeWeight: 4,
+    //     }
+    //     , offset: '100%'
+    // },
+    {
+        icon: {
+            path: 'M -1,0 A 1,1 0 0 0 -3,0 1,1 0 0 0 -1,0M 1,0 A 1,1 0 0 0 3,0 1,1 0 0 0 1,0M -3,3 Q 0,5 3,3',
+            strokeColor: 'red',
+            rotation: 45
+        },
+        offset: '0%',
+    }]
+});
 
 // Buttons to show/hide the polyline
 const hideButton = document.createElement('button');
