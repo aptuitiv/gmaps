@@ -14,9 +14,14 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { loader } from './Loader';
 import { Map } from './Map';
+import { polylineIcon, PolylineIcon, PolylineIconValue } from './PolylineIcon';
+import { svgSymbol } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
 import {
     checkForGoogleMaps,
+    getSizeWithUnit,
+    isBoolean,
+    isDefined,
     isNullOrUndefined,
     isNumber,
     isNumberOrNumberString,
@@ -41,7 +46,7 @@ type PolylineEvent =
     | 'mouseover'
     | 'mouseup';
 
-// Custom data to attach to the marker object
+// Custom data to attach to the polyline object
 type CustomData = {
     [key: string]: any;
 };
@@ -51,8 +56,14 @@ export type PolylineOptions = {
     clickable?: boolean;
     // An object containing custom data to attach to the polyline object
     data?: CustomData;
+    // Whether the polyline is drawn as a dashed line. Defaults to false.
+    dashed?: boolean;
+    // The gap between the dashes in pixels or percentage. Defaults to 15px.
+    dashGap?: string|number;
     // The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline.
     highlightPolyline?: PolylineOptions | Polyline;
+    // An array of polyline icons to display on the polyline.
+    icons?: PolylineIcon[];
     // The map to add the polyline to.
     map?: Map;
     // Array of LatLng values defining the path of the polyline.
@@ -82,6 +93,24 @@ export class Polyline extends Layer {
      * @type {CustomData}
      */
     #customData: CustomData = {};
+
+    /**
+     * Holds whether the polyline is drawn as a dashed line
+     *
+     * @private
+     * @type {boolean}
+     */
+    #dashed: boolean = false;
+
+    /**
+     * Holds the gap between the dashes in pixels or percentage
+     *
+     * https://developers.google.com/maps/documentation/javascript/symbols#add_to_polyline
+     *
+     * @private
+     * @type {string}
+     */
+    #dashGap: string = '15px';
 
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
@@ -148,6 +177,64 @@ export class Polyline extends Layer {
             this.#options.clickable = value;
             if (this.#polyline) {
                 this.#polyline.setOptions({ clickable: value });
+            }
+        }
+    }
+
+    /**
+     * Get whether the polyline is drawn as a dashed line.
+     *
+     * @returns {boolean}
+     */
+    get dashed(): boolean {
+        return this.#dashed;
+    }
+
+    /**
+     * Set whether the polyline is drawn as a dashed line.
+     *
+     * @param {boolean} value Whether the polyline is drawn as a dashed line.
+     */
+    set dashed(value: boolean) {
+        if (isBoolean(value)) {
+            this.#dashed = value;
+            // Add to the options object so that it can be used when cloning the polyline
+            this.#options.dashed = value;
+        }
+        if (this.#polyline) {
+            this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+                this.#polyline.setOptions(opts);
+            });
+        }
+    }
+
+    /**
+     * Get the gap between the dashes in pixels or percentage.
+     *
+     * @returns {string}
+     */
+    get dashGap(): string {
+        return this.#dashGap;
+    }
+
+    /**
+     * Set the gap between the dashes in pixels or percentage.
+     *
+     * If a number is set them it will be converted to a string with "px" appended.
+     *
+     * @param {string|number} value The gap between the dashes in pixels.
+     */
+    set dashGap(value: string|number) {
+        const gap = getSizeWithUnit(value);
+        if (isStringWithValue(gap)) {
+            this.#dashGap = gap;
+            // Add to the options object so that it can be used when cloning the polyline
+            this.#options.dashGap = gap;
+
+            if (this.#polyline) {
+                this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+                    this.#polyline.setOptions(opts);
+                });
             }
         }
     }
@@ -256,6 +343,38 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Get the icons for the polyline
+     *
+     * @returns {PolylineIcon[]}
+     */
+    get icons(): PolylineIcon[] {
+        return this.#options.icons || [];
+    }
+
+    /**
+     * Set the icons for the polyline
+     *
+     * You can pass a single icon value or an array of icon values.
+     * Each icon value can be an object containing the icon options or a SvgSymbol object.
+     *
+     * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
+     */
+    set icons(value: PolylineIconValue|PolylineIconValue[]) {
+        let setValue = false;
+        if (Array.isArray(value)) {
+            setValue = true;
+            this.#options.icons = value.map((iconValue) => polylineIcon(iconValue));
+        } else {
+            // If it's not an array then assume it's a single icon value
+            this.#options.icons = [polylineIcon(value)];
+            setValue = true;
+        }
+        if (setValue && this.#polyline) {
+            this.#polyline.set('icons', this.#options.icons.map((icon) => icon.toGoogle()));
+        }
+    }
+
+    /**
      * Get the map object
      *
      * @returns {Map}
@@ -353,7 +472,15 @@ export class Polyline extends Layer {
                 this.#options.strokeOpacity = Number(value);
             }
             if (this.#polyline) {
-                this.#polyline.setOptions({ strokeOpacity: Number(value) });
+                if (this.#dashed) {
+                    // Change the opacity of the dashes
+                    this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+                        this.#polyline.setOptions(opts);
+                    });
+                } else {
+                    // Set the opacity of the stroke
+                    this.#polyline.setOptions({ strokeOpacity: this.#options.strokeOpacity });
+                }
             }
         }
     }
@@ -380,7 +507,14 @@ export class Polyline extends Layer {
                 this.#options.strokeWeight = Number(value);
             }
             if (this.#polyline) {
-                this.#polyline.setOptions({ strokeWeight: Number(value) });
+                if (this.#dashed) {
+                    // Change the opacity of the dashes
+                    this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+                        this.#polyline.setOptions(opts);
+                    });
+                } else {
+                    this.#polyline.setOptions({ strokeWeight: Number(value) });
+                }
             }
         }
     }
@@ -448,8 +582,12 @@ export class Polyline extends Layer {
         if (this.#highlightPolyline) {
             clone.setHighlightPolyline(this.#highlightPolyline.clone());
         }
+
         clone.setOptions(this.#options);
         clone.data = this.#customData;
+        // The map may have been set in the options, or later with setMap(), or it may have been removed.
+        // Make sure that the clone has the most recent map value.
+        clone.setMap(this.getMap());
 
         // If there is an attached tooltip then add it
         if (isObjectWithValues(this.tooltipConfig)) {
@@ -592,6 +730,32 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Sets the polyline to be drawn as a dashed line
+     *
+     * @param {boolean} dashed Whether the polyline is drawn as a dashed line
+     * @param {string|number} [dashGap] The gap between the dashes in pixels or percentage.
+     * @returns {Polyline} The polyline object
+     */
+    setDashed(dashed: boolean, dashGap?: string|number): Polyline {
+        this.dashed = dashed;
+        if (dashed) {
+            this.dashGap = dashGap;
+        }
+        return this;
+    }
+
+    /**
+     * Set the gap between the dashes in pixels.
+     *
+     * @param {string|number} gap The gap between the dashes in pixels or percentage. This is only used if the polyline is drawn as a dashed line.
+     * @returns {Polyline} The polyline object
+     */
+    setDashGap(gap: string|number): Polyline {
+        this.dashGap = gap;
+        return this;
+    }
+
+    /**
      * Set the highlight polyline
      *
      * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
@@ -602,6 +766,20 @@ export class Polyline extends Layer {
      */
     setHighlightPolyline(value: PolylineOptions | Polyline): Polyline {
         this.highlightPolyline = value;
+        return this;
+    }
+
+    /**
+     * Set the icons for the polyline
+     *
+     * You can pass a single icon value or an array of icon values.
+     * Each icon value can be an object containing the icon options or a SvgSymbol object.
+     *
+     * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
+     * @returns {Polyline} The polyline object
+     */
+    setIcons(value: PolylineIconValue|PolylineIconValue[]): Polyline {
+        this.icons = value;
         return this;
     }
 
@@ -646,6 +824,15 @@ export class Polyline extends Layer {
         if (isObject(options)) {
             if (typeof options.clickable === 'boolean') {
                 this.clickable = options.clickable;
+            }
+            if (isBoolean(options.dashed)) {
+                this.dashed = options.dashed;
+            }
+            if (isDefined(options.dashGap)) {
+                this.dashGap = options.dashGap;
+            }
+            if (options.icons) {
+                this.icons = options.icons;
             }
             if (options.map) {
                 this.setMap(options.map);
@@ -792,6 +979,69 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Set up the options for a dashed polyline and icons
+     *
+     * See https://developers.google.com/maps/documentation/javascript/examples/overlay-symbol-dashed for details
+     *
+     * @returns {Promise<google.maps.PolylineOptions>} The Google maps Polyline options
+     */
+    #setupIconsAndDashedPolylineOptions(): Promise<google.maps.PolylineOptions> {
+        return new Promise((resolve) => {
+            (async () => {
+                const options: google.maps.PolylineOptions = {};
+                if (this.#dashed) {
+                    // Set up the icon symbol that will be displayed as a dash
+                    const lineSymbol = svgSymbol({
+                        path: 'M 0,-1 0,1',
+                        strokeOpacity: 1,
+                        scale: 3,
+                    });
+                    if (isDefined(this.#options.strokeOpacity)) {
+                        lineSymbol.strokeOpacity = this.#options.strokeOpacity;
+                    }
+                    if (isDefined(this.#options.strokeWeight)) {
+                        lineSymbol.scale = this.#options.strokeWeight;
+                    }
+                    options.strokeOpacity = 0;
+
+                    // Set the icon to be used for the dashes
+                    const icon = polylineIcon({
+                        icon: lineSymbol,
+                        offset: '0',
+                        repeat: this.#dashGap,
+                    });
+                    options.icons = [await icon.toGoogle()];
+
+                    // Include any other icons if there are any
+                    if (Array.isArray(this.#options.icons) && this.#options.icons.length > 0) {
+                        // Merge any additional icons with the dash icon
+                        const additionalIcons = await Promise.all(this.#options.icons.map((icn) => {
+                            const returnIcon = polylineIcon(icn);
+                            // Need to set the strokeOpacity on the PolyIcon icon otherwise it won't be visible;
+                            const iconIcn = returnIcon.icon;
+                            if (isDefined(this.#options.strokeOpacity)) {
+                                iconIcn.strokeOpacity = this.#options.strokeOpacity;
+                            } else {
+                                iconIcn.strokeOpacity = 1;
+                            }
+                            return returnIcon.toGoogle();
+                        }));
+                        options.icons = options.icons.concat(additionalIcons);
+                    }
+                } else {
+                    options.strokeOpacity = isNumberOrNumberString(this.#options.strokeOpacity) ? this.#options.strokeOpacity : 1;
+                    options.icons = []; // Remove any icons if the polyline is not dashed
+                    if (Array.isArray(this.#options.icons) && this.#options.icons.length > 0) {
+                        // Set any icons if necessary
+                        options.icons = await Promise.all(this.#options.icons.map((icn) => icn.toGoogle()));
+                    }
+                }
+                resolve(options);
+            })();
+        });
+    }
+
+    /**
      * Set up the Google maps Polyline object if necessary
      *
      * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
@@ -863,7 +1113,7 @@ export class Polyline extends Layer {
                 'clickable',
                 'map',
                 'strokeColor',
-                'stokeOpacity',
+                'strokeOpacity',
                 'strokeWeight',
                 'visible',
                 'zIndex',
@@ -879,8 +1129,14 @@ export class Polyline extends Layer {
                 polylineOptions.path = this.#options.path.map((path) => latLng(path).toGoogle());
             }
 
+            // Create the polyine object
             this.#polyline = new google.maps.Polyline(polylineOptions);
-            this.setEventGoogleObject(this.#polyline);
+
+            // Handle dashed polylines if necessary
+            this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+                this.#polyline.setOptions(opts);
+                this.setEventGoogleObject(this.#polyline);
+            });
         }
     }
 }

@@ -838,7 +838,13 @@ export class Marker extends Layer {
         if (isString(this.#options.icon)) {
             this.#marker.setIcon(this.#options.icon);
         } else {
-            this.#marker.setIcon(this.#options.icon.toGoogle());
+            if (this.#options.icon instanceof SvgSymbol) {
+                this.#options.icon.toGoogle().then((markerIcon) => {
+                    this.#marker.setIcon(markerIcon);
+                });
+            } else {
+                this.#marker.setIcon(this.#options.icon.toGoogle());
+            }
         }
     }
 
@@ -880,12 +886,20 @@ export class Marker extends Layer {
             this.#options.label = value;
         } else if (isObject(value) && isStringOrNumber(value.text)) {
             this.#options.label = {
-                text: value.text.toString(),
-                className: isStringWithValue(value.className) ? value.className : undefined,
-                color: isStringWithValue(value.color) ? value.color : undefined,
-                fontFamily: isStringWithValue(value.fontFamily) ? value.fontFamily : undefined,
-                fontWeight: isStringWithValue(value.fontWeight) ? value.fontWeight : undefined,
+                text: value.text.toString()
             };
+            if (isStringWithValue(value.className)) {
+                this.#options.label.className = value.className;
+            }
+            if (isStringWithValue(value.color)) {
+                this.#options.label.color = value.color;
+            }
+            if (isStringWithValue(value.fontFamily)) {
+                this.#options.label.fontFamily = value.fontFamily;
+            }
+            if (isStringWithValue(value.fontWeight)) {
+                this.#options.label.fontWeight = value.fontWeight;
+            }
             // The font size must be a string with a unit. If it's a number then add "px" to the end of it
             if (isStringWithValue(value.fontSize) || isNumber(value.fontSize)) {
                 if (isNumber(value.fontSize)) {
@@ -1186,27 +1200,29 @@ export class Marker extends Layer {
             if (!this.#isSettingUp && !isObject(this.#marker)) {
                 this.#isSettingUp = true;
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
-                    this.#createMarkerObject();
-                    // Dispatch the event to say that the marker is ready
-                    this.dispatch(MarkerEvents.READY);
-                    resolve();
+                    this.#createMarkerObject().then(() => {
+                        // Dispatch the event to say that the marker is ready
+                        this.dispatch(MarkerEvents.READY);
+                        resolve();
+                    });
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().onMapLoad(() => {
-                        this.#createMarkerObject();
-                        // Make sure that the map is still set.
-                        // It's unlikely, but possible, that the developer could have removed the map
-                        // from the marker before the Google maps object was available.
-                        const thisMap = this.getMap();
-                        if (this.#marker && thisMap) {
-                            this.#marker.setMap(thisMap.toGoogle());
-                        } else if (this.#marker && map) {
-                            this.#marker.setMap(map.toGoogle());
-                        }
-                        // Dispatch the event to say that the marker is ready
-                        this.dispatch(MarkerEvents.READY);
-                        resolve();
+                        this.#createMarkerObject().then(() => {
+                            // Make sure that the map is still set.
+                            // It's unlikely, but possible, that the developer could have removed the map
+                            // from the marker before the Google maps object was available.
+                            const thisMap = this.getMap();
+                            if (this.#marker && thisMap) {
+                                this.#marker.setMap(thisMap.toGoogle());
+                            } else if (this.#marker && map) {
+                                this.#marker.setMap(map.toGoogle());
+                            }
+                            // Dispatch the event to say that the marker is ready
+                            this.dispatch(MarkerEvents.READY);
+                            resolve();
+                        });
                     });
 
                     // Trigger the map to load if it's set.
@@ -1244,39 +1260,47 @@ export class Marker extends Layer {
      * Create the marker object
      *
      * @private
+     * @returns {Promise<void>}
      */
-    #createMarkerObject() {
-        if (!this.#marker) {
-            const markerOptions: google.maps.MarkerOptions = {};
-            // Options that can be set on the marker without any modification
-            const optionsToSet = ['cursor', 'title'];
-            optionsToSet.forEach((key) => {
-                if (typeof this.#options[key] !== 'undefined') {
-                    markerOptions[key] = this.#options[key];
-                }
-            });
+    #createMarkerObject(): Promise<void> {
+        return new Promise((resolve) => {
+            if (!this.#marker) {
+                (async () => {
+                    const markerOptions: google.maps.MarkerOptions = {};
+                    // Options that can be set on the marker without any modification
+                    const optionsToSet = ['cursor', 'title'];
+                    optionsToSet.forEach((key) => {
+                        if (typeof this.#options[key] !== 'undefined') {
+                            markerOptions[key] = this.#options[key];
+                        }
+                    });
 
-            // Options that have to be converted to Google maps objects
-            if (this.#options.anchorPoint) {
-                markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
-            }
-            if (this.#options.icon) {
-                if (isString(this.#options.icon)) {
-                    markerOptions.icon = this.#options.icon;
-                } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
-                    markerOptions.icon = this.#options.icon.toGoogle();
-                }
-            }
-            if (this.#options.map) {
-                markerOptions.map = this.#options.map.toGoogle();
-            }
-            if (this.#options.position) {
-                markerOptions.position = this.#options.position.toGoogle();
-            }
+                    // Options that have to be converted to Google maps objects
+                    if (this.#options.anchorPoint) {
+                        markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
+                    }
+                    if (this.#options.icon) {
+                        if (isString(this.#options.icon)) {
+                            markerOptions.icon = this.#options.icon;
+                        } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
+                            markerOptions.icon = await this.#options.icon.toGoogle();
+                        }
+                    }
+                    if (this.#options.map) {
+                        markerOptions.map = this.#options.map.toGoogle();
+                    }
+                    if (this.#options.position) {
+                        markerOptions.position = this.#options.position.toGoogle();
+                    }
 
-            this.#marker = new google.maps.Marker(markerOptions);
-            this.setEventGoogleObject(this.#marker);
-        }
+                    this.#marker = new google.maps.Marker(markerOptions);
+                    this.setEventGoogleObject(this.#marker);
+                    resolve();
+                })();
+            } else {
+                resolve();
+            }
+        });
     }
 }
 

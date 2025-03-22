@@ -311,30 +311,30 @@ export class ImageRenderer implements Renderer {
 
         // Set the label
         const label: MarkerLabel = { text: count.toString() };
-        if (this.#labelClassName) {
-            label.className = this.#labelClassName;
-        } else if (image.labelClassName) {
+        if ( image.labelClassName) {
             label.className = image.labelClassName;
+        } else if (this.#labelClassName) {
+            label.className = this.#labelClassName;
         }
-        if (this.#labelColor) {
-            label.color = this.#labelColor;
-        } else if (image.labelColor) {
+        if (image.labelColor) {
             label.color = image.labelColor;
+        } else if (this.#labelColor) {
+            label.color = this.#labelColor;
         }
-        if (this.#labelFontFamily) {
-            label.fontFamily = this.#labelFontFamily;
-        } else if (image.labelFontFamily) {
+        if (image.labelFontFamily) {
             label.fontFamily = image.labelFontFamily;
+        } else if (this.#labelFontFamily) {
+            label.fontFamily = this.#labelFontFamily;
         }
-        if (this.#labelFontSize) {
-            label.fontSize = this.#labelFontSize.toString();
-        } else if (image.labelFontSize) {
+        if (image.labelFontSize) {
             label.fontSize = image.labelFontSize as string;
+        } else if (this.#labelFontSize) {
+            label.fontSize = this.#labelFontSize.toString();
         }
-        if (this.#labelFontWeight) {
-            label.fontWeight = this.#labelFontWeight;
-        } else if (image.labelFontWeight) {
+        if (image.labelFontWeight) {
             label.fontWeight = image.labelFontWeight;
+        } else if (this.#labelFontWeight) {
+            label.fontWeight = this.#labelFontWeight;
         }
 
         // Create the marker

@@ -56,6 +56,7 @@ export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchB
 export { point, Point, PointObject, PointValue } from './lib/Point';
 export { polyline, Polyline, PolylineOptions, PolylineValue } from './lib/Polyline';
 export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
+export { polylineIcon, PolylineIcon, PolylineIconOptions, PolylineIconValue } from './lib/PolylineIcon';
 export { closeAllPopups, popup, Popup, PopupOptions, PopupValue } from './lib/Popup';
 export { size, Size, SizeObject, SizeValue } from './lib/Size';
 export { svgSymbol, SvgSymbol, SvgSymbolOptions, SvgSymbolValue } from './lib/SvgSymbol';

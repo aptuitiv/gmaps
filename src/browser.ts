@@ -32,6 +32,7 @@ import {
     PopupEvents,
     RenderingType,
     StreetViewSource,
+    SymbolPath,
 } from './lib/constants';
 import { geocode, Geocode } from './lib/Geocode';
 import { icon, Icon } from './lib/Icon';
@@ -56,6 +57,7 @@ import { placesSearchBox, PlacesSearchBox } from './lib/PlacesSearchBox';
 import { point, Point } from './lib/Point';
 import { polyline, Polyline } from './lib/Polyline';
 import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
+import { polylineIcon, PolylineIcon } from './lib/PolylineIcon';
 import { closeAllPopups, popup, Popup } from './lib/Popup';
 import { size, Size } from './lib/Size';
 import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
@@ -77,6 +79,7 @@ type GlobalObj = {
     PopupEvents: typeof PopupEvents;
     RenderingType: typeof RenderingType;
     StreetViewSource: typeof StreetViewSource;
+    SymbolPath: typeof SymbolPath;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
     fullscreenControl: typeof fullscreenControl;
@@ -117,6 +120,8 @@ type GlobalObj = {
     Polyline: typeof Polyline;
     polylineCollection: typeof polylineCollection;
     PolylineCollection: typeof PolylineCollection;
+    polylineIcon: typeof polylineIcon;
+    PolylineIcon: typeof PolylineIcon;
     popup: typeof popup;
     Popup: typeof Popup;
     closeAllPopups: typeof closeAllPopups;
@@ -152,6 +157,7 @@ const G: GlobalObj = {
     PopupEvents,
     RenderingType,
     StreetViewSource,
+    SymbolPath,
     autocompleteSearchBox,
     AutocompleteSearchBox,
     fullscreenControl,
@@ -192,6 +198,8 @@ const G: GlobalObj = {
     Polyline,
     polylineCollection,
     PolylineCollection,
+    polylineIcon,
+    PolylineIcon,
     popup,
     Popup,
     closeAllPopups,

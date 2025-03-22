@@ -14,8 +14,10 @@
 
 /* global google */
 
+import { loader } from './Loader';
 import Base from './Base';
 import { point, Point, PointValue } from './Point';
+import { convertSymbolPath, SymbolPath } from './constants';
 import { isNumber, isNumberString, isObject, isStringWithValue } from './helpers';
 
 export type SvgSymbolOptions = {
@@ -65,16 +67,7 @@ export class SvgSymbol extends Base {
         super('svgsymbol');
         // Set up the initial options object
         this.#options = {
-            anchor: point([0, 0]),
-            fillColor: '#000000',
-            fillOpacity: 1,
-            labelOrigin: point([0, 0]),
             path: '',
-            rotation: 0,
-            scale: 1,
-            strokeColor: '#000000',
-            strokeOpacity: 1,
-            strokeWeight: undefined,
         };
         if (typeof path === 'string') {
             this.#options.path = path;
@@ -451,17 +444,24 @@ export class SvgSymbol extends Base {
     /**
      * Get the icon options
      *
-     * @returns {google.maps.Symbol}
+     * @returns {Promise<google.maps.Symbol>}
      */
-    toGoogle(): google.maps.Symbol {
-        const options = { ...this.#options };
-        if (options.anchor instanceof Point) {
-            options.anchor = options.anchor.toGoogle();
-        }
-        if (options.labelOrigin instanceof Point) {
-            options.labelOrigin = options.labelOrigin.toGoogle();
-        }
-        return options;
+    toGoogle(): Promise<google.maps.Symbol> {
+        return new Promise((resolve) => {
+            loader().onLoad(() => {
+                const options = { ...this.#options };
+                if (options.anchor instanceof Point) {
+                    options.anchor = options.anchor.toGoogle();
+                }
+                if (options.labelOrigin instanceof Point) {
+                    options.labelOrigin = options.labelOrigin.toGoogle();
+                }
+                if (isStringWithValue(options.path) && Object.keys(SymbolPath).includes(options.path as string)) {
+                    options.path = convertSymbolPath(options.path as string);
+                }
+                resolve(options);
+            });
+        });
     }
 }
 

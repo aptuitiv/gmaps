@@ -1,6 +1,6 @@
 {
     "name": "@aptuitiv/gmaps",
-    "version": "0.21.0",
+    "version": "0.22.0",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
     "type": "module",
     "main": "dist/index.cjs",
@@ -63,7 +63,7 @@
         "ts-node": "^10.9.2",
         "tsup": "^8.4.0",
         "typescript": "^5.8.2",
-        "typescript-eslint": "^8.26.1"
+        "typescript-eslint": "^8.27.0"
     },
     "dependencies": {
         "@googlemaps/js-api-loader": "^1.16.8",

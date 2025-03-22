@@ -429,6 +429,25 @@ declare const StreetViewSource: Readonly<{
     OUTDOOR: "outdoor";
 }>;
 type StreetViewSourceValue = (typeof StreetViewSource)[keyof typeof StreetViewSource];
+/**
+ * Build in symbols
+ * https://developers.google.com/maps/documentation/javascript/symbols#predefined
+ */
+declare const SymbolPath: Readonly<{
+    BACKWARD_CLOSED_ARROW: "BACKWARD_CLOSED_ARROW";
+    BACKWARD_OPEN_ARROW: "BACKWARD_OPEN_ARROW";
+    CIRCLE: "CIRCLE";
+    FORWARD_CLOSED_ARROW: "FORWARD_CLOSED_ARROW";
+    FORWARD_OPEN_ARROW: "FORWARD_OPEN_ARROW";
+}>;
+type SymbolPathValue = (typeof SymbolPath)[keyof typeof SymbolPath];
+/**
+ * Converts a SymbolPath string value to a google.maps.SymbolPath value.
+ *
+ * @param {string} value The SymbolPath value to convert
+ * @returns {google.maps.SymbolPath}
+ */
+declare const convertSymbolPath: (value: string) => string;
 
 type LatLngLiteral = {
     lat?: number | string;
@@ -1951,6 +1970,16 @@ declare const getPixelsFromLatLng: (map: google.maps.Map, position: google.maps.
  * @returns {boolean}
  */
 declare const checkForGoogleMaps: (object: string, library?: string, throwError?: boolean) => boolean;
+/**
+ * Get the size value with a unit
+ *
+ * @param {number|string} value The value to check
+ * @param {string} defaultUnit The unit to use if the value is a number or a string that does not have a unit
+ * @param {string[]} allowedUnits The allowed unites.
+ * @param {boolean} allowNegative If the number can be negative
+ * @returns {string|boolean} The value with the unit or false if the value is invalid
+ */
+declare const getSizeWithUnit: (value: string | number, defaultUnit?: string, allowedUnits?: string[], allowNegative?: boolean) => boolean | string;
 /**
  * Compare two objects to see if they are equal
  *
@@ -4749,9 +4778,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the icon options
      *
-     * @returns {google.maps.Symbol}
+     * @returns {Promise<google.maps.Symbol>}
      */
-    toGoogle(): google.maps.Symbol;
+    toGoogle(): Promise<google.maps.Symbol>;
 }
 type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
 /**
@@ -6138,6 +6167,132 @@ type PlacesSearchBoxValue = HTMLInputElement | string | PlacesSearchBox | Places
  */
 declare const placesSearchBox: (input?: PlacesSearchBoxValue, options?: PlacesSearchBoxOptions) => PlacesSearchBox;
 
+type PolylineIconOptions = {
+    fixedRotation?: boolean;
+    icon?: SvgSymbolValue;
+    offset?: string;
+    repeat?: string;
+};
+declare class PolylineIcon extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {PolylineIconOptions} [options] The polyline icon options
+     */
+    constructor(options?: PolylineIconOptions);
+    /**
+     * Get the fixed rotation setting for the icon
+     *
+     * @returns {boolean} True if the icon has a fixed rotation, false otherwise
+     */
+    get fixedRotation(): boolean;
+    /**
+     * Set the fixed rotation setting for the icon
+     *
+     * @param {boolean} fixedRotation If true, each icon in the sequence has the same fixed rotation
+     *      regardless of the angle of the edge on which it lies. If false, case each icon in the
+     *      sequence is rotated to align with its edge.
+     */
+    set fixedRotation(fixedRotation: boolean);
+    /**
+     * Get the icon value
+     *
+     * @returns {SvgSymbol|undefined} The icon value or undefined if not set
+     */
+    get icon(): SvgSymbol | undefined;
+    /**
+     * Set the icon value
+     *
+     * @param {SvgSymbolValue} icon The icon value to set. It can be a string, an object, or an instance of SvgSymbol.
+     * @see {@link SvgSymbol} for more details on the icon value
+     */
+    set icon(icon: SvgSymbolValue);
+    /**
+     * Get the offset value
+     *
+     * @returns {string|undefined} The offset value or undefined if not set
+     */
+    get offset(): string | undefined;
+    /**
+     * Set the distance from the start of the line at which an icon is to be rendered.
+     *
+     * @param {number|string} value The distance from the start of the line at which an icon is to be rendered.
+     *      is distance may be expressed as a percentage of line's length (e.g. '50%') or in pixels (e.g. '50px').
+     */
+    set offset(value: number | string);
+    /**
+     * Get the repeat value
+     *
+     * @returns {string|undefined} The repeat value or undefined if not set
+     */
+    get repeat(): string | undefined;
+    /**
+     * Set the repeat value. This sets the distance between consecutive icons along the polyline.
+     * The repeat value can be expressed in pixels (e.g. '20px') or as a percentage of the polyline's length (e.g. '10%').
+     * If the value is a number, it is treated as pixels (e.g. 20 becomes '20px').
+     * To disable repeating icons, set the repeat value to 0, '0px' or '0%'.
+     *
+     * @param {number|string} value The repeat value. It can be a number, a number string, or a string with 'px' or '%' suffix.
+     */
+    set repeat(value: number | string);
+    /**
+     * Set the fixed rotation value
+     *
+     * @param {boolean} fixedRotation If true, each icon in the sequence has the same fixed rotation
+     *      regardless of the angle of the edge on which it lies. If false, case each icon in the
+     *      sequence is rotated to align with its edge.
+     * @returns {PolylineIcon}
+     */
+    setFixedRotation(fixedRotation: boolean): PolylineIcon;
+    /**
+     * Set the icon value
+     *
+     * @param {SvgSymbolValue} icon The icon value to set. It can be a string, an object, or an instance of SvgSymbol.
+     * @returns {PolylineIcon} The PolylineIcon instance for method chaining
+     */
+    setIcon(icon: SvgSymbolValue): PolylineIcon;
+    /**
+     * Set the distance from the start of the line at which an icon is to be rendered.
+     *
+     * @param {number|string} value The distance from the start of the line at which an icon is to be rendered.
+     *      This distance may be expressed as a percentage of line's length (e.g. '50%') or in pixels (e.g. '50px').
+     * @returns {PolylineIcon} The PolylineIcon instance for method chaining
+     */
+    setOffset(value: number | string): PolylineIcon;
+    /**
+     * Set the repeat value. This sets the distance between consecutive icons along the polyline.
+     * The repeat value can be expressed in pixels (e.g. '20px') or as a percentage of the polyline's length (e.g. '10%').
+     * If the value is a number, it is treated as pixels (e.g. 20 becomes '20px').
+     * To disable repeating icons, set the repeat value to 0, '0px' or '0%'.
+     *
+     * @param {number|string} value The repeat value. It can be a number, a number string, or a string with 'px' or '%' suffix.
+     * @returns {PolylineIcon} The PolylineIcon instance for method chaining
+     */
+    setRepeat(value: number | string): PolylineIcon;
+    /**
+     * Set the icon options
+     *
+     * @param {PolylineIconOptions} options The polyline icon options
+     * @returns {PolylineIcon}
+     */
+    setOptions(options: PolylineIconOptions): PolylineIcon;
+    /**
+     * Get the polyline icon options
+     *
+     * @returns {Promise<google.maps.IconSequence>}
+     */
+    toGoogle(): Promise<google.maps.IconSequence>;
+}
+type PolylineIconValue = PolylineIcon | PolylineIconOptions;
+/**
+ * Helper function to set up the polyline icon object
+ *
+ * @param {PolylineIconValue} options The polyline icon options or the icon object
+ * @returns {PolylineIcon} A PolylineIcon instance
+ */
+declare const polylineIcon: (options: PolylineIconValue) => PolylineIcon;
+
 type PolylineEvent = 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'mousedown' | 'mousemove' | 'mouseout' | 'mouseover' | 'mouseup';
 type CustomData = {
     [key: string]: any;
@@ -6145,7 +6300,10 @@ type CustomData = {
 type PolylineOptions = {
     clickable?: boolean;
     data?: CustomData;
+    dashed?: boolean;
+    dashGap?: string | number;
     highlightPolyline?: PolylineOptions | Polyline;
+    icons?: PolylineIcon[];
     map?: Map;
     path?: LatLngValue[];
     strokeColor?: string;
@@ -6179,6 +6337,32 @@ declare class Polyline extends Layer {
      */
     set clickable(value: boolean);
     /**
+     * Get whether the polyline is drawn as a dashed line.
+     *
+     * @returns {boolean}
+     */
+    get dashed(): boolean;
+    /**
+     * Set whether the polyline is drawn as a dashed line.
+     *
+     * @param {boolean} value Whether the polyline is drawn as a dashed line.
+     */
+    set dashed(value: boolean);
+    /**
+     * Get the gap between the dashes in pixels or percentage.
+     *
+     * @returns {string}
+     */
+    get dashGap(): string;
+    /**
+     * Set the gap between the dashes in pixels or percentage.
+     *
+     * If a number is set them it will be converted to a string with "px" appended.
+     *
+     * @param {string|number} value The gap between the dashes in pixels.
+     */
+    set dashGap(value: string | number);
+    /**
      * Get the custom data attached to the polyline object
      *
      * @returns {CustomData}
@@ -6205,6 +6389,21 @@ declare class Polyline extends Layer {
      * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
      */
     set highlightPolyline(value: PolylineOptions | Polyline);
+    /**
+     * Get the icons for the polyline
+     *
+     * @returns {PolylineIcon[]}
+     */
+    get icons(): PolylineIcon[];
+    /**
+     * Set the icons for the polyline
+     *
+     * You can pass a single icon value or an array of icon values.
+     * Each icon value can be an object containing the icon options or a SvgSymbol object.
+     *
+     * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
+     */
+    set icons(value: PolylineIconValue | PolylineIconValue[]);
     /**
      * Get the map object
      *
@@ -6372,6 +6571,21 @@ declare class Polyline extends Layer {
      */
     onlyOnce(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void;
     /**
+     * Sets the polyline to be drawn as a dashed line
+     *
+     * @param {boolean} dashed Whether the polyline is drawn as a dashed line
+     * @param {string|number} [dashGap] The gap between the dashes in pixels or percentage.
+     * @returns {Polyline} The polyline object
+     */
+    setDashed(dashed: boolean, dashGap?: string | number): Polyline;
+    /**
+     * Set the gap between the dashes in pixels.
+     *
+     * @param {string|number} gap The gap between the dashes in pixels or percentage. This is only used if the polyline is drawn as a dashed line.
+     * @returns {Polyline} The polyline object
+     */
+    setDashGap(gap: string | number): Polyline;
+    /**
      * Set the highlight polyline
      *
      * The highlight polyline is a polyline that is shown below the existing polyline to create a "highlight" effect.
@@ -6381,6 +6595,16 @@ declare class Polyline extends Layer {
      * @returns {Polyline}
      */
     setHighlightPolyline(value: PolylineOptions | Polyline): Polyline;
+    /**
+     * Set the icons for the polyline
+     *
+     * You can pass a single icon value or an array of icon values.
+     * Each icon value can be an object containing the icon options or a SvgSymbol object.
+     *
+     * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
+     * @returns {Polyline} The polyline object
+     */
+    setIcons(value: PolylineIconValue | PolylineIconValue[]): Polyline;
     /**
      * Adds the polyline to the map object
      *
@@ -6813,4 +7037,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

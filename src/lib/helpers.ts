@@ -2,6 +2,7 @@
 /*  eslint-disable @typescript-eslint/no-explicit-any -- The functions receive an unknown value so "any" is a required type.  */
 /* eslint-disable @typescript-eslint/no-unsafe-function-type -- Some of the test look to see if the value is a function. Th "Function" return type is necessary. */
 
+
 /**
  * Returns if the value is boolean
  *
@@ -231,6 +232,51 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
     }
     return passed;
 };
+
+/**
+ * Get the size value with a unit
+ *
+ * @param {number|string} value The value to check
+ * @param {string} defaultUnit The unit to use if the value is a number or a string that does not have a unit
+ * @param {string[]} allowedUnits The allowed unites.
+ * @param {boolean} allowNegative If the number can be negative
+ * @returns {string|boolean} The value with the unit or false if the value is invalid
+ */
+export const getSizeWithUnit = (
+    value: string|number,
+    defaultUnit: string = 'px',
+    allowedUnits: string[] = ['%', 'px'],
+    allowNegative: boolean = false
+): boolean|string => {
+    let returnValue:boolean|string = false;
+    if (isNumber(value)) {
+        if (value >= 0) {
+            returnValue = `${value}${defaultUnit}`;
+        }
+    } else if (isNumberString(value)) {
+        const val = Number(value);
+        if (allowNegative || val >= 0) {
+            returnValue = `${val}${defaultUnit}`;
+        }
+    } else if (isStringWithValue(value)) {
+        let pass = false;
+        // Check if the value ends with an allowed unit
+        for (const unit of allowedUnits) {
+            if ((value as string).endsWith(unit)) {
+                pass = true;
+                break;
+            }
+        }
+        if (pass) {
+            // Remove theunits from the value
+            const val = parseFloat((value as string).replace(`${allowedUnits.join('|')}/g`, ''));
+            if (val >= 0) {
+                returnValue = value;
+            }
+        }
+    }
+    return returnValue;
+}
 
 /**
  * Compare two objects to see if they are equal

@@ -102,6 +102,115 @@ for (let i = 0; i < 10; i += 1) {
     polylineCollection.add(polyline, tag);
 }
 
+// Dashed polyline
+const dashedPath = [];
+const dashedLat = 47;
+const dashedLng = 3;
+for (let i = 0; i < 10; i += 1) {
+    dashedPath.push({
+        latitude: dashedLat + (randomNumber(0, 0.2) * i),
+        longitude: dashedLng + (randomNumber(0, .2) * i),
+    });
+}
+
+const dashedPolyline = G.polyline({
+    clickable: true,
+    path: dashedPath,
+    map: map,
+    strokeColor: '#A16D33',
+    strokeWeight: 3,
+    dashed: true,
+    dashGap: '5%',
+    strokeWeight: 4,
+    strokeOpacity: 1,
+    highlightPolyline: {
+        strokeColor: 'blue',
+        strokeOpacity: 0.5,
+        strokeWeight: 10,
+    }
+});
+map.onReady(() => {
+    // setTimeout(() => {
+    //     // dashedPolyline.dashed = false;
+    //     dashedPolyline.setDashed(false, 13);
+    //     dashedPolyline.setStrokeOpacity(0.5);
+    //     dashedPolyline.strokeWeight = 1;
+    // }, 1500);
+});
+
+// map.onReady(() => {
+//     setTimeout(() => {
+//         // dashedPolyline.dashGap = 40;
+//         // Clone the dashed line
+//         const dashedPath2 = [];
+//         const dashedLat2 = 48;
+//         const dashedLng2 = 4;
+//         for (let i = 0; i < 10; i += 1) {
+//             dashedPath2.push({
+//                 latitude: dashedLat2 + (randomNumber(0, 0.2) * i),
+//                 longitude: dashedLng2 + (randomNumber(0, .2) * i),
+//             });
+//         }
+//         const dashedClone = dashedPolyline.clone();
+//         console.log('dashedClone: ', dashedClone);
+//         dashedClone.setPath(dashedPath2);
+//     }, 1500);
+// });
+
+
+// Polyline with icons
+const iconPath = [];
+const iconLat = 48;
+const iconLng = -2;
+for (let i = 0; i < 20; i += 1) {
+    iconPath.push({
+        latitude: iconLat + (randomNumber(0, 0.2) * i),
+        longitude: iconLng + (randomNumber(0, .2) * i),
+    });
+}
+const icon = G.svgSymbol({
+    path: G.SymbolPath.CIRCLE,
+    strokeColor: '#000000',
+    scale: 2
+});
+const polylineIcon = G.polylineIcon({
+    icon: {
+        path: "M -2,-2 2,2 M 2,-2 -2,2",
+        strokeColor: "#22229B",
+        strokeWeight: 4,
+    }
+    , offset: '100%'
+});
+const iconPolyline = G.polyline({
+    path: iconPath,
+    map: map,
+    strokeColor: 'purple',
+    strokeWeight: 3,
+    strokeWeight: 4,
+    strokeOpacity: 1,
+    dashed: true,
+    icons: [{
+        icon: icon,
+        offset: '50%',
+    },
+        polylineIcon,
+    // {
+    //     icon: {
+    //         path: "M -2,-2 2,2 M 2,-2 -2,2",
+    //         strokeColor: "#9B2222",
+    //         strokeWeight: 4,
+    //     }
+    //     , offset: '100%'
+    // },
+    {
+        icon: {
+            path: 'M -1,0 A 1,1 0 0 0 -3,0 1,1 0 0 0 -1,0M 1,0 A 1,1 0 0 0 3,0 1,1 0 0 0 1,0M -3,3 Q 0,5 3,3',
+            strokeColor: 'red',
+            rotation: 45
+        },
+        offset: '0%',
+    }]
+});
 
 // Buttons to show/hide the polyline
 const hideButton = document.createElement('button');
