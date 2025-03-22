@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2025-03-21
+
+### Added
+
+- Added support for setting a polyline to be dashed.
+- Added PolylineIcon object.
+- Added support for setting icons on a polyline.
+
+### Changed
+
+- Updated typscript-eslint package.
+
+### Fixed
+
+- Use the image label confirmation over the default label confirmation when setting marker cluster image icons.
+
 ## [0.21.0] - 2025-03-17
 
 ### Added

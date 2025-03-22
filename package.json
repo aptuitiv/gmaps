@@ -1,6 +1,6 @@
 {
     "name": "@aptuitiv/gmaps",
-    "version": "0.21.0",
+    "version": "0.22.0",
     "description": "Library to help with displaying a Google map on a website with markers, overlays, tooltips, and other map elements.",
     "type": "module",
     "main": "dist/index.cjs",
