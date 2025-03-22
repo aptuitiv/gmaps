@@ -468,16 +468,16 @@ var StreetViewSource = Object.freeze({
   OUTDOOR: "outdoor"
 });
 var SymbolPath = Object.freeze({
+  // A backward-pointing closed arrow.
+  BACKWARD_CLOSED_ARROW: "BACKWARD_CLOSED_ARROW",
+  // A backward-pointing open arrow.
+  BACKWARD_OPEN_ARROW: "BACKWARD_OPEN_ARROW",
   // A circle with a radius of 1.
   CIRCLE: "CIRCLE",
-  // A square with a width and height of 1.
-  BACKWARD_CLOSED_ARROW: "BACKWARD_CLOSED_ARROW",
-  // A square with a width and height of 1.
+  // A forward-pointing closed arrow.
   FORWARD_CLOSED_ARROW: "FORWARD_CLOSED_ARROW",
-  // A square with a width and height of 1.
-  FORWARD_OPEN_ARROW: "FORWARD_OPEN_ARROW",
-  // A square with a width and height of 1.
-  BACKWARD_OPEN_ARROW: "BACKWARD_OPEN_ARROW"
+  // A forward-pointing open arrow.
+  FORWARD_OPEN_ARROW: "FORWARD_OPEN_ARROW"
 });
 var convertSymbolPath = (value) => {
   let returnValue = "";
@@ -12220,7 +12220,6 @@ var _Polyline = class _Polyline extends Layer_default {
     if (Array.isArray(value)) {
       setValue = true;
       __privateGet(this, _options8).icons = value.map((iconValue) => polylineIcon(iconValue));
-      console.log("icons", __privateGet(this, _options8).icons);
     } else {
       __privateGet(this, _options8).icons = [polylineIcon(value)];
       setValue = true;

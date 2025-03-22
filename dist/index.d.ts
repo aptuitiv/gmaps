@@ -434,11 +434,11 @@ type StreetViewSourceValue = (typeof StreetViewSource)[keyof typeof StreetViewSo
  * https://developers.google.com/maps/documentation/javascript/symbols#predefined
  */
 declare const SymbolPath: Readonly<{
-    CIRCLE: "CIRCLE";
     BACKWARD_CLOSED_ARROW: "BACKWARD_CLOSED_ARROW";
+    BACKWARD_OPEN_ARROW: "BACKWARD_OPEN_ARROW";
+    CIRCLE: "CIRCLE";
     FORWARD_CLOSED_ARROW: "FORWARD_CLOSED_ARROW";
     FORWARD_OPEN_ARROW: "FORWARD_OPEN_ARROW";
-    BACKWARD_OPEN_ARROW: "BACKWARD_OPEN_ARROW";
 }>;
 type SymbolPathValue = (typeof SymbolPath)[keyof typeof SymbolPath];
 /**
