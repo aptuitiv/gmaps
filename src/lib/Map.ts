@@ -1923,7 +1923,7 @@ export class Map extends Evented {
                 // - map controls don't display
                 // - markers don't display.
                 // The solution is to wait until the map is visible. Then it's set up and displayed.
-                const elementDisplay = (element.computedStyleMap().get('display') as CSSKeywordValue).value;
+                const elementDisplay = getComputedStyle(element).getPropertyValue('display');
                 if (elementDisplay === 'none' || element.offsetHeight === 1 || element.offsetWidth === 0) {
                     const observer = new IntersectionObserver(
                         (entries) => {
