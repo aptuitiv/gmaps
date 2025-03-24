@@ -7886,7 +7886,7 @@ showMap_fn = function() {
           "The map element could not be found. Make sure the map selector is correct and the element exists."
         );
       }
-      const elementDisplay = element.computedStyleMap().get("display").value;
+      const elementDisplay = getComputedStyle(element).getPropertyValue("display");
       if (elementDisplay === "none" || element.offsetHeight === 1 || element.offsetWidth === 0) {
         const observer = new IntersectionObserver(
           (entries) => {
