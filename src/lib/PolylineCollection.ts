@@ -237,12 +237,51 @@ export class PolylineCollection {
     }
 
     /**
+     * Set options for the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {PolylineOptions} options The options to set for the polylines.
+     * @param {string} tag The tag to show polylines for.
+     */
+    #setOptions(options: PolylineOptions, tag: string): void {
+        if (this.polylines[tag]) {
+            this.polylines[tag].forEach((p: Polyline) => {
+                p.setOptions(options);
+            });
+        }
+    }
+
+    /**
+     * Set options for either all polylines in the collection or for the polylines that have the tag(s) passed.
+     *
+     * @param {PolylineOptions} options The options to set for the polylines.
+     * @param {string|string[]} [tag] The tag(s) to show polylines for. Either a single tag string or an array of tag strings can be passed.
+     */
+    setOptions(options: PolylineOptions, tag?: string|string[]): void {
+        if (isString(tag)) {
+            this.#setOptions(options, tag);
+        } else if (Array.isArray(tag)) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#setOptions(options, t);
+                }
+            });
+        } else {
+            // Set the options for all polylines
+            Object.keys(this.polylines).forEach((t) => {
+                this.polylines[t].forEach((p: Polyline) => {
+                    p.setOptions(options);
+                });
+            });
+        }
+    }
+
+    /**
      * Show the Polylines in the collection that have the tag(s) passed
      *
      * @param {string} tag The tag to show polylines for.
      * @param {Map} [map] The map object
      */
-    #show(tag: string, map: Map, ): void {
+    #show(tag: string, map: Map): void {
         if (this.polylines[tag]) {
             this.polylines[tag].forEach((p: Polyline) => {
                 p.show(map);
