@@ -1040,7 +1040,6 @@ export class Polyline extends Layer {
                 this.#highlightOriginalOptions = {};
             }
             this.#highlightPolyline.visible = false;
-            this.#highlightPolyline.strokeOpacity = 1;
         }
         return this;
     }
