@@ -291,7 +291,8 @@ Array.from(tagsUsed).sort().forEach((tag) => {
     const highlightButton = document.createElement('button');
     highlightButton.textContent = `Highlight ${tag}`;
     highlightButton.addEventListener('click', () => {
-        polylineCollection.highlight(tag);
+        // polylineCollection.highlight(tag, { strokeColor: 'pink', strokeWeight: 20 });
+        polylineCollection.highlight(tag, { strokeColor: 'pink', strokeOpacity: 0.5, strokeWeight: 20 });
     });
     tagGrid.appendChild(highlightButton);
 

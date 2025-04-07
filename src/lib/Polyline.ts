@@ -113,6 +113,17 @@ export class Polyline extends Layer {
     #dashGap: string = '15px';
 
     /**
+     * Holds the original polyline options for the highlight polyline
+     * before they were overriden by custom options.
+     *
+     * The custom options are set in the highlight() method.
+     *
+     * @private
+     * @type {PolylineOptions}
+     */
+    #highlightOriginalOptions: PolylineOptions = {};
+
+    /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
      * when the mouse hovers over this polyline.
      *
@@ -640,10 +651,59 @@ export class Polyline extends Layer {
     /**
      * Display the highlight polyline if it exists
      *
+     * You can override the current highlight options by passing in the options parameter.
+     * This allows you to override one or more of the following options:
+     * - clickable
+     * - dashed
+     * - dashGap
+     * - icons
+     * - strokeColor
+     * - strokeOpacity
+     * - strokeWeight
+     * - zIndex
+     *
+     * When the polyline is unhighlighted, the original options will be restored.
+     *
+     * @param {PolylineOptions} [options] The polyline options to override the existing highlight polyline options.
      * @returns {Polyline}
      */
-    highlight(): Polyline {
+    highlight(options?: PolylineOptions): Polyline {
         if (this.visible !== false && this.#highlightPolyline) {
+            if (isObject(options)) {
+                // Some custom options are being set. Get the original options
+                // so that they can be set on the highlight polyline when it's hidden.
+                // That will essentially reset the highlight polyline to the original options.
+                this.#highlightOriginalOptions = {
+                    clickable: this.#highlightPolyline.clickable,
+                    dashed: this.#highlightPolyline.dashed,
+                    dashGap: this.#highlightPolyline.dashGap,
+                    icons: this.#highlightPolyline.icons,
+                    strokeColor: this.#highlightPolyline.strokeColor,
+                    strokeOpacity: this.#highlightPolyline.strokeOpacity,
+                    strokeWeight: this.#highlightPolyline.strokeWeight,
+                    zIndex: this.#highlightPolyline.zIndex,
+                }
+                const allowedOptions = [
+                    'clickable',
+                    'dashed',
+                    'dashGap',
+                    'icons',
+                    'strokeColor',
+                    'strokeOpacity',
+                    'strokeWeight',
+                    'zIndex',
+                ];
+                const highlightOptions: PolylineOptions = {};
+                allowedOptions.forEach((option) => {
+                    if (isDefined(options[option])) {
+                        highlightOptions[option] = options[option];
+                    }
+                });
+                // Set the options on the highlight polyline
+                if (Object.keys(highlightOptions).length > 0) {
+                    this.#highlightPolyline.setOptions(highlightOptions);
+                }
+            }
             this.#isHighlighted = true;
             this.#highlightPolyline.visible = true;
         }
@@ -973,7 +1033,14 @@ export class Polyline extends Layer {
     unhighlight(): Polyline {
         if (this.#highlightPolyline) {
             this.#isHighlighted = false;
+            if (Object.keys(this.#highlightOriginalOptions).length > 0) {
+                // Reset the highlight polyline to the original options
+                this.#highlightPolyline.setOptions(this.#highlightOriginalOptions);
+                // Reset the original options so that they don't get set again
+                this.#highlightOriginalOptions = {};
+            }
             this.#highlightPolyline.visible = false;
+            this.#highlightPolyline.strokeOpacity = 1;
         }
         return this;
     }

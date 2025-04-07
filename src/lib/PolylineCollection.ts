@@ -6,7 +6,7 @@
 
 import { isString } from './helpers';
 import { Map } from './Map';
-import { Polyline } from './Polyline';
+import { Polyline, PolylineOptions } from './Polyline';
 
 type PolylinesByTag = { [key: string]: Set<Polyline> };
 
@@ -139,11 +139,12 @@ export class PolylineCollection {
      * Highlight the Polylines in the collection that have the tag(s) passed
      *
      * @param {string} tag The tag to highlight polylines for.
+     * @param {PolylineOptions} [highlightOptions] The options to use for highlighting the polylines. This will override the current options for the highlight polyline.
      */
-    #highlight(tag: string): void {
+    #highlight(tag: string, highlightOptions?: PolylineOptions): void {
         if (this.polylines[tag]) {
             this.polylines[tag].forEach((p: Polyline) => {
-                p.highlight();
+                p.highlight(highlightOptions);
             });
         }
     }
@@ -151,15 +152,29 @@ export class PolylineCollection {
     /**
      * Highlight the Polylines in the collection that have the tag(s) passed
      *
+     * You can override the current highlight options by passing in the highlightOptions parameter.
+     * This allows you to override one or more of the following options:
+     * - clickable
+     * - dashed
+     * - dashGap
+     * - icons
+     * - strokeColor
+     * - strokeOpacity
+     * - strokeWeight
+     * - zIndex
+     *
+     * When the polyline is unhighlighted, the original options will be restored.
+     *
      * @param {string|string[]} tag The tag(s) to highlight polylines for. Either a single tag string or an array of tag strings can be passed.
+     * @param {PolylineOptions} [highlightOptions] The options to use for highlighting the polylines. This will override the current options for the highlight polyline.
      */
-    highlight(tag: string|string[]): void {
+    highlight(tag: string|string[], highlightOptions?: PolylineOptions): void {
         if (isString(tag)) {
-            this.#highlight(tag);
+            this.#highlight(tag, highlightOptions);
         } else if (Array.isArray(tag)) {
             tag.forEach((t) => {
                 if (isString(t)) {
-                    this.#highlight(t);
+                    this.#highlight(t, highlightOptions);
                 }
             });
         }
