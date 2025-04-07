@@ -167,7 +167,7 @@ Array.from(tagsUsed).sort().forEach((tag) => {
     const showButton = document.createElement('button');
     showButton.textContent = `Show ${tag}`;
     showButton.addEventListener('click', () => {
-        markerCollection.show(map, tag);
+        markerCollection.show(tag, map);
     });
     tagGrid.appendChild(showButton);
 });
@@ -175,13 +175,13 @@ Array.from(tagsUsed).sort().forEach((tag) => {
 const hideTagsButton = document.createElement('button');
 hideTagsButton.textContent = `Hide tags 1 - 3`;
 hideTagsButton.addEventListener('click', () => {
-    markerCollection.hide('tag1', 'tag2', 'tag3');
+    markerCollection.hide(['tag1', 'tag2', 'tag3']);
 });
 tagGrid.appendChild(hideTagsButton);
 
 const showTagsButton = document.createElement('button');
 showTagsButton.textContent = `Show tags 3 - 5`;
 showTagsButton.addEventListener('click', () => {
-    markerCollection.show(map, 'tag3', 'tag4', 'tag5');
+    markerCollection.show(['tag3', 'tag4', 'tag5'], map);
 });
 tagGrid.appendChild(showTagsButton);

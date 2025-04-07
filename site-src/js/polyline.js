@@ -306,14 +306,21 @@ Array.from(tagsUsed).sort().forEach((tag) => {
 const hideTagsButton = document.createElement('button');
 hideTagsButton.textContent = `Hide tags 1 - 3`;
 hideTagsButton.addEventListener('click', () => {
-    polylineCollection.hide('tag1', 'tag2', 'tag3');
+    polylineCollection.hide(['tag1', 'tag2', 'tag3']);
 });
 tagGrid.appendChild(hideTagsButton);
+
+const hideTagsButton2 = document.createElement('button');
+hideTagsButton2.textContent = `Hide tags 4-6`;
+hideTagsButton2.addEventListener('click', () => {
+    polylineCollection.hide(['tag4', 'tag5', 'tag6']);
+});
+tagGrid.appendChild(hideTagsButton2);
 
 const showTagsButton = document.createElement('button');
 showTagsButton.textContent = `Show tags 3 - 5`;
 showTagsButton.addEventListener('click', () => {
-    polylineCollection.show('tag3', 'tag4', 'tag5');
+    polylineCollection.show(['tag3', 'tag4', 'tag5'], map);
 });
 tagGrid.appendChild(showTagsButton);
 
