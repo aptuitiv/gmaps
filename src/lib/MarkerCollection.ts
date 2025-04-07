@@ -4,6 +4,7 @@
     This allows some bulk operations to be done on markers based on their tags.
 =========================================================================== */
 
+import { isString } from './helpers';
 import { Map } from './Map';
 import { Marker } from './Marker';
 
@@ -25,22 +26,35 @@ export class MarkerCollection {
      * Adds an Marker to the collection
      *
      * @param {Marker} marker The Marker object to add
-     * @param {string[]} tags The tag(s) to assign the marker to
+     * @param {string} tag The tag to assign the marker to.
      */
-    add(marker: Marker, ...tags: string[]): void {
-        if (tags.length > 0) {
-            tags.forEach((tag) => {
-                if (!this.markers[tag]) {
-                    this.markers[tag] = new Set();
+    #add(marker: Marker, tag: string): void {
+        if (!this.markers[tag]) {
+            this.markers[tag] = new Set();
+        }
+        this.markers[tag].add(marker);
+    }
+
+    /**
+     * Adds an Marker to the collection
+     *
+     * @param {Marker} marker The Marker object to add
+     * @param {string|string[]} [tag] The tag(s) to assign the marker to. Either a single tag or an array of tags can be passed.
+     */
+    add(marker: Marker, tag?: string|string[]): void {
+        if (isString(tag)) {
+            // A single tag string was passed
+            this.#add(marker, tag);
+        } else if (Array.isArray(tag) && tag.length > 0) {
+            // An array of tags was passed
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#add(marker, t);
                 }
-                this.markers[tag].add(marker);
             });
         } else {
             // Add the marker to a default tag
-            if (!this.markers[defaultTag]) {
-                this.markers[defaultTag] = new Set();
-            }
-            this.markers[defaultTag].add(marker);
+            this.#add(marker, defaultTag);
         }
     }
 
@@ -79,18 +93,35 @@ export class MarkerCollection {
     }
 
     /**
+     * Hide the Markers in the collection that have the tag passed
+     *
+     * @param {string} tag The tag to hide markers for.
+     */
+    #hide(tag: string): void {
+        if (this.markers[tag]) {
+            this.markers[tag].forEach((marker: Marker) => {
+                marker.hide();
+            });
+        }
+    }
+
+    /**
      * Hide the Markers in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to hide markers for
+     * @param {string|string[]} tag The tag(s) to hide markers for. Either a single tag string or an array of tag strings can be passed.
      */
-    hide(...tags: string[]): void {
-        tags.forEach((tag) => {
-            if (this.markers[tag]) {
-                this.markers[tag].forEach((marker: Marker) => {
-                    marker.hide();
-                });
-            }
-        });
+    hide(tag: string|string[]): void {
+        if (isString(tag)) {
+            // A single tag string was passed
+            this.#hide(tag);
+        } else if (Array.isArray(tag)) {
+            // An array of tags was passed
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#hide(t);
+                }
+            });
+        }
     }
 
     /**
@@ -114,22 +145,37 @@ export class MarkerCollection {
     }
 
     /**
+     * Remove the marker from the collection by tag.
+     *
+     * @param {Marker} marker The marker object to remove
+     * @param {string} tag The tag to remove the marker from.
+     */
+    #removeByTag(marker: Marker, tag: string): void {
+        if (this.markers[tag]) {
+            this.markers[tag].delete(marker);
+        }
+    }
+
+    /**
      * Remove the marker from the collection, optionally by tag.
      *
      * @param {Marker} marker The marker object to remove
-     * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+     * @param {string|string[]} [tag] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+     *      Either a single tag string or an array of tag strings can be passed.
      */
-    remove(marker: Marker, ...tags: string[]): void {
-        if (tags.length > 0) {
-            tags.forEach((tag) => {
-                if (this.markers[tag]) {
-                    this.markers[tag].delete(marker);
+    remove(marker: Marker, tag?: string|string[]): void {
+        if (isString(tag)) {
+            this.#removeByTag(marker, tag);
+        } else if (Array.isArray(tag) && tag.length > 0) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#removeByTag(marker, t);
                 }
             });
         } else {
             // Remove the marker from all tags
-            Object.keys(this.markers).forEach((tag) => {
-                this.markers[tag].delete(marker);
+            Object.keys(this.markers).forEach((t) => {
+                this.markers[t].delete(marker);
             });
         }
     }
@@ -137,17 +183,33 @@ export class MarkerCollection {
     /**
      * Show the Markers in the collection that have the tag(s) passed
      *
+     * @param {string} tag The tag to show markers for.
      * @param {Map} map The map object
-     * @param {string[]} tags The tag(s) to show markers for
      */
-    show(map: Map, ...tags: string[]): void {
-        tags.forEach((tag) => {
-            if (this.markers[tag]) {
-                this.markers[tag].forEach((marker: Marker) => {
-                    marker.show(map);
-                });
-            }
-        });
+    #show(tag: string, map: Map, ): void {
+        if (this.markers[tag]) {
+            this.markers[tag].forEach((marker: Marker) => {
+                marker.show(map);
+            });
+        }
+    }
+
+    /**
+     * Show the Markers in the collection that have the tag(s) passed
+     *
+     * @param {string|string[]} tag The tag(s) to show markers for. Either a single tag string or an array of tag strings can be passed.
+     * @param {Map} [map] The map object
+     */
+    show(tag: string|string[], map: Map): void {
+        if (isString(tag)) {
+            this.#show(tag, map);
+        } else if (Array.isArray(tag)) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#show(t, map);
+                }
+            });
+        }
     }
 
     /**

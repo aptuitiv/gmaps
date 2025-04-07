@@ -4,8 +4,9 @@
     This allows some bulk operations to be done on polylines based on their tags.
 =========================================================================== */
 
+import { isString } from './helpers';
 import { Map } from './Map';
-import { Polyline } from './Polyline';
+import { Polyline, PolylineOptions } from './Polyline';
 
 type PolylinesByTag = { [key: string]: Set<Polyline> };
 
@@ -25,22 +26,35 @@ export class PolylineCollection {
      * Adds an Polyline to the collection
      *
      * @param {Polyline} p The Polyline object to add
-     * @param {string[]} tags The tag(s) to assign the polyline to
+     * @param {string} tag The tag to assign the polyline to.
      */
-    add(p: Polyline, ...tags: string[]): void {
-        if (tags.length > 0) {
-            tags.forEach((tag) => {
-                if (!this.polylines[tag]) {
-                    this.polylines[tag] = new Set();
+    #add(p: Polyline, tag: string): void {
+        if (!this.polylines[tag]) {
+            this.polylines[tag] = new Set();
+        }
+        this.polylines[tag].add(p);
+    }
+
+    /**
+     * Adds an Polyline to the collection
+     *
+     * @param {Polyline} p The Polyline object to add
+     * @param {string|string[]} [tag] The tag(s) to assign the polyline to. Either a single tag or an array of tags can be passed.
+     */
+    add(p: Polyline, tag?: string|string[]): void {
+        if (isString(tag)) {
+            // A single tag string was passed
+            this.#add(p, tag);
+        } else if (Array.isArray(tag) && tag.length > 0) {
+            // An array of tags was passed
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#add(p, t);
                 }
-                this.polylines[tag].add(p);
             });
         } else {
             // Add the polyline to a default tag
-            if (!this.polylines[defaultTag]) {
-                this.polylines[defaultTag] = new Set();
-            }
-            this.polylines[defaultTag].add(p);
+            this.#add(p, defaultTag);
         }
     }
 
@@ -79,18 +93,35 @@ export class PolylineCollection {
     }
 
     /**
+     * Hide the Polylines in the collection that have the tag passed
+     *
+     * @param {string} tag The tag to hide polylines for.
+     */
+    #hide(tag: string): void {
+        if (this.polylines[tag]) {
+            this.polylines[tag].forEach((p: Polyline) => {
+                p.hide();
+            });
+        }
+    }
+
+    /**
      * Hide the Polylines in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to hide polylines for
+     * @param {string|string[]} tag The tag(s) to hide polylines for. Either a single tag string or an array of tag strings can be passed.
      */
-    hide(...tags: string[]): void {
-        tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-                this.polylines[tag].forEach((p: Polyline) => {
-                    p.hide();
-                });
-            }
-        });
+    hide(tag: string|string[]): void {
+        if (isString(tag)) {
+            // A single tag string was passed
+            this.#hide(tag);
+        } else if (Array.isArray(tag)) {
+            // An array of tags was passed
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#hide(t);
+                }
+            });
+        }
     }
 
     /**
@@ -107,16 +138,46 @@ export class PolylineCollection {
     /**
      * Highlight the Polylines in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to highlight polylines for
+     * @param {string} tag The tag to highlight polylines for.
+     * @param {PolylineOptions} [highlightOptions] The options to use for highlighting the polylines. This will override the current options for the highlight polyline.
      */
-    highlight(...tags: string[]): void {
-        tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-                this.polylines[tag].forEach((p: Polyline) => {
-                    p.highlight();
-                });
-            }
-        });
+    #highlight(tag: string, highlightOptions?: PolylineOptions): void {
+        if (this.polylines[tag]) {
+            this.polylines[tag].forEach((p: Polyline) => {
+                p.highlight(highlightOptions);
+            });
+        }
+    }
+
+    /**
+     * Highlight the Polylines in the collection that have the tag(s) passed
+     *
+     * You can override the current highlight options by passing in the highlightOptions parameter.
+     * This allows you to override one or more of the following options:
+     * - clickable
+     * - dashed
+     * - dashGap
+     * - icons
+     * - strokeColor
+     * - strokeOpacity
+     * - strokeWeight
+     * - zIndex
+     *
+     * When the polyline is unhighlighted, the original options will be restored.
+     *
+     * @param {string|string[]} tag The tag(s) to highlight polylines for. Either a single tag string or an array of tag strings can be passed.
+     * @param {PolylineOptions} [highlightOptions] The options to use for highlighting the polylines. This will override the current options for the highlight polyline.
+     */
+    highlight(tag: string|string[], highlightOptions?: PolylineOptions): void {
+        if (isString(tag)) {
+            this.#highlight(tag, highlightOptions);
+        } else if (Array.isArray(tag)) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#highlight(t, highlightOptions);
+                }
+            });
+        }
     }
 
     /**
@@ -140,22 +201,76 @@ export class PolylineCollection {
     }
 
     /**
+     * Remove the polyline from the collection by tag.
+     *
+     * @param {Polyline} p The polyline object to remove
+     * @param {string} tag The tag to remove the polyline from.
+     */
+    #removeByTag(p: Polyline, tag: string): void {
+        if (this.polylines[tag]) {
+            this.polylines[tag].delete(p);
+        }
+    }
+
+    /**
      * Remove the polyline from the collection, optionally by tag.
      *
      * @param {Polyline} p The polyline object to remove
-     * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+     * @param {string|string[]} [tag] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+     *      Either a single tag string or an array of tag strings can be passed.
      */
-    remove(p: Polyline, ...tags: string[]): void {
-        if (tags.length > 0) {
-            tags.forEach((tag) => {
-                if (this.polylines[tag]) {
-                    this.polylines[tag].delete(p);
+    remove(p: Polyline, tag?: string|string[]): void {
+        if (isString(tag)) {
+            this.#removeByTag(p, tag);
+        } else if (Array.isArray(tag) && tag.length > 0) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#removeByTag(p, t);
                 }
             });
         } else {
             // Remove the polyline from all tags
-            Object.keys(this.polylines).forEach((tag) => {
-                this.polylines[tag].delete(p);
+            Object.keys(this.polylines).forEach((t) => {
+                this.polylines[t].delete(p);
+            });
+        }
+    }
+
+    /**
+     * Set options for the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {PolylineOptions} options The options to set for the polylines.
+     * @param {string} tag The tag to show polylines for.
+     */
+    #setOptions(options: PolylineOptions, tag: string): void {
+        if (this.polylines[tag]) {
+            this.polylines[tag].forEach((p: Polyline) => {
+                p.setOptions(options);
+            });
+        }
+    }
+
+    /**
+     * Set options for either all polylines in the collection or for the polylines that have the tag(s) passed.
+     *
+     * @param {PolylineOptions} options The options to set for the polylines.
+     * @param {string|string[]} [tag] The tag(s) to show polylines for. Either a single tag string or an array of tag strings can be passed.
+     */
+    setOptions(options: PolylineOptions, tag?: string|string[]): void {
+        if (isString(tag)) {
+            this.#setOptions(options, tag);
+        } else if (Array.isArray(tag)) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#setOptions(options, t);
+                }
+            });
+        } else {
+            // Set the options for all polylines
+            Object.keys(this.polylines).forEach((t) => {
+                this.polylines[t].forEach((p: Polyline) => {
+                    p.setOptions(options);
+                });
             });
         }
     }
@@ -163,23 +278,39 @@ export class PolylineCollection {
     /**
      * Show the Polylines in the collection that have the tag(s) passed
      *
-     * @param {Map} map The map object
-     * @param {string[]} tags The tag(s) to show polylines for
+     * @param {string} tag The tag to show polylines for.
+     * @param {Map} [map] The map object
      */
-    show(map: Map, ...tags: string[]): void {
-        tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-                this.polylines[tag].forEach((p: Polyline) => {
-                    p.show(map);
-                });
-            }
-        });
+    #show(tag: string, map: Map): void {
+        if (this.polylines[tag]) {
+            this.polylines[tag].forEach((p: Polyline) => {
+                p.show(map);
+            });
+        }
+    }
+
+    /**
+     * Show the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string|string[]} tag The tag(s) to show polylines for. Either a single tag string or an array of tag strings can be passed.
+     * @param {Map} [map] The map object
+     */
+    show(tag: string|string[], map: Map): void {
+        if (isString(tag)) {
+            this.#show(tag, map);
+        } else if (Array.isArray(tag)) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#show(t, map);
+                }
+            });
+        }
     }
 
     /**
      * Show all the Polylines in the collection
      *
-     * @param {Map} map The map object
+     * @param {Map} [map] The map object
      */
     showAll(map: Map): void {
         Object.keys(this.polylines).forEach((tag) => {
@@ -192,16 +323,31 @@ export class PolylineCollection {
     /**
      * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to hide the highlighted polylines
+     * @param {string} tag The tag to hide the highlighted polylines.
      */
-    unhighlight(...tags: string[]): void {
-        tags.forEach((tag) => {
-            if (this.polylines[tag]) {
-                this.polylines[tag].forEach((p: Polyline) => {
-                    p.unhighlight();
-                });
-            }
-        });
+    #unhighlight(tag: string): void {
+        if (this.polylines[tag]) {
+            this.polylines[tag].forEach((p: Polyline) => {
+                p.unhighlight();
+            });
+        }
+    }
+
+    /**
+     * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
+     *
+     * @param {string|string[]} tag The tag(s) to hide the highlighted polylines. Either a single tag string or an array of tag strings can be passed.
+     */
+    unhighlight(tag: string|string[]): void {
+        if (isString(tag)) {
+            this.#unhighlight(tag);
+        } else if (Array.isArray(tag)) {
+            tag.forEach((t) => {
+                if (isString(t)) {
+                    this.#unhighlight(t);
+                }
+            });
+        }
     }
 
     /**

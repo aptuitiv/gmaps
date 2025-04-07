@@ -5926,6 +5926,7 @@ type MarkersByTag = {
  * Some of the bulk actions can be filtered by the marker tag.
  */
 declare class MarkerCollection {
+    #private;
     /**
      * Holds the Marker objects by tag
      */
@@ -5934,9 +5935,9 @@ declare class MarkerCollection {
      * Adds an Marker to the collection
      *
      * @param {Marker} marker The Marker object to add
-     * @param {string[]} tags The tag(s) to assign the marker to
+     * @param {string|string[]} [tag] The tag(s) to assign the marker to. Either a single tag or an array of tags can be passed.
      */
-    add(marker: Marker, ...tags: string[]): void;
+    add(marker: Marker, tag?: string | string[]): void;
     /**
      * Clears the collection
      *
@@ -5958,9 +5959,9 @@ declare class MarkerCollection {
     /**
      * Hide the Markers in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to hide markers for
+     * @param {string|string[]} tag The tag(s) to hide markers for. Either a single tag string or an array of tag strings can be passed.
      */
-    hide(...tags: string[]): void;
+    hide(tag: string | string[]): void;
     /**
      * Hides all the Markers in the collection
      */
@@ -5975,16 +5976,17 @@ declare class MarkerCollection {
      * Remove the marker from the collection, optionally by tag.
      *
      * @param {Marker} marker The marker object to remove
-     * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+     * @param {string|string[]} [tag] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+     *      Either a single tag string or an array of tag strings can be passed.
      */
-    remove(marker: Marker, ...tags: string[]): void;
+    remove(marker: Marker, tag?: string | string[]): void;
     /**
      * Show the Markers in the collection that have the tag(s) passed
      *
-     * @param {Map} map The map object
-     * @param {string[]} tags The tag(s) to show markers for
+     * @param {string|string[]} tag The tag(s) to show markers for. Either a single tag string or an array of tag strings can be passed.
+     * @param {Map} [map] The map object
      */
-    show(map: Map, ...tags: string[]): void;
+    show(tag: string | string[], map: Map): void;
     /**
      * Show all the Markers in the collection
      *
@@ -6523,9 +6525,23 @@ declare class Polyline extends Layer {
     /**
      * Display the highlight polyline if it exists
      *
+     * You can override the current highlight options by passing in the options parameter.
+     * This allows you to override one or more of the following options:
+     * - clickable
+     * - dashed
+     * - dashGap
+     * - icons
+     * - strokeColor
+     * - strokeOpacity
+     * - strokeWeight
+     * - zIndex
+     *
+     * When the polyline is unhighlighted, the original options will be restored.
+     *
+     * @param {PolylineOptions} [options] The polyline options to override the existing highlight polyline options.
      * @returns {Polyline}
      */
-    highlight(): Polyline;
+    highlight(options?: PolylineOptions): Polyline;
     /**
      * Initialize the polyline
      *
@@ -6698,6 +6714,7 @@ type PolylinesByTag = {
  * Some of the bulk actions can be filtered by the polyline tag.
  */
 declare class PolylineCollection {
+    #private;
     /**
      * Holds the Polyline objects by tag
      */
@@ -6706,9 +6723,9 @@ declare class PolylineCollection {
      * Adds an Polyline to the collection
      *
      * @param {Polyline} p The Polyline object to add
-     * @param {string[]} tags The tag(s) to assign the polyline to
+     * @param {string|string[]} [tag] The tag(s) to assign the polyline to. Either a single tag or an array of tags can be passed.
      */
-    add(p: Polyline, ...tags: string[]): void;
+    add(p: Polyline, tag?: string | string[]): void;
     /**
      * Clears the collection
      *
@@ -6730,9 +6747,9 @@ declare class PolylineCollection {
     /**
      * Hide the Polylines in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to hide polylines for
+     * @param {string|string[]} tag The tag(s) to hide polylines for. Either a single tag string or an array of tag strings can be passed.
      */
-    hide(...tags: string[]): void;
+    hide(tag: string | string[]): void;
     /**
      * Hides all the Polylines in the collection
      */
@@ -6740,9 +6757,23 @@ declare class PolylineCollection {
     /**
      * Highlight the Polylines in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to highlight polylines for
+     * You can override the current highlight options by passing in the highlightOptions parameter.
+     * This allows you to override one or more of the following options:
+     * - clickable
+     * - dashed
+     * - dashGap
+     * - icons
+     * - strokeColor
+     * - strokeOpacity
+     * - strokeWeight
+     * - zIndex
+     *
+     * When the polyline is unhighlighted, the original options will be restored.
+     *
+     * @param {string|string[]} tag The tag(s) to highlight polylines for. Either a single tag string or an array of tag strings can be passed.
+     * @param {PolylineOptions} [highlightOptions] The options to use for highlighting the polylines. This will override the current options for the highlight polyline.
      */
-    highlight(...tags: string[]): void;
+    highlight(tag: string | string[], highlightOptions?: PolylineOptions): void;
     /**
      * Highlight all the Polylines in the collection
      */
@@ -6757,28 +6788,36 @@ declare class PolylineCollection {
      * Remove the polyline from the collection, optionally by tag.
      *
      * @param {Polyline} p The polyline object to remove
-     * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+     * @param {string|string[]} [tag] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+     *      Either a single tag string or an array of tag strings can be passed.
      */
-    remove(p: Polyline, ...tags: string[]): void;
+    remove(p: Polyline, tag?: string | string[]): void;
+    /**
+     * Set options for either all polylines in the collection or for the polylines that have the tag(s) passed.
+     *
+     * @param {PolylineOptions} options The options to set for the polylines.
+     * @param {string|string[]} [tag] The tag(s) to show polylines for. Either a single tag string or an array of tag strings can be passed.
+     */
+    setOptions(options: PolylineOptions, tag?: string | string[]): void;
     /**
      * Show the Polylines in the collection that have the tag(s) passed
      *
-     * @param {Map} map The map object
-     * @param {string[]} tags The tag(s) to show polylines for
+     * @param {string|string[]} tag The tag(s) to show polylines for. Either a single tag string or an array of tag strings can be passed.
+     * @param {Map} [map] The map object
      */
-    show(map: Map, ...tags: string[]): void;
+    show(tag: string | string[], map: Map): void;
     /**
      * Show all the Polylines in the collection
      *
-     * @param {Map} map The map object
+     * @param {Map} [map] The map object
      */
     showAll(map: Map): void;
     /**
      * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
      *
-     * @param {string[]} tags The tag(s) to hide the highlighted polylines
+     * @param {string|string[]} tag The tag(s) to hide the highlighted polylines. Either a single tag string or an array of tag strings can be passed.
      */
-    unhighlight(...tags: string[]): void;
+    unhighlight(tag: string | string[]): void;
     /**
      * Hide the hightlight for all the Polylines in the collection
      */
