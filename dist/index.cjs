@@ -10896,8 +10896,10 @@ var markerCluster = (map2, markers, options) => new MarkerCluster(map2, markers,
 
 // src/lib/MarkerCollection.ts
 var defaultTag = "__default__";
-var MarkerCollection = class _MarkerCollection {
+var _MarkerCollection_instances, add_fn, hide_fn, removeByTag_fn, show_fn;
+var _MarkerCollection = class _MarkerCollection {
   constructor() {
+    __privateAdd(this, _MarkerCollection_instances);
     /**
      * Holds the Marker objects by tag
      */
@@ -10907,21 +10909,19 @@ var MarkerCollection = class _MarkerCollection {
    * Adds an Marker to the collection
    *
    * @param {Marker} marker The Marker object to add
-   * @param {string[]} tags The tag(s) to assign the marker to
+   * @param {string|string[]} [tag] The tag(s) to assign the marker to. Either a single tag or an array of tags can be passed.
    */
-  add(marker2, ...tags) {
-    if (tags.length > 0) {
-      tags.forEach((tag) => {
-        if (!this.markers[tag]) {
-          this.markers[tag] = /* @__PURE__ */ new Set();
+  add(marker2, tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _MarkerCollection_instances, add_fn).call(this, marker2, tag);
+    } else if (Array.isArray(tag) && tag.length > 0) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _MarkerCollection_instances, add_fn).call(this, marker2, t);
         }
-        this.markers[tag].add(marker2);
       });
     } else {
-      if (!this.markers[defaultTag]) {
-        this.markers[defaultTag] = /* @__PURE__ */ new Set();
-      }
-      this.markers[defaultTag].add(marker2);
+      __privateMethod(this, _MarkerCollection_instances, add_fn).call(this, marker2, defaultTag);
     }
   }
   /**
@@ -10958,16 +10958,18 @@ var MarkerCollection = class _MarkerCollection {
   /**
    * Hide the Markers in the collection that have the tag(s) passed
    *
-   * @param {string[]} tags The tag(s) to hide markers for
+   * @param {string|string[]} tag The tag(s) to hide markers for. Either a single tag string or an array of tag strings can be passed.
    */
-  hide(...tags) {
-    tags.forEach((tag) => {
-      if (this.markers[tag]) {
-        this.markers[tag].forEach((marker2) => {
-          marker2.hide();
-        });
-      }
-    });
+  hide(tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _MarkerCollection_instances, hide_fn).call(this, tag);
+    } else if (Array.isArray(tag)) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _MarkerCollection_instances, hide_fn).call(this, t);
+        }
+      });
+    }
   }
   /**
    * Hides all the Markers in the collection
@@ -10991,35 +10993,40 @@ var MarkerCollection = class _MarkerCollection {
    * Remove the marker from the collection, optionally by tag.
    *
    * @param {Marker} marker The marker object to remove
-   * @param {string[]} [tags] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+   * @param {string|string[]} [tag] The tag(s) to remove the marker from. If not set then the marker is removed from all tags.
+   *      Either a single tag string or an array of tag strings can be passed.
    */
-  remove(marker2, ...tags) {
-    if (tags.length > 0) {
-      tags.forEach((tag) => {
-        if (this.markers[tag]) {
-          this.markers[tag].delete(marker2);
+  remove(marker2, tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _MarkerCollection_instances, removeByTag_fn).call(this, marker2, tag);
+    } else if (Array.isArray(tag) && tag.length > 0) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _MarkerCollection_instances, removeByTag_fn).call(this, marker2, t);
         }
       });
     } else {
-      Object.keys(this.markers).forEach((tag) => {
-        this.markers[tag].delete(marker2);
+      Object.keys(this.markers).forEach((t) => {
+        this.markers[t].delete(marker2);
       });
     }
   }
   /**
    * Show the Markers in the collection that have the tag(s) passed
    *
-   * @param {Map} map The map object
-   * @param {string[]} tags The tag(s) to show markers for
+   * @param {string|string[]} tag The tag(s) to show markers for. Either a single tag string or an array of tag strings can be passed.
+   * @param {Map} [map] The map object
    */
-  show(map2, ...tags) {
-    tags.forEach((tag) => {
-      if (this.markers[tag]) {
-        this.markers[tag].forEach((marker2) => {
-          marker2.show(map2);
-        });
-      }
-    });
+  show(tag, map2) {
+    if (isString(tag)) {
+      __privateMethod(this, _MarkerCollection_instances, show_fn).call(this, tag, map2);
+    } else if (Array.isArray(tag)) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _MarkerCollection_instances, show_fn).call(this, t, map2);
+        }
+      });
+    }
   }
   /**
    * Show all the Markers in the collection
@@ -11034,6 +11041,56 @@ var MarkerCollection = class _MarkerCollection {
     });
   }
 };
+_MarkerCollection_instances = new WeakSet();
+/**
+ * Adds an Marker to the collection
+ *
+ * @param {Marker} marker The Marker object to add
+ * @param {string} tag The tag to assign the marker to.
+ */
+add_fn = function(marker2, tag) {
+  if (!this.markers[tag]) {
+    this.markers[tag] = /* @__PURE__ */ new Set();
+  }
+  this.markers[tag].add(marker2);
+};
+/**
+ * Hide the Markers in the collection that have the tag passed
+ *
+ * @param {string} tag The tag to hide markers for.
+ */
+hide_fn = function(tag) {
+  if (this.markers[tag]) {
+    this.markers[tag].forEach((marker2) => {
+      marker2.hide();
+    });
+  }
+};
+/**
+ * Remove the marker from the collection by tag.
+ *
+ * @param {Marker} marker The marker object to remove
+ * @param {string} tag The tag to remove the marker from.
+ */
+removeByTag_fn = function(marker2, tag) {
+  if (this.markers[tag]) {
+    this.markers[tag].delete(marker2);
+  }
+};
+/**
+ * Show the Markers in the collection that have the tag(s) passed
+ *
+ * @param {string} tag The tag to show markers for.
+ * @param {Map} map The map object
+ */
+show_fn = function(tag, map2) {
+  if (this.markers[tag]) {
+    this.markers[tag].forEach((marker2) => {
+      marker2.show(map2);
+    });
+  }
+};
+var MarkerCollection = _MarkerCollection;
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
@@ -12104,7 +12161,7 @@ var polylineIcon = (options) => {
 };
 
 // src/lib/Polyline.ts
-var _customData2, _dashed, _dashGap, _highlightPolyline, _isHighlighted, _options8, _polyline, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
+var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _isHighlighted, _options8, _polyline, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -12137,6 +12194,16 @@ var _Polyline = class _Polyline extends Layer_default {
      * @type {string}
      */
     __privateAdd(this, _dashGap, "15px");
+    /**
+     * Holds the original polyline options for the highlight polyline
+     * before they were overriden by custom options.
+     *
+     * The custom options are set in the highlight() method.
+     *
+     * @private
+     * @type {PolylineOptions}
+     */
+    __privateAdd(this, _highlightOriginalOptions, {});
     /**
      * Holds a polyline to show below the existing one to create a "highlight" effect
      * when the mouse hovers over this polyline.
@@ -12586,10 +12653,55 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Display the highlight polyline if it exists
    *
+   * You can override the current highlight options by passing in the options parameter.
+   * This allows you to override one or more of the following options:
+   * - clickable
+   * - dashed
+   * - dashGap
+   * - icons
+   * - strokeColor
+   * - strokeOpacity
+   * - strokeWeight
+   * - zIndex
+   *
+   * When the polyline is unhighlighted, the original options will be restored.
+   *
+   * @param {PolylineOptions} [options] The polyline options to override the existing highlight polyline options.
    * @returns {Polyline}
    */
-  highlight() {
+  highlight(options) {
     if (this.visible !== false && __privateGet(this, _highlightPolyline)) {
+      if (isObject(options)) {
+        __privateSet(this, _highlightOriginalOptions, {
+          clickable: __privateGet(this, _highlightPolyline).clickable,
+          dashed: __privateGet(this, _highlightPolyline).dashed,
+          dashGap: __privateGet(this, _highlightPolyline).dashGap,
+          icons: __privateGet(this, _highlightPolyline).icons,
+          strokeColor: __privateGet(this, _highlightPolyline).strokeColor,
+          strokeOpacity: __privateGet(this, _highlightPolyline).strokeOpacity,
+          strokeWeight: __privateGet(this, _highlightPolyline).strokeWeight,
+          zIndex: __privateGet(this, _highlightPolyline).zIndex
+        });
+        const allowedOptions = [
+          "clickable",
+          "dashed",
+          "dashGap",
+          "icons",
+          "strokeColor",
+          "strokeOpacity",
+          "strokeWeight",
+          "zIndex"
+        ];
+        const highlightOptions = {};
+        allowedOptions.forEach((option) => {
+          if (isDefined(options[option])) {
+            highlightOptions[option] = options[option];
+          }
+        });
+        if (Object.keys(highlightOptions).length > 0) {
+          __privateGet(this, _highlightPolyline).setOptions(highlightOptions);
+        }
+      }
       __privateSet(this, _isHighlighted, true);
       __privateGet(this, _highlightPolyline).visible = true;
     }
@@ -12889,6 +13001,10 @@ var _Polyline = class _Polyline extends Layer_default {
   unhighlight() {
     if (__privateGet(this, _highlightPolyline)) {
       __privateSet(this, _isHighlighted, false);
+      if (Object.keys(__privateGet(this, _highlightOriginalOptions)).length > 0) {
+        __privateGet(this, _highlightPolyline).setOptions(__privateGet(this, _highlightOriginalOptions));
+        __privateSet(this, _highlightOriginalOptions, {});
+      }
       __privateGet(this, _highlightPolyline).visible = false;
     }
     return this;
@@ -12897,6 +13013,7 @@ var _Polyline = class _Polyline extends Layer_default {
 _customData2 = new WeakMap();
 _dashed = new WeakMap();
 _dashGap = new WeakMap();
+_highlightOriginalOptions = new WeakMap();
 _highlightPolyline = new WeakMap();
 _isHighlighted = new WeakMap();
 _options8 = new WeakMap();
@@ -13045,8 +13162,10 @@ var polyline = (options) => {
 
 // src/lib/PolylineCollection.ts
 var defaultTag2 = "__default__";
-var PolylineCollection = class _PolylineCollection {
+var _PolylineCollection_instances, add_fn2, hide_fn2, highlight_fn, removeByTag_fn2, setOptions_fn, show_fn2, unhighlight_fn;
+var _PolylineCollection = class _PolylineCollection {
   constructor() {
+    __privateAdd(this, _PolylineCollection_instances);
     /**
      * Holds the Polyline objects by tag
      */
@@ -13056,21 +13175,19 @@ var PolylineCollection = class _PolylineCollection {
    * Adds an Polyline to the collection
    *
    * @param {Polyline} p The Polyline object to add
-   * @param {string[]} tags The tag(s) to assign the polyline to
+   * @param {string|string[]} [tag] The tag(s) to assign the polyline to. Either a single tag or an array of tags can be passed.
    */
-  add(p, ...tags) {
-    if (tags.length > 0) {
-      tags.forEach((tag) => {
-        if (!this.polylines[tag]) {
-          this.polylines[tag] = /* @__PURE__ */ new Set();
+  add(p, tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _PolylineCollection_instances, add_fn2).call(this, p, tag);
+    } else if (Array.isArray(tag) && tag.length > 0) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _PolylineCollection_instances, add_fn2).call(this, p, t);
         }
-        this.polylines[tag].add(p);
       });
     } else {
-      if (!this.polylines[defaultTag2]) {
-        this.polylines[defaultTag2] = /* @__PURE__ */ new Set();
-      }
-      this.polylines[defaultTag2].add(p);
+      __privateMethod(this, _PolylineCollection_instances, add_fn2).call(this, p, defaultTag2);
     }
   }
   /**
@@ -13107,16 +13224,18 @@ var PolylineCollection = class _PolylineCollection {
   /**
    * Hide the Polylines in the collection that have the tag(s) passed
    *
-   * @param {string[]} tags The tag(s) to hide polylines for
+   * @param {string|string[]} tag The tag(s) to hide polylines for. Either a single tag string or an array of tag strings can be passed.
    */
-  hide(...tags) {
-    tags.forEach((tag) => {
-      if (this.polylines[tag]) {
-        this.polylines[tag].forEach((p) => {
-          p.hide();
-        });
-      }
-    });
+  hide(tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _PolylineCollection_instances, hide_fn2).call(this, tag);
+    } else if (Array.isArray(tag)) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _PolylineCollection_instances, hide_fn2).call(this, t);
+        }
+      });
+    }
   }
   /**
    * Hides all the Polylines in the collection
@@ -13131,16 +13250,32 @@ var PolylineCollection = class _PolylineCollection {
   /**
    * Highlight the Polylines in the collection that have the tag(s) passed
    *
-   * @param {string[]} tags The tag(s) to highlight polylines for
+   * You can override the current highlight options by passing in the highlightOptions parameter.
+   * This allows you to override one or more of the following options:
+   * - clickable
+   * - dashed
+   * - dashGap
+   * - icons
+   * - strokeColor
+   * - strokeOpacity
+   * - strokeWeight
+   * - zIndex
+   *
+   * When the polyline is unhighlighted, the original options will be restored.
+   *
+   * @param {string|string[]} tag The tag(s) to highlight polylines for. Either a single tag string or an array of tag strings can be passed.
+   * @param {PolylineOptions} [highlightOptions] The options to use for highlighting the polylines. This will override the current options for the highlight polyline.
    */
-  highlight(...tags) {
-    tags.forEach((tag) => {
-      if (this.polylines[tag]) {
-        this.polylines[tag].forEach((p) => {
-          p.highlight();
-        });
-      }
-    });
+  highlight(tag, highlightOptions) {
+    if (isString(tag)) {
+      __privateMethod(this, _PolylineCollection_instances, highlight_fn).call(this, tag, highlightOptions);
+    } else if (Array.isArray(tag)) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _PolylineCollection_instances, highlight_fn).call(this, t, highlightOptions);
+        }
+      });
+    }
   }
   /**
    * Highlight all the Polylines in the collection
@@ -13164,40 +13299,68 @@ var PolylineCollection = class _PolylineCollection {
    * Remove the polyline from the collection, optionally by tag.
    *
    * @param {Polyline} p The polyline object to remove
-   * @param {string[]} [tags] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+   * @param {string|string[]} [tag] The tag(s) to remove the polyline from. If not set then the polyline is removed from all tags.
+   *      Either a single tag string or an array of tag strings can be passed.
    */
-  remove(p, ...tags) {
-    if (tags.length > 0) {
-      tags.forEach((tag) => {
-        if (this.polylines[tag]) {
-          this.polylines[tag].delete(p);
+  remove(p, tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _PolylineCollection_instances, removeByTag_fn2).call(this, p, tag);
+    } else if (Array.isArray(tag) && tag.length > 0) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _PolylineCollection_instances, removeByTag_fn2).call(this, p, t);
         }
       });
     } else {
-      Object.keys(this.polylines).forEach((tag) => {
-        this.polylines[tag].delete(p);
+      Object.keys(this.polylines).forEach((t) => {
+        this.polylines[t].delete(p);
+      });
+    }
+  }
+  /**
+   * Set options for either all polylines in the collection or for the polylines that have the tag(s) passed.
+   *
+   * @param {PolylineOptions} options The options to set for the polylines.
+   * @param {string|string[]} [tag] The tag(s) to show polylines for. Either a single tag string or an array of tag strings can be passed.
+   */
+  setOptions(options, tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _PolylineCollection_instances, setOptions_fn).call(this, options, tag);
+    } else if (Array.isArray(tag)) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _PolylineCollection_instances, setOptions_fn).call(this, options, t);
+        }
+      });
+    } else {
+      Object.keys(this.polylines).forEach((t) => {
+        this.polylines[t].forEach((p) => {
+          p.setOptions(options);
+        });
       });
     }
   }
   /**
    * Show the Polylines in the collection that have the tag(s) passed
    *
-   * @param {Map} map The map object
-   * @param {string[]} tags The tag(s) to show polylines for
+   * @param {string|string[]} tag The tag(s) to show polylines for. Either a single tag string or an array of tag strings can be passed.
+   * @param {Map} [map] The map object
    */
-  show(map2, ...tags) {
-    tags.forEach((tag) => {
-      if (this.polylines[tag]) {
-        this.polylines[tag].forEach((p) => {
-          p.show(map2);
-        });
-      }
-    });
+  show(tag, map2) {
+    if (isString(tag)) {
+      __privateMethod(this, _PolylineCollection_instances, show_fn2).call(this, tag, map2);
+    } else if (Array.isArray(tag)) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _PolylineCollection_instances, show_fn2).call(this, t, map2);
+        }
+      });
+    }
   }
   /**
    * Show all the Polylines in the collection
    *
-   * @param {Map} map The map object
+   * @param {Map} [map] The map object
    */
   showAll(map2) {
     Object.keys(this.polylines).forEach((tag) => {
@@ -13209,16 +13372,18 @@ var PolylineCollection = class _PolylineCollection {
   /**
    * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
    *
-   * @param {string[]} tags The tag(s) to hide the highlighted polylines
+   * @param {string|string[]} tag The tag(s) to hide the highlighted polylines. Either a single tag string or an array of tag strings can be passed.
    */
-  unhighlight(...tags) {
-    tags.forEach((tag) => {
-      if (this.polylines[tag]) {
-        this.polylines[tag].forEach((p) => {
-          p.unhighlight();
-        });
-      }
-    });
+  unhighlight(tag) {
+    if (isString(tag)) {
+      __privateMethod(this, _PolylineCollection_instances, unhighlight_fn).call(this, tag);
+    } else if (Array.isArray(tag)) {
+      tag.forEach((t) => {
+        if (isString(t)) {
+          __privateMethod(this, _PolylineCollection_instances, unhighlight_fn).call(this, t);
+        }
+      });
+    }
   }
   /**
    * Hide the hightlight for all the Polylines in the collection
@@ -13231,6 +13396,94 @@ var PolylineCollection = class _PolylineCollection {
     });
   }
 };
+_PolylineCollection_instances = new WeakSet();
+/**
+ * Adds an Polyline to the collection
+ *
+ * @param {Polyline} p The Polyline object to add
+ * @param {string} tag The tag to assign the polyline to.
+ */
+add_fn2 = function(p, tag) {
+  if (!this.polylines[tag]) {
+    this.polylines[tag] = /* @__PURE__ */ new Set();
+  }
+  this.polylines[tag].add(p);
+};
+/**
+ * Hide the Polylines in the collection that have the tag passed
+ *
+ * @param {string} tag The tag to hide polylines for.
+ */
+hide_fn2 = function(tag) {
+  if (this.polylines[tag]) {
+    this.polylines[tag].forEach((p) => {
+      p.hide();
+    });
+  }
+};
+/**
+ * Highlight the Polylines in the collection that have the tag(s) passed
+ *
+ * @param {string} tag The tag to highlight polylines for.
+ * @param {PolylineOptions} [highlightOptions] The options to use for highlighting the polylines. This will override the current options for the highlight polyline.
+ */
+highlight_fn = function(tag, highlightOptions) {
+  if (this.polylines[tag]) {
+    this.polylines[tag].forEach((p) => {
+      p.highlight(highlightOptions);
+    });
+  }
+};
+/**
+ * Remove the polyline from the collection by tag.
+ *
+ * @param {Polyline} p The polyline object to remove
+ * @param {string} tag The tag to remove the polyline from.
+ */
+removeByTag_fn2 = function(p, tag) {
+  if (this.polylines[tag]) {
+    this.polylines[tag].delete(p);
+  }
+};
+/**
+ * Set options for the Polylines in the collection that have the tag(s) passed
+ *
+ * @param {PolylineOptions} options The options to set for the polylines.
+ * @param {string} tag The tag to show polylines for.
+ */
+setOptions_fn = function(options, tag) {
+  if (this.polylines[tag]) {
+    this.polylines[tag].forEach((p) => {
+      p.setOptions(options);
+    });
+  }
+};
+/**
+ * Show the Polylines in the collection that have the tag(s) passed
+ *
+ * @param {string} tag The tag to show polylines for.
+ * @param {Map} [map] The map object
+ */
+show_fn2 = function(tag, map2) {
+  if (this.polylines[tag]) {
+    this.polylines[tag].forEach((p) => {
+      p.show(map2);
+    });
+  }
+};
+/**
+ * Hide the hightlight for the Polylines in the collection that have the tag(s) passed
+ *
+ * @param {string} tag The tag to hide the highlighted polylines.
+ */
+unhighlight_fn = function(tag) {
+  if (this.polylines[tag]) {
+    this.polylines[tag].forEach((p) => {
+      p.unhighlight();
+    });
+  }
+};
+var PolylineCollection = _PolylineCollection;
 var polylineCollection = () => new PolylineCollection();
 
 // src/lib/Popup.ts
