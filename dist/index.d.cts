@@ -4967,6 +4967,16 @@ declare class Overlay extends Layer {
      */
     setClassName(className: string): Overlay;
     /**
+     * Set the overlay element
+     *
+     * This is an internal method that is used to set the overlay element.
+     * This should not be called by code outside of this library.
+     *
+     * @param {HTMLElement} element The overlay element
+     * @returns {void}
+     */
+    setElement(element: HTMLElement): void;
+    /**
      * Set the map object to display the overlay in
      *
      * Alias to show()
@@ -6000,6 +6010,207 @@ declare class MarkerCollection {
  * @returns {MarkerCollection}
  */
 declare const markerCollection: () => MarkerCollection;
+
+type ImageOverlayOptions = {
+    imageUrl: string;
+    bounds: LatLngBoundsValue;
+    className?: string;
+    debug?: boolean;
+    opacity?: number;
+    styles?: object;
+};
+/**
+ * ImageOverlay class
+ */
+declare class ImageOverlay extends Overlay {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
+     * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
+     * @param {number} [opacity] The opacity of the image (if options is a string)
+     */
+    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue, opacity?: number);
+    /**
+     * Returns the bounds where the image should be displayed
+     *
+     * @returns {LatLngBounds}
+     */
+    get bounds(): LatLngBounds;
+    /**
+     * Set the bounds where the image should be displayed
+     *
+     * @param {LatLngBoundsValue} bounds The bounds where the image should be displayed
+     */
+    set bounds(bounds: LatLngBoundsValue);
+    /**
+     * Get the class name for the image element
+     *
+     * This overrides the className property of the Overlay class.
+     *
+     * @returns {string}
+     */
+    get className(): string;
+    /**
+     * Set the class name(s) for the image element
+     *
+     * This overrides the className property of the Overlay class.
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the image element.
+     *    This can be a space separated list of class names.
+     */
+    set className(className: string);
+    /**
+     * Returns the image URL
+     *
+     * @returns {string}
+     */
+    get imageUrl(): string;
+    /**
+     * Set the image URL
+     *
+     * @param {string} imageUrl The image URL to display
+     */
+    set imageUrl(imageUrl: string);
+    /**
+     * Returns the opacity of the image
+     *
+     * @returns {number}
+     */
+    get opacity(): number;
+    /**
+     * Set the opacity of the image
+     *
+     * @param {number} opacity The opacity value (0.0 to 1.0)
+     */
+    set opacity(opacity: number);
+    /**
+     * Returns the styles for the overlay element
+     *
+     * @returns {object}
+     */
+    get styles(): object;
+    /**
+     * Set the styles for the overlay element
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     */
+    set styles(styles: object);
+    /**
+     * Display the image overlay on the map
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<ImageOverlay>}
+     */
+    display(map: Map): Promise<ImageOverlay>;
+    /**
+     * Get the bounds where the image should be displayed
+     *
+     * @returns {LatLngBounds}
+     */
+    getBounds(): LatLngBounds;
+    /**
+     * Get the image URL
+     *
+     * @returns {string}
+     */
+    getImageUrl(): string;
+    /**
+     * Get the opacity of the image
+     *
+     * @returns {number}
+     */
+    getOpacity(): number;
+    /**
+     * Removes a class name from the overlay element
+     *
+     * @param {string} className The class name to remove from the overlay element
+     * @returns {Overlay}
+     */
+    removeClassName(className: string): Overlay;
+    /**
+     * Set the bounds where the image should be displayed
+     *
+     * @param {LatLngBoundsValue} bounds The bounds where the image should be displayed
+     * @returns {ImageOverlay}
+     */
+    setBounds(bounds: LatLngBoundsValue): ImageOverlay;
+    /**
+     * Set the class name(s) for the image element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the image element.
+     *    This can be a space separated list of class names.
+     * @returns {Overlay}
+     */
+    setClassName(className: string): Overlay;
+    /**
+     * Set the image URL
+     *
+     * @param {string} imageUrl The image URL to display
+     * @returns {ImageOverlay}
+     */
+    setImageUrl(imageUrl: string): ImageOverlay;
+    /**
+     * Set the opacity of the image
+     *
+     * @param {number} opacity The opacity value (0.0 to 1.0)
+     * @returns {ImageOverlay}
+     */
+    setOpacity(opacity: number): ImageOverlay;
+    /**
+     * Sets the options for the image overlay
+     *
+     * @param {ImageOverlayOptions} options ImageOverlay options
+     * @returns {ImageOverlay}
+     */
+    setOptions(options: ImageOverlayOptions): ImageOverlay;
+    /**
+     * Set a single style on the image element
+     *
+     * @param {string} name The style name
+     * @param {string} value The style value
+     * @returns {Overlay}
+     */
+    style(name: string, value: string): Overlay;
+    /**
+     * Toggle the display of the image overlay on the map
+     *
+     * @param {Map} map The map object
+     * @returns {void}
+     */
+    toggle(map: Map): void;
+    /**
+     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+}
+type ImageOverlayValue = ImageOverlay | ImageOverlayOptions | string;
+/**
+ * Helper function to set up the ImageOverlay class
+ *
+ * @param {ImageOverlayValue} [options] The ImageOverlay options or image URL
+ * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
+ * @param {number} [opacity] The opacity of the image (if options is a string)
+ * @returns {ImageOverlay}
+ */
+declare const imageOverlay: (options?: ImageOverlayValue, bounds?: LatLngBoundsValue, opacity?: number) => ImageOverlay;
 
 type PlacesSearchBoxOptions = {
     bounds?: LatLngBoundsValue;
@@ -7076,4 +7287,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

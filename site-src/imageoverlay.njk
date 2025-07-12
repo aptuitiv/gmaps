@@ -1,0 +1,15 @@
+---
+title: "Image Overlay Test Page"
+layout: "base.njk"
+---
+<!-- Tutorial https://www.freecodecamp.org/news/learn-eleventy/ -->
+
+<h1>Image Overlay test</h1>
+<div id="map1" class="mapContainer" style="height: 800px;"></div>
+
+<script src="{{ '/js/imageoverlay.js'|url|safe}}"></script>
+<style>
+    .custom-image-overlay {
+        transform: rotate(-45deg);
+    }
+</style>

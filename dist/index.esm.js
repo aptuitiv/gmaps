@@ -11017,14 +11017,13 @@ var Overlay = class extends Layer_default {
      */
     __privateAdd(this, _position6);
     /**
-     * Holds the styles for the tooltip. These are applied to the tooltip container (i.e. the overlay element).
+     * Holds the styles for the overlay.
      *
      * @private
      * @type {object}
      */
     __privateAdd(this, _styles3, {});
-    __privateSet(this, _overlay, document.createElement("div"));
-    __privateGet(this, _overlay).style.position = "absolute";
+    this.setElement(document.createElement("div"));
     this.setOffset([0, 0]);
   }
   /**
@@ -11292,6 +11291,19 @@ var Overlay = class extends Layer_default {
     return this;
   }
   /**
+   * Set the overlay element
+   *
+   * This is an internal method that is used to set the overlay element.
+   * This should not be called by code outside of this library.
+   *
+   * @param {HTMLElement} element The overlay element
+   * @returns {void}
+   */
+  setElement(element) {
+    __privateSet(this, _overlay, element);
+    __privateGet(this, _overlay).style.position = "absolute";
+  }
+  /**
    * Set the map object to display the overlay in
    *
    * Alias to show()
@@ -11499,6 +11511,378 @@ var getOverlayViewClass = (classObject) => {
   return new OverlayView(classObject);
 };
 var overlay = () => new Overlay("overlay", "OverlayView");
+
+// src/lib/ImageOverlay.ts
+var _bounds5, _imageElement, _imageUrl, _opacity, _styles4;
+var ImageOverlay = class extends Overlay {
+  /**
+   * Constructor
+   *
+   * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
+   * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
+   * @param {number} [opacity] The opacity of the image (if options is a string)
+   */
+  constructor(options, bounds, opacity) {
+    super("imageoverlay", "ImageOverlay");
+    /**
+     * Holds the bounds where the image should be displayed
+     *
+     * @private
+     * @type {LatLngBounds}
+     */
+    __privateAdd(this, _bounds5);
+    /**
+     * Holds the image element
+     *
+     * @private
+     * @type {HTMLImageElement}
+     */
+    __privateAdd(this, _imageElement);
+    /**
+     * Holds the image URL
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _imageUrl);
+    /**
+     * Holds the opacity of the image
+     *
+     * @private
+     * @type {number}
+     */
+    __privateAdd(this, _opacity, 1);
+    /**
+     * Holds the styles for the image element
+     *
+     * This overrides the styles property of the Overlay class.
+     *
+     * @private
+     * @type {object}
+     */
+    __privateAdd(this, _styles4, {});
+    __privateSet(this, _imageElement, document.createElement("img"));
+    __privateGet(this, _imageElement).style.width = "100%";
+    __privateGet(this, _imageElement).style.height = "100%";
+    __privateGet(this, _imageElement).style.objectFit = "contain";
+    if (isObject(options)) {
+      this.setOptions(options);
+    } else {
+      this.image = options;
+      if (bounds) {
+        this.bounds = bounds;
+      }
+      if (opacity !== void 0) {
+        this.opacity = opacity;
+      }
+    }
+  }
+  /**
+   * Returns the bounds where the image should be displayed
+   *
+   * @returns {LatLngBounds}
+   */
+  get bounds() {
+    return __privateGet(this, _bounds5);
+  }
+  /**
+   * Set the bounds where the image should be displayed
+   *
+   * @param {LatLngBoundsValue} bounds The bounds where the image should be displayed
+   */
+  set bounds(bounds) {
+    if (bounds) {
+      if (bounds instanceof LatLngBounds) {
+        __privateSet(this, _bounds5, bounds);
+      } else {
+        __privateSet(this, _bounds5, new LatLngBounds(bounds));
+      }
+    }
+  }
+  /**
+   * Get the class name for the image element
+   *
+   * This overrides the className property of the Overlay class.
+   *
+   * @returns {string}
+   */
+  get className() {
+    return __privateGet(this, _imageElement).className;
+  }
+  /**
+   * Set the class name(s) for the image element
+   *
+   * This overrides the className property of the Overlay class.
+   *
+   * If you need multiple class names then separate them with a space.
+   *
+   * @param {string} className The class name(s) to add to the image element.
+   *    This can be a space separated list of class names.
+   */
+  set className(className) {
+    if (isString(className)) {
+      const classes = className.split(" ");
+      classes.forEach((cn) => {
+        __privateGet(this, _imageElement).classList.add(cn.trim());
+      });
+    } else if (isNullOrUndefined(className)) {
+      __privateGet(this, _imageElement).className = "";
+    }
+  }
+  /**
+   * Returns the image URL
+   *
+   * @returns {string}
+   */
+  get imageUrl() {
+    return __privateGet(this, _imageUrl);
+  }
+  /**
+   * Set the image URL
+   *
+   * @param {string} imageUrl The image URL to display
+   */
+  set imageUrl(imageUrl) {
+    if (isStringWithValue(imageUrl)) {
+      __privateSet(this, _imageUrl, imageUrl);
+      __privateGet(this, _imageElement).src = imageUrl;
+    }
+  }
+  /**
+   * Returns the opacity of the image
+   *
+   * @returns {number}
+   */
+  get opacity() {
+    return __privateGet(this, _opacity);
+  }
+  /**
+   * Set the opacity of the image
+   *
+   * @param {number} opacity The opacity value (0.0 to 1.0)
+   */
+  set opacity(opacity) {
+    if (isNumber(opacity) && opacity >= 0 && opacity <= 1) {
+      __privateSet(this, _opacity, opacity);
+      __privateGet(this, _imageElement).style.opacity = opacity.toString();
+    }
+  }
+  /**
+   * Returns the styles for the overlay element
+   *
+   * @returns {object}
+   */
+  get styles() {
+    return __privateGet(this, _styles4);
+  }
+  /**
+   * Set the styles for the overlay element
+   *
+   * @param {object} styles The styles to apply to the overlay element
+   */
+  set styles(styles) {
+    if (isObject(styles)) {
+      __privateSet(this, _styles4, styles);
+      Object.keys(styles).forEach((key) => {
+        __privateGet(this, _imageElement).style[key] = styles[key];
+      });
+    }
+  }
+  /**
+   * Display the image overlay on the map
+   *
+   * Alias to show()
+   *
+   * @param {Map} map The Map object
+   * @returns {Promise<ImageOverlay>}
+   */
+  display(map2) {
+    return this.show(map2);
+  }
+  /**
+   * Get the bounds where the image should be displayed
+   *
+   * @returns {LatLngBounds}
+   */
+  getBounds() {
+    return __privateGet(this, _bounds5);
+  }
+  /**
+   * Get the image URL
+   *
+   * @returns {string}
+   */
+  getImageUrl() {
+    return __privateGet(this, _imageUrl);
+  }
+  /**
+   * Get the opacity of the image
+   *
+   * @returns {number}
+   */
+  getOpacity() {
+    return __privateGet(this, _opacity);
+  }
+  /**
+   * Removes a class name from the overlay element
+   *
+   * @param {string} className The class name to remove from the overlay element
+   * @returns {Overlay}
+   */
+  removeClassName(className) {
+    const classes = className.split(" ");
+    classes.forEach((cn) => {
+      __privateGet(this, _imageElement).classList.remove(cn.trim());
+    });
+    return this;
+  }
+  /**
+   * Set the bounds where the image should be displayed
+   *
+   * @param {LatLngBoundsValue} bounds The bounds where the image should be displayed
+   * @returns {ImageOverlay}
+   */
+  setBounds(bounds) {
+    this.bounds = bounds;
+    return this;
+  }
+  /**
+   * Set the class name(s) for the image element
+   *
+   * If you need multiple class names then separate them with a space.
+   *
+   * @param {string} className The class name(s) to add to the image element.
+   *    This can be a space separated list of class names.
+   * @returns {Overlay}
+   */
+  setClassName(className) {
+    this.className = className;
+    return this;
+  }
+  /**
+   * Set the image URL
+   *
+   * @param {string} imageUrl The image URL to display
+   * @returns {ImageOverlay}
+   */
+  setImageUrl(imageUrl) {
+    this.imageUrl = imageUrl;
+    return this;
+  }
+  /**
+   * Set the opacity of the image
+   *
+   * @param {number} opacity The opacity value (0.0 to 1.0)
+   * @returns {ImageOverlay}
+   */
+  setOpacity(opacity) {
+    this.opacity = opacity;
+    return this;
+  }
+  /**
+   * Sets the options for the image overlay
+   *
+   * @param {ImageOverlayOptions} options ImageOverlay options
+   * @returns {ImageOverlay}
+   */
+  setOptions(options) {
+    if (options.bounds) {
+      this.bounds = options.bounds;
+    }
+    if (isBoolean(options.debug) && options.debug) {
+      this.style("background-color", "#ff000080");
+      this.style("outline", "2px solid #ff0000");
+    }
+    if (options.imageUrl) {
+      this.imageUrl = options.imageUrl;
+    }
+    if (options.opacity !== void 0) {
+      this.opacity = options.opacity;
+    }
+    if (options.className) {
+      this.setClassName(options.className);
+    }
+    if (options.styles) {
+      this.styles = options.styles;
+    }
+    return this;
+  }
+  /**
+   * Set a single style on the image element
+   *
+   * @param {string} name The style name
+   * @param {string} value The style value
+   * @returns {Overlay}
+   */
+  style(name, value) {
+    if (isString(name) && isString(value)) {
+      __privateGet(this, _styles4)[name] = value;
+      __privateGet(this, _imageElement).style[name] = value;
+    }
+    return this;
+  }
+  /**
+   * Toggle the display of the image overlay on the map
+   *
+   * @param {Map} map The map object
+   * @returns {void}
+   */
+  toggle(map2) {
+    if (this.isVisible) {
+      this.hide();
+    } else {
+      this.show(map2);
+    }
+  }
+  /**
+   * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
+   *
+   * @internal
+   * @param {google.maps.MapPanes} panes The Google maps panes object
+   */
+  add(panes) {
+    this.getOverlayElement().appendChild(__privateGet(this, _imageElement));
+    panes.overlayLayer.appendChild(this.getOverlayElement());
+  }
+  /**
+   * Draw the overlay. Called when the overlay is being drawn or updated.
+   *
+   * @internal
+   * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+   */
+  draw(projection) {
+    if (__privateGet(this, _bounds5) && projection) {
+      const ne = __privateGet(this, _bounds5).getNorthEast();
+      const sw = __privateGet(this, _bounds5).getSouthWest();
+      if (ne && sw) {
+        const nePixel = projection.fromLatLngToDivPixel(ne.toGoogle());
+        const swPixel = projection.fromLatLngToDivPixel(sw.toGoogle());
+        if (nePixel && swPixel) {
+          const left = Math.min(nePixel.x, swPixel.x);
+          const top = Math.min(nePixel.y, swPixel.y);
+          const width = Math.abs(nePixel.x - swPixel.x);
+          const height = Math.abs(nePixel.y - swPixel.y);
+          this.style("left", `${left}px`);
+          this.style("top", `${top}px`);
+          this.style("width", `${width}px`);
+          this.style("height", `${height}px`);
+          this.style("display", "block");
+        }
+      }
+    }
+  }
+};
+_bounds5 = new WeakMap();
+_imageElement = new WeakMap();
+_imageUrl = new WeakMap();
+_opacity = new WeakMap();
+_styles4 = new WeakMap();
+var imageOverlay = (options, bounds, opacity) => {
+  if (options instanceof ImageOverlay) {
+    return options;
+  }
+  return new ImageOverlay(options, bounds, opacity);
+};
 
 // src/lib/PlacesSearchBox.ts
 var _input2, _places, _placesBounds, _searchBox2, _options6, _createPlacesSearchBox;
@@ -14478,6 +14862,7 @@ export {
   GeocoderErrorStatus,
   GeocoderLocationType,
   Icon,
+  ImageOverlay,
   InfoWindow,
   LatLng,
   LatLngBounds,
@@ -14529,6 +14914,7 @@ export {
   getPixelsFromLatLng,
   getSizeWithUnit,
   icon,
+  imageOverlay,
   infoWindow,
   isBoolean,
   isDefined,
