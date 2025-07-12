@@ -127,10 +127,10 @@ document.addEventListener('keydown', (event) => {
 // Add instructions to the page
 const instructions = document.createElement('div');
 instructions.innerHTML = `
-    <div style=" background: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <div style="background: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 10px;">
         <h3>ImageOverlay Controls:</h3>
         <p><strong>Mouse:</strong> Click and drag to move the image overlay</p>
-        <p><strong>Corners:</strong> Drag the corner circles to resize</p>
+        <p><strong>Corners:</strong> Drag the corner circles to resize (NW, NE, SW, SE)</p>
         <p><strong>Keyboard:</strong></p>
         <ul>
             <li><strong>T:</strong> Toggle visibility</li>
@@ -139,7 +139,8 @@ instructions.innerHTML = `
             <li><strong>D:</strong> Toggle drag mode</li>
             <li><strong>R:</strong> Toggle resize mode</li>
         </ul>
-        <p><strong>Console:</strong> Check browser console for bounds updates</p>
+        <p><strong>Console:</strong> Check browser console for bounds updates and resize events</p>
+        <p><strong>Testing:</strong> Try resizing from different corners to verify bounds are updated correctly</p>
     </div>
 `;
 document.body.appendChild(instructions);
