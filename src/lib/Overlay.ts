@@ -30,9 +30,9 @@ export const OverlayDragEvents = {
 
 type ResizeStart = {
     neBounds: LatLng;
-    nePos: { x: number; y: number };
+    nwPos: { x: number; y: number };
     swBounds: LatLng;
-    swPos: { x: number; y: number };
+    sePos: { x: number; y: number };
     left: number;
     top: number;
     width: number;
@@ -895,12 +895,12 @@ export class Overlay extends Layer {
             neBounds: this.getCurrentBounds().ne,
             // Current top left position of the overlay within the map container.
             // This is used to calculate the new position of the overlay after resizing from the top left.
-            nePos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
+            nwPos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
             // Southwest lat/lng
             swBounds: this.getCurrentBounds().sw,
             // Current bottom right position of the overlay within the map container.
             // This is used to calculate the new position of the overlay after resizing from the bottom right.
-            swPos: { x: currentSize.right - containerRect.right, y: currentSize.bottom - containerRect.bottom },
+            sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
             // Current left position within the overlay container
             left: parseInt(this.#overlay.style.left, 10) || 0,
             // Current top position within the overlay container
@@ -954,8 +954,8 @@ export class Overlay extends Layer {
                     return;
                 }
                 // Calculate the difference between the current position and the top right
-                const diffX = this.resizeStart.nePos.x - mouseX;
-                const diffY = this.resizeStart.nePos.y - mouseY;
+                const diffX = this.resizeStart.nwPos.x - mouseX;
+                const diffY = this.resizeStart.nwPos.y - mouseY;
                 // Update the height and width of the overlay
                 this.#overlay.style.width = `${this.resizeStart.width + diffX}px`;
                 this.#overlay.style.height = `${this.resizeStart.height + diffY}px`;
