@@ -946,7 +946,7 @@ export class Overlay extends Layer {
             // Get the bottom left x/y coordinates
             const bottomLeft = projection.fromLatLngToContainerPixel(this.resizeStart.swBounds.toGoogle());
 
-            const newLatLng = this.getContainerLatLngFromPixel(eventX, eventY);
+            const newLatLng = this.getContainerLatLngFromPixel(mouseX, mouseY);
             if (this.resizeCorner === 'nw') {
                 // If the current position is below the bottom left corner or to the right of the top right corner,
                 // then do not continue with the resize
