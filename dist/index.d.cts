@@ -4792,6 +4792,22 @@ type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
  */
 declare const svgSymbol: (path?: SvgSymbolValue, options?: SvgSymbolOptions) => SvgSymbol;
 
+type ResizeStart = {
+    neBounds: LatLng;
+    nwPos: {
+        x: number;
+        y: number;
+    };
+    swBounds: LatLng;
+    sePos: {
+        x: number;
+        y: number;
+    };
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+};
 /**
  * Base class to help with drawing overlays on the map.
  *
@@ -4800,6 +4816,20 @@ declare const svgSymbol: (path?: SvgSymbolValue, options?: SvgSymbolOptions) => 
  */
 declare class Overlay extends Layer {
     #private;
+    /**
+     * The starting bounds when resizing begins
+     *
+     * @protected
+     * @type {object}
+     */
+    resizeStart: ResizeStart;
+    /**
+     * The corner being resized (nw, ne, sw, se)
+     *
+     * @protected
+     * @type {string}
+     */
+    resizeCorner: string;
     /**
      * Constructor
      *
@@ -4861,6 +4891,30 @@ declare class Overlay extends Layer {
      * @param {object} styles The styles to apply to the overlay element
      */
     set styles(styles: object);
+    /**
+     * Returns whether dragging is enabled
+     *
+     * @returns {boolean}
+     */
+    get draggable(): boolean;
+    /**
+     * Set whether dragging is enabled
+     *
+     * @param {boolean} draggable Whether dragging is enabled
+     */
+    set draggable(draggable: boolean);
+    /**
+     * Returns whether resizing is enabled
+     *
+     * @returns {boolean}
+     */
+    get resizable(): boolean;
+    /**
+     * Set whether resizing is enabled
+     *
+     * @param {boolean} resizable Whether resizing is enabled
+     */
+    set resizable(resizable: boolean);
     /**
      * Display the overlay on the map
      *
@@ -4967,16 +5021,6 @@ declare class Overlay extends Layer {
      */
     setClassName(className: string): Overlay;
     /**
-     * Set the overlay element
-     *
-     * This is an internal method that is used to set the overlay element.
-     * This should not be called by code outside of this library.
-     *
-     * @param {HTMLElement} element The overlay element
-     * @returns {void}
-     */
-    setElement(element: HTMLElement): void;
-    /**
      * Set the map object to display the overlay in
      *
      * Alias to show()
@@ -5032,6 +5076,53 @@ declare class Overlay extends Layer {
      * @returns {void}
      */
     toggle(map: Map): void;
+    /**
+     * Enable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableDrag(): Overlay;
+    /**
+     * Disable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableDrag(): Overlay;
+    /**
+     * Enable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableResize(): Overlay;
+    /**
+     * Disable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableResize(): Overlay;
+    /**
+     * Update bounds from current position
+     *
+     * @protected
+     */
+    updateBoundsFromPosition(): void;
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} newLatLng The new lat/lng position
+     */
+    updateBoundsFromResize(newLatLng: LatLng): void;
+    /**
+     * Get current bounds
+     *
+     * @protected
+     * @returns {object} The current bounds
+     */
+    getCurrentBounds(): {
+        ne: LatLng;
+        sw: LatLng;
+    };
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -6186,6 +6277,29 @@ declare class ImageOverlay extends Overlay {
      * @returns {void}
      */
     toggle(map: Map): void;
+    /**
+     * Override the updateBoundsFromPosition method to handle dragging
+     *
+     * @protected
+     */
+    updateBoundsFromPosition(): void;
+    /**
+     * Override the updateBoundsFromResize method to handle resizing
+     *
+     * @protected
+     * @param {LatLng} newLatLng The new lat/lng position
+     */
+    updateBoundsFromResize(newLatLng: LatLng): void;
+    /**
+     * Override the getCurrentBounds method to return current bounds
+     *
+     * @protected
+     * @returns {object} The current bounds
+     */
+    getCurrentBounds(): {
+        ne: LatLng;
+        sw: LatLng;
+    };
     /**
      * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
      *

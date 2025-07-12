@@ -11096,7 +11096,15 @@ var MarkerCollection = _MarkerCollection;
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var _offset, _overlay, _overlayView, _position6, _styles3, _Overlay_instances, setupGoogleOverlay_fn;
+var OverlayDragEvents = {
+  DRAG_START: "dragstart",
+  DRAG: "drag",
+  DRAG_END: "dragend",
+  RESIZE_START: "resizestart",
+  RESIZE: "resize",
+  RESIZE_END: "resizeend"
+};
+var _offset, _overlay, _overlayView, _position6, _styles3, _draggable, _resizable, _isDragging, _isResizing, _resizeCorner, _dragStart, _overlayStart, _resizeHandles, _Overlay_instances, setupDragHandlers_fn, setupResizeHandlers_fn, createResizeHandles_fn, removeResizeHandles_fn, _handleDragStart, _handleDrag, _handleDragEnd, _handleResizeStart, _handleResize, _handleResizeEnd, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -11146,7 +11154,251 @@ var Overlay = class extends Layer_default {
      * @type {object}
      */
     __privateAdd(this, _styles3, {});
-    this.setElement(document.createElement("div"));
+    /**
+     * Whether dragging is enabled for this overlay
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _draggable, false);
+    /**
+     * Whether resizing is enabled for this overlay
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _resizable, false);
+    /**
+     * Whether the overlay is currently being dragged
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isDragging, false);
+    /**
+     * Whether the overlay is currently being resized
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isResizing, false);
+    /**
+     * The corner being resized (nw, ne, sw, se)
+     *
+     * @private
+     * @type {string}
+     */
+    __privateAdd(this, _resizeCorner, "");
+    /**
+     * The starting position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    __privateAdd(this, _dragStart);
+    /**
+     * The starting overlay position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    __privateAdd(this, _overlayStart);
+    /**
+     * The resize handles
+     *
+     * @private
+     * @type {HTMLElement[]}
+     */
+    __privateAdd(this, _resizeHandles, []);
+    /**
+     * The corner being resized (nw, ne, sw, se)
+     *
+     * @protected
+     * @type {string}
+     */
+    this.resizeCorner = "";
+    /**
+     * Handle drag start
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    __privateAdd(this, _handleDragStart, (e) => {
+      if (!__privateGet(this, _draggable) || __privateGet(this, _isResizing)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      __privateSet(this, _isDragging, true);
+      __privateSet(this, _dragStart, point(
+        e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY]
+      ));
+      __privateSet(this, _overlayStart, point(
+        parseInt(__privateGet(this, _overlay).style.left, 10) || 0,
+        parseInt(__privateGet(this, _overlay).style.top, 10) || 0
+      ));
+      document.addEventListener("mousemove", __privateGet(this, _handleDrag));
+      document.addEventListener("mouseup", __privateGet(this, _handleDragEnd));
+      document.addEventListener("touchmove", __privateGet(this, _handleDrag));
+      document.addEventListener("touchend", __privateGet(this, _handleDragEnd));
+      this.dispatch(OverlayDragEvents.DRAG_START, { event: e });
+    });
+    /**
+     * Handle drag
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    __privateAdd(this, _handleDrag, (e) => {
+      if (!__privateGet(this, _isDragging)) return;
+      e.preventDefault();
+      const currentPos = point(
+        e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY]
+      );
+      const delta = currentPos.subtract(__privateGet(this, _dragStart));
+      const newLeft = __privateGet(this, _overlayStart).getX() + delta.getX();
+      const newTop = __privateGet(this, _overlayStart).getY() + delta.getY();
+      __privateGet(this, _overlay).style.left = `${newLeft}px`;
+      __privateGet(this, _overlay).style.top = `${newTop}px`;
+      this.updateBoundsFromPosition();
+      this.dispatch(OverlayDragEvents.DRAG, { event: e, delta });
+    });
+    /**
+     * Handle drag end
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    __privateAdd(this, _handleDragEnd, (e) => {
+      if (!__privateGet(this, _isDragging)) return;
+      __privateSet(this, _isDragging, false);
+      document.removeEventListener("mousemove", __privateGet(this, _handleDrag));
+      document.removeEventListener("mouseup", __privateGet(this, _handleDragEnd));
+      document.removeEventListener("touchmove", __privateGet(this, _handleDrag));
+      document.removeEventListener("touchend", __privateGet(this, _handleDragEnd));
+      this.dispatch(OverlayDragEvents.DRAG_END, { event: e });
+    });
+    /**
+     * Handle resize start
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     * @param {string} corner The corner being resized
+     */
+    __privateAdd(this, _handleResizeStart, (e, corner) => {
+      if (!__privateGet(this, _resizable) || __privateGet(this, _isDragging)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      __privateSet(this, _isResizing, true);
+      this.resizeCorner = corner;
+      const mapContainer = this.getMap().getDiv();
+      const containerRect = mapContainer.getBoundingClientRect();
+      const currentSize = __privateGet(this, _overlay).getBoundingClientRect();
+      this.resizeStart = {
+        // Northeast lat/lng
+        neBounds: this.getCurrentBounds().ne,
+        // Current top left position of the overlay within the map container.
+        // This is used to calculate the new position of the overlay after resizing from the top left.
+        nwPos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
+        // Southwest lat/lng
+        swBounds: this.getCurrentBounds().sw,
+        // Current bottom right position of the overlay within the map container.
+        // This is used to calculate the new position of the overlay after resizing from the bottom right.
+        sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
+        // Current left position within the overlay container
+        left: parseInt(__privateGet(this, _overlay).style.left, 10) || 0,
+        // Current top position within the overlay container
+        top: parseInt(__privateGet(this, _overlay).style.top, 10) || 0,
+        // Current width of the overlay container
+        width: currentSize.width,
+        // Current height of the overlay container
+        height: currentSize.height
+      };
+      document.addEventListener("mousemove", __privateGet(this, _handleResize));
+      document.addEventListener("mouseup", __privateGet(this, _handleResizeEnd));
+      document.addEventListener("touchmove", __privateGet(this, _handleResize));
+      document.addEventListener("touchend", __privateGet(this, _handleResizeEnd));
+      this.dispatch(OverlayDragEvents.RESIZE_START, { event: e, corner });
+    });
+    /**
+     * Handle resize
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    __privateAdd(this, _handleResize, (e) => {
+      if (!__privateGet(this, _isResizing)) return;
+      e.preventDefault();
+      const projection = this.getProjection();
+      if (projection) {
+        const mapContainer = this.getMap().getDiv();
+        const containerRect = mapContainer.getBoundingClientRect();
+        const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+        const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+        const mouseX = eventX - containerRect.left;
+        const mouseY = eventY - containerRect.top;
+        const topRight = projection.fromLatLngToContainerPixel(this.resizeStart.neBounds.toGoogle());
+        const bottomLeft = projection.fromLatLngToContainerPixel(this.resizeStart.swBounds.toGoogle());
+        const newLatLng = this.getContainerLatLngFromPixel(mouseX, mouseY);
+        if (this.resizeCorner === "nw") {
+          if (mouseY > bottomLeft.y || mouseX > topRight.x) {
+            return;
+          }
+          const diffX = this.resizeStart.nwPos.x - mouseX;
+          const diffY = this.resizeStart.nwPos.y - mouseY;
+          __privateGet(this, _overlay).style.width = `${this.resizeStart.width + diffX}px`;
+          __privateGet(this, _overlay).style.height = `${this.resizeStart.height + diffY}px`;
+          __privateGet(this, _overlay).style.top = `${this.resizeStart.top - diffY}px`;
+          __privateGet(this, _overlay).style.left = `${this.resizeStart.left - diffX}px`;
+        } else if (this.resizeCorner === "ne") {
+          if (mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
+            return;
+          }
+          const diffX = topRight.x - mouseX;
+          const diffY = topRight.y - mouseY;
+          __privateGet(this, _overlay).style.width = `${this.resizeStart.width - diffX}px`;
+          __privateGet(this, _overlay).style.height = `${this.resizeStart.height + diffY}px`;
+          __privateGet(this, _overlay).style.top = `${this.resizeStart.top - diffY}px`;
+        } else if (this.resizeCorner === "sw") {
+          if (mouseY < this.resizeStart.top || mouseX > topRight.x) {
+            return;
+          }
+          const diffX = bottomLeft.x - mouseX;
+          const diffY = bottomLeft.y - mouseY;
+          __privateGet(this, _overlay).style.width = `${this.resizeStart.width + diffX}px`;
+          __privateGet(this, _overlay).style.height = `${this.resizeStart.height - diffY}px`;
+          __privateGet(this, _overlay).style.left = `${this.resizeStart.left - diffX}px`;
+        } else if (this.resizeCorner === "se") {
+          if (mouseY < this.resizeStart.top || mouseX < this.resizeStart.left) {
+            return;
+          }
+          const diffX = this.resizeStart.sePos.x - mouseX;
+          const diffY = this.resizeStart.sePos.y - mouseY;
+          __privateGet(this, _overlay).style.width = `${this.resizeStart.width - diffX}px`;
+          __privateGet(this, _overlay).style.height = `${this.resizeStart.height - diffY}px`;
+        }
+        this.updateBoundsFromResize(newLatLng);
+        this.dispatch(OverlayDragEvents.RESIZE, { event: e, corner: this.resizeCorner });
+      }
+    });
+    /**
+     * Handle resize end
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    __privateAdd(this, _handleResizeEnd, (e) => {
+      if (!__privateGet(this, _isResizing)) return;
+      __privateSet(this, _isResizing, false);
+      this.resizeCorner = "";
+      document.removeEventListener("mousemove", __privateGet(this, _handleResize));
+      document.removeEventListener("mouseup", __privateGet(this, _handleResizeEnd));
+      document.removeEventListener("touchmove", __privateGet(this, _handleResize));
+      document.removeEventListener("touchend", __privateGet(this, _handleResizeEnd));
+      this.dispatch(OverlayDragEvents.RESIZE_END, { event: e });
+    });
+    __privateSet(this, _overlay, document.createElement("div"));
+    __privateGet(this, _overlay).style.position = "absolute";
+    __privateGet(this, _overlay).style.pointerEvents = "auto";
+    __privateGet(this, _overlay).style.zIndex = "1000";
     this.setOffset([0, 0]);
   }
   /**
@@ -11237,6 +11489,40 @@ var Overlay = class extends Layer_default {
         __privateGet(this, _overlay).style[key] = styles[key];
       });
     }
+  }
+  /**
+   * Returns whether dragging is enabled
+   *
+   * @returns {boolean}
+   */
+  get draggable() {
+    return __privateGet(this, _draggable);
+  }
+  /**
+   * Set whether dragging is enabled
+   *
+   * @param {boolean} draggable Whether dragging is enabled
+   */
+  set draggable(draggable) {
+    __privateSet(this, _draggable, draggable);
+    __privateMethod(this, _Overlay_instances, setupDragHandlers_fn).call(this);
+  }
+  /**
+   * Returns whether resizing is enabled
+   *
+   * @returns {boolean}
+   */
+  get resizable() {
+    return __privateGet(this, _resizable);
+  }
+  /**
+   * Set whether resizing is enabled
+   *
+   * @param {boolean} resizable Whether resizing is enabled
+   */
+  set resizable(resizable) {
+    __privateSet(this, _resizable, resizable);
+    __privateMethod(this, _Overlay_instances, setupResizeHandlers_fn).call(this);
   }
   /**
    * Display the overlay on the map
@@ -11414,19 +11700,6 @@ var Overlay = class extends Layer_default {
     return this;
   }
   /**
-   * Set the overlay element
-   *
-   * This is an internal method that is used to set the overlay element.
-   * This should not be called by code outside of this library.
-   *
-   * @param {HTMLElement} element The overlay element
-   * @returns {void}
-   */
-  setElement(element) {
-    __privateSet(this, _overlay, element);
-    __privateGet(this, _overlay).style.position = "absolute";
-  }
-  /**
    * Set the map object to display the overlay in
    *
    * Alias to show()
@@ -11533,6 +11806,69 @@ var Overlay = class extends Layer_default {
     }
   }
   /**
+   * Enable dragging for this overlay
+   *
+   * @returns {Overlay}
+   */
+  enableDrag() {
+    this.draggable = true;
+    return this;
+  }
+  /**
+   * Disable dragging for this overlay
+   *
+   * @returns {Overlay}
+   */
+  disableDrag() {
+    this.draggable = false;
+    return this;
+  }
+  /**
+   * Enable resizing for this overlay
+   *
+   * @returns {Overlay}
+   */
+  enableResize() {
+    this.resizable = true;
+    return this;
+  }
+  /**
+   * Disable resizing for this overlay
+   *
+   * @returns {Overlay}
+   */
+  disableResize() {
+    this.resizable = false;
+    return this;
+  }
+  /**
+   * Update bounds from current position
+   *
+   * @protected
+   */
+  // eslint-disable-next-line class-methods-use-this
+  updateBoundsFromPosition() {
+  }
+  /**
+   * Update bounds from resize
+   *
+   * @protected
+   * @param {LatLng} newLatLng The new lat/lng position
+   */
+  // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+  updateBoundsFromResize(newLatLng) {
+  }
+  /**
+   * Get current bounds
+   *
+   * @protected
+   * @returns {object} The current bounds
+   */
+  // eslint-disable-next-line class-methods-use-this
+  getCurrentBounds() {
+    return { ne: latLng(), sw: latLng() };
+  }
+  /**
    * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
    *
    * This is called by the internal OverlayView class. It should not be called directly.
@@ -11573,7 +11909,129 @@ _overlay = new WeakMap();
 _overlayView = new WeakMap();
 _position6 = new WeakMap();
 _styles3 = new WeakMap();
+_draggable = new WeakMap();
+_resizable = new WeakMap();
+_isDragging = new WeakMap();
+_isResizing = new WeakMap();
+_resizeCorner = new WeakMap();
+_dragStart = new WeakMap();
+_overlayStart = new WeakMap();
+_resizeHandles = new WeakMap();
 _Overlay_instances = new WeakSet();
+/**
+ * Set up drag event handlers
+ *
+ * @private
+ */
+setupDragHandlers_fn = function() {
+  if (__privateGet(this, _draggable)) {
+    __privateGet(this, _overlay).style.cursor = "move";
+    __privateGet(this, _overlay).style.pointerEvents = "auto";
+    __privateGet(this, _overlay).style.border = "2px solid #007bff";
+    __privateGet(this, _overlay).addEventListener("mousedown", __privateGet(this, _handleDragStart));
+    __privateGet(this, _overlay).addEventListener("touchstart", __privateGet(this, _handleDragStart));
+    if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
+      google.maps.OverlayView.preventMapHitsAndGesturesFrom(__privateGet(this, _overlay));
+    }
+  } else {
+    __privateGet(this, _overlay).style.cursor = "";
+    __privateGet(this, _overlay).style.pointerEvents = "";
+    __privateGet(this, _overlay).removeEventListener("mousedown", __privateGet(this, _handleDragStart));
+    __privateGet(this, _overlay).removeEventListener("touchstart", __privateGet(this, _handleDragStart));
+  }
+};
+/**
+ * Set up resize event handlers
+ *
+ * @private
+ */
+setupResizeHandlers_fn = function() {
+  if (__privateGet(this, _resizable)) {
+    __privateMethod(this, _Overlay_instances, createResizeHandles_fn).call(this);
+  } else {
+    __privateMethod(this, _Overlay_instances, removeResizeHandles_fn).call(this);
+  }
+};
+/**
+ * Create resize handles
+ *
+ * @private
+ */
+createResizeHandles_fn = function() {
+  __privateMethod(this, _Overlay_instances, removeResizeHandles_fn).call(this);
+  __privateGet(this, _overlay).style.border = "2px solid #007bff";
+  const corners = ["nw", "ne", "sw", "se"];
+  const cursors = {
+    nw: "nwse-resize",
+    ne: "nesw-resize",
+    sw: "nesw-resize",
+    se: "nwse-resize"
+  };
+  corners.forEach((corner) => {
+    const handle = document.createElement("div");
+    handle.className = `resize-handle resize-${corner}`;
+    handle.style.cssText = `
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                background: #fff;
+                border: 2px solid #007bff;
+                border-radius: 50%;
+                cursor: ${cursors[corner]};
+                z-index: 1000;
+                pointer-events: auto;
+            `;
+    switch (corner) {
+      case "nw":
+        handle.style.top = "-6px";
+        handle.style.left = "-6px";
+        break;
+      case "ne":
+        handle.style.top = "-6px";
+        handle.style.right = "-6px";
+        break;
+      case "sw":
+        handle.style.bottom = "-6px";
+        handle.style.left = "-6px";
+        break;
+      case "se":
+        handle.style.bottom = "-6px";
+        handle.style.right = "-6px";
+        break;
+      default:
+        handle.style.top = "-6px";
+        handle.style.left = "-6px";
+        break;
+    }
+    handle.addEventListener("mousedown", (e) => __privateGet(this, _handleResizeStart).call(this, e, corner));
+    handle.addEventListener("touchstart", (e) => __privateGet(this, _handleResizeStart).call(this, e, corner));
+    if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
+      google.maps.OverlayView.preventMapHitsAndGesturesFrom(handle);
+    }
+    __privateGet(this, _overlay).appendChild(handle);
+    __privateGet(this, _resizeHandles).push(handle);
+  });
+};
+/**
+ * Remove resize handles
+ *
+ * @private
+ */
+removeResizeHandles_fn = function() {
+  __privateGet(this, _resizeHandles).forEach((handle) => {
+    if (handle.parentNode) {
+      handle.parentNode.removeChild(handle);
+    }
+  });
+  __privateSet(this, _resizeHandles, []);
+  __privateGet(this, _overlay).style.border = "none";
+};
+_handleDragStart = new WeakMap();
+_handleDrag = new WeakMap();
+_handleDragEnd = new WeakMap();
+_handleResizeStart = new WeakMap();
+_handleResize = new WeakMap();
+_handleResizeEnd = new WeakMap();
 /**
  * Set up the Google maps overlay object if necessary
  *
@@ -11913,8 +12371,8 @@ var ImageOverlay = class extends Overlay {
       this.bounds = options.bounds;
     }
     if (isBoolean(options.debug) && options.debug) {
-      this.style("background-color", "#ff000080");
-      this.style("outline", "2px solid #ff0000");
+      super.style("background-color", "#ff000080");
+      super.style("outline", "2px solid #ff0000");
     }
     if (options.imageUrl) {
       this.imageUrl = options.imageUrl;
@@ -11958,6 +12416,83 @@ var ImageOverlay = class extends Overlay {
     }
   }
   /**
+   * Override the updateBoundsFromPosition method to handle dragging
+   *
+   * @protected
+   */
+  updateBoundsFromPosition() {
+    if (!__privateGet(this, _bounds5)) return;
+    const projection = this.getProjection();
+    if (!projection) return;
+    const overlayRect = this.getOverlayElement().getBoundingClientRect();
+    const mapDiv = this.getMap().getDiv();
+    const mapRect = mapDiv.getBoundingClientRect();
+    const overlayLeft = overlayRect.left - mapRect.left;
+    const overlayTop = overlayRect.top - mapRect.top;
+    const nePixel = point(overlayLeft + overlayRect.width, overlayTop);
+    const swPixel = point(overlayLeft, overlayTop + overlayRect.height);
+    const neLatLng = this.getContainerLatLngFromPixel(nePixel.getX(), nePixel.getY());
+    const swLatLng = this.getContainerLatLngFromPixel(swPixel.getX(), swPixel.getY());
+    __privateSet(this, _bounds5, new LatLngBounds({
+      ne: neLatLng,
+      sw: swLatLng
+    }));
+  }
+  /**
+   * Override the updateBoundsFromResize method to handle resizing
+   *
+   * @protected
+   * @param {LatLng} newLatLng The new lat/lng position
+   */
+  updateBoundsFromResize(newLatLng) {
+    if (!__privateGet(this, _bounds5) || !this.resizeStart) return;
+    let newNe = this.resizeStart.neBounds;
+    let newSw = this.resizeStart.swBounds;
+    switch (this.resizeCorner) {
+      case "nw":
+        newNe = latLng(newLatLng.latitude, newNe.longitude);
+        newSw = latLng(newSw.latitude, newLatLng.longitude);
+        break;
+      case "ne":
+        newNe = latLng(newLatLng.latitude, newLatLng.longitude);
+        newSw = latLng(newSw.latitude, newSw.longitude);
+        break;
+      case "sw":
+        newNe = latLng(newNe.latitude, newNe.longitude);
+        newSw = latLng(newLatLng.latitude, newLatLng.longitude);
+        break;
+      case "se":
+        newNe = latLng(newNe.latitude, newLatLng.longitude);
+        newSw = latLng(newLatLng.latitude, newSw.longitude);
+        break;
+      default:
+        break;
+    }
+    const north = Math.max(newNe.latitude, newSw.latitude);
+    const south = Math.min(newNe.latitude, newSw.latitude);
+    const east = Math.max(newNe.longitude, newSw.longitude);
+    const west = Math.min(newNe.longitude, newSw.longitude);
+    __privateSet(this, _bounds5, new LatLngBounds({
+      ne: latLng(north, east),
+      sw: latLng(south, west)
+    }));
+  }
+  /**
+   * Override the getCurrentBounds method to return current bounds
+   *
+   * @protected
+   * @returns {object} The current bounds
+   */
+  getCurrentBounds() {
+    if (!__privateGet(this, _bounds5)) {
+      return { ne: latLng(), sw: latLng() };
+    }
+    return {
+      ne: __privateGet(this, _bounds5).getNorthEast(),
+      sw: __privateGet(this, _bounds5).getSouthWest()
+    };
+  }
+  /**
    * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
    *
    * @internal
@@ -11965,7 +12500,11 @@ var ImageOverlay = class extends Overlay {
    */
   add(panes) {
     this.getOverlayElement().appendChild(__privateGet(this, _imageElement));
-    panes.overlayLayer.appendChild(this.getOverlayElement());
+    if (this.resizable || this.draggable) {
+      panes.floatPane.appendChild(this.getOverlayElement());
+    } else {
+      panes.overlayLayer.appendChild(this.getOverlayElement());
+    }
   }
   /**
    * Draw the overlay. Called when the overlay is being drawn or updated.
@@ -11985,11 +12524,11 @@ var ImageOverlay = class extends Overlay {
           const top = Math.min(nePixel.y, swPixel.y);
           const width = Math.abs(nePixel.x - swPixel.x);
           const height = Math.abs(nePixel.y - swPixel.y);
-          this.style("left", `${left}px`);
-          this.style("top", `${top}px`);
-          this.style("width", `${width}px`);
-          this.style("height", `${height}px`);
-          this.style("display", "block");
+          super.style("left", `${left}px`);
+          super.style("top", `${top}px`);
+          super.style("width", `${width}px`);
+          super.style("height", `${height}px`);
+          super.style("display", "block");
         }
       }
     }
