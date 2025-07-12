@@ -23,7 +23,7 @@ const imageOverlay = G.imageOverlay({
     imageUrl: 'https://bcms-files.s3.amazonaws.com/2ajn2d9Bq3-1851/images/Campground-Map.png',
     // image: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/talkeetna.png',
     bounds: {
-        ne: [44.36864148441174, -68.32181523917846], // Northeast corner
+        ne: [44.36877953646439, -68.31675122855835], // Northeast corner
         sw: [44.361063461552426, -68.32760881065063], // Southwest corner
     },
     debug: true,
@@ -33,7 +33,6 @@ const imageOverlay = G.imageOverlay({
     //     transform: 'rotate(-45deg)',
     // },
 });
-console.log('imageOverlay: ', imageOverlay);
 
 // Show the image overlay on the map
 imageOverlay.show(map);
