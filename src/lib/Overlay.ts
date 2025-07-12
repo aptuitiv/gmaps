@@ -3,7 +3,7 @@
 
     https://developers.google.com/maps/documentation/javascript/customoverlays
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/base-classes/overlay for documentation.
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/overlay for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, OverlayView */
