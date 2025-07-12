@@ -334,8 +334,8 @@ export class ImageOverlay extends Overlay {
             this.bounds = options.bounds;
         }
         if (isBoolean(options.debug) && options.debug) {
-            this.style('background-color', '#ff000080');
-            this.style('outline', '2px solid #ff0000');
+            super.style('background-color', '#ff000080');
+            super.style('outline', '2px solid #ff0000');
         }
         if (options.imageUrl) {
             this.imageUrl = options.imageUrl;
@@ -416,11 +416,11 @@ export class ImageOverlay extends Overlay {
                     const width = Math.abs(nePixel.x - swPixel.x);
                     const height = Math.abs(nePixel.y - swPixel.y);
 
-                    this.style('left', `${left}px`);
-                    this.style('top', `${top}px`);
-                    this.style('width', `${width}px`);
-                    this.style('height', `${height}px`);
-                    this.style('display', 'block');
+                    super.style('left', `${left}px`);
+                    super.style('top', `${top}px`);
+                    super.style('width', `${width}px`);
+                    super.style('height', `${height}px`);
+                    super.style('display', 'block');
                 }
             }
         }
