@@ -269,7 +269,7 @@ export class ImageRenderer implements Renderer {
      * @param {number} count The number of markers in the cluster.
      * @returns {ClusterImage}
      */
-    protected getImage(count: number): ClusterImage {
+    getImage(count: number): ClusterImage {
         const keys = Object.keys(this.#images);
         let image = this.#images[keys[0]];
 
