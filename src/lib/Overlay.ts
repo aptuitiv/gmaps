@@ -79,7 +79,8 @@ export class Overlay extends Layer {
         super(objectType, testObject, testLibrary || 'OverlayView');
 
         // Initialize the overlay element
-        this.setElement(document.createElement('div'));
+        this.#overlay = document.createElement('div');
+        this.#overlay.style.position = 'absolute';
 
         // Set the default offset
         this.setOffset([0, 0]);
@@ -371,20 +372,6 @@ export class Overlay extends Layer {
     setClassName(className: string): Overlay {
         this.className = className;
         return this;
-    }
-
-    /**
-     * Set the overlay element
-     *
-     * This is an internal method that is used to set the overlay element.
-     * This should not be called by code outside of this library.
-     *
-     * @param {HTMLElement} element The overlay element
-     * @returns {void}
-     */
-    setElement(element: HTMLElement): void {
-        this.#overlay = element;
-        this.#overlay.style.position = 'absolute';
     }
 
     /**
