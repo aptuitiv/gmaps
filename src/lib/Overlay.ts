@@ -974,7 +974,7 @@ export class Overlay extends Layer {
                 this.#overlay.style.width = `${this.resizeStart.width - diffX}px`;
                 this.#overlay.style.height = `${this.resizeStart.height + diffY}px`;
                 this.#overlay.style.top = `${this.resizeStart.top - diffY}px`;
-            } else if (this.resizeCorner === 'sw' || this.resizeCorner === 'se') {
+            } else if (this.resizeCorner === 'sw') {
                 // If the current position is above the top left corner or to the right of the top right corner,
                 // then do not continue with the resize
                 if (mouseY < this.resizeStart.top || mouseX > topRight.x) {
@@ -989,6 +989,20 @@ export class Overlay extends Layer {
                 this.#overlay.style.width = `${this.resizeStart.width + diffX}px`;
                 this.#overlay.style.height = `${this.resizeStart.height - diffY}px`;
                 this.#overlay.style.left = `${this.resizeStart.left - diffX}px`;
+            } else if (this.resizeCorner === 'se') {
+                // If the current position is above the top left corner or to the left of the top left corner,
+                // then do not continue with the resize
+                if (mouseY < this.resizeStart.top || mouseX < this.resizeStart.left) {
+                    return;
+                }
+
+                // Calculate the difference between the current position and the bottom right
+                const diffX = this.resizeStart.sePos.x - mouseX;
+                const diffY = this.resizeStart.sePos.y - mouseY;
+
+                // Update the height and width of the overlay
+                this.#overlay.style.width = `${this.resizeStart.width - diffX}px`;
+                this.#overlay.style.height = `${this.resizeStart.height - diffY}px`;
             }
             this.updateBoundsFromResize(newLatLng);
             this.dispatch(OverlayDragEvents.RESIZE, { event: e, corner: this.resizeCorner });

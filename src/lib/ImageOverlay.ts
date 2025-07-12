@@ -445,8 +445,8 @@ export class ImageOverlay extends Overlay {
                 newSw = latLng(newLatLng.latitude, newLatLng.longitude);
                 break;
             case 'se':
-                newNe = latLng(newLatLng.latitude, newLatLng.longitude);
-                newSw = latLng(newSw.latitude, newSw.longitude);
+                newNe = latLng(newNe.latitude, newLatLng.longitude);
+                newSw = latLng(newLatLng.latitude, newSw.longitude);
                 break;
             default:
                 // No change
