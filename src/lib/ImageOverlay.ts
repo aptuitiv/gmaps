@@ -10,6 +10,8 @@ import { LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import { Overlay } from './Overlay';
 import { isBoolean, isNullOrUndefined, isNumber, isObject, isString, isStringWithValue } from './helpers';
 import { Map } from './Map';
+import { latLng, LatLng } from './LatLng';
+import { point } from './Point';
 
 export type ImageOverlayOptions = {
     // The image URL to display
@@ -383,6 +385,103 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Override the updateBoundsFromPosition method to handle dragging
+     *
+     * @protected
+     */
+    updateBoundsFromPosition(): void {
+        if (!this.#bounds) return;
+
+        const projection = this.getProjection();
+        if (!projection) return;
+
+        // Get the current overlay position in pixels
+        const overlayRect = this.getOverlayElement().getBoundingClientRect();
+        const mapDiv = this.getMap().getDiv();
+        const mapRect = mapDiv.getBoundingClientRect();
+
+        // Calculate the overlay position relative to the map
+        const overlayLeft = overlayRect.left - mapRect.left;
+        const overlayTop = overlayRect.top - mapRect.top;
+
+        // Convert pixel positions to lat/lng
+        const nePixel = point(overlayLeft + overlayRect.width, overlayTop);
+        const swPixel = point(overlayLeft, overlayTop + overlayRect.height);
+
+        const neLatLng = this.getContainerLatLngFromPixel(nePixel.getX(), nePixel.getY());
+        const swLatLng = this.getContainerLatLngFromPixel(swPixel.getX(), swPixel.getY());
+
+        // Update bounds
+        this.#bounds = new LatLngBounds({
+            ne: neLatLng,
+            sw: swLatLng,
+        });
+    }
+
+    /**
+     * Override the updateBoundsFromResize method to handle resizing
+     *
+     * @protected
+     * @param {LatLng} newLatLng The new lat/lng position
+     */
+    updateBoundsFromResize(newLatLng: LatLng): void {
+        if (!this.#bounds || !this.resizeStart) return;
+
+        let newNe = this.resizeStart.neBounds;
+        let newSw = this.resizeStart.swBounds;
+
+        // Update the appropriate corner based on which handle is being dragged
+        switch (this.resizeCorner) {
+            case 'nw':
+                newNe = latLng(newLatLng.latitude, newNe.longitude);
+                newSw = latLng(newSw.latitude, newLatLng.longitude);
+                break;
+            case 'ne':
+                newNe = latLng(newLatLng.latitude, newLatLng.longitude);
+                newSw = latLng(newSw.latitude, newSw.longitude);
+                break;
+            case 'sw':
+                newNe = latLng(newNe.latitude, newNe.longitude);
+                newSw = latLng(newLatLng.latitude, newLatLng.longitude);
+                break;
+            case 'se':
+                newNe = latLng(newLatLng.latitude, newLatLng.longitude);
+                newSw = latLng(newSw.latitude, newSw.longitude);
+                break;
+            default:
+                // No change
+                break;
+        }
+
+        // Ensure ne is north and east of sw
+        const north = Math.max(newNe.latitude, newSw.latitude);
+        const south = Math.min(newNe.latitude, newSw.latitude);
+        const east = Math.max(newNe.longitude, newSw.longitude);
+        const west = Math.min(newNe.longitude, newSw.longitude);
+
+        this.#bounds = new LatLngBounds({
+            ne: latLng(north, east),
+            sw: latLng(south, west),
+        });
+    }
+
+    /**
+     * Override the getCurrentBounds method to return current bounds
+     *
+     * @protected
+     * @returns {object} The current bounds
+     */
+    getCurrentBounds(): { ne: LatLng; sw: LatLng } {
+        if (!this.#bounds) {
+            return { ne: latLng(), sw: latLng() };
+        }
+        return {
+            ne: this.#bounds.getNorthEast(),
+            sw: this.#bounds.getSouthWest(),
+        };
+    }
+
+    /**
      * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
      *
      * @internal
@@ -391,8 +490,15 @@ export class ImageOverlay extends Overlay {
     add(panes: google.maps.MapPanes) {
         // Add the image element to the overlay container
         this.getOverlayElement().appendChild(this.#imageElement);
-        // Add the overlay to the map pane
-        panes.overlayLayer.appendChild(this.getOverlayElement());
+        if (this.resizable || this.draggable) {
+            // Add the overlay to the float pane to ensure it's above the map and can receive events
+            // https://developers.google.com/maps/documentation/javascript/customoverlays#intitialize
+            panes.floatPane.appendChild(this.getOverlayElement());
+        } else {
+            // Add the overlay to the overlay layer to ensure it's below markers
+            // https://developers.google.com/maps/documentation/javascript/customoverlays#intitialize
+            panes.overlayLayer.appendChild(this.getOverlayElement());
+        }
     }
 
     /**
