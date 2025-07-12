@@ -950,7 +950,7 @@ export class Overlay extends Layer {
             if (this.resizeCorner === 'nw') {
                 // If the current position is below the bottom left corner or to the right of the top right corner,
                 // then do not continue with the resize
-                if (mouseX > topRight.x || mouseY > bottomLeft.y) {
+                if (mouseY > bottomLeft.y || mouseX > topRight.x) {
                     return;
                 }
                 // Calculate the difference between the current position and the top right
@@ -962,9 +962,9 @@ export class Overlay extends Layer {
                 this.#overlay.style.top = `${this.resizeStart.top - diffY}px`;
                 this.#overlay.style.left = `${this.resizeStart.left - diffX}px`;
             } else if (this.resizeCorner === 'ne') {
-                // If the current position is below the bottom left corner or to the left of the top left corner,
+                // If the current position is below the bottom left corner or to the left of the bottom left corner,
                 // then do not continue with the resize
-                if (mouseX < bottomLeft.x || mouseY > bottomLeft.y) {
+                if (mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
                     return;
                 }
                 // Calculate the difference between the current position and the top right
@@ -977,7 +977,7 @@ export class Overlay extends Layer {
             } else if (this.resizeCorner === 'sw' || this.resizeCorner === 'se') {
                 // If the current position is above the top left corner or to the right of the top right corner,
                 // then do not continue with the resize
-                if (mouseX > topRight.x || mouseY < this.resizeStart.top) {
+                if (mouseY < this.resizeStart.top || mouseX > topRight.x) {
                     return;
                 }
 
