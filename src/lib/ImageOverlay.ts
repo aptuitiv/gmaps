@@ -32,6 +32,8 @@ export type ImageOverlayOptions = {
     className?: string;
     // Whether to set a background and border on the overlay div to help show where the image is being displayed
     debug?: boolean;
+    // The map to add the overlay to.
+    map?: Map;
     // The opacity of the image (0.0 to 1.0)
     opacity?: number;
     // The rotation angle in degrees (0 to 360)
@@ -454,6 +456,11 @@ export class ImageOverlay extends Overlay {
         }
         if (options.styles) {
             this.styles = options.styles;
+        }
+
+        // Set the map. This must come last so that the other options are set.
+        if (options.map) {
+            this.setMap(options.map);
         }
 
         return this;
