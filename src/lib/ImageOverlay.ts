@@ -666,6 +666,33 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Add an event listener for when rotating the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotateStart(callback: EventCallback): void {
+        this.on(ImageOverlayEvents.ROTATE_START, callback);
+    }
+
+    /**
+     * Add an event listener for when rotating updates the overlay rotation
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotate(callback: EventCallback): void {
+        this.on(ImageOverlayEvents.ROTATE, callback);
+    }
+
+    /**
+     * Add an event listener for when rotating ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotateEnd(callback: EventCallback): void {
+        this.on(ImageOverlayEvents.ROTATE_END, callback);
+    }
+
+    /**
      * Perform the fit to image operation
      *
      * @private
