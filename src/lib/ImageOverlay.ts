@@ -39,7 +39,7 @@ export type ImageOverlayOptions = {
     // The rotation angle in degrees (0 to 360)
     rotation?: number;
     // Whether rotation is enabled
-    rotatable?: boolean;
+    rotate?: boolean;
     // Styles that will be set on the image overlay container div
     styles?: object;
 };
@@ -94,7 +94,7 @@ export class ImageOverlay extends Overlay {
      * @private
      * @type {boolean}
      */
-    #rotatable: boolean = false;
+    #rotate: boolean = false;
 
     /**
      * Holds the rotation angle in degrees
@@ -288,17 +288,17 @@ export class ImageOverlay extends Overlay {
      *
      * @returns {boolean}
      */
-    get rotatable(): boolean {
-        return this.#rotatable;
+    get rotate(): boolean {
+        return this.#rotate;
     }
 
     /**
      * Set whether rotation is enabled
      *
-     * @param {boolean} rotatable Whether rotation is enabled
+     * @param {boolean} rotate Whether rotation is enabled
      */
-    set rotatable(rotatable: boolean) {
-        this.#rotatable = rotatable;
+    set rotate(rotate: boolean) {
+        this.#rotate = rotate;
         this.#setupRotationHandlers();
     }
 
@@ -448,8 +448,8 @@ export class ImageOverlay extends Overlay {
         if (options.rotation !== undefined) {
             this.rotation = options.rotation;
         }
-        if (options.rotatable !== undefined) {
-            this.rotatable = options.rotatable;
+        if (options.rotate !== undefined) {
+            this.rotate = options.rotate;
         }
         if (options.className) {
             this.setClassName(options.className);
@@ -616,7 +616,7 @@ export class ImageOverlay extends Overlay {
      * @returns {ImageOverlay}
      */
     enableRotation(): ImageOverlay {
-        this.rotatable = true;
+        this.rotate = true;
         return this;
     }
 
@@ -626,7 +626,7 @@ export class ImageOverlay extends Overlay {
      * @returns {ImageOverlay}
      */
     disableRotation(): ImageOverlay {
-        this.rotatable = false;
+        this.rotate = false;
         return this;
     }
 
@@ -736,7 +736,7 @@ export class ImageOverlay extends Overlay {
      * @private
      */
     #setupRotationHandlers(): void {
-        if (this.#rotatable) {
+        if (this.rotate) {
             this.#createRotationContainer();
             this.#createRotationHandle();
         } else {
@@ -763,7 +763,11 @@ export class ImageOverlay extends Overlay {
             display: flex;
             align-items: center;
             justify-content: center;
+            transform: rotate(${this.#rotation}deg);
         `;
+
+        // Remove any rotation from the image element
+        this.#imageElement.style.transform = '';
 
         // Move the image into the rotation container
         if (this.#imageElement.parentNode) {
@@ -866,7 +870,7 @@ export class ImageOverlay extends Overlay {
      * @param {MouseEvent | TouchEvent} e The event
      */
     #handleRotationStart = (e: MouseEvent | TouchEvent): void => {
-        if (!this.#rotatable || this.#isRotating) return;
+        if (!this.rotate || this.#isRotating) return;
 
         e.preventDefault();
         e.stopPropagation();
@@ -945,7 +949,7 @@ export class ImageOverlay extends Overlay {
      */
     add(panes: google.maps.MapPanes) {
         // Set up rotation handlers if rotation is enabled
-        if (this.#rotatable) {
+        if (this.rotate) {
             this.#setupRotationHandlers();
         }
 
@@ -956,7 +960,7 @@ export class ImageOverlay extends Overlay {
             this.getOverlayElement().appendChild(this.#imageElement);
         }
 
-        if (this.resizable || this.draggable || this.#rotatable) {
+        if (this.resizable || this.draggable || this.rotate) {
             // Add the overlay to the float pane to ensure it's above the map and can receive events
             // https://developers.google.com/maps/documentation/javascript/customoverlays#intitialize
             panes.floatPane.appendChild(this.getOverlayElement());
