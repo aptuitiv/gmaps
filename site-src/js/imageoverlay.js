@@ -175,6 +175,16 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+// Example of fitting to image
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'f' || event.key === 'F') {
+        imageOverlay.fitToImage().then(() => {
+            console.log('Overlay fitted to image dimensions');
+            console.log('Aspect ratio set to:', imageOverlay.getResizeAspectRatio());
+        });
+    }
+});
+
 // Add instructions to the page
 const instructions = document.createElement('div');
 instructions.innerHTML = `
@@ -195,9 +205,11 @@ instructions.innerHTML = `
             <li><strong>9:</strong> Set rotation to 90°</li>
             <li><strong>8:</strong> Set rotation to 180°</li>
             <li><strong>7:</strong> Set rotation to 270°</li>
+            <li><strong>F:</strong> Fit overlay to image dimensions</li>
         </ul>
         <p><strong>Console:</strong> Check browser console for bounds updates, resize events, and rotation events</p>
         <p><strong>Testing:</strong> Try resizing from different corners and rotating the image to verify functionality</p>
+        <p><strong>Aspect Ratio:</strong> After pressing F to fit to image, resizing will maintain the image's aspect ratio</p>
     </div>
 `;
 document.body.appendChild(instructions);

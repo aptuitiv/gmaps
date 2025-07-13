@@ -41,6 +41,36 @@ export type ImageOverlayOptions = {
 };
 
 /**
+ * Calculate the dimensions of the container based on the image aspect ratio
+ *
+ * @param {number} ar The aspect ratio of the image
+ * @param {number} w The width of the container
+ * @param {number} h The height of the container
+ * @returns {object} The new width and height of the container
+ */
+const calculateDimensions = (ar: number, w: number, h: number): { width: number; height: number } => {
+    const returnValue = { width: w, height: h };
+    if (ar === 0) {
+        return returnValue;
+    }
+
+    const widthFromHeight = h * ar;
+    const heightFromWidth = w / ar;
+
+    const nw = w;
+    const nh = h;
+
+    // Use the dimension that results in a smaller change
+    if (Math.abs(nw - widthFromHeight) < Math.abs(nh - heightFromWidth)) {
+        returnValue.width = widthFromHeight;
+    } else {
+        returnValue.height = heightFromWidth;
+    }
+
+    return returnValue;
+};
+
+/**
  * ImageOverlay class
  */
 export class ImageOverlay extends Overlay {
@@ -534,6 +564,20 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void {
+        this.#bounds = new LatLngBounds({
+            ne: neLatLng,
+            sw: swLatLng,
+        });
+    }
+
+    /**
      * Override the updateBoundsFromResize method to handle resizing
      *
      * @protected
@@ -634,6 +678,97 @@ export class ImageOverlay extends Overlay {
     disableRotation(): ImageOverlay {
         this.rotatable = false;
         return this;
+    }
+
+    /**
+     * Fit the overlay to the exact dimensions of the image
+     *
+     * @returns {Promise<ImageOverlay>}
+     */
+    fitToImage(): Promise<ImageOverlay> {
+        return new Promise((resolve) => {
+            if (!this.#imageElement.complete) {
+                // Wait for the image to load
+                this.#imageElement.onload = () => {
+                    this.#performFitToImage();
+                    resolve(this);
+                };
+            } else {
+                this.#performFitToImage();
+                resolve(this);
+            }
+        });
+    }
+
+    /**
+     * Perform the fit to image operation
+     *
+     * @private
+     */
+    #performFitToImage(): void {
+        const imageWidth = this.#imageElement.naturalWidth;
+        const imageHeight = this.#imageElement.naturalHeight;
+
+        if (imageWidth === 0 || imageHeight === 0) {
+            // eslint-disable-next-line no-console
+            console.warn('Image dimensions are not available');
+            return;
+        }
+
+        // Get the current bounds
+        const currentBounds = this.getCurrentBounds();
+        if (!currentBounds.ne || !currentBounds.sw) {
+            // eslint-disable-next-line no-console
+            console.warn('Current bounds are not available');
+            return;
+        }
+
+        // Calculate the aspect ratio
+        const aspectRatio = imageWidth / imageHeight;
+
+        // Calculate the container width and height from the image aspect ratio
+        const overlayElement = this.getOverlayElement();
+        const containerRect = overlayElement.getBoundingClientRect();
+        const { width: newContainerWidth, height: newContainerHeight } = calculateDimensions(
+            aspectRatio,
+            containerRect.width,
+            containerRect.height,
+        );
+        super.style('width', `${newContainerWidth}px`);
+        super.style('height', `${newContainerHeight}px`);
+
+        // Adjust the left and top positions of the container to center the image within the container.
+        const leftDelta = (containerRect.width - newContainerWidth) / 2;
+        const topDelta = (containerRect.height - newContainerHeight) / 2;
+
+        const currentLeft = parseInt(overlayElement.style.left, 10) || 0;
+        const currentTop = parseInt(overlayElement.style.top, 10) || 0;
+
+        super.style('left', `${currentLeft + leftDelta}px`);
+        super.style('top', `${currentTop + topDelta}px`);
+
+        // Set the aspect ratio for resizing
+        this.setResizeAspectRatio(aspectRatio);
+
+        // Get the new bounds from the lat/lng positions of the container.
+        // Get those positions from the NE and SW pixel coordinates of the container.
+        const newContainerRect = overlayElement.getBoundingClientRect();
+        const mapContainerRect = this.getMap().getDiv().getBoundingClientRect();
+        // Need to get the NE and SW pixel coordinates of the container within the map container.
+        const nePos = {
+            x: newContainerRect.right - mapContainerRect.left,
+            y: newContainerRect.top - mapContainerRect.top,
+        };
+        const swPos = {
+            x: newContainerRect.left - mapContainerRect.left,
+            y: newContainerRect.bottom - mapContainerRect.top,
+        };
+        const neLatLng = this.getContainerLatLngFromPixel(nePos.x, nePos.y);
+        const swLatLng = this.getContainerLatLngFromPixel(swPos.x, swPos.y);
+        this.bounds = new LatLngBounds({
+            ne: neLatLng,
+            sw: swLatLng,
+        });
     }
 
     /**

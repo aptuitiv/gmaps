@@ -15,7 +15,7 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
-import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './helpers';
+import { checkForGoogleMaps, isNullOrUndefined, isNumber, isObject, isString } from './helpers';
 import { OverlayEvents } from './constants';
 
 // Events for dragging, resizing, and rotating
@@ -171,6 +171,14 @@ export class Overlay extends Layer {
      * @type {string}
      */
     resizeCorner: string = '';
+
+    /**
+     * The aspect ratio to maintain during resizing (width / height)
+     *
+     * @private
+     * @type {number}
+     */
+    #resizeAspectRatio: number = 0;
 
     /**
      * Constructor
@@ -673,6 +681,52 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Set the aspect ratio to maintain during resizing
+     *
+     * @param {number} aspectRatio The aspect ratio (width / height)
+     * @returns {Overlay}
+     */
+    setResizeAspectRatio(aspectRatio: number): Overlay {
+        if (isNumber(aspectRatio) && aspectRatio > 0) {
+            this.#resizeAspectRatio = aspectRatio;
+        }
+        return this;
+    }
+
+    /**
+     * Get the current aspect ratio for resizing
+     *
+     * @returns {number}
+     */
+    getResizeAspectRatio(): number {
+        return this.#resizeAspectRatio;
+    }
+
+    /**
+     * Calculate dimensions that maintain the aspect ratio
+     *
+     * @private
+     * @param {number} newWidth The new width
+     * @param {number} newHeight The new height
+     * @returns {object} The constrained dimensions
+     */
+    #calculateConstrainedDimensions(newWidth: number, newHeight: number): { width: number; height: number } {
+        if (this.#resizeAspectRatio <= 0) {
+            return { width: newWidth, height: newHeight };
+        }
+
+        // Determine which dimension to use as the primary constraint
+        const widthFromHeight = newHeight * this.#resizeAspectRatio;
+        const heightFromWidth = newWidth / this.#resizeAspectRatio;
+
+        // Use the dimension that results in a smaller change
+        if (Math.abs(newWidth - widthFromHeight) < Math.abs(newHeight - heightFromWidth)) {
+            return { width: widthFromHeight, height: newHeight };
+        }
+        return { width: newWidth, height: heightFromWidth };
+    }
+
+    /**
      * Set up drag event handlers
      *
      * @private
@@ -949,7 +1003,11 @@ export class Overlay extends Layer {
             // Get the bottom left x/y coordinates
             const bottomLeft = projection.fromLatLngToContainerPixel(this.resizeStart.swBounds.toGoogle());
 
-            const newLatLng = this.getContainerLatLngFromPixel(mouseX, mouseY);
+            let newWidth: number;
+            let newHeight: number;
+            let newLeft: number;
+            let newTop: number;
+
             if (this.resizeCorner === 'nw') {
                 // If the current position is below the bottom left corner or to the right of the top right corner,
                 // then do not continue with the resize
@@ -959,11 +1017,11 @@ export class Overlay extends Layer {
                 // Calculate the difference between the current position and the top right
                 const diffX = this.resizeStart.nwPos.x - mouseX;
                 const diffY = this.resizeStart.nwPos.y - mouseY;
-                // Update the height and width of the overlay
-                this.#overlay.style.width = `${this.resizeStart.width + diffX}px`;
-                this.#overlay.style.height = `${this.resizeStart.height + diffY}px`;
-                this.#overlay.style.top = `${this.resizeStart.top - diffY}px`;
-                this.#overlay.style.left = `${this.resizeStart.left - diffX}px`;
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width + diffX;
+                newHeight = this.resizeStart.height + diffY;
+                newLeft = this.resizeStart.left - diffX;
+                newTop = this.resizeStart.top - diffY;
             } else if (this.resizeCorner === 'ne') {
                 // If the current position is below the bottom left corner or to the left of the bottom left corner,
                 // then do not continue with the resize
@@ -973,10 +1031,11 @@ export class Overlay extends Layer {
                 // Calculate the difference between the current position and the top right
                 const diffX = topRight.x - mouseX;
                 const diffY = topRight.y - mouseY;
-                // Update the height and width of the overlay
-                this.#overlay.style.width = `${this.resizeStart.width - diffX}px`;
-                this.#overlay.style.height = `${this.resizeStart.height + diffY}px`;
-                this.#overlay.style.top = `${this.resizeStart.top - diffY}px`;
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width - diffX;
+                newHeight = this.resizeStart.height + diffY;
+                newLeft = this.resizeStart.left;
+                newTop = this.resizeStart.top - diffY;
             } else if (this.resizeCorner === 'sw') {
                 // If the current position is above the top left corner or to the right of the top right corner,
                 // then do not continue with the resize
@@ -988,10 +1047,11 @@ export class Overlay extends Layer {
                 const diffX = bottomLeft.x - mouseX;
                 const diffY = bottomLeft.y - mouseY;
 
-                // Update the height and width of the overlay
-                this.#overlay.style.width = `${this.resizeStart.width + diffX}px`;
-                this.#overlay.style.height = `${this.resizeStart.height - diffY}px`;
-                this.#overlay.style.left = `${this.resizeStart.left - diffX}px`;
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width + diffX;
+                newHeight = this.resizeStart.height - diffY;
+                newLeft = this.resizeStart.left - diffX;
+                newTop = this.resizeStart.top;
             } else if (this.resizeCorner === 'se') {
                 // If the current position is above the top left corner or to the left of the top left corner,
                 // then do not continue with the resize
@@ -1003,11 +1063,44 @@ export class Overlay extends Layer {
                 const diffX = this.resizeStart.sePos.x - mouseX;
                 const diffY = this.resizeStart.sePos.y - mouseY;
 
-                // Update the height and width of the overlay
-                this.#overlay.style.width = `${this.resizeStart.width - diffX}px`;
-                this.#overlay.style.height = `${this.resizeStart.height - diffY}px`;
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width - diffX;
+                newHeight = this.resizeStart.height - diffY;
+                newLeft = this.resizeStart.left;
+                newTop = this.resizeStart.top;
             }
-            this.updateBoundsFromResize(newLatLng);
+
+            // Apply aspect ratio constraint if set
+            const constrained = this.#calculateConstrainedDimensions(newWidth, newHeight);
+
+            // Update the overlay dimensions and position
+            this.#overlay.style.width = `${constrained.width}px`;
+            this.#overlay.style.height = `${constrained.height}px`;
+            this.#overlay.style.left = `${newLeft}px`;
+            this.#overlay.style.top = `${newTop}px`;
+
+            if (this.#resizeAspectRatio > 0) {
+                // If the aspect ratio is set, then we need to calculate the new lat/lng position based on the new dimensions.
+                const newContainerRect = this.#overlay.getBoundingClientRect();
+                const mapContainerRect = this.getMap().getDiv().getBoundingClientRect();
+                // Need to get the NE and SW pixel coordinates of the container within the map container.
+                const nePos = {
+                    x: newContainerRect.right - mapContainerRect.left,
+                    y: newContainerRect.top - mapContainerRect.top,
+                };
+                const swPos = {
+                    x: newContainerRect.left - mapContainerRect.left,
+                    y: newContainerRect.bottom - mapContainerRect.top,
+                };
+                const neLatLng = this.getContainerLatLngFromPixel(nePos.x, nePos.y);
+                const swLatLng = this.getContainerLatLngFromPixel(swPos.x, swPos.y);
+                this.setBoundsFromResize(neLatLng, swLatLng);
+            } else {
+                // Set the new lat/lng position based on the mouse position.
+                const newLatLng = this.getContainerLatLngFromPixel(mouseX, mouseY);
+                this.updateBoundsFromResize(newLatLng);
+            }
+
             this.dispatch(OverlayDragEvents.RESIZE, { event: e, corner: this.resizeCorner });
         }
     };
@@ -1039,6 +1132,18 @@ export class Overlay extends Layer {
      */
     // eslint-disable-next-line class-methods-use-this
     updateBoundsFromPosition(): void {
+        // This method will be overridden by subclasses
+    }
+
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void {
         // This method will be overridden by subclasses
     }
 
