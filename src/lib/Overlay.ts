@@ -15,7 +15,7 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
-import { checkForGoogleMaps, isNullOrUndefined, isNumber, isObject, isString } from './helpers';
+import { calculateDimensions, checkForGoogleMaps, isNullOrUndefined, isNumber, isObject, isString } from './helpers';
 import { OverlayEvents } from './constants';
 import { LatLngBounds } from './LatLngBounds';
 
@@ -691,30 +691,6 @@ export class Overlay extends Layer {
     }
 
     /**
-     * Calculate dimensions that maintain the aspect ratio
-     *
-     * @private
-     * @param {number} newWidth The new width
-     * @param {number} newHeight The new height
-     * @returns {object} The constrained dimensions
-     */
-    #calculateConstrainedDimensions(newWidth: number, newHeight: number): { width: number; height: number } {
-        if (this.#resizeAspectRatio <= 0) {
-            return { width: newWidth, height: newHeight };
-        }
-
-        // Determine which dimension to use as the primary constraint
-        const widthFromHeight = newHeight * this.#resizeAspectRatio;
-        const heightFromWidth = newWidth / this.#resizeAspectRatio;
-
-        // Use the dimension that results in a smaller change
-        if (Math.abs(newWidth - widthFromHeight) < Math.abs(newHeight - heightFromWidth)) {
-            return { width: widthFromHeight, height: newHeight };
-        }
-        return { width: newWidth, height: heightFromWidth };
-    }
-
-    /**
      * Set up drag event handlers
      *
      * @private
@@ -1061,7 +1037,7 @@ export class Overlay extends Layer {
             }
 
             // Apply aspect ratio constraint if set
-            const constrained = this.#calculateConstrainedDimensions(newWidth, newHeight);
+            const constrained = calculateDimensions(this.#resizeAspectRatio, newWidth, newHeight);
 
             // Update the overlay dimensions and position
             this.#overlay.style.width = `${constrained.width}px`;
@@ -1155,6 +1131,7 @@ export class Overlay extends Layer {
      *
      * @returns {LatLngBounds}
      */
+    // eslint-disable-next-line class-methods-use-this
     getBounds(): LatLngBounds {
         return new LatLngBounds({
             ne: latLng(),

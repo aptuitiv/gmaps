@@ -10,6 +10,7 @@ import { LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import { OverlayEvents } from './constants';
 import { Overlay } from './Overlay';
 import {
+    calculateDimensions,
     isBoolean,
     isNullOrUndefined,
     isNumber,
@@ -39,36 +40,6 @@ export type ImageOverlayOptions = {
     rotatable?: boolean;
     // Styles that will be set on the image overlay container div
     styles?: object;
-};
-
-/**
- * Calculate the dimensions of the container based on the image aspect ratio
- *
- * @param {number} ar The aspect ratio of the image
- * @param {number} w The width of the container
- * @param {number} h The height of the container
- * @returns {object} The new width and height of the container
- */
-const calculateDimensions = (ar: number, w: number, h: number): { width: number; height: number } => {
-    const returnValue = { width: w, height: h };
-    if (ar === 0) {
-        return returnValue;
-    }
-
-    const widthFromHeight = h * ar;
-    const heightFromWidth = w / ar;
-
-    const nw = w;
-    const nh = h;
-
-    // Use the dimension that results in a smaller change
-    if (Math.abs(nw - widthFromHeight) < Math.abs(nh - heightFromWidth)) {
-        returnValue.width = widthFromHeight;
-    } else {
-        returnValue.height = heightFromWidth;
-    }
-
-    return returnValue;
 };
 
 /**
