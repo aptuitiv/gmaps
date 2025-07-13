@@ -15,7 +15,15 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
-import { calculateDimensions, checkForGoogleMaps, isNullOrUndefined, isNumber, isObject, isString } from './helpers';
+import {
+    calculateDimensions,
+    checkForGoogleMaps,
+    isBoolean,
+    isNullOrUndefined,
+    isNumber,
+    isObject,
+    isString,
+} from './helpers';
 import { OverlayEvents } from './constants';
 import { LatLngBounds } from './LatLngBounds';
 
@@ -292,8 +300,10 @@ export class Overlay extends Layer {
      * @param {boolean} drag Whether dragging is enabled
      */
     set drag(drag: boolean) {
-        this.#drag = drag;
-        this.#setupDragHandlers();
+        if (isBoolean(drag)) {
+            this.#drag = drag;
+            this.#setupDragHandlers();
+        }
     }
 
     /**
@@ -311,8 +321,10 @@ export class Overlay extends Layer {
      * @param {boolean} resize Whether resizing is enabled
      */
     set resize(resize: boolean) {
-        this.#resize = resize;
-        this.#setupResizeHandlers();
+        if (isBoolean(resize)) {
+            this.#resize = resize;
+            this.#setupResizeHandlers();
+        }
     }
 
     /**
