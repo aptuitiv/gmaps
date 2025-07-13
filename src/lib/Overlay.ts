@@ -38,6 +38,38 @@ type ResizeStart = {
  */
 export class Overlay extends Layer {
     /**
+     * Whether dragging is enabled for this overlay
+     *
+     * @private
+     * @type {boolean}
+     */
+    #draggable: boolean = false;
+
+    /**
+     * The starting position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    #dragStart: Point;
+
+    /**
+     * Whether the overlay is currently being dragged
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isDragging: boolean = false;
+
+    /**
+     * Whether the overlay is currently being resized
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isResizing: boolean = false;
+
+    /**
      * Holds the offset for the overlay
      *
      * @private
@@ -57,6 +89,14 @@ export class Overlay extends Layer {
     #overlay: HTMLElement;
 
     /**
+     * The starting overlay position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    #overlayStart: Point;
+
+    /**
      * Holds the overlay view class instance
      *
      * @private
@@ -73,22 +113,6 @@ export class Overlay extends Layer {
     #position: LatLng;
 
     /**
-     * Holds the styles for the overlay.
-     *
-     * @private
-     * @type {object}
-     */
-    #styles: object = {};
-
-    /**
-     * Whether dragging is enabled for this overlay
-     *
-     * @private
-     * @type {boolean}
-     */
-    #draggable: boolean = false;
-
-    /**
      * Whether resizing is enabled for this overlay
      *
      * @private
@@ -97,60 +121,12 @@ export class Overlay extends Layer {
     #resizable: boolean = false;
 
     /**
-     * Whether the overlay is currently being dragged
+     * The aspect ratio to maintain during resizing (width / height)
      *
      * @private
-     * @type {boolean}
+     * @type {number}
      */
-    #isDragging: boolean = false;
-
-    /**
-     * Whether the overlay is currently being resized
-     *
-     * @private
-     * @type {boolean}
-     */
-    #isResizing: boolean = false;
-
-    /**
-     * The corner being resized (nw, ne, sw, se)
-     *
-     * @private
-     * @type {string}
-     */
-    #resizeCorner: string = '';
-
-    /**
-     * The starting position when dragging begins
-     *
-     * @private
-     * @type {Point}
-     */
-    #dragStart: Point;
-
-    /**
-     * The starting overlay position when dragging begins
-     *
-     * @private
-     * @type {Point}
-     */
-    #overlayStart: Point;
-
-    /**
-     * The starting bounds when resizing begins
-     *
-     * @protected
-     * @type {object}
-     */
-    resizeStart: ResizeStart;
-
-    /**
-     * The resize handles
-     *
-     * @private
-     * @type {HTMLElement[]}
-     */
-    #resizeHandles: HTMLElement[] = [];
+    #resizeAspectRatio: number = 0;
 
     /**
      * The corner being resized (nw, ne, sw, se)
@@ -161,12 +137,28 @@ export class Overlay extends Layer {
     resizeCorner: string = '';
 
     /**
-     * The aspect ratio to maintain during resizing (width / height)
+     * The resize handles
      *
      * @private
-     * @type {number}
+     * @type {HTMLElement[]}
      */
-    #resizeAspectRatio: number = 0;
+    #resizeHandles: HTMLElement[] = [];
+
+    /**
+     * The starting bounds when resizing begins
+     *
+     * @protected
+     * @type {object}
+     */
+    resizeStart: ResizeStart;
+
+    /**
+     * Holds the styles for the overlay.
+     *
+     * @private
+     * @type {object}
+     */
+    #styles: object = {};
 
     /**
      * Constructor

@@ -73,30 +73,20 @@ export class ImageOverlay extends Overlay {
     #imageUrl: string;
 
     /**
+     * Whether the overlay is currently being rotated
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isRotating: boolean = false;
+
+    /**
      * Holds the opacity of the image
      *
      * @private
      * @type {number}
      */
     #opacity: number = 1.0;
-
-    /**
-     * Holds the styles for the image element
-     *
-     * This overrides the styles property of the Overlay class.
-     *
-     * @private
-     * @type {object}
-     */
-    #styles: object = {};
-
-    /**
-     * Holds the rotation angle in degrees
-     *
-     * @private
-     * @type {number}
-     */
-    #rotation: number = 0;
 
     /**
      * Whether rotation is enabled
@@ -107,12 +97,20 @@ export class ImageOverlay extends Overlay {
     #rotatable: boolean = false;
 
     /**
-     * Whether the overlay is currently being rotated
+     * Holds the rotation angle in degrees
      *
      * @private
-     * @type {boolean}
+     * @type {number}
      */
-    #isRotating: boolean = false;
+    #rotation: number = 0;
+
+    /**
+     * The starting center point when rotation begins
+     *
+     * @private
+     * @type {Point}
+     */
+    #rotationCenter: Point;
 
     /**
      * The rotation container element (wraps the image when rotation is enabled)
@@ -131,12 +129,14 @@ export class ImageOverlay extends Overlay {
     #rotationHandle: HTMLElement;
 
     /**
-     * The starting center point when rotation begins
+     * Holds the styles for the image element
+     *
+     * This overrides the styles property of the Overlay class.
      *
      * @private
-     * @type {Point}
+     * @type {object}
      */
-    #rotationCenter: Point;
+    #styles: object = {};
 
     /**
      * Constructor
