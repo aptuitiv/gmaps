@@ -2,57 +2,97 @@
     ImageOverlay example
 
     This example shows how to create an image overlay on the map.
+
+    You can also use this to find the exact positioning that you need for an image on your map.
 =========================================================================== */
 
 G.loader().setApiKey(apiKey).load();
 
+// Set the the image URL and the bounds of the image overlay
+const mapCenter = { latitude: 44.3644077301405, longitude: -68.32022737144165 };
+const imageUrl = 'https://bcms-files.s3.amazonaws.com/2ajn2d9Bq3-1851/images/Campground-Map.png';
+// const imageUrl = 'https://developers.google.com/maps/documentation/javascript/examples/full/images/talkeetna.png';
+const imageBounds = {
+    ne: [44.36877953646439, -68.31675122855835], // Northeast corner
+    sw: [44.361063461552426, -68.32760881065063], // Southwest corner
+};
+const debug = true;
+const enableDrag = false;
+const enableResize = false;
+const enableRotation = false;
+const imageRotation = 0;
+
 // Initialize the map
 const map = G.map('#map1', {
-    center: { latitude: 44.3644077301405, longitude: -68.32022737144165 }, // Mt Desert Island, ME
-    // center: { latitude: 40.7128, longitude: -74.0060 }, // New York City
+    center: mapCenter,
     zoom: 16,
 });
 map.show();
-// Use the click event to help get the lat/lng to set the bounds of the image overlay
-map.on('click', (event) => {
-    console.log('map click latLng: ', event.latLng.getLat(), ', ', event.latLng.getLng());
-});
 
-const marker = G.marker({
-    latitude: 44.3644077301405,
-    longitude: -68.32022737144165,
-    map: map,
-    title: 'My Marker',
-});
+
+
 
 // Create an image overlay
 const imageOverlay = G.imageOverlay({
-    imageUrl: 'https://bcms-files.s3.amazonaws.com/2ajn2d9Bq3-1851/images/Campground-Map.png',
+    imageUrl: imageUrl,
     // image: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/talkeetna.png',
-    bounds: {
-        ne: [44.36877953646439, -68.31675122855835], // Northeast corner
-        sw: [44.361063461552426, -68.32760881065063], // Southwest corner
-    },
-    // debug: true,
+    bounds: imageBounds,
+    debug: debug,
+    drag: enableDrag,
+    resize: enableResize,
+    map: map,
     opacity: 0.5,
-    rotation: 0, // Initial rotation angle in degrees
-    rotatable: true, // Enable rotation
-    className: 'custom-image-overlay',
+    rotation: imageRotation,
+    rotate: enableRotation,
+    // className: 'custom-image-overlay',
     // styles: {
-    //     transform: 'rotate(-45deg)',
+    //     transform: 'rotate(45deg)',
+    //     outline: '1px solid red',
     // },
 });
+
+console.log('image rotate: ', imageOverlay.rotate);
+console.log('Image styles: ', imageOverlay.styles);
 
 // Show the image overlay on the map
 // imageOverlay.show(map);
 
 // Enable dragging, resizing, and rotation
-imageOverlay.enableDrag();
-imageOverlay.enableResize();
-imageOverlay.enableRotation();
+// imageOverlay.enableDrag();
+// imageOverlay.enableResize();
+// imageOverlay.enableRotation();
 
 // Show the image overlay on the map
-imageOverlay.show(map);
+// imageOverlay.show(map);
+
+// Add a marker to confirm if the overlay is above or below the marker
+const marker = G.marker({
+    latitude: mapCenter.latitude,
+    longitude: mapCenter.longitude,
+    map: map,
+    title: 'My Marker',
+});
+
+// Use the click event to help get the lat/lng to set the bounds of the image overlay
+map.on('click', (event) => {
+    console.log('map click latLng: ', event.latLng.getLat(), ', ', event.latLng.getLng());
+});
+
+/**
+ * Get the debug information for the image overlay
+ *
+ * @returns {object} The debug information
+ */
+const getDebugInfo = () => {
+    const bounds = imageOverlay.getBounds();
+    return {
+        angle: imageOverlay.getRotation(),
+        bounds: {
+            ne: bounds.getNorthEast().toJson(),
+            sw: bounds.getSouthWest().toJson(),
+        }
+    };
+};
 
 // Listen for drag events
 // imageOverlay.on('dragstart', (event) => {
@@ -125,7 +165,7 @@ document.addEventListener('keydown', (event) => {
 // Example of toggling drag mode
 document.addEventListener('keydown', (event) => {
     if (event.key === 'd' || event.key === 'D') {
-        if (imageOverlay.draggable) {
+        if (imageOverlay.drag) {
             imageOverlay.disableDrag();
             console.log('Drag disabled');
         } else {
@@ -138,7 +178,7 @@ document.addEventListener('keydown', (event) => {
 // Example of toggling resize mode
 document.addEventListener('keydown', (event) => {
     if (event.key === 'r' || event.key === 'R') {
-        if (imageOverlay.resizable) {
+        if (imageOverlay.resize) {
             imageOverlay.disableResize();
             console.log('Resize disabled');
         } else {
@@ -151,7 +191,7 @@ document.addEventListener('keydown', (event) => {
 // Example of toggling rotation mode
 document.addEventListener('keydown', (event) => {
     if (event.key === 'o' || event.key === 'O') {
-        if (imageOverlay.rotatable) {
+        if (imageOverlay.rotate) {
             imageOverlay.disableRotation();
             console.log('Rotation disabled');
         } else {
