@@ -141,15 +141,8 @@ export class ImageOverlay extends Overlay {
      *
      * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
      * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
-     * @param {number} [opacity] The opacity of the image (if options is a string)
-     * @param {number} [rotation] The rotation angle in degrees (if options is a string)
      */
-    constructor(
-        options: ImageOverlayOptions | string,
-        bounds?: LatLngBoundsValue,
-        opacity?: number,
-        rotation?: number,
-    ) {
+    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue) {
         super('imageoverlay', 'ImageOverlay');
 
         // Initialize the image element
@@ -165,12 +158,6 @@ export class ImageOverlay extends Overlay {
             this.image = options;
             if (bounds) {
                 this.bounds = bounds;
-            }
-            if (opacity !== undefined) {
-                this.opacity = opacity;
-            }
-            if (rotation !== undefined) {
-                this.rotation = rotation;
             }
         }
     }
@@ -728,7 +715,11 @@ export class ImageOverlay extends Overlay {
         if (this.#rotationContainer) {
             this.#rotationContainer.style.transform = `rotate(${this.#rotation}deg)`;
         } else {
-            this.#imageElement.style.transform = `rotate(${this.#rotation}deg)`;
+            if (this.#rotation !== 0) {
+                this.#imageElement.style.transform = `rotate(${this.#rotation}deg)`;
+            } else {
+                this.#imageElement.style.transform = '';
+            }
         }
     }
 
@@ -1008,18 +999,11 @@ export type ImageOverlayValue = ImageOverlay | ImageOverlayOptions | string;
  *
  * @param {ImageOverlayValue} [options] The ImageOverlay options or image URL
  * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
- * @param {number} [opacity] The opacity of the image (if options is a string)
- * @param {number} [rotation] The rotation angle in degrees (if options is a string)
  * @returns {ImageOverlay}
  */
-export const imageOverlay = (
-    options?: ImageOverlayValue,
-    bounds?: LatLngBoundsValue,
-    opacity?: number,
-    rotation?: number,
-): ImageOverlay => {
+export const imageOverlay = (options?: ImageOverlayValue, bounds?: LatLngBoundsValue): ImageOverlay => {
     if (options instanceof ImageOverlay) {
         return options;
     }
-    return new ImageOverlay(options, bounds, opacity, rotation);
+    return new ImageOverlay(options, bounds);
 };
