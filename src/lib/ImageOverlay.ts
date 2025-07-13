@@ -7,11 +7,19 @@
 /* global google */
 
 import { LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
-import { Overlay } from './Overlay';
-import { isBoolean, isNullOrUndefined, isNumber, isObject, isString, isStringWithValue } from './helpers';
+import { Overlay, OverlayDragEvents } from './Overlay';
+import {
+    isBoolean,
+    isNullOrUndefined,
+    isNumber,
+    isObject,
+    isString,
+    isStringWithValue,
+    checkForGoogleMaps,
+} from './helpers';
 import { Map } from './Map';
 import { latLng, LatLng } from './LatLng';
-import { point } from './Point';
+import { point, Point } from './Point';
 
 export type ImageOverlayOptions = {
     // The image URL to display
@@ -24,6 +32,10 @@ export type ImageOverlayOptions = {
     debug?: boolean;
     // The opacity of the image (0.0 to 1.0)
     opacity?: number;
+    // The rotation angle in degrees (0 to 360)
+    rotation?: number;
+    // Whether rotation is enabled
+    rotatable?: boolean;
     // Styles that will be set on the image overlay container div
     styles?: object;
 };
@@ -75,13 +87,67 @@ export class ImageOverlay extends Overlay {
     #styles: object = {};
 
     /**
+     * Holds the rotation angle in degrees
+     *
+     * @private
+     * @type {number}
+     */
+    #rotation: number = 0;
+
+    /**
+     * Whether rotation is enabled
+     *
+     * @private
+     * @type {boolean}
+     */
+    #rotatable: boolean = false;
+
+    /**
+     * Whether the overlay is currently being rotated
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isRotating: boolean = false;
+
+    /**
+     * The rotation container element (wraps the image when rotation is enabled)
+     *
+     * @private
+     * @type {HTMLElement}
+     */
+    #rotationContainer: HTMLElement;
+
+    /**
+     * The rotation handle element
+     *
+     * @private
+     * @type {HTMLElement}
+     */
+    #rotationHandle: HTMLElement;
+
+    /**
+     * The starting center point when rotation begins
+     *
+     * @private
+     * @type {Point}
+     */
+    #rotationCenter: Point;
+
+    /**
      * Constructor
      *
      * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
      * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
      * @param {number} [opacity] The opacity of the image (if options is a string)
+     * @param {number} [rotation] The rotation angle in degrees (if options is a string)
      */
-    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue, opacity?: number) {
+    constructor(
+        options: ImageOverlayOptions | string,
+        bounds?: LatLngBoundsValue,
+        opacity?: number,
+        rotation?: number,
+    ) {
         super('imageoverlay', 'ImageOverlay');
 
         // Initialize the image element
@@ -100,6 +166,9 @@ export class ImageOverlay extends Overlay {
             }
             if (opacity !== undefined) {
                 this.opacity = opacity;
+            }
+            if (rotation !== undefined) {
+                this.rotation = rotation;
             }
         }
     }
@@ -200,6 +269,46 @@ export class ImageOverlay extends Overlay {
             this.#opacity = opacity;
             this.#imageElement.style.opacity = opacity.toString();
         }
+    }
+
+    /**
+     * Returns the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    get rotation(): number {
+        return this.#rotation;
+    }
+
+    /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     */
+    set rotation(rotation: number) {
+        if (isNumber(rotation)) {
+            this.#rotation = rotation;
+            this.#updateImageRotation();
+        }
+    }
+
+    /**
+     * Returns whether rotation is enabled
+     *
+     * @returns {boolean}
+     */
+    get rotatable(): boolean {
+        return this.#rotatable;
+    }
+
+    /**
+     * Set whether rotation is enabled
+     *
+     * @param {boolean} rotatable Whether rotation is enabled
+     */
+    set rotatable(rotatable: boolean) {
+        this.#rotatable = rotatable;
+        this.#setupRotationHandlers();
     }
 
     /**
@@ -345,6 +454,12 @@ export class ImageOverlay extends Overlay {
         if (options.opacity !== undefined) {
             this.opacity = options.opacity;
         }
+        if (options.rotation !== undefined) {
+            this.rotation = options.rotation;
+        }
+        if (options.rotatable !== undefined) {
+            this.rotatable = options.rotatable;
+        }
         if (options.className) {
             this.setClassName(options.className);
         }
@@ -482,15 +597,285 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Get the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    getRotation(): number {
+        return this.#rotation;
+    }
+
+    /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     * @returns {ImageOverlay}
+     */
+    setRotation(rotation: number): ImageOverlay {
+        this.rotation = rotation;
+        return this;
+    }
+
+    /**
+     * Enable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    enableRotation(): ImageOverlay {
+        this.rotatable = true;
+        return this;
+    }
+
+    /**
+     * Disable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    disableRotation(): ImageOverlay {
+        this.rotatable = false;
+        return this;
+    }
+
+    /**
+     * Update the image rotation transform
+     *
+     * @private
+     */
+    #updateImageRotation(): void {
+        if (this.#rotationContainer) {
+            this.#rotationContainer.style.transform = `rotate(${this.#rotation}deg)`;
+        } else {
+            this.#imageElement.style.transform = `rotate(${this.#rotation}deg)`;
+        }
+    }
+
+    /**
+     * Set up rotation event handlers
+     *
+     * @private
+     */
+    #setupRotationHandlers(): void {
+        if (this.#rotatable) {
+            this.#createRotationContainer();
+            this.#createRotationHandle();
+        } else {
+            this.#removeRotationHandle();
+            this.#removeRotationContainer();
+        }
+    }
+
+    /**
+     * Create rotation container
+     *
+     * @private
+     */
+    #createRotationContainer(): void {
+        this.#removeRotationContainer();
+
+        // Create the rotation container
+        this.#rotationContainer = document.createElement('div');
+        this.#rotationContainer.className = 'rotation-container';
+        this.#rotationContainer.style.cssText = `
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+
+        // Move the image into the rotation container
+        if (this.#imageElement.parentNode) {
+            this.#imageElement.parentNode.insertBefore(this.#rotationContainer, this.#imageElement);
+        }
+        this.#rotationContainer.appendChild(this.#imageElement);
+
+        // Apply current rotation
+        this.#updateImageRotation();
+    }
+
+    /**
+     * Remove rotation container
+     *
+     * @private
+     */
+    #removeRotationContainer(): void {
+        if (this.#rotationContainer) {
+            // Move the image back to the overlay element
+            this.getOverlayElement().appendChild(this.#imageElement);
+
+            // Remove the rotation container
+            if (this.#rotationContainer.parentNode) {
+                this.#rotationContainer.parentNode.removeChild(this.#rotationContainer);
+            }
+            this.#rotationContainer = null;
+        }
+    }
+
+    /**
+     * Create rotation handle
+     *
+     * @private
+     */
+    #createRotationHandle(): void {
+        this.#removeRotationHandle();
+
+        this.#rotationHandle = document.createElement('div');
+        this.#rotationHandle.className = 'rotation-handle';
+        this.#rotationHandle.style.cssText = `
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 40px;
+            background: #007bff;
+            border-radius: 2px;
+            cursor: grab;
+            z-index: 1001;
+            pointer-events: auto;
+        `;
+
+        // Add the handle circle at the top
+        const handleCircle = document.createElement('div');
+        handleCircle.style.cssText = `
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 16px;
+            background: #007bff;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: grab;
+        `;
+
+        this.#rotationHandle.appendChild(handleCircle);
+
+        this.#rotationHandle.addEventListener('mousedown', this.#handleRotationStart);
+        this.#rotationHandle.addEventListener('touchstart', this.#handleRotationStart);
+
+        // Prevent map events on rotation handle
+        if (checkForGoogleMaps('ImageOverlay', 'OverlayView', false)) {
+            google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#rotationHandle);
+        }
+
+        // Add the handle to the rotation container if it exists, otherwise to the overlay
+        const parentElement = this.#rotationContainer || this.getOverlayElement();
+        parentElement.appendChild(this.#rotationHandle);
+    }
+
+    /**
+     * Remove rotation handle
+     *
+     * @private
+     */
+    #removeRotationHandle(): void {
+        if (this.#rotationHandle && this.#rotationHandle.parentNode) {
+            this.#rotationHandle.parentNode.removeChild(this.#rotationHandle);
+            this.#rotationHandle = null;
+        }
+    }
+
+    /**
+     * Handle rotation start
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleRotationStart = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#rotatable || this.#isRotating) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.#isRotating = true;
+
+        // Get the center of the overlay
+        const overlayRect = this.getOverlayElement().getBoundingClientRect();
+        this.#rotationCenter = point(
+            overlayRect.left + overlayRect.width / 2,
+            overlayRect.top + overlayRect.height / 2,
+        );
+
+        document.addEventListener('mousemove', this.#handleRotation);
+        document.addEventListener('mouseup', this.#handleRotationEnd);
+        document.addEventListener('touchmove', this.#handleRotation);
+        document.addEventListener('touchend', this.#handleRotationEnd);
+
+        this.dispatch(OverlayDragEvents.ROTATE_START, { event: e });
+    };
+
+    /**
+     * Handle rotation
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleRotation = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#isRotating) return;
+
+        e.preventDefault();
+
+        const currentPos = point(
+            e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY],
+        );
+
+        // Calculate the angle between the center and the current mouse position
+        const deltaX = currentPos.getX() - this.#rotationCenter.getX();
+        const deltaY = currentPos.getY() - this.#rotationCenter.getY();
+        const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+
+        // Convert to 0-360 range and adjust for the starting angle
+        let newRotation = (angle + 90) % 360;
+        if (newRotation < 0) newRotation += 360;
+
+        this.#rotation = newRotation;
+        this.#updateImageRotation();
+
+        this.dispatch(OverlayDragEvents.ROTATE, { event: e, angle: newRotation });
+    };
+
+    /**
+     * Handle rotation end
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleRotationEnd = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#isRotating) return;
+
+        this.#isRotating = false;
+
+        document.removeEventListener('mousemove', this.#handleRotation);
+        document.removeEventListener('mouseup', this.#handleRotationEnd);
+        document.removeEventListener('touchmove', this.#handleRotation);
+        document.removeEventListener('touchend', this.#handleRotationEnd);
+
+        this.dispatch(OverlayDragEvents.ROTATE_END, { event: e, angle: this.#rotation });
+    };
+
+    /**
      * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
      *
      * @internal
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
+        // Set up rotation handlers if rotation is enabled
+        if (this.#rotatable) {
+            this.#setupRotationHandlers();
+        }
+
         // Add the image element to the overlay container
-        this.getOverlayElement().appendChild(this.#imageElement);
-        if (this.resizable || this.draggable) {
+        if (this.#rotationContainer) {
+            this.getOverlayElement().appendChild(this.#rotationContainer);
+        } else {
+            this.getOverlayElement().appendChild(this.#imageElement);
+        }
+
+        if (this.resizable || this.draggable || this.#rotatable) {
             // Add the overlay to the float pane to ensure it's above the map and can receive events
             // https://developers.google.com/maps/documentation/javascript/customoverlays#intitialize
             panes.floatPane.appendChild(this.getOverlayElement());
@@ -541,15 +926,17 @@ export type ImageOverlayValue = ImageOverlay | ImageOverlayOptions | string;
  * @param {ImageOverlayValue} [options] The ImageOverlay options or image URL
  * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
  * @param {number} [opacity] The opacity of the image (if options is a string)
+ * @param {number} [rotation] The rotation angle in degrees (if options is a string)
  * @returns {ImageOverlay}
  */
 export const imageOverlay = (
     options?: ImageOverlayValue,
     bounds?: LatLngBoundsValue,
     opacity?: number,
+    rotation?: number,
 ): ImageOverlay => {
     if (options instanceof ImageOverlay) {
         return options;
     }
-    return new ImageOverlay(options, bounds, opacity);
+    return new ImageOverlay(options, bounds, opacity, rotation);
 };

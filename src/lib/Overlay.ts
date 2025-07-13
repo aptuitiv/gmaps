@@ -18,7 +18,7 @@ import { Point, point, PointValue } from './Point';
 import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './helpers';
 import { OverlayEvents } from './constants';
 
-// Events for dragging and resizing
+// Events for dragging, resizing, and rotating
 export const OverlayDragEvents = {
     DRAG_START: 'dragstart',
     DRAG: 'drag',
@@ -26,6 +26,9 @@ export const OverlayDragEvents = {
     RESIZE_START: 'resizestart',
     RESIZE: 'resize',
     RESIZE_END: 'resizeend',
+    ROTATE_START: 'rotatestart',
+    ROTATE: 'rotate',
+    ROTATE_END: 'rotateend',
 } as const;
 
 type ResizeStart = {

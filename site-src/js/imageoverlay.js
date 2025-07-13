@@ -35,6 +35,8 @@ const imageOverlay = G.imageOverlay({
     },
     // debug: true,
     opacity: 0.5,
+    rotation: 0, // Initial rotation angle in degrees
+    rotatable: true, // Enable rotation
     className: 'custom-image-overlay',
     // styles: {
     //     transform: 'rotate(-45deg)',
@@ -42,11 +44,15 @@ const imageOverlay = G.imageOverlay({
 });
 
 // Show the image overlay on the map
-imageOverlay.show(map);
+// imageOverlay.show(map);
 
-// Enable dragging and resizing
+// Enable dragging, resizing, and rotation
 imageOverlay.enableDrag();
 imageOverlay.enableResize();
+imageOverlay.enableRotation();
+
+// Show the image overlay on the map
+imageOverlay.show(map);
 
 // Listen for drag events
 // imageOverlay.on('dragstart', (event) => {
@@ -61,18 +67,33 @@ imageOverlay.enableResize();
 //     console.log('Drag ended:', event);
 // });
 
-// // Listen for resize events
-// imageOverlay.on('resizestart', (event) => {
-//     console.log('Resize started:', event);
-// });
+// Listen for resize events
+imageOverlay.on('resizestart', (event) => {
+    console.log('Resize started:', event);
+});
 
-// imageOverlay.on('resize', (event) => {
-//     console.log('Resizing:', event);
-// });
+imageOverlay.on('resize', (event) => {
+    console.log('Resizing:', event);
+});
 
-// imageOverlay.on('resizeend', (event) => {
-//     console.log('Resize ended:', event);
-// });
+imageOverlay.on('resizeend', (event) => {
+    console.log('Resize ended:', event);
+    console.log('Current bounds:', imageOverlay.getCurrentBounds());
+});
+
+// Listen for rotation events
+imageOverlay.on('rotatestart', (event) => {
+    console.log('Rotation started:', event);
+});
+
+imageOverlay.on('rotate', (event) => {
+    console.log('Rotating:', event);
+});
+
+imageOverlay.on('rotateend', (event) => {
+    console.log('Rotation ended:', event);
+    console.log('Final rotation angle:', event.angle, 'degrees');
+});
 
 // Example of toggling the image overlay
 document.addEventListener('keydown', (event) => {
@@ -83,7 +104,7 @@ document.addEventListener('keydown', (event) => {
 
 // Example of changing the opacity
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'o' || event.key === 'O') {
+    if (event.key === 'p' || event.key === 'P') {
         const currentOpacity = imageOverlay.getOpacity();
         const newOpacity = currentOpacity > 0.5 ? 0.3 : 0.8;
         imageOverlay.setOpacity(newOpacity);
@@ -124,6 +145,36 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+// Example of toggling rotation mode
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'o' || event.key === 'O') {
+        if (imageOverlay.rotatable) {
+            imageOverlay.disableRotation();
+            console.log('Rotation disabled');
+        } else {
+            imageOverlay.enableRotation();
+            console.log('Rotation enabled');
+        }
+    }
+});
+
+// Example of setting rotation angle
+document.addEventListener('keydown', (event) => {
+    if (event.key === '0') {
+        imageOverlay.setRotation(0);
+        console.log('Rotation set to 0 degrees');
+    } else if (event.key === '9') {
+        imageOverlay.setRotation(90);
+        console.log('Rotation set to 90 degrees');
+    } else if (event.key === '8') {
+        imageOverlay.setRotation(180);
+        console.log('Rotation set to 180 degrees');
+    } else if (event.key === '7') {
+        imageOverlay.setRotation(270);
+        console.log('Rotation set to 270 degrees');
+    }
+});
+
 // Add instructions to the page
 const instructions = document.createElement('div');
 instructions.innerHTML = `
@@ -131,16 +182,22 @@ instructions.innerHTML = `
         <h3>ImageOverlay Controls:</h3>
         <p><strong>Mouse:</strong> Click and drag to move the image overlay</p>
         <p><strong>Corners:</strong> Drag the corner circles to resize (NW, NE, SW, SE)</p>
+        <p><strong>Rotation Handle:</strong> Drag the blue handle at the top to rotate the image</p>
         <p><strong>Keyboard:</strong></p>
         <ul>
             <li><strong>T:</strong> Toggle visibility</li>
-            <li><strong>O:</strong> Toggle opacity</li>
+            <li><strong>P:</strong> Toggle opacity</li>
             <li><strong>I:</strong> Change image</li>
             <li><strong>D:</strong> Toggle drag mode</li>
             <li><strong>R:</strong> Toggle resize mode</li>
+            <li><strong>O:</strong> Toggle rotation mode</li>
+            <li><strong>0:</strong> Set rotation to 0°</li>
+            <li><strong>9:</strong> Set rotation to 90°</li>
+            <li><strong>8:</strong> Set rotation to 180°</li>
+            <li><strong>7:</strong> Set rotation to 270°</li>
         </ul>
-        <p><strong>Console:</strong> Check browser console for bounds updates and resize events</p>
-        <p><strong>Testing:</strong> Try resizing from different corners to verify bounds are updated correctly</p>
+        <p><strong>Console:</strong> Check browser console for bounds updates, resize events, and rotation events</p>
+        <p><strong>Testing:</strong> Try resizing from different corners and rotating the image to verify functionality</p>
     </div>
 `;
 document.body.appendChild(instructions);
