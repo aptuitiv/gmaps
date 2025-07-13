@@ -327,6 +327,26 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Disable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableDrag(): Overlay {
+        this.drag = false;
+        return this;
+    }
+
+    /**
+     * Disable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableResize(): Overlay {
+        this.resize = false;
+        return this;
+    }
+
+    /**
      * Display the overlay on the map
      *
      * Alias to show()
@@ -336,6 +356,41 @@ export class Overlay extends Layer {
      */
     display(map: Map): Promise<Overlay> {
         return this.show(map);
+    }
+
+    /**
+     * Enable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableDrag(): Overlay {
+        this.drag = true;
+        return this;
+    }
+
+    /**
+     * Enable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableResize(): Overlay {
+        this.resize = true;
+        return this;
+    }
+
+    /**
+     * Get the bounds where the overlay should be displayed
+     *
+     * This method should be overridden by subclasses and not called directly.
+     *
+     * @returns {LatLngBounds}
+     */
+    // eslint-disable-next-line class-methods-use-this
+    getBounds(): LatLngBounds {
+        return new LatLngBounds({
+            ne: latLng(),
+            sw: latLng(),
+        });
     }
 
     /**
@@ -421,6 +476,15 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Get the current aspect ratio for resizing
+     *
+     * @returns {number}
+     */
+    getResizeAspectRatio(): number {
+        return this.#resizeAspectRatio;
+    }
+
+    /**
      * Returns whether the overlay has a position
      *
      * @returns {boolean}
@@ -481,12 +545,66 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Add an event listener for when dragging ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void {
+        this.on(OverlayEvents.DRAG_END, callback);
+    }
+
+    /**
+     * Add an event listener for when dragging updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void {
+        this.on(OverlayEvents.DRAG, callback);
+    }
+
+    /**
+     * Add an event listener for when dragging the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void {
+        this.on(OverlayEvents.DRAG_START, callback);
+    }
+
+    /**
      * Add an event listener for when the overlay is opened.
      *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
     onOpen(callback: EventCallback): void {
         this.on(OverlayEvents.OPEN, callback);
+    }
+
+    /**
+     * Add an event listener for when resizing ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeEnd(callback: EventCallback): void {
+        this.on(OverlayEvents.RESIZE_END, callback);
+    }
+
+    /**
+     * Add an event listener for when resizing updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResize(callback: EventCallback): void {
+        this.on(OverlayEvents.RESIZE, callback);
+    }
+
+    /**
+     * Add an event listener for when resizing the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeStart(callback: EventCallback): void {
+        this.on(OverlayEvents.RESIZE_START, callback);
     }
 
     /**
@@ -554,7 +672,20 @@ export class Overlay extends Layer {
     }
 
     /**
-     * Set the styles for the overlay element
+     * Set the aspect ratio to maintain during resizing
+     *
+     * @param {number} aspectRatio The aspect ratio (width / height)
+     * @returns {Overlay}
+     */
+    setResizeAspectRatio(aspectRatio: number): Overlay {
+        if (isNumber(aspectRatio) && aspectRatio > 0) {
+            this.#resizeAspectRatio = aspectRatio;
+        }
+        return this;
+    }
+
+    /**
+     * Set one more styles for the overlay element. This will merge styles with an existing ones.
      *
      * @param {object} styles The styles to apply to the overlay element
      * @returns {Overlay}
@@ -629,68 +760,6 @@ export class Overlay extends Layer {
         } else {
             this.show(map);
         }
-    }
-
-    /**
-     * Enable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableDrag(): Overlay {
-        this.drag = true;
-        return this;
-    }
-
-    /**
-     * Disable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableDrag(): Overlay {
-        this.drag = false;
-        return this;
-    }
-
-    /**
-     * Enable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableResize(): Overlay {
-        this.resize = true;
-        return this;
-    }
-
-    /**
-     * Disable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableResize(): Overlay {
-        this.resize = false;
-        return this;
-    }
-
-    /**
-     * Set the aspect ratio to maintain during resizing
-     *
-     * @param {number} aspectRatio The aspect ratio (width / height)
-     * @returns {Overlay}
-     */
-    setResizeAspectRatio(aspectRatio: number): Overlay {
-        if (isNumber(aspectRatio) && aspectRatio > 0) {
-            this.#resizeAspectRatio = aspectRatio;
-        }
-        return this;
-    }
-
-    /**
-     * Get the current aspect ratio for resizing
-     *
-     * @returns {number}
-     */
-    getResizeAspectRatio(): number {
-        return this.#resizeAspectRatio;
     }
 
     /**
@@ -1125,21 +1194,6 @@ export class Overlay extends Layer {
     // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
     updateBoundsFromResize(newLatLng: LatLng): void {
         // This method will be overridden by subclasses
-    }
-
-    /**
-     * Get the bounds where the overlay should be displayed
-     *
-     * This method should be overridden by subclasses and not called directly.
-     *
-     * @returns {LatLngBounds}
-     */
-    // eslint-disable-next-line class-methods-use-this
-    getBounds(): LatLngBounds {
-        return new LatLngBounds({
-            ne: latLng(),
-            sw: latLng(),
-        });
     }
 
     /**
