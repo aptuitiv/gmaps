@@ -32,10 +32,14 @@ export type ImageOverlayOptions = {
     className?: string;
     // Whether to set a background and border on the overlay div to help show where the image is being displayed
     debug?: boolean;
+    // Whether dragging is enabled
+    drag?: boolean;
     // The map to add the overlay to.
     map?: Map;
     // The opacity of the image (0.0 to 1.0)
     opacity?: number;
+    // Whether resizing is enabled
+    resize?: boolean;
     // The rotation angle in degrees (0 to 360)
     rotation?: number;
     // Whether rotation is enabled
@@ -298,8 +302,10 @@ export class ImageOverlay extends Overlay {
      * @param {boolean} rotate Whether rotation is enabled
      */
     set rotate(rotate: boolean) {
-        this.#rotate = rotate;
-        this.#setupRotationHandlers();
+        if (isBoolean(rotate)) {
+            this.#rotate = rotate;
+            this.#setupRotationHandlers();
+        }
     }
 
     /**
@@ -439,20 +445,26 @@ export class ImageOverlay extends Overlay {
             super.style('background-color', '#ff000080');
             super.style('outline', '2px solid #ff0000');
         }
+        if (options.className) {
+            this.setClassName(options.className);
+        }
+        if (isBoolean(options.drag)) {
+            this.drag = options.drag;
+        }
         if (options.imageUrl) {
             this.imageUrl = options.imageUrl;
         }
         if (options.opacity !== undefined) {
             this.opacity = options.opacity;
         }
+        if (isBoolean(options.resize)) {
+            this.resize = options.resize;
+        }
         if (options.rotation !== undefined) {
             this.rotation = options.rotation;
         }
         if (options.rotate !== undefined) {
             this.rotate = options.rotate;
-        }
-        if (options.className) {
-            this.setClassName(options.className);
         }
         if (options.styles) {
             this.styles = options.styles;
