@@ -192,6 +192,18 @@ export const GeocoderLocationType = Object.freeze({
 export type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
 
 /**
+ * Events that can be fired by the ImageOverlay.
+ */
+export const ImageOverlayEvents = Object.freeze({
+    // Called when the overlay is starting to be rotated
+    ROTATE_START: 'rotatestart',
+    // Called when the overlay is rotated
+    ROTATE: 'rotate',
+    // Called when the overlay is done being rotated
+    ROTATE_END: 'rotateend',
+});
+
+/**
  * Events that can be fired by the Loader.
  *
  * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
@@ -374,12 +386,6 @@ export const OverlayEvents = Object.freeze({
     RESIZE: 'resize',
     // Called when the overlay is done being resized
     RESIZE_END: 'resizeend',
-    // Called when the overlay is starting to be rotated
-    ROTATE_START: 'rotatestart',
-    // Called when the overlay is rotated
-    ROTATE: 'rotate',
-    // Called when the overlay is done being rotated
-    ROTATE_END: 'rotateend',
 });
 
 /**

@@ -8,8 +8,9 @@
 
 /* global google */
 
+import { EventCallback } from './Evented';
 import { LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
-import { OverlayEvents } from './constants';
+import { ImageOverlayEvents } from './constants';
 import { Overlay } from './Overlay';
 import {
     calculateDimensions,
@@ -903,7 +904,7 @@ export class ImageOverlay extends Overlay {
         document.addEventListener('touchmove', this.#handleRotation);
         document.addEventListener('touchend', this.#handleRotationEnd);
 
-        this.dispatch(OverlayEvents.ROTATE_START, { event: e });
+        this.dispatch(ImageOverlayEvents.ROTATE_START, { event: e });
     };
 
     /**
@@ -933,7 +934,7 @@ export class ImageOverlay extends Overlay {
         this.#rotation = newRotation;
         this.#updateImageRotation();
 
-        this.dispatch(OverlayEvents.ROTATE, { event: e, angle: newRotation });
+        this.dispatch(ImageOverlayEvents.ROTATE, { event: e, angle: newRotation });
     };
 
     /**
@@ -952,7 +953,7 @@ export class ImageOverlay extends Overlay {
         document.removeEventListener('touchmove', this.#handleRotation);
         document.removeEventListener('touchend', this.#handleRotationEnd);
 
-        this.dispatch(OverlayEvents.ROTATE_END, { event: e, angle: this.#rotation });
+        this.dispatch(ImageOverlayEvents.ROTATE_END, { event: e, angle: this.#rotation });
     };
 
     /**
