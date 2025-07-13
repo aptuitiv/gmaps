@@ -153,9 +153,10 @@ export class ImageOverlay extends Overlay {
 
         // Initialize the image element
         this.#imageElement = document.createElement('img');
-        this.#imageElement.style.width = '100%';
-        this.#imageElement.style.height = '100%';
-        this.#imageElement.style.objectFit = 'contain';
+        this.styles = {
+            maxWidth: '100%',
+            height: 'auto',
+        };
 
         if (isObject(options)) {
             this.setOptions(options);
