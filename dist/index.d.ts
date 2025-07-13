@@ -4838,19 +4838,19 @@ type ResizeStart = {
 declare class Overlay extends Layer {
     #private;
     /**
-     * The starting bounds when resizing begins
-     *
-     * @protected
-     * @type {object}
-     */
-    resizeStart: ResizeStart;
-    /**
      * The corner being resized (nw, ne, sw, se)
      *
      * @protected
      * @type {string}
      */
     resizeCorner: string;
+    /**
+     * The starting bounds when resizing begins
+     *
+     * @protected
+     * @type {object}
+     */
+    resizeStart: ResizeStart;
     /**
      * Constructor
      *
@@ -4907,7 +4907,7 @@ declare class Overlay extends Layer {
      */
     get styles(): object;
     /**
-     * Set the styles for the overlay element
+     * Set multiple styles for the overlay element
      *
      * @param {object} styles The styles to apply to the overlay element
      */
@@ -4917,25 +4917,25 @@ declare class Overlay extends Layer {
      *
      * @returns {boolean}
      */
-    get draggable(): boolean;
+    get drag(): boolean;
     /**
      * Set whether dragging is enabled
      *
-     * @param {boolean} draggable Whether dragging is enabled
+     * @param {boolean} drag Whether dragging is enabled
      */
-    set draggable(draggable: boolean);
+    set drag(drag: boolean);
     /**
      * Returns whether resizing is enabled
      *
      * @returns {boolean}
      */
-    get resizable(): boolean;
+    get resize(): boolean;
     /**
      * Set whether resizing is enabled
      *
-     * @param {boolean} resizable Whether resizing is enabled
+     * @param {boolean} resize Whether resizing is enabled
      */
-    set resizable(resizable: boolean);
+    set resize(resize: boolean);
     /**
      * Display the overlay on the map
      *
@@ -6147,9 +6147,12 @@ type ImageOverlayOptions = {
     bounds: LatLngBoundsValue;
     className?: string;
     debug?: boolean;
+    drag?: boolean;
+    map?: Map;
     opacity?: number;
+    resize?: boolean;
     rotation?: number;
-    rotatable?: boolean;
+    rotate?: boolean;
     styles?: object;
 };
 /**
@@ -6162,10 +6165,8 @@ declare class ImageOverlay extends Overlay {
      *
      * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
      * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
-     * @param {number} [opacity] The opacity of the image (if options is a string)
-     * @param {number} [rotation] The rotation angle in degrees (if options is a string)
      */
-    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue, opacity?: number, rotation?: number);
+    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue);
     /**
      * Returns the bounds where the image should be displayed
      *
@@ -6238,13 +6239,13 @@ declare class ImageOverlay extends Overlay {
      *
      * @returns {boolean}
      */
-    get rotatable(): boolean;
+    get rotate(): boolean;
     /**
      * Set whether rotation is enabled
      *
-     * @param {boolean} rotatable Whether rotation is enabled
+     * @param {boolean} rotate Whether rotation is enabled
      */
-    set rotatable(rotatable: boolean);
+    set rotate(rotate: boolean);
     /**
      * Returns the styles for the overlay element
      *
@@ -6252,9 +6253,9 @@ declare class ImageOverlay extends Overlay {
      */
     get styles(): object;
     /**
-     * Set the styles for the overlay element
+     * Set multiple styles for the image overlay element
      *
-     * @param {object} styles The styles to apply to the overlay element
+     * @param {object} styles The styles to apply to the image overlay element
      */
     set styles(styles: object);
     /**
@@ -6417,11 +6418,9 @@ type ImageOverlayValue = ImageOverlay | ImageOverlayOptions | string;
  *
  * @param {ImageOverlayValue} [options] The ImageOverlay options or image URL
  * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
- * @param {number} [opacity] The opacity of the image (if options is a string)
- * @param {number} [rotation] The rotation angle in degrees (if options is a string)
  * @returns {ImageOverlay}
  */
-declare const imageOverlay: (options?: ImageOverlayValue, bounds?: LatLngBoundsValue, opacity?: number, rotation?: number) => ImageOverlay;
+declare const imageOverlay: (options?: ImageOverlayValue, bounds?: LatLngBoundsValue) => ImageOverlay;
 
 type PlacesSearchBoxOptions = {
     bounds?: LatLngBoundsValue;

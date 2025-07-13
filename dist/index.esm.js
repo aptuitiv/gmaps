@@ -11008,7 +11008,7 @@ var MarkerCollection = _MarkerCollection;
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var _offset, _overlay, _overlayView, _position6, _styles3, _draggable, _resizable, _isDragging, _isResizing, _resizeCorner, _dragStart, _overlayStart, _resizeHandles, _resizeAspectRatio, _Overlay_instances, setupDragHandlers_fn, setupResizeHandlers_fn, createResizeHandles_fn, removeResizeHandles_fn, _handleDragStart, _handleDrag, _handleDragEnd, _handleResizeStart, _handleResize, _handleResizeEnd, setupGoogleOverlay_fn;
+var _drag, _dragStart, _isDragging, _isResizing, _offset, _overlay, _overlayStart, _overlayView, _position6, _resize, _resizeAspectRatio, _resizeHandles, _styles3, _Overlay_instances, setupDragHandlers_fn, setupResizeHandlers_fn, createResizeHandles_fn, removeResizeHandles_fn, _handleDragStart, _handleDrag, _handleDragEnd, _handleResizeStart, _handleResize, _handleResizeEnd, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -11020,6 +11020,34 @@ var Overlay = class extends Layer_default {
   constructor(objectType, testObject, testLibrary) {
     super(objectType, testObject, testLibrary || "OverlayView");
     __privateAdd(this, _Overlay_instances);
+    /**
+     * Whether dragging is enabled for this overlay
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _drag, false);
+    /**
+     * The starting position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    __privateAdd(this, _dragStart);
+    /**
+     * Whether the overlay is currently being dragged
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isDragging, false);
+    /**
+     * Whether the overlay is currently being resized
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isResizing, false);
     /**
      * Holds the offset for the overlay
      *
@@ -11038,6 +11066,13 @@ var Overlay = class extends Layer_default {
      */
     __privateAdd(this, _overlay);
     /**
+     * The starting overlay position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    __privateAdd(this, _overlayStart);
+    /**
      * Holds the overlay view class instance
      *
      * @private
@@ -11052,75 +11087,12 @@ var Overlay = class extends Layer_default {
      */
     __privateAdd(this, _position6);
     /**
-     * Holds the styles for the overlay.
-     *
-     * @private
-     * @type {object}
-     */
-    __privateAdd(this, _styles3, {});
-    /**
-     * Whether dragging is enabled for this overlay
-     *
-     * @private
-     * @type {boolean}
-     */
-    __privateAdd(this, _draggable, false);
-    /**
      * Whether resizing is enabled for this overlay
      *
      * @private
      * @type {boolean}
      */
-    __privateAdd(this, _resizable, false);
-    /**
-     * Whether the overlay is currently being dragged
-     *
-     * @private
-     * @type {boolean}
-     */
-    __privateAdd(this, _isDragging, false);
-    /**
-     * Whether the overlay is currently being resized
-     *
-     * @private
-     * @type {boolean}
-     */
-    __privateAdd(this, _isResizing, false);
-    /**
-     * The corner being resized (nw, ne, sw, se)
-     *
-     * @private
-     * @type {string}
-     */
-    __privateAdd(this, _resizeCorner, "");
-    /**
-     * The starting position when dragging begins
-     *
-     * @private
-     * @type {Point}
-     */
-    __privateAdd(this, _dragStart);
-    /**
-     * The starting overlay position when dragging begins
-     *
-     * @private
-     * @type {Point}
-     */
-    __privateAdd(this, _overlayStart);
-    /**
-     * The resize handles
-     *
-     * @private
-     * @type {HTMLElement[]}
-     */
-    __privateAdd(this, _resizeHandles, []);
-    /**
-     * The corner being resized (nw, ne, sw, se)
-     *
-     * @protected
-     * @type {string}
-     */
-    this.resizeCorner = "";
+    __privateAdd(this, _resize, false);
     /**
      * The aspect ratio to maintain during resizing (width / height)
      *
@@ -11129,13 +11101,34 @@ var Overlay = class extends Layer_default {
      */
     __privateAdd(this, _resizeAspectRatio, 0);
     /**
+     * The corner being resized (nw, ne, sw, se)
+     *
+     * @protected
+     * @type {string}
+     */
+    this.resizeCorner = "";
+    /**
+     * The resize handles
+     *
+     * @private
+     * @type {HTMLElement[]}
+     */
+    __privateAdd(this, _resizeHandles, []);
+    /**
+     * Holds the styles for the overlay.
+     *
+     * @private
+     * @type {object}
+     */
+    __privateAdd(this, _styles3, {});
+    /**
      * Handle drag start
      *
      * @private
      * @param {MouseEvent | TouchEvent} e The event
      */
     __privateAdd(this, _handleDragStart, (e) => {
-      if (!__privateGet(this, _draggable) || __privateGet(this, _isResizing)) return;
+      if (!__privateGet(this, _drag) || __privateGet(this, _isResizing)) return;
       e.preventDefault();
       e.stopPropagation();
       __privateSet(this, _isDragging, true);
@@ -11195,7 +11188,7 @@ var Overlay = class extends Layer_default {
      * @param {string} corner The corner being resized
      */
     __privateAdd(this, _handleResizeStart, (e, corner) => {
-      if (!__privateGet(this, _resizable) || __privateGet(this, _isDragging)) return;
+      if (!__privateGet(this, _resize) || __privateGet(this, _isDragging)) return;
       e.preventDefault();
       e.stopPropagation();
       __privateSet(this, _isResizing, true);
@@ -11419,15 +11412,14 @@ var Overlay = class extends Layer_default {
     return __privateGet(this, _styles3);
   }
   /**
-   * Set the styles for the overlay element
+   * Set multiple styles for the overlay element
    *
    * @param {object} styles The styles to apply to the overlay element
    */
   set styles(styles) {
     if (isObject(styles)) {
-      __privateSet(this, _styles3, styles);
       Object.keys(styles).forEach((key) => {
-        __privateGet(this, _overlay).style[key] = styles[key];
+        this.style(key, styles[key]);
       });
     }
   }
@@ -11436,34 +11428,38 @@ var Overlay = class extends Layer_default {
    *
    * @returns {boolean}
    */
-  get draggable() {
-    return __privateGet(this, _draggable);
+  get drag() {
+    return __privateGet(this, _drag);
   }
   /**
    * Set whether dragging is enabled
    *
-   * @param {boolean} draggable Whether dragging is enabled
+   * @param {boolean} drag Whether dragging is enabled
    */
-  set draggable(draggable) {
-    __privateSet(this, _draggable, draggable);
-    __privateMethod(this, _Overlay_instances, setupDragHandlers_fn).call(this);
+  set drag(drag) {
+    if (isBoolean(drag)) {
+      __privateSet(this, _drag, drag);
+      __privateMethod(this, _Overlay_instances, setupDragHandlers_fn).call(this);
+    }
   }
   /**
    * Returns whether resizing is enabled
    *
    * @returns {boolean}
    */
-  get resizable() {
-    return __privateGet(this, _resizable);
+  get resize() {
+    return __privateGet(this, _resize);
   }
   /**
    * Set whether resizing is enabled
    *
-   * @param {boolean} resizable Whether resizing is enabled
+   * @param {boolean} resize Whether resizing is enabled
    */
-  set resizable(resizable) {
-    __privateSet(this, _resizable, resizable);
-    __privateMethod(this, _Overlay_instances, setupResizeHandlers_fn).call(this);
+  set resize(resize) {
+    if (isBoolean(resize)) {
+      __privateSet(this, _resize, resize);
+      __privateMethod(this, _Overlay_instances, setupResizeHandlers_fn).call(this);
+    }
   }
   /**
    * Display the overlay on the map
@@ -11752,7 +11748,7 @@ var Overlay = class extends Layer_default {
    * @returns {Overlay}
    */
   enableDrag() {
-    this.draggable = true;
+    this.drag = true;
     return this;
   }
   /**
@@ -11761,7 +11757,7 @@ var Overlay = class extends Layer_default {
    * @returns {Overlay}
    */
   disableDrag() {
-    this.draggable = false;
+    this.drag = false;
     return this;
   }
   /**
@@ -11770,7 +11766,7 @@ var Overlay = class extends Layer_default {
    * @returns {Overlay}
    */
   enableResize() {
-    this.resizable = true;
+    this.resize = true;
     return this;
   }
   /**
@@ -11779,7 +11775,7 @@ var Overlay = class extends Layer_default {
    * @returns {Overlay}
    */
   disableResize() {
-    this.resizable = false;
+    this.resize = false;
     return this;
   }
   /**
@@ -11879,20 +11875,19 @@ var Overlay = class extends Layer_default {
     }
   }
 };
-_offset = new WeakMap();
-_overlay = new WeakMap();
-_overlayView = new WeakMap();
-_position6 = new WeakMap();
-_styles3 = new WeakMap();
-_draggable = new WeakMap();
-_resizable = new WeakMap();
+_drag = new WeakMap();
+_dragStart = new WeakMap();
 _isDragging = new WeakMap();
 _isResizing = new WeakMap();
-_resizeCorner = new WeakMap();
-_dragStart = new WeakMap();
+_offset = new WeakMap();
+_overlay = new WeakMap();
 _overlayStart = new WeakMap();
-_resizeHandles = new WeakMap();
+_overlayView = new WeakMap();
+_position6 = new WeakMap();
+_resize = new WeakMap();
 _resizeAspectRatio = new WeakMap();
+_resizeHandles = new WeakMap();
+_styles3 = new WeakMap();
 _Overlay_instances = new WeakSet();
 /**
  * Set up drag event handlers
@@ -11900,7 +11895,7 @@ _Overlay_instances = new WeakSet();
  * @private
  */
 setupDragHandlers_fn = function() {
-  if (__privateGet(this, _draggable)) {
+  if (__privateGet(this, _drag)) {
     __privateGet(this, _overlay).style.cursor = "move";
     __privateGet(this, _overlay).style.pointerEvents = "auto";
     __privateGet(this, _overlay).style.border = "2px solid #007bff";
@@ -11922,7 +11917,7 @@ setupDragHandlers_fn = function() {
  * @private
  */
 setupResizeHandlers_fn = function() {
-  if (__privateGet(this, _resizable)) {
+  if (__privateGet(this, _resize)) {
     __privateMethod(this, _Overlay_instances, createResizeHandles_fn).call(this);
   } else {
     __privateMethod(this, _Overlay_instances, removeResizeHandles_fn).call(this);
@@ -12070,17 +12065,15 @@ var getOverlayViewClass = (classObject) => {
 var overlay = () => new Overlay("overlay", "OverlayView");
 
 // src/lib/ImageOverlay.ts
-var _bounds5, _imageElement, _imageUrl, _opacity, _styles4, _rotation, _rotatable, _isRotating, _rotationContainer, _rotationHandle, _rotationCenter, _ImageOverlay_instances, performFitToImage_fn, updateImageRotation_fn, setupRotationHandlers_fn, createRotationContainer_fn, removeRotationContainer_fn, createRotationHandle_fn, removeRotationHandle_fn, _handleRotationStart, _handleRotation, _handleRotationEnd;
+var _bounds5, _imageElement, _imageUrl, _isRotating, _opacity, _rotate, _rotation, _rotationCenter, _rotationContainer, _rotationHandle, _styles4, _ImageOverlay_instances, performFitToImage_fn, updateImageRotation_fn, setupRotationHandlers_fn, createRotationContainer_fn, removeRotationContainer_fn, createRotationHandle_fn, removeRotationHandle_fn, _handleRotationStart, _handleRotation, _handleRotationEnd;
 var _ImageOverlay = class _ImageOverlay extends Overlay {
   /**
    * Constructor
    *
    * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
    * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
-   * @param {number} [opacity] The opacity of the image (if options is a string)
-   * @param {number} [rotation] The rotation angle in degrees (if options is a string)
    */
-  constructor(options, bounds, opacity, rotation) {
+  constructor(options, bounds) {
     super("imageoverlay", "ImageOverlay");
     __privateAdd(this, _ImageOverlay_instances);
     /**
@@ -12105,6 +12098,13 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      */
     __privateAdd(this, _imageUrl);
     /**
+     * Whether the overlay is currently being rotated
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isRotating, false);
+    /**
      * Holds the opacity of the image
      *
      * @private
@@ -12112,14 +12112,12 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      */
     __privateAdd(this, _opacity, 1);
     /**
-     * Holds the styles for the image element
-     *
-     * This overrides the styles property of the Overlay class.
+     * Whether rotation is enabled
      *
      * @private
-     * @type {object}
+     * @type {boolean}
      */
-    __privateAdd(this, _styles4, {});
+    __privateAdd(this, _rotate, false);
     /**
      * Holds the rotation angle in degrees
      *
@@ -12128,19 +12126,12 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      */
     __privateAdd(this, _rotation, 0);
     /**
-     * Whether rotation is enabled
+     * The starting center point when rotation begins
      *
      * @private
-     * @type {boolean}
+     * @type {Point}
      */
-    __privateAdd(this, _rotatable, false);
-    /**
-     * Whether the overlay is currently being rotated
-     *
-     * @private
-     * @type {boolean}
-     */
-    __privateAdd(this, _isRotating, false);
+    __privateAdd(this, _rotationCenter);
     /**
      * The rotation container element (wraps the image when rotation is enabled)
      *
@@ -12156,12 +12147,14 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      */
     __privateAdd(this, _rotationHandle);
     /**
-     * The starting center point when rotation begins
+     * Holds the styles for the image element
+     *
+     * This overrides the styles property of the Overlay class.
      *
      * @private
-     * @type {Point}
+     * @type {object}
      */
-    __privateAdd(this, _rotationCenter);
+    __privateAdd(this, _styles4, {});
     /**
      * Handle rotation start
      *
@@ -12169,7 +12162,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      * @param {MouseEvent | TouchEvent} e The event
      */
     __privateAdd(this, _handleRotationStart, (e) => {
-      if (!__privateGet(this, _rotatable) || __privateGet(this, _isRotating)) return;
+      if (!this.rotate || __privateGet(this, _isRotating)) return;
       e.preventDefault();
       e.stopPropagation();
       __privateSet(this, _isRotating, true);
@@ -12221,21 +12214,16 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       this.dispatch(OverlayEvents.ROTATE_END, { event: e, angle: __privateGet(this, _rotation) });
     });
     __privateSet(this, _imageElement, document.createElement("img"));
-    __privateGet(this, _imageElement).style.width = "100%";
-    __privateGet(this, _imageElement).style.height = "100%";
-    __privateGet(this, _imageElement).style.objectFit = "contain";
+    this.styles = {
+      maxWidth: "100%",
+      height: "auto"
+    };
     if (isObject(options)) {
       this.setOptions(options);
     } else {
       this.image = options;
       if (bounds) {
         this.bounds = bounds;
-      }
-      if (opacity !== void 0) {
-        this.opacity = opacity;
-      }
-      if (rotation !== void 0) {
-        this.rotation = rotation;
       }
     }
   }
@@ -12326,7 +12314,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
   set opacity(opacity) {
     if (isNumber(opacity) && opacity >= 0 && opacity <= 1) {
       __privateSet(this, _opacity, opacity);
-      __privateGet(this, _imageElement).style.opacity = opacity.toString();
+      this.style("opacity", opacity.toString());
     }
   }
   /**
@@ -12353,17 +12341,19 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
    *
    * @returns {boolean}
    */
-  get rotatable() {
-    return __privateGet(this, _rotatable);
+  get rotate() {
+    return __privateGet(this, _rotate);
   }
   /**
    * Set whether rotation is enabled
    *
-   * @param {boolean} rotatable Whether rotation is enabled
+   * @param {boolean} rotate Whether rotation is enabled
    */
-  set rotatable(rotatable) {
-    __privateSet(this, _rotatable, rotatable);
-    __privateMethod(this, _ImageOverlay_instances, setupRotationHandlers_fn).call(this);
+  set rotate(rotate) {
+    if (isBoolean(rotate)) {
+      __privateSet(this, _rotate, rotate);
+      __privateMethod(this, _ImageOverlay_instances, setupRotationHandlers_fn).call(this);
+    }
   }
   /**
    * Returns the styles for the overlay element
@@ -12374,15 +12364,14 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     return __privateGet(this, _styles4);
   }
   /**
-   * Set the styles for the overlay element
+   * Set multiple styles for the image overlay element
    *
-   * @param {object} styles The styles to apply to the overlay element
+   * @param {object} styles The styles to apply to the image overlay element
    */
   set styles(styles) {
     if (isObject(styles)) {
-      __privateSet(this, _styles4, styles);
       Object.keys(styles).forEach((key) => {
-        __privateGet(this, _imageElement).style[key] = styles[key];
+        this.style(key, styles[key]);
       });
     }
   }
@@ -12491,23 +12480,32 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       super.style("background-color", "#ff000080");
       super.style("outline", "2px solid #ff0000");
     }
+    if (options.className) {
+      this.setClassName(options.className);
+    }
+    if (isBoolean(options.drag)) {
+      this.drag = options.drag;
+    }
     if (options.imageUrl) {
       this.imageUrl = options.imageUrl;
     }
     if (options.opacity !== void 0) {
       this.opacity = options.opacity;
     }
+    if (isBoolean(options.resize)) {
+      this.resize = options.resize;
+    }
     if (options.rotation !== void 0) {
       this.rotation = options.rotation;
     }
-    if (options.rotatable !== void 0) {
-      this.rotatable = options.rotatable;
-    }
-    if (options.className) {
-      this.setClassName(options.className);
+    if (options.rotate !== void 0) {
+      this.rotate = options.rotate;
     }
     if (options.styles) {
       this.styles = options.styles;
+    }
+    if (options.map) {
+      this.setMap(options.map);
     }
     return this;
   }
@@ -12637,7 +12635,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
    * @returns {ImageOverlay}
    */
   enableRotation() {
-    this.rotatable = true;
+    this.rotate = true;
     return this;
   }
   /**
@@ -12646,7 +12644,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
    * @returns {ImageOverlay}
    */
   disableRotation() {
-    this.rotatable = false;
+    this.rotate = false;
     return this;
   }
   /**
@@ -12674,7 +12672,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
    * @param {google.maps.MapPanes} panes The Google maps panes object
    */
   add(panes) {
-    if (__privateGet(this, _rotatable)) {
+    if (this.rotate) {
       __privateMethod(this, _ImageOverlay_instances, setupRotationHandlers_fn).call(this);
     }
     if (__privateGet(this, _rotationContainer)) {
@@ -12682,7 +12680,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     } else {
       this.getOverlayElement().appendChild(__privateGet(this, _imageElement));
     }
-    if (this.resizable || this.draggable || __privateGet(this, _rotatable)) {
+    if (this.resizable || this.draggable || this.rotate) {
       panes.floatPane.appendChild(this.getOverlayElement());
     } else {
       panes.overlayLayer.appendChild(this.getOverlayElement());
@@ -12719,14 +12717,14 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
 _bounds5 = new WeakMap();
 _imageElement = new WeakMap();
 _imageUrl = new WeakMap();
-_opacity = new WeakMap();
-_styles4 = new WeakMap();
-_rotation = new WeakMap();
-_rotatable = new WeakMap();
 _isRotating = new WeakMap();
+_opacity = new WeakMap();
+_rotate = new WeakMap();
+_rotation = new WeakMap();
+_rotationCenter = new WeakMap();
 _rotationContainer = new WeakMap();
 _rotationHandle = new WeakMap();
-_rotationCenter = new WeakMap();
+_styles4 = new WeakMap();
 _ImageOverlay_instances = new WeakSet();
 /**
  * Perform the fit to image operation
@@ -12783,7 +12781,11 @@ updateImageRotation_fn = function() {
   if (__privateGet(this, _rotationContainer)) {
     __privateGet(this, _rotationContainer).style.transform = `rotate(${__privateGet(this, _rotation)}deg)`;
   } else {
-    __privateGet(this, _imageElement).style.transform = `rotate(${__privateGet(this, _rotation)}deg)`;
+    if (__privateGet(this, _rotation) !== 0) {
+      this.style("transform", `rotate(${__privateGet(this, _rotation)}deg)`);
+    } else {
+      this.style("transform", "");
+    }
   }
 };
 /**
@@ -12792,7 +12794,7 @@ updateImageRotation_fn = function() {
  * @private
  */
 setupRotationHandlers_fn = function() {
-  if (__privateGet(this, _rotatable)) {
+  if (this.rotate) {
     __privateMethod(this, _ImageOverlay_instances, createRotationContainer_fn).call(this);
     __privateMethod(this, _ImageOverlay_instances, createRotationHandle_fn).call(this);
   } else {
@@ -12816,7 +12818,9 @@ createRotationContainer_fn = function() {
             display: flex;
             align-items: center;
             justify-content: center;
+            transform: rotate(${__privateGet(this, _rotation)}deg);
         `;
+  this.style("transform", "");
   if (__privateGet(this, _imageElement).parentNode) {
     __privateGet(this, _imageElement).parentNode.insertBefore(__privateGet(this, _rotationContainer), __privateGet(this, _imageElement));
   }
@@ -12896,11 +12900,11 @@ _handleRotationStart = new WeakMap();
 _handleRotation = new WeakMap();
 _handleRotationEnd = new WeakMap();
 var ImageOverlay = _ImageOverlay;
-var imageOverlay = (options, bounds, opacity, rotation) => {
+var imageOverlay = (options, bounds) => {
   if (options instanceof ImageOverlay) {
     return options;
   }
-  return new ImageOverlay(options, bounds, opacity, rotation);
+  return new ImageOverlay(options, bounds);
 };
 
 // src/lib/PlacesSearchBox.ts
