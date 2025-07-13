@@ -395,6 +395,15 @@ declare const MarkerEvents: Readonly<{
  */
 declare const OverlayEvents: Readonly<{
     OPEN: "open";
+    DRAG_START: "dragstart";
+    DRAG: "drag";
+    DRAG_END: "dragend";
+    RESIZE_START: "resizestart";
+    RESIZE: "resize";
+    RESIZE_END: "resizeend";
+    ROTATE_START: "rotatestart";
+    ROTATE: "rotate";
+    ROTATE_END: "rotateend";
 }>;
 /**
  * Events that can be fired by the PlacesSearchBox.
@@ -2003,6 +2012,18 @@ declare const objectHasValue: (obj: any, key: string) => boolean;
  * @param {any[]} args The arguments to pass to the callback function
  */
 declare const callCallback: (callback: Function | undefined, ...args: any[]) => void;
+/**
+ * Calculate the dimensions of the container based on the image aspect ratio
+ *
+ * @param {number} aspectRatio The aspect ratio of the image
+ * @param {number} width The width of the container
+ * @param {number} height The height of the container
+ * @returns {object} The new width and height of the container
+ */
+declare const calculateDimensions: (aspectRatio: number, width: number, height: number) => {
+    width: number;
+    height: number;
+};
 
 type AutocompleteSearchBoxOptions = {
     bounds?: LatLngBoundsValue;
@@ -5135,15 +5156,13 @@ declare class Overlay extends Layer {
      */
     updateBoundsFromResize(newLatLng: LatLng): void;
     /**
-     * Get current bounds
+     * Get the bounds where the overlay should be displayed
      *
-     * @protected
-     * @returns {object} The current bounds
+     * This method should be overridden by subclasses and not called directly.
+     *
+     * @returns {LatLngBounds}
      */
-    getCurrentBounds(): {
-        ne: LatLng;
-        sw: LatLng;
-    };
+    getBounds(): LatLngBounds;
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -6347,16 +6366,6 @@ declare class ImageOverlay extends Overlay {
      */
     updateBoundsFromResize(newLatLng: LatLng): void;
     /**
-     * Override the getCurrentBounds method to return current bounds
-     *
-     * @protected
-     * @returns {object} The current bounds
-     */
-    getCurrentBounds(): {
-        ne: LatLng;
-        sw: LatLng;
-    };
-    /**
      * Get the rotation angle in degrees
      *
      * @returns {number}
@@ -7489,4 +7498,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

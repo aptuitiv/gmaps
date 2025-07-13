@@ -438,7 +438,25 @@ var MarkerEvents = Object.freeze({
 });
 var OverlayEvents = Object.freeze({
   // Called when the overlay opens
-  OPEN: "open"
+  OPEN: "open",
+  // Called when the overlay is starting to be dragged
+  DRAG_START: "dragstart",
+  // Called when the overlay is dragged
+  DRAG: "drag",
+  // Called when the overlay is done being dragged
+  DRAG_END: "dragend",
+  // Called when the overlay is starting to be resized
+  RESIZE_START: "resizestart",
+  // Called when the overlay is resized
+  RESIZE: "resize",
+  // Called when the overlay is done being resized
+  RESIZE_END: "resizeend",
+  // Called when the overlay is starting to be rotated
+  ROTATE_START: "rotatestart",
+  // Called when the overlay is rotated
+  ROTATE: "rotate",
+  // Called when the overlay is done being rotated
+  ROTATE_END: "rotateend"
 });
 var PlacesSearchBoxEvents = Object.freeze({
   // Called when the user selects a Place.
@@ -616,6 +634,23 @@ var callCallback = (callback, ...args) => {
   if (isFunction(callback)) {
     callback(...args);
   }
+};
+var calculateDimensions = (aspectRatio, width, height) => {
+  let newWidth = width;
+  let newHeight = height;
+  if (aspectRatio > 0) {
+    const widthBasedHeight = width / aspectRatio;
+    const heightBasedWidth = height * aspectRatio;
+    if (widthBasedHeight <= height) {
+      newHeight = widthBasedHeight;
+    } else {
+      newWidth = heightBasedWidth;
+    }
+  }
+  return {
+    width: newWidth,
+    height: newHeight
+  };
 };
 
 // src/lib/LatLng.ts
@@ -10973,18 +11008,7 @@ var MarkerCollection = _MarkerCollection;
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var OverlayDragEvents = {
-  DRAG_START: "dragstart",
-  DRAG: "drag",
-  DRAG_END: "dragend",
-  RESIZE_START: "resizestart",
-  RESIZE: "resize",
-  RESIZE_END: "resizeend",
-  ROTATE_START: "rotatestart",
-  ROTATE: "rotate",
-  ROTATE_END: "rotateend"
-};
-var _offset, _overlay, _overlayView, _position6, _styles3, _draggable, _resizable, _isDragging, _isResizing, _resizeCorner, _dragStart, _overlayStart, _resizeHandles, _resizeAspectRatio, _Overlay_instances, calculateConstrainedDimensions_fn, setupDragHandlers_fn, setupResizeHandlers_fn, createResizeHandles_fn, removeResizeHandles_fn, _handleDragStart, _handleDrag, _handleDragEnd, _handleResizeStart, _handleResize, _handleResizeEnd, setupGoogleOverlay_fn;
+var _offset, _overlay, _overlayView, _position6, _styles3, _draggable, _resizable, _isDragging, _isResizing, _resizeCorner, _dragStart, _overlayStart, _resizeHandles, _resizeAspectRatio, _Overlay_instances, setupDragHandlers_fn, setupResizeHandlers_fn, createResizeHandles_fn, removeResizeHandles_fn, _handleDragStart, _handleDrag, _handleDragEnd, _handleResizeStart, _handleResize, _handleResizeEnd, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -11126,7 +11150,7 @@ var Overlay = class extends Layer_default {
       document.addEventListener("mouseup", __privateGet(this, _handleDragEnd));
       document.addEventListener("touchmove", __privateGet(this, _handleDrag));
       document.addEventListener("touchend", __privateGet(this, _handleDragEnd));
-      this.dispatch(OverlayDragEvents.DRAG_START, { event: e });
+      this.dispatch(OverlayEvents.DRAG_START, { event: e });
     });
     /**
      * Handle drag
@@ -11146,7 +11170,7 @@ var Overlay = class extends Layer_default {
       __privateGet(this, _overlay).style.left = `${newLeft}px`;
       __privateGet(this, _overlay).style.top = `${newTop}px`;
       this.updateBoundsFromPosition();
-      this.dispatch(OverlayDragEvents.DRAG, { event: e, delta });
+      this.dispatch(OverlayEvents.DRAG, { event: e, delta });
     });
     /**
      * Handle drag end
@@ -11161,7 +11185,7 @@ var Overlay = class extends Layer_default {
       document.removeEventListener("mouseup", __privateGet(this, _handleDragEnd));
       document.removeEventListener("touchmove", __privateGet(this, _handleDrag));
       document.removeEventListener("touchend", __privateGet(this, _handleDragEnd));
-      this.dispatch(OverlayDragEvents.DRAG_END, { event: e });
+      this.dispatch(OverlayEvents.DRAG_END, { event: e });
     });
     /**
      * Handle resize start
@@ -11179,14 +11203,15 @@ var Overlay = class extends Layer_default {
       const mapContainer = this.getMap().getDiv();
       const containerRect = mapContainer.getBoundingClientRect();
       const currentSize = __privateGet(this, _overlay).getBoundingClientRect();
+      const currentBounds = this.getBounds();
       this.resizeStart = {
         // Northeast lat/lng
-        neBounds: this.getCurrentBounds().ne,
+        neBounds: currentBounds.getNorthEast(),
         // Current top left position of the overlay within the map container.
         // This is used to calculate the new position of the overlay after resizing from the top left.
         nwPos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
         // Southwest lat/lng
-        swBounds: this.getCurrentBounds().sw,
+        swBounds: currentBounds.getSouthWest(),
         // Current bottom right position of the overlay within the map container.
         // This is used to calculate the new position of the overlay after resizing from the bottom right.
         sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
@@ -11203,7 +11228,7 @@ var Overlay = class extends Layer_default {
       document.addEventListener("mouseup", __privateGet(this, _handleResizeEnd));
       document.addEventListener("touchmove", __privateGet(this, _handleResize));
       document.addEventListener("touchend", __privateGet(this, _handleResizeEnd));
-      this.dispatch(OverlayDragEvents.RESIZE_START, { event: e, corner });
+      this.dispatch(OverlayEvents.RESIZE_START, { event: e, corner });
     });
     /**
      * Handle resize
@@ -11269,7 +11294,7 @@ var Overlay = class extends Layer_default {
           newLeft = this.resizeStart.left;
           newTop = this.resizeStart.top;
         }
-        const constrained = __privateMethod(this, _Overlay_instances, calculateConstrainedDimensions_fn).call(this, newWidth, newHeight);
+        const constrained = calculateDimensions(__privateGet(this, _resizeAspectRatio), newWidth, newHeight);
         __privateGet(this, _overlay).style.width = `${constrained.width}px`;
         __privateGet(this, _overlay).style.height = `${constrained.height}px`;
         __privateGet(this, _overlay).style.left = `${newLeft}px`;
@@ -11292,7 +11317,7 @@ var Overlay = class extends Layer_default {
           const newLatLng = this.getContainerLatLngFromPixel(mouseX, mouseY);
           this.updateBoundsFromResize(newLatLng);
         }
-        this.dispatch(OverlayDragEvents.RESIZE, { event: e, corner: this.resizeCorner });
+        this.dispatch(OverlayEvents.RESIZE, { event: e, corner: this.resizeCorner });
       }
     });
     /**
@@ -11309,7 +11334,7 @@ var Overlay = class extends Layer_default {
       document.removeEventListener("mouseup", __privateGet(this, _handleResizeEnd));
       document.removeEventListener("touchmove", __privateGet(this, _handleResize));
       document.removeEventListener("touchend", __privateGet(this, _handleResizeEnd));
-      this.dispatch(OverlayDragEvents.RESIZE_END, { event: e });
+      this.dispatch(OverlayEvents.RESIZE_END, { event: e });
     });
     __privateSet(this, _overlay, document.createElement("div"));
     __privateGet(this, _overlay).style.position = "absolute";
@@ -11805,14 +11830,18 @@ var Overlay = class extends Layer_default {
   updateBoundsFromResize(newLatLng) {
   }
   /**
-   * Get current bounds
+   * Get the bounds where the overlay should be displayed
    *
-   * @protected
-   * @returns {object} The current bounds
+   * This method should be overridden by subclasses and not called directly.
+   *
+   * @returns {LatLngBounds}
    */
   // eslint-disable-next-line class-methods-use-this
-  getCurrentBounds() {
-    return { ne: latLng(), sw: latLng() };
+  getBounds() {
+    return new LatLngBounds({
+      ne: latLng(),
+      sw: latLng()
+    });
   }
   /**
    * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
@@ -11865,25 +11894,6 @@ _overlayStart = new WeakMap();
 _resizeHandles = new WeakMap();
 _resizeAspectRatio = new WeakMap();
 _Overlay_instances = new WeakSet();
-/**
- * Calculate dimensions that maintain the aspect ratio
- *
- * @private
- * @param {number} newWidth The new width
- * @param {number} newHeight The new height
- * @returns {object} The constrained dimensions
- */
-calculateConstrainedDimensions_fn = function(newWidth, newHeight) {
-  if (__privateGet(this, _resizeAspectRatio) <= 0) {
-    return { width: newWidth, height: newHeight };
-  }
-  const widthFromHeight = newHeight * __privateGet(this, _resizeAspectRatio);
-  const heightFromWidth = newWidth / __privateGet(this, _resizeAspectRatio);
-  if (Math.abs(newWidth - widthFromHeight) < Math.abs(newHeight - heightFromWidth)) {
-    return { width: widthFromHeight, height: newHeight };
-  }
-  return { width: newWidth, height: heightFromWidth };
-};
 /**
  * Set up drag event handlers
  *
@@ -12060,22 +12070,6 @@ var getOverlayViewClass = (classObject) => {
 var overlay = () => new Overlay("overlay", "OverlayView");
 
 // src/lib/ImageOverlay.ts
-var calculateDimensions = (ar, w, h) => {
-  const returnValue = { width: w, height: h };
-  if (ar === 0) {
-    return returnValue;
-  }
-  const widthFromHeight = h * ar;
-  const heightFromWidth = w / ar;
-  const nw = w;
-  const nh = h;
-  if (Math.abs(nw - widthFromHeight) < Math.abs(nh - heightFromWidth)) {
-    returnValue.width = widthFromHeight;
-  } else {
-    returnValue.height = heightFromWidth;
-  }
-  return returnValue;
-};
 var _bounds5, _imageElement, _imageUrl, _opacity, _styles4, _rotation, _rotatable, _isRotating, _rotationContainer, _rotationHandle, _rotationCenter, _ImageOverlay_instances, performFitToImage_fn, updateImageRotation_fn, setupRotationHandlers_fn, createRotationContainer_fn, removeRotationContainer_fn, createRotationHandle_fn, removeRotationHandle_fn, _handleRotationStart, _handleRotation, _handleRotationEnd;
 var _ImageOverlay = class _ImageOverlay extends Overlay {
   /**
@@ -12188,7 +12182,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       document.addEventListener("mouseup", __privateGet(this, _handleRotationEnd));
       document.addEventListener("touchmove", __privateGet(this, _handleRotation));
       document.addEventListener("touchend", __privateGet(this, _handleRotationEnd));
-      this.dispatch(OverlayDragEvents.ROTATE_START, { event: e });
+      this.dispatch(OverlayEvents.ROTATE_START, { event: e });
     });
     /**
      * Handle rotation
@@ -12209,7 +12203,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       if (newRotation < 0) newRotation += 360;
       __privateSet(this, _rotation, newRotation);
       __privateMethod(this, _ImageOverlay_instances, updateImageRotation_fn).call(this);
-      this.dispatch(OverlayDragEvents.ROTATE, { event: e, angle: newRotation });
+      this.dispatch(OverlayEvents.ROTATE, { event: e, angle: newRotation });
     });
     /**
      * Handle rotation end
@@ -12224,7 +12218,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       document.removeEventListener("mouseup", __privateGet(this, _handleRotationEnd));
       document.removeEventListener("touchmove", __privateGet(this, _handleRotation));
       document.removeEventListener("touchend", __privateGet(this, _handleRotationEnd));
-      this.dispatch(OverlayDragEvents.ROTATE_END, { event: e, angle: __privateGet(this, _rotation) });
+      this.dispatch(OverlayEvents.ROTATE_END, { event: e, angle: __privateGet(this, _rotation) });
     });
     __privateSet(this, _imageElement, document.createElement("img"));
     __privateGet(this, _imageElement).style.width = "100%";
@@ -12620,21 +12614,6 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     }));
   }
   /**
-   * Override the getCurrentBounds method to return current bounds
-   *
-   * @protected
-   * @returns {object} The current bounds
-   */
-  getCurrentBounds() {
-    if (!__privateGet(this, _bounds5)) {
-      return { ne: latLng(), sw: latLng() };
-    }
-    return {
-      ne: __privateGet(this, _bounds5).getNorthEast(),
-      sw: __privateGet(this, _bounds5).getSouthWest()
-    };
-  }
-  /**
    * Get the rotation angle in degrees
    *
    * @returns {number}
@@ -12759,11 +12738,6 @@ performFitToImage_fn = function() {
   const imageHeight = __privateGet(this, _imageElement).naturalHeight;
   if (imageWidth === 0 || imageHeight === 0) {
     console.warn("Image dimensions are not available");
-    return;
-  }
-  const currentBounds = this.getCurrentBounds();
-  if (!currentBounds.ne || !currentBounds.sw) {
-    console.warn("Current bounds are not available");
     return;
   }
   const aspectRatio = imageWidth / imageHeight;
@@ -15946,6 +15920,7 @@ export {
   Tooltip,
   ZoomControl,
   autocompleteSearchBox,
+  calculateDimensions,
   callCallback,
   checkForGoogleMaps,
   closeAllPopups,
