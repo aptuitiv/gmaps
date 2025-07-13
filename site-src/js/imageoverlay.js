@@ -63,36 +63,39 @@ imageOverlay.show(map);
 //     console.log('Dragging:', event);
 // });
 
-// imageOverlay.on('dragend', (event) => {
-//     console.log('Drag ended:', event);
-// });
+imageOverlay.on('dragend', (event) => {
+    console.log('Drag ended:', event);
+    console.log('Drag End: ', getDebugInfo());
+});
 
 // Listen for resize events
-imageOverlay.on('resizestart', (event) => {
-    console.log('Resize started:', event);
-});
+// imageOverlay.on('resizestart', (event) => {
+//     console.log('Resize started:', event);
+// });
 
-imageOverlay.on('resize', (event) => {
-    console.log('Resizing:', event);
-});
+// imageOverlay.on('resize', (event) => {
+//     console.log('Resizing:', event);
+// });
 
 imageOverlay.on('resizeend', (event) => {
-    console.log('Resize ended:', event);
-    console.log('Current bounds:', imageOverlay.getBounds().toJson());
+    // console.log('Resize ended:', event);
+    const bounds = imageOverlay.getBounds();
+
+    console.log('Resize End: ', getDebugInfo());
 });
 
 // Listen for rotation events
-imageOverlay.on('rotatestart', (event) => {
-    console.log('Rotation started:', event);
-});
+// imageOverlay.on('rotatestart', (event) => {
+//     console.log('Rotation started:', event);
+// });
 
-imageOverlay.on('rotate', (event) => {
-    console.log('Rotating:', event);
-});
+// imageOverlay.on('rotate', (event) => {
+//     console.log('Rotating:', event);
+// });
 
 imageOverlay.on('rotateend', (event) => {
-    console.log('Rotation ended:', event);
-    console.log('Final rotation angle:', event.angle, 'degrees');
+    console.log('Rotation End: ', event);
+    console.log('Rotation End:', getDebugInfo());
 });
 
 // Example of toggling the image overlay
@@ -179,9 +182,9 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('keydown', (event) => {
     if (event.key === 'f' || event.key === 'F') {
         imageOverlay.fitToImage().then(() => {
-            console.log('Overlay fitted to image dimensions');
+            console.log('Overlay fitted to image dimensions', getDebugInfo());
             console.log('Aspect ratio set to:', imageOverlay.getResizeAspectRatio());
-            console.log('Current bounds:', imageOverlay.getBounds().toJson());
+            // console.log('Current bounds:', imageOverlay.getBounds().toJson());
         });
     }
 });
