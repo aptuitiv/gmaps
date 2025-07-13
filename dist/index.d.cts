@@ -5101,11 +5101,32 @@ declare class Overlay extends Layer {
      */
     disableResize(): Overlay;
     /**
+     * Set the aspect ratio to maintain during resizing
+     *
+     * @param {number} aspectRatio The aspect ratio (width / height)
+     * @returns {Overlay}
+     */
+    setResizeAspectRatio(aspectRatio: number): Overlay;
+    /**
+     * Get the current aspect ratio for resizing
+     *
+     * @returns {number}
+     */
+    getResizeAspectRatio(): number;
+    /**
      * Update bounds from current position
      *
      * @protected
      */
     updateBoundsFromPosition(): void;
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
     /**
      * Update bounds from resize
      *
@@ -6108,6 +6129,8 @@ type ImageOverlayOptions = {
     className?: string;
     debug?: boolean;
     opacity?: number;
+    rotation?: number;
+    rotatable?: boolean;
     styles?: object;
 };
 /**
@@ -6121,8 +6144,9 @@ declare class ImageOverlay extends Overlay {
      * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
      * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
      * @param {number} [opacity] The opacity of the image (if options is a string)
+     * @param {number} [rotation] The rotation angle in degrees (if options is a string)
      */
-    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue, opacity?: number);
+    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue, opacity?: number, rotation?: number);
     /**
      * Returns the bounds where the image should be displayed
      *
@@ -6178,6 +6202,30 @@ declare class ImageOverlay extends Overlay {
      * @param {number} opacity The opacity value (0.0 to 1.0)
      */
     set opacity(opacity: number);
+    /**
+     * Returns the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    get rotation(): number;
+    /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     */
+    set rotation(rotation: number);
+    /**
+     * Returns whether rotation is enabled
+     *
+     * @returns {boolean}
+     */
+    get rotatable(): boolean;
+    /**
+     * Set whether rotation is enabled
+     *
+     * @param {boolean} rotatable Whether rotation is enabled
+     */
+    set rotatable(rotatable: boolean);
     /**
      * Returns the styles for the overlay element
      *
@@ -6284,6 +6332,14 @@ declare class ImageOverlay extends Overlay {
      */
     updateBoundsFromPosition(): void;
     /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
+    /**
      * Override the updateBoundsFromResize method to handle resizing
      *
      * @protected
@@ -6300,6 +6356,37 @@ declare class ImageOverlay extends Overlay {
         ne: LatLng;
         sw: LatLng;
     };
+    /**
+     * Get the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    getRotation(): number;
+    /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     * @returns {ImageOverlay}
+     */
+    setRotation(rotation: number): ImageOverlay;
+    /**
+     * Enable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    enableRotation(): ImageOverlay;
+    /**
+     * Disable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    disableRotation(): ImageOverlay;
+    /**
+     * Fit the overlay to the exact dimensions of the image
+     *
+     * @returns {Promise<ImageOverlay>}
+     */
+    fitToImage(): Promise<ImageOverlay>;
     /**
      * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -6322,9 +6409,10 @@ type ImageOverlayValue = ImageOverlay | ImageOverlayOptions | string;
  * @param {ImageOverlayValue} [options] The ImageOverlay options or image URL
  * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
  * @param {number} [opacity] The opacity of the image (if options is a string)
+ * @param {number} [rotation] The rotation angle in degrees (if options is a string)
  * @returns {ImageOverlay}
  */
-declare const imageOverlay: (options?: ImageOverlayValue, bounds?: LatLngBoundsValue, opacity?: number) => ImageOverlay;
+declare const imageOverlay: (options?: ImageOverlayValue, bounds?: LatLngBoundsValue, opacity?: number, rotation?: number) => ImageOverlay;
 
 type PlacesSearchBoxOptions = {
     bounds?: LatLngBoundsValue;
