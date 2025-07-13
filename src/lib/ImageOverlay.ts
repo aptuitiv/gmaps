@@ -7,7 +7,8 @@
 /* global google */
 
 import { LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
-import { Overlay, OverlayDragEvents } from './Overlay';
+import { OverlayEvents } from './constants';
+import { Overlay } from './Overlay';
 import {
     isBoolean,
     isNullOrUndefined,
@@ -939,7 +940,7 @@ export class ImageOverlay extends Overlay {
         document.addEventListener('touchmove', this.#handleRotation);
         document.addEventListener('touchend', this.#handleRotationEnd);
 
-        this.dispatch(OverlayDragEvents.ROTATE_START, { event: e });
+        this.dispatch(OverlayEvents.ROTATE_START, { event: e });
     };
 
     /**
@@ -969,7 +970,7 @@ export class ImageOverlay extends Overlay {
         this.#rotation = newRotation;
         this.#updateImageRotation();
 
-        this.dispatch(OverlayDragEvents.ROTATE, { event: e, angle: newRotation });
+        this.dispatch(OverlayEvents.ROTATE, { event: e, angle: newRotation });
     };
 
     /**
@@ -988,7 +989,7 @@ export class ImageOverlay extends Overlay {
         document.removeEventListener('touchmove', this.#handleRotation);
         document.removeEventListener('touchend', this.#handleRotationEnd);
 
-        this.dispatch(OverlayDragEvents.ROTATE_END, { event: e, angle: this.#rotation });
+        this.dispatch(OverlayEvents.ROTATE_END, { event: e, angle: this.#rotation });
     };
 
     /**

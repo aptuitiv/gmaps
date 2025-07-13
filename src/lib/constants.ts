@@ -362,6 +362,24 @@ export const MarkerEvents = Object.freeze({
 export const OverlayEvents = Object.freeze({
     // Called when the overlay opens
     OPEN: 'open',
+    // Called when the overlay is starting to be dragged
+    DRAG_START: 'dragstart',
+    // Called when the overlay is dragged
+    DRAG: 'drag',
+    // Called when the overlay is done being dragged
+    DRAG_END: 'dragend',
+    // Called when the overlay is starting to be resized
+    RESIZE_START: 'resizestart',
+    // Called when the overlay is resized
+    RESIZE: 'resize',
+    // Called when the overlay is done being resized
+    RESIZE_END: 'resizeend',
+    // Called when the overlay is starting to be rotated
+    ROTATE_START: 'rotatestart',
+    // Called when the overlay is rotated
+    ROTATE: 'rotate',
+    // Called when the overlay is done being rotated
+    ROTATE_END: 'rotateend',
 });
 
 /**

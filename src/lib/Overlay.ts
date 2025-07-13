@@ -18,19 +18,6 @@ import { Point, point, PointValue } from './Point';
 import { checkForGoogleMaps, isNullOrUndefined, isNumber, isObject, isString } from './helpers';
 import { OverlayEvents } from './constants';
 
-// Events for dragging, resizing, and rotating
-export const OverlayDragEvents = {
-    DRAG_START: 'dragstart',
-    DRAG: 'drag',
-    DRAG_END: 'dragend',
-    RESIZE_START: 'resizestart',
-    RESIZE: 'resize',
-    RESIZE_END: 'resizeend',
-    ROTATE_START: 'rotatestart',
-    ROTATE: 'rotate',
-    ROTATE_END: 'rotateend',
-} as const;
-
 type ResizeStart = {
     neBounds: LatLng;
     nwPos: { x: number; y: number };
@@ -875,7 +862,7 @@ export class Overlay extends Layer {
         document.addEventListener('touchmove', this.#handleDrag);
         document.addEventListener('touchend', this.#handleDragEnd);
 
-        this.dispatch(OverlayDragEvents.DRAG_START, { event: e });
+        this.dispatch(OverlayEvents.DRAG_START, { event: e });
     };
 
     /**
@@ -903,7 +890,7 @@ export class Overlay extends Layer {
 
         // Calculate new bounds and dispatch event
         this.updateBoundsFromPosition();
-        this.dispatch(OverlayDragEvents.DRAG, { event: e, delta });
+        this.dispatch(OverlayEvents.DRAG, { event: e, delta });
     };
 
     /**
@@ -922,7 +909,7 @@ export class Overlay extends Layer {
         document.removeEventListener('touchmove', this.#handleDrag);
         document.removeEventListener('touchend', this.#handleDragEnd);
 
-        this.dispatch(OverlayDragEvents.DRAG_END, { event: e });
+        this.dispatch(OverlayEvents.DRAG_END, { event: e });
     };
 
     /**
@@ -973,7 +960,7 @@ export class Overlay extends Layer {
         document.addEventListener('touchmove', this.#handleResize);
         document.addEventListener('touchend', this.#handleResizeEnd);
 
-        this.dispatch(OverlayDragEvents.RESIZE_START, { event: e, corner });
+        this.dispatch(OverlayEvents.RESIZE_START, { event: e, corner });
     };
 
     /**
@@ -1101,7 +1088,7 @@ export class Overlay extends Layer {
                 this.updateBoundsFromResize(newLatLng);
             }
 
-            this.dispatch(OverlayDragEvents.RESIZE, { event: e, corner: this.resizeCorner });
+            this.dispatch(OverlayEvents.RESIZE, { event: e, corner: this.resizeCorner });
         }
     };
 
@@ -1122,7 +1109,7 @@ export class Overlay extends Layer {
         document.removeEventListener('touchmove', this.#handleResize);
         document.removeEventListener('touchend', this.#handleResizeEnd);
 
-        this.dispatch(OverlayDragEvents.RESIZE_END, { event: e });
+        this.dispatch(OverlayEvents.RESIZE_END, { event: e });
     };
 
     /**
