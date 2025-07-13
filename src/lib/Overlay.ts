@@ -272,15 +272,14 @@ export class Overlay extends Layer {
     }
 
     /**
-     * Set the styles for the overlay element
+     * Set multiple styles for the overlay element
      *
      * @param {object} styles The styles to apply to the overlay element
      */
     set styles(styles: object) {
         if (isObject(styles)) {
-            this.#styles = styles;
             Object.keys(styles).forEach((key) => {
-                this.#overlay.style[key] = styles[key];
+                this.style(key, styles[key]);
             });
         }
     }
