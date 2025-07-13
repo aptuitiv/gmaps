@@ -27,8 +27,6 @@ import { latLng, LatLng } from './LatLng';
 import { point, Point } from './Point';
 
 export type ImageOverlayOptions = {
-    // The image URL to display
-    imageUrl: string;
     // The bounds where the image should be displayed
     bounds: LatLngBoundsValue;
     // The class name for the image overlay element
@@ -37,6 +35,8 @@ export type ImageOverlayOptions = {
     debug?: boolean;
     // Whether dragging is enabled
     drag?: boolean;
+    // The image URL to display
+    imageUrl: string;
     // The map to add the overlay to.
     map?: Map;
     // The opacity of the image (0.0 to 1.0)
