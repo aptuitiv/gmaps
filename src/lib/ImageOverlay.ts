@@ -482,6 +482,17 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Set one more styles for the image overlay element. This will merge styles with an existing ones.
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     * @returns {Overlay}
+     */
+    setStyles(styles: object): Overlay {
+        this.styles = styles;
+        return this;
+    }
+
+    /**
      * Set a single style on the image element
      *
      * @param {string} name The style name
