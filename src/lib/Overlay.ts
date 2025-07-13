@@ -43,7 +43,7 @@ export class Overlay extends Layer {
      * @private
      * @type {boolean}
      */
-    #draggable: boolean = false;
+    #drag: boolean = false;
 
     /**
      * The starting position when dragging begins
@@ -118,7 +118,7 @@ export class Overlay extends Layer {
      * @private
      * @type {boolean}
      */
-    #resizable: boolean = false;
+    #resize: boolean = false;
 
     /**
      * The aspect ratio to maintain during resizing (width / height)
@@ -282,17 +282,17 @@ export class Overlay extends Layer {
      *
      * @returns {boolean}
      */
-    get draggable(): boolean {
-        return this.#draggable;
+    get drag(): boolean {
+        return this.#drag;
     }
 
     /**
      * Set whether dragging is enabled
      *
-     * @param {boolean} draggable Whether dragging is enabled
+     * @param {boolean} drag Whether dragging is enabled
      */
-    set draggable(draggable: boolean) {
-        this.#draggable = draggable;
+    set drag(drag: boolean) {
+        this.#drag = drag;
         this.#setupDragHandlers();
     }
 
@@ -301,17 +301,17 @@ export class Overlay extends Layer {
      *
      * @returns {boolean}
      */
-    get resizable(): boolean {
-        return this.#resizable;
+    get resize(): boolean {
+        return this.#resize;
     }
 
     /**
      * Set whether resizing is enabled
      *
-     * @param {boolean} resizable Whether resizing is enabled
+     * @param {boolean} resize Whether resizing is enabled
      */
-    set resizable(resizable: boolean) {
-        this.#resizable = resizable;
+    set resize(resize: boolean) {
+        this.#resize = resize;
         this.#setupResizeHandlers();
     }
 
@@ -626,7 +626,7 @@ export class Overlay extends Layer {
      * @returns {Overlay}
      */
     enableDrag(): Overlay {
-        this.draggable = true;
+        this.drag = true;
         return this;
     }
 
@@ -636,7 +636,7 @@ export class Overlay extends Layer {
      * @returns {Overlay}
      */
     disableDrag(): Overlay {
-        this.draggable = false;
+        this.drag = false;
         return this;
     }
 
@@ -646,7 +646,7 @@ export class Overlay extends Layer {
      * @returns {Overlay}
      */
     enableResize(): Overlay {
-        this.resizable = true;
+        this.resize = true;
         return this;
     }
 
@@ -656,7 +656,7 @@ export class Overlay extends Layer {
      * @returns {Overlay}
      */
     disableResize(): Overlay {
-        this.resizable = false;
+        this.resize = false;
         return this;
     }
 
@@ -688,7 +688,7 @@ export class Overlay extends Layer {
      * @private
      */
     #setupDragHandlers(): void {
-        if (this.#draggable) {
+        if (this.#drag) {
             this.#overlay.style.cursor = 'move';
             this.#overlay.style.pointerEvents = 'auto';
             this.#overlay.style.border = '2px solid #007bff';
@@ -713,7 +713,7 @@ export class Overlay extends Layer {
      * @private
      */
     #setupResizeHandlers(): void {
-        if (this.#resizable) {
+        if (this.#resize) {
             this.#createResizeHandles();
         } else {
             this.#removeResizeHandles();
@@ -812,7 +812,7 @@ export class Overlay extends Layer {
      * @param {MouseEvent | TouchEvent} e The event
      */
     #handleDragStart = (e: MouseEvent | TouchEvent): void => {
-        if (!this.#draggable || this.#isResizing) return;
+        if (!this.#drag || this.#isResizing) return;
 
         e.preventDefault();
         e.stopPropagation();
@@ -889,7 +889,7 @@ export class Overlay extends Layer {
      * @param {string} corner The corner being resized
      */
     #handleResizeStart = (e: MouseEvent | TouchEvent, corner: string): void => {
-        if (!this.#resizable || this.#isDragging) return;
+        if (!this.#resize || this.#isDragging) return;
 
         e.preventDefault();
         e.stopPropagation();
