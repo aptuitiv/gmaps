@@ -2,6 +2,8 @@
     Display a custom image overlay on the map
 
     See https://developers.google.com/maps/documentation/javascript/customoverlays more information.
+
+    The image will be aligned to the top left corner of the overlay element.
 =========================================================================== */
 
 /* global google */
@@ -263,7 +265,7 @@ export class ImageOverlay extends Overlay {
     set opacity(opacity: number) {
         if (isNumber(opacity) && opacity >= 0 && opacity <= 1) {
             this.#opacity = opacity;
-            this.#imageElement.style.opacity = opacity.toString();
+            this.style('opacity', opacity.toString());
         }
     }
 
@@ -319,15 +321,14 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
-     * Set the styles for the overlay element
+     * Set multiple styles for the image overlay element
      *
-     * @param {object} styles The styles to apply to the overlay element
+     * @param {object} styles The styles to apply to the image overlay element
      */
     set styles(styles: object) {
         if (isObject(styles)) {
-            this.#styles = styles;
             Object.keys(styles).forEach((key) => {
-                this.#imageElement.style[key] = styles[key];
+                this.style(key, styles[key]);
             });
         }
     }
@@ -736,9 +737,9 @@ export class ImageOverlay extends Overlay {
             this.#rotationContainer.style.transform = `rotate(${this.#rotation}deg)`;
         } else {
             if (this.#rotation !== 0) {
-                this.#imageElement.style.transform = `rotate(${this.#rotation}deg)`;
+                this.style('transform', `rotate(${this.#rotation}deg)`);
             } else {
-                this.#imageElement.style.transform = '';
+                this.style('transform', '');
             }
         }
     }
@@ -780,7 +781,7 @@ export class ImageOverlay extends Overlay {
         `;
 
         // Remove any rotation from the image element
-        this.#imageElement.style.transform = '';
+        this.style('transform', '');
 
         // Move the image into the rotation container
         if (this.#imageElement.parentNode) {
