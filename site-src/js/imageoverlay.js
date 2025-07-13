@@ -78,7 +78,7 @@ imageOverlay.on('resize', (event) => {
 
 imageOverlay.on('resizeend', (event) => {
     console.log('Resize ended:', event);
-    console.log('Current bounds:', imageOverlay.getCurrentBounds());
+    console.log('Current bounds:', imageOverlay.getBounds().toJson());
 });
 
 // Listen for rotation events
@@ -181,6 +181,7 @@ document.addEventListener('keydown', (event) => {
         imageOverlay.fitToImage().then(() => {
             console.log('Overlay fitted to image dimensions');
             console.log('Aspect ratio set to:', imageOverlay.getResizeAspectRatio());
+            console.log('Current bounds:', imageOverlay.getBounds().toJson());
         });
     }
 });

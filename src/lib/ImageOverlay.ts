@@ -626,22 +626,6 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
-     * Override the getCurrentBounds method to return current bounds
-     *
-     * @protected
-     * @returns {object} The current bounds
-     */
-    getCurrentBounds(): { ne: LatLng; sw: LatLng } {
-        if (!this.#bounds) {
-            return { ne: latLng(), sw: latLng() };
-        }
-        return {
-            ne: this.#bounds.getNorthEast(),
-            sw: this.#bounds.getSouthWest(),
-        };
-    }
-
-    /**
      * Get the rotation angle in degrees
      *
      * @returns {number}
@@ -713,14 +697,6 @@ export class ImageOverlay extends Overlay {
         if (imageWidth === 0 || imageHeight === 0) {
             // eslint-disable-next-line no-console
             console.warn('Image dimensions are not available');
-            return;
-        }
-
-        // Get the current bounds
-        const currentBounds = this.getCurrentBounds();
-        if (!currentBounds.ne || !currentBounds.sw) {
-            // eslint-disable-next-line no-console
-            console.warn('Current bounds are not available');
             return;
         }
 

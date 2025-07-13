@@ -17,6 +17,7 @@ import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
 import { checkForGoogleMaps, isNullOrUndefined, isNumber, isObject, isString } from './helpers';
 import { OverlayEvents } from './constants';
+import { LatLngBounds } from './LatLngBounds';
 
 type ResizeStart = {
     neBounds: LatLng;
@@ -932,16 +933,18 @@ export class Overlay extends Layer {
         const containerRect = mapContainer.getBoundingClientRect();
         const currentSize = this.#overlay.getBoundingClientRect();
 
+        const currentBounds = this.getBounds();
+
         // Get the current bounds, position, and size of the overlay before resizing.
         // These values will be used to calculate the new bounds, position, and size of the overlay after resizing.
         this.resizeStart = {
             // Northeast lat/lng
-            neBounds: this.getCurrentBounds().ne,
+            neBounds: currentBounds.getNorthEast(),
             // Current top left position of the overlay within the map container.
             // This is used to calculate the new position of the overlay after resizing from the top left.
             nwPos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
             // Southwest lat/lng
-            swBounds: this.getCurrentBounds().sw,
+            swBounds: currentBounds.getSouthWest(),
             // Current bottom right position of the overlay within the map container.
             // This is used to calculate the new position of the overlay after resizing from the bottom right.
             sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
@@ -1146,15 +1149,17 @@ export class Overlay extends Layer {
     }
 
     /**
-     * Get current bounds
+     * Get the bounds where the overlay should be displayed
      *
-     * @protected
-     * @returns {object} The current bounds
+     * This method should be overridden by subclasses and not called directly.
+     *
+     * @returns {LatLngBounds}
      */
-    // eslint-disable-next-line class-methods-use-this
-    getCurrentBounds(): { ne: LatLng; sw: LatLng } {
-        // This method will be overridden by subclasses
-        return { ne: latLng(), sw: latLng() };
+    getBounds(): LatLngBounds {
+        return new LatLngBounds({
+            ne: latLng(),
+            sw: latLng(),
+        });
     }
 
     /**
