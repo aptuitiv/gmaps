@@ -360,14 +360,14 @@ export const MarkerEvents = Object.freeze({
  * Events that can be fired by the Overlay.
  */
 export const OverlayEvents = Object.freeze({
-    // Called when the overlay opens
-    OPEN: 'open',
     // Called when the overlay is starting to be dragged
     DRAG_START: 'dragstart',
     // Called when the overlay is dragged
     DRAG: 'drag',
     // Called when the overlay is done being dragged
     DRAG_END: 'dragend',
+    // Called when the overlay opens
+    OPEN: 'open',
     // Called when the overlay is starting to be resized
     RESIZE_START: 'resizestart',
     // Called when the overlay is resized

@@ -217,6 +217,27 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Returns whether dragging is enabled
+     *
+     * @returns {boolean}
+     */
+    get drag(): boolean {
+        return this.#drag;
+    }
+
+    /**
+     * Set whether dragging is enabled
+     *
+     * @param {boolean} drag Whether dragging is enabled
+     */
+    set drag(drag: boolean) {
+        if (isBoolean(drag)) {
+            this.#drag = drag;
+            this.#setupDragHandlers();
+        }
+    }
+
+    /**
      * Returns the offset value
      *
      * @returns {Point}
@@ -263,6 +284,27 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Returns whether resizing is enabled
+     *
+     * @returns {boolean}
+     */
+    get resize(): boolean {
+        return this.#resize;
+    }
+
+    /**
+     * Set whether resizing is enabled
+     *
+     * @param {boolean} resize Whether resizing is enabled
+     */
+    set resize(resize: boolean) {
+        if (isBoolean(resize)) {
+            this.#resize = resize;
+            this.#setupResizeHandlers();
+        }
+    }
+
+    /**
      * Returns the styles for the overlay element
      *
      * @returns {object}
@@ -281,48 +323,6 @@ export class Overlay extends Layer {
             Object.keys(styles).forEach((key) => {
                 this.style(key, styles[key]);
             });
-        }
-    }
-
-    /**
-     * Returns whether dragging is enabled
-     *
-     * @returns {boolean}
-     */
-    get drag(): boolean {
-        return this.#drag;
-    }
-
-    /**
-     * Set whether dragging is enabled
-     *
-     * @param {boolean} drag Whether dragging is enabled
-     */
-    set drag(drag: boolean) {
-        if (isBoolean(drag)) {
-            this.#drag = drag;
-            this.#setupDragHandlers();
-        }
-    }
-
-    /**
-     * Returns whether resizing is enabled
-     *
-     * @returns {boolean}
-     */
-    get resize(): boolean {
-        return this.#resize;
-    }
-
-    /**
-     * Set whether resizing is enabled
-     *
-     * @param {boolean} resize Whether resizing is enabled
-     */
-    set resize(resize: boolean) {
-        if (isBoolean(resize)) {
-            this.#resize = resize;
-            this.#setupResizeHandlers();
         }
     }
 
