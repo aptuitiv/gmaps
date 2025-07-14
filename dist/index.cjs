@@ -78,6 +78,7 @@ __export(index_exports, {
   GeocoderLocationType: () => GeocoderLocationType,
   Icon: () => Icon,
   ImageOverlay: () => ImageOverlay,
+  ImageOverlayEvents: () => ImageOverlayEvents,
   InfoWindow: () => InfoWindow,
   LatLng: () => LatLng,
   LatLngBounds: () => LatLngBounds,
@@ -452,6 +453,14 @@ var GeocoderLocationType = Object.freeze({
   RANGE_INTERPOLATED: "RANGE_INTERPOLATED",
   ROOFTOP: "ROOFTOP"
 });
+var ImageOverlayEvents = Object.freeze({
+  // Called when the overlay is starting to be rotated
+  ROTATE_START: "rotatestart",
+  // Called when the overlay is rotated
+  ROTATE: "rotate",
+  // Called when the overlay is done being rotated
+  ROTATE_END: "rotateend"
+});
 var LoaderEvents = Object.freeze({
   // The API library is loaded.
   LOAD: "load",
@@ -566,26 +575,20 @@ var MarkerEvents = Object.freeze({
   READY: "ready"
 });
 var OverlayEvents = Object.freeze({
-  // Called when the overlay opens
-  OPEN: "open",
   // Called when the overlay is starting to be dragged
   DRAG_START: "dragstart",
   // Called when the overlay is dragged
   DRAG: "drag",
   // Called when the overlay is done being dragged
   DRAG_END: "dragend",
+  // Called when the overlay opens
+  OPEN: "open",
   // Called when the overlay is starting to be resized
   RESIZE_START: "resizestart",
   // Called when the overlay is resized
   RESIZE: "resize",
   // Called when the overlay is done being resized
-  RESIZE_END: "resizeend",
-  // Called when the overlay is starting to be rotated
-  ROTATE_START: "rotatestart",
-  // Called when the overlay is rotated
-  ROTATE: "rotate",
-  // Called when the overlay is done being rotated
-  ROTATE_END: "rotateend"
+  RESIZE_END: "resizeend"
 });
 var PlacesSearchBoxEvents = Object.freeze({
   // Called when the user selects a Place.
@@ -11486,6 +11489,25 @@ var Overlay = class extends Layer_default {
     }
   }
   /**
+   * Returns whether dragging is enabled
+   *
+   * @returns {boolean}
+   */
+  get drag() {
+    return __privateGet(this, _drag);
+  }
+  /**
+   * Set whether dragging is enabled
+   *
+   * @param {boolean} drag Whether dragging is enabled
+   */
+  set drag(drag) {
+    if (isBoolean(drag)) {
+      __privateSet(this, _drag, drag);
+      __privateMethod(this, _Overlay_instances, setupDragHandlers_fn).call(this);
+    }
+  }
+  /**
    * Returns the offset value
    *
    * @returns {Point}
@@ -11528,6 +11550,25 @@ var Overlay = class extends Layer_default {
     }
   }
   /**
+   * Returns whether resizing is enabled
+   *
+   * @returns {boolean}
+   */
+  get resize() {
+    return __privateGet(this, _resize);
+  }
+  /**
+   * Set whether resizing is enabled
+   *
+   * @param {boolean} resize Whether resizing is enabled
+   */
+  set resize(resize) {
+    if (isBoolean(resize)) {
+      __privateSet(this, _resize, resize);
+      __privateMethod(this, _Overlay_instances, setupResizeHandlers_fn).call(this);
+    }
+  }
+  /**
    * Returns the styles for the overlay element
    *
    * @returns {object}
@@ -11548,42 +11589,22 @@ var Overlay = class extends Layer_default {
     }
   }
   /**
-   * Returns whether dragging is enabled
+   * Disable dragging for this overlay
    *
-   * @returns {boolean}
+   * @returns {Overlay}
    */
-  get drag() {
-    return __privateGet(this, _drag);
+  disableDrag() {
+    this.drag = false;
+    return this;
   }
   /**
-   * Set whether dragging is enabled
+   * Disable resizing for this overlay
    *
-   * @param {boolean} drag Whether dragging is enabled
+   * @returns {Overlay}
    */
-  set drag(drag) {
-    if (isBoolean(drag)) {
-      __privateSet(this, _drag, drag);
-      __privateMethod(this, _Overlay_instances, setupDragHandlers_fn).call(this);
-    }
-  }
-  /**
-   * Returns whether resizing is enabled
-   *
-   * @returns {boolean}
-   */
-  get resize() {
-    return __privateGet(this, _resize);
-  }
-  /**
-   * Set whether resizing is enabled
-   *
-   * @param {boolean} resize Whether resizing is enabled
-   */
-  set resize(resize) {
-    if (isBoolean(resize)) {
-      __privateSet(this, _resize, resize);
-      __privateMethod(this, _Overlay_instances, setupResizeHandlers_fn).call(this);
-    }
+  disableResize() {
+    this.resize = false;
+    return this;
   }
   /**
    * Display the overlay on the map
@@ -11595,6 +11616,38 @@ var Overlay = class extends Layer_default {
    */
   display(map2) {
     return this.show(map2);
+  }
+  /**
+   * Enable dragging for this overlay
+   *
+   * @returns {Overlay}
+   */
+  enableDrag() {
+    this.drag = true;
+    return this;
+  }
+  /**
+   * Enable resizing for this overlay
+   *
+   * @returns {Overlay}
+   */
+  enableResize() {
+    this.resize = true;
+    return this;
+  }
+  /**
+   * Get the bounds where the overlay should be displayed
+   *
+   * This method should be overridden by subclasses and not called directly.
+   *
+   * @returns {LatLngBounds}
+   */
+  // eslint-disable-next-line class-methods-use-this
+  getBounds() {
+    return new LatLngBounds({
+      ne: latLng(),
+      sw: latLng()
+    });
   }
   /**
    * Computes the geographical coordinates from pixel coordinates in the map's container.
@@ -11671,6 +11724,14 @@ var Overlay = class extends Layer_default {
     return __privateGet(this, _overlayView).getProjection();
   }
   /**
+   * Get the current aspect ratio for resizing
+   *
+   * @returns {number}
+   */
+  getResizeAspectRatio() {
+    return __privateGet(this, _resizeAspectRatio);
+  }
+  /**
    * Returns whether the overlay has a position
    *
    * @returns {boolean}
@@ -11727,12 +11788,60 @@ var Overlay = class extends Layer_default {
     });
   }
   /**
+   * Add an event listener for when dragging ends
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragEnd(callback) {
+    this.on(OverlayEvents.DRAG_END, callback);
+  }
+  /**
+   * Add an event listener for when dragging updates the overlay position
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDrag(callback) {
+    this.on(OverlayEvents.DRAG, callback);
+  }
+  /**
+   * Add an event listener for when dragging the overlay starts
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDragStart(callback) {
+    this.on(OverlayEvents.DRAG_START, callback);
+  }
+  /**
    * Add an event listener for when the overlay is opened.
    *
    * @param {EventCallback} callback The callback function to call when the event is dispatched.
    */
   onOpen(callback) {
     this.on(OverlayEvents.OPEN, callback);
+  }
+  /**
+   * Add an event listener for when resizing ends
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onResizeEnd(callback) {
+    this.on(OverlayEvents.RESIZE_END, callback);
+  }
+  /**
+   * Add an event listener for when resizing updates the overlay position
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onResize(callback) {
+    this.on(OverlayEvents.RESIZE, callback);
+  }
+  /**
+   * Add an event listener for when resizing the overlay starts
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onResizeStart(callback) {
+    this.on(OverlayEvents.RESIZE_START, callback);
   }
   /**
    * Removes a class name from the overlay element
@@ -11794,7 +11903,19 @@ var Overlay = class extends Layer_default {
     return this;
   }
   /**
-   * Set the styles for the overlay element
+   * Set the aspect ratio to maintain during resizing
+   *
+   * @param {number} aspectRatio The aspect ratio (width / height)
+   * @returns {Overlay}
+   */
+  setResizeAspectRatio(aspectRatio) {
+    if (isNumber(aspectRatio) && aspectRatio > 0) {
+      __privateSet(this, _resizeAspectRatio, aspectRatio);
+    }
+    return this;
+  }
+  /**
+   * Set one more styles for the overlay element. This will merge styles with an existing ones.
    *
    * @param {object} styles The styles to apply to the overlay element
    * @returns {Overlay}
@@ -11867,62 +11988,6 @@ var Overlay = class extends Layer_default {
     }
   }
   /**
-   * Enable dragging for this overlay
-   *
-   * @returns {Overlay}
-   */
-  enableDrag() {
-    this.drag = true;
-    return this;
-  }
-  /**
-   * Disable dragging for this overlay
-   *
-   * @returns {Overlay}
-   */
-  disableDrag() {
-    this.drag = false;
-    return this;
-  }
-  /**
-   * Enable resizing for this overlay
-   *
-   * @returns {Overlay}
-   */
-  enableResize() {
-    this.resize = true;
-    return this;
-  }
-  /**
-   * Disable resizing for this overlay
-   *
-   * @returns {Overlay}
-   */
-  disableResize() {
-    this.resize = false;
-    return this;
-  }
-  /**
-   * Set the aspect ratio to maintain during resizing
-   *
-   * @param {number} aspectRatio The aspect ratio (width / height)
-   * @returns {Overlay}
-   */
-  setResizeAspectRatio(aspectRatio) {
-    if (isNumber(aspectRatio) && aspectRatio > 0) {
-      __privateSet(this, _resizeAspectRatio, aspectRatio);
-    }
-    return this;
-  }
-  /**
-   * Get the current aspect ratio for resizing
-   *
-   * @returns {number}
-   */
-  getResizeAspectRatio() {
-    return __privateGet(this, _resizeAspectRatio);
-  }
-  /**
    * Update bounds from current position
    *
    * @protected
@@ -11948,20 +12013,6 @@ var Overlay = class extends Layer_default {
    */
   // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
   updateBoundsFromResize(newLatLng) {
-  }
-  /**
-   * Get the bounds where the overlay should be displayed
-   *
-   * This method should be overridden by subclasses and not called directly.
-   *
-   * @returns {LatLngBounds}
-   */
-  // eslint-disable-next-line class-methods-use-this
-  getBounds() {
-    return new LatLngBounds({
-      ne: latLng(),
-      sw: latLng()
-    });
   }
   /**
    * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
@@ -12299,7 +12350,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       document.addEventListener("mouseup", __privateGet(this, _handleRotationEnd));
       document.addEventListener("touchmove", __privateGet(this, _handleRotation));
       document.addEventListener("touchend", __privateGet(this, _handleRotationEnd));
-      this.dispatch(OverlayEvents.ROTATE_START, { event: e });
+      this.dispatch(ImageOverlayEvents.ROTATE_START, { event: e });
     });
     /**
      * Handle rotation
@@ -12320,7 +12371,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       if (newRotation < 0) newRotation += 360;
       __privateSet(this, _rotation, newRotation);
       __privateMethod(this, _ImageOverlay_instances, updateImageRotation_fn).call(this);
-      this.dispatch(OverlayEvents.ROTATE, { event: e, angle: newRotation });
+      this.dispatch(ImageOverlayEvents.ROTATE, { event: e, angle: newRotation });
     });
     /**
      * Handle rotation end
@@ -12335,7 +12386,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       document.removeEventListener("mouseup", __privateGet(this, _handleRotationEnd));
       document.removeEventListener("touchmove", __privateGet(this, _handleRotation));
       document.removeEventListener("touchend", __privateGet(this, _handleRotationEnd));
-      this.dispatch(OverlayEvents.ROTATE_END, { event: e, angle: __privateGet(this, _rotation) });
+      this.dispatch(ImageOverlayEvents.ROTATE_END, { event: e, angle: __privateGet(this, _rotation) });
     });
     __privateSet(this, _imageElement, document.createElement("img"));
     this.styles = {
@@ -12442,25 +12493,6 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     }
   }
   /**
-   * Returns the rotation angle in degrees
-   *
-   * @returns {number}
-   */
-  get rotation() {
-    return __privateGet(this, _rotation);
-  }
-  /**
-   * Set the rotation angle in degrees
-   *
-   * @param {number} rotation The rotation angle in degrees (0 to 360)
-   */
-  set rotation(rotation) {
-    if (isNumber(rotation)) {
-      __privateSet(this, _rotation, rotation);
-      __privateMethod(this, _ImageOverlay_instances, updateImageRotation_fn).call(this);
-    }
-  }
-  /**
    * Returns whether rotation is enabled
    *
    * @returns {boolean}
@@ -12477,6 +12509,25 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     if (isBoolean(rotate)) {
       __privateSet(this, _rotate, rotate);
       __privateMethod(this, _ImageOverlay_instances, setupRotationHandlers_fn).call(this);
+    }
+  }
+  /**
+   * Returns the rotation angle in degrees
+   *
+   * @returns {number}
+   */
+  get rotation() {
+    return __privateGet(this, _rotation);
+  }
+  /**
+   * Set the rotation angle in degrees
+   *
+   * @param {number} rotation The rotation angle in degrees (0 to 360)
+   */
+  set rotation(rotation) {
+    if (isNumber(rotation)) {
+      __privateSet(this, _rotation, rotation);
+      __privateMethod(this, _ImageOverlay_instances, updateImageRotation_fn).call(this);
     }
   }
   /**
@@ -12500,6 +12551,15 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     }
   }
   /**
+   * Disable rotation for this overlay
+   *
+   * @returns {ImageOverlay}
+   */
+  disableRotation() {
+    this.rotate = false;
+    return this;
+  }
+  /**
    * Display the image overlay on the map
    *
    * Alias to show()
@@ -12509,6 +12569,41 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
    */
   display(map2) {
     return this.show(map2);
+  }
+  /**
+   * Enable rotation for this overlay
+   *
+   * @returns {ImageOverlay}
+   */
+  enableRotation() {
+    this.rotate = true;
+    return this;
+  }
+  /**
+   * Get the rotation angle in degrees
+   *
+   * @returns {number}
+   */
+  getRotation() {
+    return __privateGet(this, _rotation);
+  }
+  /**
+   * Fit the overlay to the exact dimensions of the image
+   *
+   * @returns {Promise<ImageOverlay>}
+   */
+  fitToImage() {
+    return new Promise((resolve) => {
+      if (!__privateGet(this, _imageElement).complete) {
+        __privateGet(this, _imageElement).onload = () => {
+          __privateMethod(this, _ImageOverlay_instances, performFitToImage_fn).call(this);
+          resolve(this);
+        };
+      } else {
+        __privateMethod(this, _ImageOverlay_instances, performFitToImage_fn).call(this);
+        resolve(this);
+      }
+    });
   }
   /**
    * Get the bounds where the image should be displayed
@@ -12535,6 +12630,30 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     return __privateGet(this, _opacity);
   }
   /**
+   * Add an event listener for when rotating ends
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onRotateEnd(callback) {
+    this.on(ImageOverlayEvents.ROTATE_END, callback);
+  }
+  /**
+   * Add an event listener for when rotating updates the overlay rotation
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onRotate(callback) {
+    this.on(ImageOverlayEvents.ROTATE, callback);
+  }
+  /**
+   * Add an event listener for when rotating the overlay starts
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onRotateStart(callback) {
+    this.on(ImageOverlayEvents.ROTATE_START, callback);
+  }
+  /**
    * Removes a class name from the overlay element
    *
    * @param {string} className The class name to remove from the overlay element
@@ -12556,6 +12675,19 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
   setBounds(bounds) {
     this.bounds = bounds;
     return this;
+  }
+  /**
+   * Update bounds from resize
+   *
+   * @protected
+   * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+   * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+   */
+  setBoundsFromResize(neLatLng, swLatLng) {
+    __privateSet(this, _bounds5, new LatLngBounds({
+      ne: neLatLng,
+      sw: swLatLng
+    }));
   }
   /**
    * Set the class name(s) for the image element
@@ -12634,6 +12766,26 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     return this;
   }
   /**
+   * Set the rotation angle in degrees
+   *
+   * @param {number} rotation The rotation angle in degrees (0 to 360)
+   * @returns {ImageOverlay}
+   */
+  setRotation(rotation) {
+    this.rotation = rotation;
+    return this;
+  }
+  /**
+   * Set one more styles for the image overlay element. This will merge styles with an existing ones.
+   *
+   * @param {object} styles The styles to apply to the overlay element
+   * @returns {Overlay}
+   */
+  setStyles(styles) {
+    this.styles = styles;
+    return this;
+  }
+  /**
    * Set a single style on the image element
    *
    * @param {string} name The style name
@@ -12684,19 +12836,6 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     }));
   }
   /**
-   * Update bounds from resize
-   *
-   * @protected
-   * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
-   * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
-   */
-  setBoundsFromResize(neLatLng, swLatLng) {
-    __privateSet(this, _bounds5, new LatLngBounds({
-      ne: neLatLng,
-      sw: swLatLng
-    }));
-  }
-  /**
    * Override the updateBoundsFromResize method to handle resizing
    *
    * @protected
@@ -12734,60 +12873,6 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
       ne: latLng(north, east),
       sw: latLng(south, west)
     }));
-  }
-  /**
-   * Get the rotation angle in degrees
-   *
-   * @returns {number}
-   */
-  getRotation() {
-    return __privateGet(this, _rotation);
-  }
-  /**
-   * Set the rotation angle in degrees
-   *
-   * @param {number} rotation The rotation angle in degrees (0 to 360)
-   * @returns {ImageOverlay}
-   */
-  setRotation(rotation) {
-    this.rotation = rotation;
-    return this;
-  }
-  /**
-   * Enable rotation for this overlay
-   *
-   * @returns {ImageOverlay}
-   */
-  enableRotation() {
-    this.rotate = true;
-    return this;
-  }
-  /**
-   * Disable rotation for this overlay
-   *
-   * @returns {ImageOverlay}
-   */
-  disableRotation() {
-    this.rotate = false;
-    return this;
-  }
-  /**
-   * Fit the overlay to the exact dimensions of the image
-   *
-   * @returns {Promise<ImageOverlay>}
-   */
-  fitToImage() {
-    return new Promise((resolve) => {
-      if (!__privateGet(this, _imageElement).complete) {
-        __privateGet(this, _imageElement).onload = () => {
-          __privateMethod(this, _ImageOverlay_instances, performFitToImage_fn).call(this);
-          resolve(this);
-        };
-      } else {
-        __privateMethod(this, _ImageOverlay_instances, performFitToImage_fn).call(this);
-        resolve(this);
-      }
-    });
   }
   /**
    * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
@@ -16011,6 +16096,7 @@ Map.include(tooltipMixin);
   GeocoderLocationType,
   Icon,
   ImageOverlay,
+  ImageOverlayEvents,
   InfoWindow,
   LatLng,
   LatLngBounds,

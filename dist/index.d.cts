@@ -262,6 +262,14 @@ declare const GeocoderLocationType: Readonly<{
 }>;
 type GeocoderLocationTypeValue = (typeof GeocoderLocationType)[keyof typeof GeocoderLocationType];
 /**
+ * Events that can be fired by the ImageOverlay.
+ */
+declare const ImageOverlayEvents: Readonly<{
+    ROTATE_START: "rotatestart";
+    ROTATE: "rotate";
+    ROTATE_END: "rotateend";
+}>;
+/**
  * Events that can be fired by the Loader.
  *
  * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
@@ -394,16 +402,13 @@ declare const MarkerEvents: Readonly<{
  * Events that can be fired by the Overlay.
  */
 declare const OverlayEvents: Readonly<{
-    OPEN: "open";
     DRAG_START: "dragstart";
     DRAG: "drag";
     DRAG_END: "dragend";
+    OPEN: "open";
     RESIZE_START: "resizestart";
     RESIZE: "resize";
     RESIZE_END: "resizeend";
-    ROTATE_START: "rotatestart";
-    ROTATE: "rotate";
-    ROTATE_END: "rotateend";
 }>;
 /**
  * Events that can be fired by the PlacesSearchBox.
@@ -4875,6 +4880,18 @@ declare class Overlay extends Layer {
      */
     set className(className: string);
     /**
+     * Returns whether dragging is enabled
+     *
+     * @returns {boolean}
+     */
+    get drag(): boolean;
+    /**
+     * Set whether dragging is enabled
+     *
+     * @param {boolean} drag Whether dragging is enabled
+     */
+    set drag(drag: boolean);
+    /**
      * Returns the offset value
      *
      * @returns {Point}
@@ -4901,30 +4918,6 @@ declare class Overlay extends Layer {
      */
     set position(value: LatLngValue);
     /**
-     * Returns the styles for the overlay element
-     *
-     * @returns {object}
-     */
-    get styles(): object;
-    /**
-     * Set multiple styles for the overlay element
-     *
-     * @param {object} styles The styles to apply to the overlay element
-     */
-    set styles(styles: object);
-    /**
-     * Returns whether dragging is enabled
-     *
-     * @returns {boolean}
-     */
-    get drag(): boolean;
-    /**
-     * Set whether dragging is enabled
-     *
-     * @param {boolean} drag Whether dragging is enabled
-     */
-    set drag(drag: boolean);
-    /**
      * Returns whether resizing is enabled
      *
      * @returns {boolean}
@@ -4937,6 +4930,30 @@ declare class Overlay extends Layer {
      */
     set resize(resize: boolean);
     /**
+     * Returns the styles for the overlay element
+     *
+     * @returns {object}
+     */
+    get styles(): object;
+    /**
+     * Set multiple styles for the overlay element
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     */
+    set styles(styles: object);
+    /**
+     * Disable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableDrag(): Overlay;
+    /**
+     * Disable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableResize(): Overlay;
+    /**
      * Display the overlay on the map
      *
      * Alias to show()
@@ -4945,6 +4962,26 @@ declare class Overlay extends Layer {
      * @returns {Promise<Overlay>}
      */
     display(map: Map): Promise<Overlay>;
+    /**
+     * Enable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableDrag(): Overlay;
+    /**
+     * Enable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableResize(): Overlay;
+    /**
+     * Get the bounds where the overlay should be displayed
+     *
+     * This method should be overridden by subclasses and not called directly.
+     *
+     * @returns {LatLngBounds}
+     */
+    getBounds(): LatLngBounds;
     /**
      * Computes the geographical coordinates from pixel coordinates in the map's container.
      *
@@ -4996,6 +5033,12 @@ declare class Overlay extends Layer {
      */
     getProjection(): google.maps.MapCanvasProjection;
     /**
+     * Get the current aspect ratio for resizing
+     *
+     * @returns {number}
+     */
+    getResizeAspectRatio(): number;
+    /**
      * Returns whether the overlay has a position
      *
      * @returns {boolean}
@@ -5019,11 +5062,47 @@ declare class Overlay extends Layer {
      */
     move(position: LatLngValue, map?: Map): Promise<Overlay>;
     /**
+     * Add an event listener for when dragging ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when dragging updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void;
+    /**
+     * Add an event listener for when dragging the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void;
+    /**
      * Add an event listener for when the overlay is opened.
      *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
     onOpen(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResize(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeStart(callback: EventCallback): void;
     /**
      * Removes a class name from the overlay element
      *
@@ -5067,7 +5146,14 @@ declare class Overlay extends Layer {
      */
     setPosition(position: LatLngValue): Overlay;
     /**
-     * Set the styles for the overlay element
+     * Set the aspect ratio to maintain during resizing
+     *
+     * @param {number} aspectRatio The aspect ratio (width / height)
+     * @returns {Overlay}
+     */
+    setResizeAspectRatio(aspectRatio: number): Overlay;
+    /**
+     * Set one more styles for the overlay element. This will merge styles with an existing ones.
      *
      * @param {object} styles The styles to apply to the overlay element
      * @returns {Overlay}
@@ -5098,43 +5184,6 @@ declare class Overlay extends Layer {
      */
     toggle(map: Map): void;
     /**
-     * Enable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableDrag(): Overlay;
-    /**
-     * Disable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableDrag(): Overlay;
-    /**
-     * Enable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableResize(): Overlay;
-    /**
-     * Disable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableResize(): Overlay;
-    /**
-     * Set the aspect ratio to maintain during resizing
-     *
-     * @param {number} aspectRatio The aspect ratio (width / height)
-     * @returns {Overlay}
-     */
-    setResizeAspectRatio(aspectRatio: number): Overlay;
-    /**
-     * Get the current aspect ratio for resizing
-     *
-     * @returns {number}
-     */
-    getResizeAspectRatio(): number;
-    /**
      * Update bounds from current position
      *
      * @protected
@@ -5155,14 +5204,6 @@ declare class Overlay extends Layer {
      * @param {LatLng} newLatLng The new lat/lng position
      */
     updateBoundsFromResize(newLatLng: LatLng): void;
-    /**
-     * Get the bounds where the overlay should be displayed
-     *
-     * This method should be overridden by subclasses and not called directly.
-     *
-     * @returns {LatLngBounds}
-     */
-    getBounds(): LatLngBounds;
     /**
      * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -6143,11 +6184,11 @@ declare class MarkerCollection {
 declare const markerCollection: () => MarkerCollection;
 
 type ImageOverlayOptions = {
-    imageUrl: string;
     bounds: LatLngBoundsValue;
     className?: string;
     debug?: boolean;
     drag?: boolean;
+    imageUrl: string;
     map?: Map;
     opacity?: number;
     resize?: boolean;
@@ -6223,18 +6264,6 @@ declare class ImageOverlay extends Overlay {
      */
     set opacity(opacity: number);
     /**
-     * Returns the rotation angle in degrees
-     *
-     * @returns {number}
-     */
-    get rotation(): number;
-    /**
-     * Set the rotation angle in degrees
-     *
-     * @param {number} rotation The rotation angle in degrees (0 to 360)
-     */
-    set rotation(rotation: number);
-    /**
      * Returns whether rotation is enabled
      *
      * @returns {boolean}
@@ -6246,6 +6275,18 @@ declare class ImageOverlay extends Overlay {
      * @param {boolean} rotate Whether rotation is enabled
      */
     set rotate(rotate: boolean);
+    /**
+     * Returns the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    get rotation(): number;
+    /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     */
+    set rotation(rotation: number);
     /**
      * Returns the styles for the overlay element
      *
@@ -6259,6 +6300,12 @@ declare class ImageOverlay extends Overlay {
      */
     set styles(styles: object);
     /**
+     * Disable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    disableRotation(): ImageOverlay;
+    /**
      * Display the image overlay on the map
      *
      * Alias to show()
@@ -6267,6 +6314,24 @@ declare class ImageOverlay extends Overlay {
      * @returns {Promise<ImageOverlay>}
      */
     display(map: Map): Promise<ImageOverlay>;
+    /**
+     * Enable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    enableRotation(): ImageOverlay;
+    /**
+     * Get the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    getRotation(): number;
+    /**
+     * Fit the overlay to the exact dimensions of the image
+     *
+     * @returns {Promise<ImageOverlay>}
+     */
+    fitToImage(): Promise<ImageOverlay>;
     /**
      * Get the bounds where the image should be displayed
      *
@@ -6286,6 +6351,24 @@ declare class ImageOverlay extends Overlay {
      */
     getOpacity(): number;
     /**
+     * Add an event listener for when rotating ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotateEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when rotating updates the overlay rotation
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotate(callback: EventCallback): void;
+    /**
+     * Add an event listener for when rotating the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotateStart(callback: EventCallback): void;
+    /**
      * Removes a class name from the overlay element
      *
      * @param {string} className The class name to remove from the overlay element
@@ -6299,6 +6382,14 @@ declare class ImageOverlay extends Overlay {
      * @returns {ImageOverlay}
      */
     setBounds(bounds: LatLngBoundsValue): ImageOverlay;
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
     /**
      * Set the class name(s) for the image element
      *
@@ -6331,6 +6422,20 @@ declare class ImageOverlay extends Overlay {
      */
     setOptions(options: ImageOverlayOptions): ImageOverlay;
     /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     * @returns {ImageOverlay}
+     */
+    setRotation(rotation: number): ImageOverlay;
+    /**
+     * Set one more styles for the image overlay element. This will merge styles with an existing ones.
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     * @returns {Overlay}
+     */
+    setStyles(styles: object): Overlay;
+    /**
      * Set a single style on the image element
      *
      * @param {string} name The style name
@@ -6352,51 +6457,12 @@ declare class ImageOverlay extends Overlay {
      */
     updateBoundsFromPosition(): void;
     /**
-     * Update bounds from resize
-     *
-     * @protected
-     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
-     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
-     */
-    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
-    /**
      * Override the updateBoundsFromResize method to handle resizing
      *
      * @protected
      * @param {LatLng} newLatLng The new lat/lng position
      */
     updateBoundsFromResize(newLatLng: LatLng): void;
-    /**
-     * Get the rotation angle in degrees
-     *
-     * @returns {number}
-     */
-    getRotation(): number;
-    /**
-     * Set the rotation angle in degrees
-     *
-     * @param {number} rotation The rotation angle in degrees (0 to 360)
-     * @returns {ImageOverlay}
-     */
-    setRotation(rotation: number): ImageOverlay;
-    /**
-     * Enable rotation for this overlay
-     *
-     * @returns {ImageOverlay}
-     */
-    enableRotation(): ImageOverlay;
-    /**
-     * Disable rotation for this overlay
-     *
-     * @returns {ImageOverlay}
-     */
-    disableRotation(): ImageOverlay;
-    /**
-     * Fit the overlay to the exact dimensions of the image
-     *
-     * @returns {Promise<ImageOverlay>}
-     */
-    fitToImage(): Promise<ImageOverlay>;
     /**
      * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
      *
@@ -7497,4 +7563,4 @@ declare const popup: (options?: PopupValue) => Popup;
  */
 declare const closeAllPopups: () => void;
 
-export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
