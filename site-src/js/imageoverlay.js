@@ -16,10 +16,10 @@ const imageBounds = {
     ne: [44.36877953646439, -68.31675122855835], // Northeast corner
     sw: [44.361063461552426, -68.32760881065063], // Southwest corner
 };
-const debug = true;
-const enableDrag = false;
-const enableResize = false;
-const enableRotation = false;
+const debug = false;
+const enableDrag = true;
+const enableResize = true;
+const enableRotation = true;
 const imageRotation = 0;
 
 // Initialize the map
@@ -41,7 +41,7 @@ const imageOverlay = G.imageOverlay({
     drag: enableDrag,
     resize: enableResize,
     map: map,
-    opacity: 0.5,
+    opacity: 0.7,
     rotation: imageRotation,
     rotate: enableRotation,
     // className: 'custom-image-overlay',
