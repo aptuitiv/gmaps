@@ -23,6 +23,7 @@ import {
     GeocoderErrorStatus,
     GeocoderLocationType,
     LoaderEvents,
+    ImageOverlayEvents,
     MapEvents,
     MapTypeControlStyle,
     MapTypeId,
@@ -70,6 +71,7 @@ type GlobalObj = {
     ControlPosition: typeof ControlPosition;
     GeocoderErrorStatus: typeof GeocoderErrorStatus;
     GeocoderLocationType: typeof GeocoderLocationType;
+    ImageOverlayEvents: typeof ImageOverlayEvents;
     LoaderEvents: typeof LoaderEvents;
     MapEvents: typeof MapEvents;
     MapTypeControlStyle: typeof MapTypeControlStyle;
@@ -151,6 +153,7 @@ const G: GlobalObj = {
     GeocoderErrorStatus,
     GeocoderLocationType,
     LoaderEvents,
+    ImageOverlayEvents,
     MapEvents,
     MapTypeControlStyle,
     MapTypeId,
