@@ -271,27 +271,6 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
-     * Returns the rotation angle in degrees
-     *
-     * @returns {number}
-     */
-    get rotation(): number {
-        return this.#rotation;
-    }
-
-    /**
-     * Set the rotation angle in degrees
-     *
-     * @param {number} rotation The rotation angle in degrees (0 to 360)
-     */
-    set rotation(rotation: number) {
-        if (isNumber(rotation)) {
-            this.#rotation = rotation;
-            this.#updateImageRotation();
-        }
-    }
-
-    /**
      * Returns whether rotation is enabled
      *
      * @returns {boolean}
@@ -309,6 +288,27 @@ export class ImageOverlay extends Overlay {
         if (isBoolean(rotate)) {
             this.#rotate = rotate;
             this.#setupRotationHandlers();
+        }
+    }
+
+    /**
+     * Returns the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    get rotation(): number {
+        return this.#rotation;
+    }
+
+    /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     */
+    set rotation(rotation: number) {
+        if (isNumber(rotation)) {
+            this.#rotation = rotation;
+            this.#updateImageRotation();
         }
     }
 
@@ -335,6 +335,16 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Disable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    disableRotation(): ImageOverlay {
+        this.rotate = false;
+        return this;
+    }
+
+    /**
      * Display the image overlay on the map
      *
      * Alias to show()
@@ -344,6 +354,45 @@ export class ImageOverlay extends Overlay {
      */
     display(map: Map): Promise<ImageOverlay> {
         return this.show(map) as Promise<ImageOverlay>;
+    }
+
+    /**
+     * Enable rotation for this overlay
+     *
+     * @returns {ImageOverlay}
+     */
+    enableRotation(): ImageOverlay {
+        this.rotate = true;
+        return this;
+    }
+
+    /**
+     * Get the rotation angle in degrees
+     *
+     * @returns {number}
+     */
+    getRotation(): number {
+        return this.#rotation;
+    }
+
+    /**
+     * Fit the overlay to the exact dimensions of the image
+     *
+     * @returns {Promise<ImageOverlay>}
+     */
+    fitToImage(): Promise<ImageOverlay> {
+        return new Promise((resolve) => {
+            if (!this.#imageElement.complete) {
+                // Wait for the image to load
+                this.#imageElement.onload = () => {
+                    this.#performFitToImage();
+                    resolve(this);
+                };
+            } else {
+                this.#performFitToImage();
+                resolve(this);
+            }
+        });
     }
 
     /**
@@ -374,6 +423,33 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Add an event listener for when rotating ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotateEnd(callback: EventCallback): void {
+        this.on(ImageOverlayEvents.ROTATE_END, callback);
+    }
+
+    /**
+     * Add an event listener for when rotating updates the overlay rotation
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotate(callback: EventCallback): void {
+        this.on(ImageOverlayEvents.ROTATE, callback);
+    }
+
+    /**
+     * Add an event listener for when rotating the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRotateStart(callback: EventCallback): void {
+        this.on(ImageOverlayEvents.ROTATE_START, callback);
+    }
+
+    /**
      * Removes a class name from the overlay element
      *
      * @param {string} className The class name to remove from the overlay element
@@ -396,6 +472,20 @@ export class ImageOverlay extends Overlay {
     setBounds(bounds: LatLngBoundsValue): ImageOverlay {
         this.bounds = bounds;
         return this;
+    }
+
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void {
+        this.#bounds = new LatLngBounds({
+            ne: neLatLng,
+            sw: swLatLng,
+        });
     }
 
     /**
@@ -482,6 +572,17 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
+     * Set the rotation angle in degrees
+     *
+     * @param {number} rotation The rotation angle in degrees (0 to 360)
+     * @returns {ImageOverlay}
+     */
+    setRotation(rotation: number): ImageOverlay {
+        this.rotation = rotation;
+        return this;
+    }
+
+    /**
      * Set one more styles for the image overlay element. This will merge styles with an existing ones.
      *
      * @param {object} styles The styles to apply to the overlay element
@@ -556,20 +657,6 @@ export class ImageOverlay extends Overlay {
     }
 
     /**
-     * Update bounds from resize
-     *
-     * @protected
-     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
-     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
-     */
-    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void {
-        this.#bounds = new LatLngBounds({
-            ne: neLatLng,
-            sw: swLatLng,
-        });
-    }
-
-    /**
      * Override the updateBoundsFromResize method to handle resizing
      *
      * @protected
@@ -614,93 +701,6 @@ export class ImageOverlay extends Overlay {
             ne: latLng(north, east),
             sw: latLng(south, west),
         });
-    }
-
-    /**
-     * Get the rotation angle in degrees
-     *
-     * @returns {number}
-     */
-    getRotation(): number {
-        return this.#rotation;
-    }
-
-    /**
-     * Set the rotation angle in degrees
-     *
-     * @param {number} rotation The rotation angle in degrees (0 to 360)
-     * @returns {ImageOverlay}
-     */
-    setRotation(rotation: number): ImageOverlay {
-        this.rotation = rotation;
-        return this;
-    }
-
-    /**
-     * Enable rotation for this overlay
-     *
-     * @returns {ImageOverlay}
-     */
-    enableRotation(): ImageOverlay {
-        this.rotate = true;
-        return this;
-    }
-
-    /**
-     * Disable rotation for this overlay
-     *
-     * @returns {ImageOverlay}
-     */
-    disableRotation(): ImageOverlay {
-        this.rotate = false;
-        return this;
-    }
-
-    /**
-     * Fit the overlay to the exact dimensions of the image
-     *
-     * @returns {Promise<ImageOverlay>}
-     */
-    fitToImage(): Promise<ImageOverlay> {
-        return new Promise((resolve) => {
-            if (!this.#imageElement.complete) {
-                // Wait for the image to load
-                this.#imageElement.onload = () => {
-                    this.#performFitToImage();
-                    resolve(this);
-                };
-            } else {
-                this.#performFitToImage();
-                resolve(this);
-            }
-        });
-    }
-
-    /**
-     * Add an event listener for when rotating the overlay starts
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onRotateStart(callback: EventCallback): void {
-        this.on(ImageOverlayEvents.ROTATE_START, callback);
-    }
-
-    /**
-     * Add an event listener for when rotating updates the overlay rotation
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onRotate(callback: EventCallback): void {
-        this.on(ImageOverlayEvents.ROTATE, callback);
-    }
-
-    /**
-     * Add an event listener for when rotating ends
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onRotateEnd(callback: EventCallback): void {
-        this.on(ImageOverlayEvents.ROTATE_END, callback);
     }
 
     /**
