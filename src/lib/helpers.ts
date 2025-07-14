@@ -2,7 +2,6 @@
 /*  eslint-disable @typescript-eslint/no-explicit-any -- The functions receive an unknown value so "any" is a required type.  */
 /* eslint-disable @typescript-eslint/no-unsafe-function-type -- Some of the test look to see if the value is a function. Th "Function" return type is necessary. */
 
-
 /**
  * Returns if the value is boolean
  *
@@ -243,12 +242,12 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
  * @returns {string|boolean} The value with the unit or false if the value is invalid
  */
 export const getSizeWithUnit = (
-    value: string|number,
+    value: string | number,
     defaultUnit: string = 'px',
     allowedUnits: string[] = ['%', 'px'],
-    allowNegative: boolean = false
-): boolean|string => {
-    let returnValue:boolean|string = false;
+    allowNegative: boolean = false,
+): boolean | string => {
+    let returnValue: boolean | string = false;
     if (isNumber(value)) {
         if (value >= 0) {
             returnValue = `${value}${defaultUnit}`;
@@ -276,7 +275,7 @@ export const getSizeWithUnit = (
         }
     }
     return returnValue;
-}
+};
 
 /**
  * Compare two objects to see if they are equal
@@ -327,4 +326,40 @@ export const callCallback = (callback: Function | undefined, ...args: any[]): vo
     if (isFunction(callback)) {
         callback(...args);
     }
+};
+
+/**
+ * Calculate the dimensions of the container based on the image aspect ratio
+ *
+ * @param {number} aspectRatio The aspect ratio of the image
+ * @param {number} width The width of the container
+ * @param {number} height The height of the container
+ * @returns {object} The new width and height of the container
+ */
+export const calculateDimensions = (
+    aspectRatio: number,
+    width: number,
+    height: number,
+): { width: number; height: number } => {
+    let newWidth = width;
+    let newHeight = height;
+
+    if (aspectRatio > 0) {
+        // Calculate the height that would preserve the aspect ratio given the max width
+        const widthBasedHeight = width / aspectRatio;
+
+        // Calculate the width that would preserve the aspect ratio given the max height
+        const heightBasedWidth = height * aspectRatio;
+
+        if (widthBasedHeight <= height) {
+            newHeight = widthBasedHeight;
+        } else {
+            newWidth = heightBasedWidth;
+        }
+    }
+
+    return {
+        width: newWidth,
+        height: newHeight,
+    };
 };

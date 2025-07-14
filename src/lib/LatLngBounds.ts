@@ -146,8 +146,8 @@ export class LatLngBounds extends Base {
         if (!latLngObject.isValid()) {
             throw new Error(
                 `Invalid latitude/longitude data passed to LatLngBounds.contains. You passed: ${JSON.stringify(
-                    latLngValue
-                )}`
+                    latLngValue,
+                )}`,
             );
         }
         if (this.#bounds) {
@@ -184,7 +184,7 @@ export class LatLngBounds extends Base {
                         this.#northEast.latitude === other.getNorthEast().latitude &&
                             this.#northEast.longitude === other.getNorthEast().longitude &&
                             this.#southWest.latitude === other.getSouthWest().latitude &&
-                            this.#southWest.longitude === other.getSouthWest().longitude
+                            this.#southWest.longitude === other.getSouthWest().longitude,
                     );
                 }
             } else {
@@ -226,8 +226,8 @@ export class LatLngBounds extends Base {
                     } else {
                         throw new Error(
                             `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(
-                                latLngValue
-                            )}`
+                                latLngValue,
+                            )}`,
                         );
                     }
                 }
@@ -246,7 +246,7 @@ export class LatLngBounds extends Base {
                 }
             } else {
                 throw new Error(
-                    `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(latLngValue)}`
+                    `Invalid latitude/longitude data passed to LatLngBounds. You passed: ${JSON.stringify(latLngValue)}`,
                 );
             }
         }
@@ -380,16 +380,16 @@ export class LatLngBounds extends Base {
                         sw.latitude <= otherNe.latitude &&
                             ne.latitude >= otherSw.latitude &&
                             sw.longitude <= otherNe.longitude &&
-                            ne.longitude >= otherSw.longitude
+                            ne.longitude >= otherSw.longitude,
                     );
                 }
             } else {
                 reject(
                     new Error(
                         `Invalid LatLngBounds object passed to LatLngBounds.intersects. You passed: ${JSON.stringify(
-                            other
-                        )}`
-                    )
+                            other,
+                        )}`,
+                    ),
                 );
             }
         });
@@ -511,7 +511,7 @@ export class LatLngBounds extends Base {
         }
 
         return `${this.#southWest.latitude.toFixed(prec)},${this.#southWest.longitude.toFixed(
-            prec
+            prec,
         )},${this.#northEast.latitude.toFixed(prec)},${this.#northEast.longitude.toFixed(prec)}`;
     }
 

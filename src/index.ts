@@ -52,6 +52,7 @@ export {
 } from './lib/MarkerCluster';
 export { markerCollection, MarkerCollection } from './lib/MarkerCollection';
 export { overlay, Overlay } from './lib/Overlay';
+export { imageOverlay, ImageOverlay, ImageOverlayOptions, ImageOverlayValue } from './lib/ImageOverlay';
 export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchBoxValue } from './lib/PlacesSearchBox';
 export { point, Point, PointObject, PointValue } from './lib/Point';
 export { polyline, Polyline, PolylineOptions, PolylineValue } from './lib/Polyline';

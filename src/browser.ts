@@ -23,6 +23,7 @@ import {
     GeocoderErrorStatus,
     GeocoderLocationType,
     LoaderEvents,
+    ImageOverlayEvents,
     MapEvents,
     MapTypeControlStyle,
     MapTypeId,
@@ -53,6 +54,7 @@ import { marker, Marker } from './lib/Marker';
 import { markerCluster, MarkerCluster } from './lib/MarkerCluster';
 import { markerCollection, MarkerCollection } from './lib/MarkerCollection';
 import { overlay, Overlay } from './lib/Overlay';
+import { imageOverlay, ImageOverlay } from './lib/ImageOverlay';
 import { placesSearchBox, PlacesSearchBox } from './lib/PlacesSearchBox';
 import { point, Point } from './lib/Point';
 import { polyline, Polyline } from './lib/Polyline';
@@ -69,6 +71,7 @@ type GlobalObj = {
     ControlPosition: typeof ControlPosition;
     GeocoderErrorStatus: typeof GeocoderErrorStatus;
     GeocoderLocationType: typeof GeocoderLocationType;
+    ImageOverlayEvents: typeof ImageOverlayEvents;
     LoaderEvents: typeof LoaderEvents;
     MapEvents: typeof MapEvents;
     MapTypeControlStyle: typeof MapTypeControlStyle;
@@ -112,6 +115,8 @@ type GlobalObj = {
     MarkerCollection: typeof MarkerCollection;
     overlay: typeof overlay;
     Overlay: typeof Overlay;
+    imageOverlay: typeof imageOverlay;
+    ImageOverlay: typeof ImageOverlay;
     placesSearchBox: typeof placesSearchBox;
     PlacesSearchBox: typeof PlacesSearchBox;
     point: typeof point;
@@ -148,6 +153,7 @@ const G: GlobalObj = {
     GeocoderErrorStatus,
     GeocoderLocationType,
     LoaderEvents,
+    ImageOverlayEvents,
     MapEvents,
     MapTypeControlStyle,
     MapTypeId,
@@ -190,6 +196,8 @@ const G: GlobalObj = {
     MarkerCollection,
     overlay,
     Overlay,
+    imageOverlay,
+    ImageOverlay,
     placesSearchBox,
     PlacesSearchBox,
     point,

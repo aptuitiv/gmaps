@@ -3,7 +3,7 @@
 
     https://developers.google.com/maps/documentation/javascript/customoverlays
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/base-classes/overlay for documentation.
+    See https://aptuitiv.github.io/gmaps-docs/api-reference/overlay for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, OverlayView */
@@ -15,8 +15,28 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Point, point, PointValue } from './Point';
-import { checkForGoogleMaps, isNullOrUndefined, isObject, isString } from './helpers';
+import {
+    calculateDimensions,
+    checkForGoogleMaps,
+    isBoolean,
+    isNullOrUndefined,
+    isNumber,
+    isObject,
+    isString,
+} from './helpers';
 import { OverlayEvents } from './constants';
+import { LatLngBounds } from './LatLngBounds';
+
+type ResizeStart = {
+    neBounds: LatLng;
+    nwPos: { x: number; y: number };
+    swBounds: LatLng;
+    sePos: { x: number; y: number };
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+};
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -25,6 +45,38 @@ import { OverlayEvents } from './constants';
  * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
  */
 export class Overlay extends Layer {
+    /**
+     * Whether dragging is enabled for this overlay
+     *
+     * @private
+     * @type {boolean}
+     */
+    #drag: boolean = false;
+
+    /**
+     * The starting position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    #dragStart: Point;
+
+    /**
+     * Whether the overlay is currently being dragged
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isDragging: boolean = false;
+
+    /**
+     * Whether the overlay is currently being resized
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isResizing: boolean = false;
+
     /**
      * Holds the offset for the overlay
      *
@@ -45,6 +97,14 @@ export class Overlay extends Layer {
     #overlay: HTMLElement;
 
     /**
+     * The starting overlay position when dragging begins
+     *
+     * @private
+     * @type {Point}
+     */
+    #overlayStart: Point;
+
+    /**
      * Holds the overlay view class instance
      *
      * @private
@@ -61,7 +121,47 @@ export class Overlay extends Layer {
     #position: LatLng;
 
     /**
-     * Holds the styles for the tooltip. These are applied to the tooltip container (i.e. the overlay element).
+     * Whether resizing is enabled for this overlay
+     *
+     * @private
+     * @type {boolean}
+     */
+    #resize: boolean = false;
+
+    /**
+     * The aspect ratio to maintain during resizing (width / height)
+     *
+     * @private
+     * @type {number}
+     */
+    #resizeAspectRatio: number = 0;
+
+    /**
+     * The corner being resized (nw, ne, sw, se)
+     *
+     * @protected
+     * @type {string}
+     */
+    resizeCorner: string = '';
+
+    /**
+     * The resize handles
+     *
+     * @private
+     * @type {HTMLElement[]}
+     */
+    #resizeHandles: HTMLElement[] = [];
+
+    /**
+     * The starting bounds when resizing begins
+     *
+     * @protected
+     * @type {object}
+     */
+    resizeStart: ResizeStart;
+
+    /**
+     * Holds the styles for the overlay.
      *
      * @private
      * @type {object}
@@ -81,6 +181,8 @@ export class Overlay extends Layer {
         // Initialize the overlay element
         this.#overlay = document.createElement('div');
         this.#overlay.style.position = 'absolute';
+        this.#overlay.style.pointerEvents = 'auto';
+        this.#overlay.style.zIndex = '1000';
 
         // Set the default offset
         this.setOffset([0, 0]);
@@ -111,6 +213,27 @@ export class Overlay extends Layer {
             });
         } else if (isNullOrUndefined(className)) {
             this.#overlay.className = '';
+        }
+    }
+
+    /**
+     * Returns whether dragging is enabled
+     *
+     * @returns {boolean}
+     */
+    get drag(): boolean {
+        return this.#drag;
+    }
+
+    /**
+     * Set whether dragging is enabled
+     *
+     * @param {boolean} drag Whether dragging is enabled
+     */
+    set drag(drag: boolean) {
+        if (isBoolean(drag)) {
+            this.#drag = drag;
+            this.#setupDragHandlers();
         }
     }
 
@@ -161,6 +284,27 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Returns whether resizing is enabled
+     *
+     * @returns {boolean}
+     */
+    get resize(): boolean {
+        return this.#resize;
+    }
+
+    /**
+     * Set whether resizing is enabled
+     *
+     * @param {boolean} resize Whether resizing is enabled
+     */
+    set resize(resize: boolean) {
+        if (isBoolean(resize)) {
+            this.#resize = resize;
+            this.#setupResizeHandlers();
+        }
+    }
+
+    /**
      * Returns the styles for the overlay element
      *
      * @returns {object}
@@ -170,17 +314,36 @@ export class Overlay extends Layer {
     }
 
     /**
-     * Set the styles for the overlay element
+     * Set multiple styles for the overlay element
      *
      * @param {object} styles The styles to apply to the overlay element
      */
     set styles(styles: object) {
         if (isObject(styles)) {
-            this.#styles = styles;
             Object.keys(styles).forEach((key) => {
-                this.#overlay.style[key] = styles[key];
+                this.style(key, styles[key]);
             });
         }
+    }
+
+    /**
+     * Disable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableDrag(): Overlay {
+        this.drag = false;
+        return this;
+    }
+
+    /**
+     * Disable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableResize(): Overlay {
+        this.resize = false;
+        return this;
     }
 
     /**
@@ -193,6 +356,41 @@ export class Overlay extends Layer {
      */
     display(map: Map): Promise<Overlay> {
         return this.show(map);
+    }
+
+    /**
+     * Enable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableDrag(): Overlay {
+        this.drag = true;
+        return this;
+    }
+
+    /**
+     * Enable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableResize(): Overlay {
+        this.resize = true;
+        return this;
+    }
+
+    /**
+     * Get the bounds where the overlay should be displayed
+     *
+     * This method should be overridden by subclasses and not called directly.
+     *
+     * @returns {LatLngBounds}
+     */
+    // eslint-disable-next-line class-methods-use-this
+    getBounds(): LatLngBounds {
+        return new LatLngBounds({
+            ne: latLng(),
+            sw: latLng(),
+        });
     }
 
     /**
@@ -278,6 +476,15 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Get the current aspect ratio for resizing
+     *
+     * @returns {number}
+     */
+    getResizeAspectRatio(): number {
+        return this.#resizeAspectRatio;
+    }
+
+    /**
      * Returns whether the overlay has a position
      *
      * @returns {boolean}
@@ -338,12 +545,66 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Add an event listener for when dragging ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void {
+        this.on(OverlayEvents.DRAG_END, callback);
+    }
+
+    /**
+     * Add an event listener for when dragging updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void {
+        this.on(OverlayEvents.DRAG, callback);
+    }
+
+    /**
+     * Add an event listener for when dragging the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void {
+        this.on(OverlayEvents.DRAG_START, callback);
+    }
+
+    /**
      * Add an event listener for when the overlay is opened.
      *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
     onOpen(callback: EventCallback): void {
         this.on(OverlayEvents.OPEN, callback);
+    }
+
+    /**
+     * Add an event listener for when resizing ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeEnd(callback: EventCallback): void {
+        this.on(OverlayEvents.RESIZE_END, callback);
+    }
+
+    /**
+     * Add an event listener for when resizing updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResize(callback: EventCallback): void {
+        this.on(OverlayEvents.RESIZE, callback);
+    }
+
+    /**
+     * Add an event listener for when resizing the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeStart(callback: EventCallback): void {
+        this.on(OverlayEvents.RESIZE_START, callback);
     }
 
     /**
@@ -411,7 +672,20 @@ export class Overlay extends Layer {
     }
 
     /**
-     * Set the styles for the overlay element
+     * Set the aspect ratio to maintain during resizing
+     *
+     * @param {number} aspectRatio The aspect ratio (width / height)
+     * @returns {Overlay}
+     */
+    setResizeAspectRatio(aspectRatio: number): Overlay {
+        if (isNumber(aspectRatio) && aspectRatio > 0) {
+            this.#resizeAspectRatio = aspectRatio;
+        }
+        return this;
+    }
+
+    /**
+     * Set one more styles for the overlay element. This will merge styles with an existing ones.
      *
      * @param {object} styles The styles to apply to the overlay element
      * @returns {Overlay}
@@ -486,6 +760,440 @@ export class Overlay extends Layer {
         } else {
             this.show(map);
         }
+    }
+
+    /**
+     * Set up drag event handlers
+     *
+     * @private
+     */
+    #setupDragHandlers(): void {
+        if (this.#drag) {
+            this.#overlay.style.cursor = 'move';
+            this.#overlay.style.pointerEvents = 'auto';
+            this.#overlay.style.border = '2px solid #007bff';
+            this.#overlay.addEventListener('mousedown', this.#handleDragStart);
+            this.#overlay.addEventListener('touchstart', this.#handleDragStart);
+
+            // Ensure map events are prevented
+            if (checkForGoogleMaps('Overlay', 'OverlayView', false)) {
+                google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+            }
+        } else {
+            this.#overlay.style.cursor = '';
+            this.#overlay.style.pointerEvents = '';
+            this.#overlay.removeEventListener('mousedown', this.#handleDragStart);
+            this.#overlay.removeEventListener('touchstart', this.#handleDragStart);
+        }
+    }
+
+    /**
+     * Set up resize event handlers
+     *
+     * @private
+     */
+    #setupResizeHandlers(): void {
+        if (this.#resize) {
+            this.#createResizeHandles();
+        } else {
+            this.#removeResizeHandles();
+        }
+    }
+
+    /**
+     * Create resize handles
+     *
+     * @private
+     */
+    #createResizeHandles(): void {
+        this.#removeResizeHandles();
+
+        this.#overlay.style.border = '2px solid #007bff';
+
+        const corners = ['nw', 'ne', 'sw', 'se'];
+        const cursors = {
+            nw: 'nwse-resize',
+            ne: 'nesw-resize',
+            sw: 'nesw-resize',
+            se: 'nwse-resize',
+        };
+        corners.forEach((corner) => {
+            const handle = document.createElement('div');
+            handle.className = `resize-handle resize-${corner}`;
+            handle.style.cssText = `
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                background: #fff;
+                border: 2px solid #007bff;
+                border-radius: 50%;
+                cursor: ${cursors[corner]};
+                z-index: 1000;
+                pointer-events: auto;
+            `;
+
+            // Position the handles
+            switch (corner) {
+                case 'nw':
+                    handle.style.top = '-6px';
+                    handle.style.left = '-6px';
+                    break;
+                case 'ne':
+                    handle.style.top = '-6px';
+                    handle.style.right = '-6px';
+                    break;
+                case 'sw':
+                    handle.style.bottom = '-6px';
+                    handle.style.left = '-6px';
+                    break;
+                case 'se':
+                    handle.style.bottom = '-6px';
+                    handle.style.right = '-6px';
+                    break;
+                default:
+                    // Default to top-left
+                    handle.style.top = '-6px';
+                    handle.style.left = '-6px';
+                    break;
+            }
+
+            handle.addEventListener('mousedown', (e) => this.#handleResizeStart(e, corner));
+            handle.addEventListener('touchstart', (e) => this.#handleResizeStart(e, corner));
+
+            // Prevent map events on resize handles
+            if (checkForGoogleMaps('Overlay', 'OverlayView', false)) {
+                google.maps.OverlayView.preventMapHitsAndGesturesFrom(handle);
+            }
+
+            this.#overlay.appendChild(handle);
+            this.#resizeHandles.push(handle);
+        });
+    }
+
+    /**
+     * Remove resize handles
+     *
+     * @private
+     */
+    #removeResizeHandles(): void {
+        this.#resizeHandles.forEach((handle) => {
+            if (handle.parentNode) {
+                handle.parentNode.removeChild(handle);
+            }
+        });
+        this.#resizeHandles = [];
+        this.#overlay.style.border = 'none';
+    }
+
+    /**
+     * Handle drag start
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleDragStart = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#drag || this.#isResizing) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.#isDragging = true;
+        this.#dragStart = point(
+            e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY],
+        );
+        this.#overlayStart = point(
+            parseInt(this.#overlay.style.left, 10) || 0,
+            parseInt(this.#overlay.style.top, 10) || 0,
+        );
+
+        document.addEventListener('mousemove', this.#handleDrag);
+        document.addEventListener('mouseup', this.#handleDragEnd);
+        document.addEventListener('touchmove', this.#handleDrag);
+        document.addEventListener('touchend', this.#handleDragEnd);
+
+        this.dispatch(OverlayEvents.DRAG_START, { event: e });
+    };
+
+    /**
+     * Handle drag
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleDrag = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#isDragging) return;
+
+        e.preventDefault();
+
+        const currentPos = point(
+            e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY],
+        );
+        const delta = currentPos.subtract(this.#dragStart);
+
+        // Update the overlay position based on the original overlay position plus the total delta
+        const newLeft = this.#overlayStart.getX() + delta.getX();
+        const newTop = this.#overlayStart.getY() + delta.getY();
+
+        this.#overlay.style.left = `${newLeft}px`;
+        this.#overlay.style.top = `${newTop}px`;
+
+        // Calculate new bounds and dispatch event
+        this.updateBoundsFromPosition();
+        this.dispatch(OverlayEvents.DRAG, { event: e, delta });
+    };
+
+    /**
+     * Handle drag end
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleDragEnd = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#isDragging) return;
+
+        this.#isDragging = false;
+
+        document.removeEventListener('mousemove', this.#handleDrag);
+        document.removeEventListener('mouseup', this.#handleDragEnd);
+        document.removeEventListener('touchmove', this.#handleDrag);
+        document.removeEventListener('touchend', this.#handleDragEnd);
+
+        this.dispatch(OverlayEvents.DRAG_END, { event: e });
+    };
+
+    /**
+     * Handle resize start
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     * @param {string} corner The corner being resized
+     */
+    #handleResizeStart = (e: MouseEvent | TouchEvent, corner: string): void => {
+        if (!this.#resize || this.#isDragging) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.#isResizing = true;
+        this.resizeCorner = corner;
+
+        const mapContainer = this.getMap().getDiv();
+        const containerRect = mapContainer.getBoundingClientRect();
+        const currentSize = this.#overlay.getBoundingClientRect();
+
+        const currentBounds = this.getBounds();
+
+        // Get the current bounds, position, and size of the overlay before resizing.
+        // These values will be used to calculate the new bounds, position, and size of the overlay after resizing.
+        this.resizeStart = {
+            // Northeast lat/lng
+            neBounds: currentBounds.getNorthEast(),
+            // Current top left position of the overlay within the map container.
+            // This is used to calculate the new position of the overlay after resizing from the top left.
+            nwPos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
+            // Southwest lat/lng
+            swBounds: currentBounds.getSouthWest(),
+            // Current bottom right position of the overlay within the map container.
+            // This is used to calculate the new position of the overlay after resizing from the bottom right.
+            sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
+            // Current left position within the overlay container
+            left: parseInt(this.#overlay.style.left, 10) || 0,
+            // Current top position within the overlay container
+            top: parseInt(this.#overlay.style.top, 10) || 0,
+            // Current width of the overlay container
+            width: currentSize.width,
+            // Current height of the overlay container
+            height: currentSize.height,
+        };
+
+        document.addEventListener('mousemove', this.#handleResize);
+        document.addEventListener('mouseup', this.#handleResizeEnd);
+        document.addEventListener('touchmove', this.#handleResize);
+        document.addEventListener('touchend', this.#handleResizeEnd);
+
+        this.dispatch(OverlayEvents.RESIZE_START, { event: e, corner });
+    };
+
+    /**
+     * Handle resize
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleResize = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#isResizing) return;
+
+        e.preventDefault();
+
+        const projection = this.getProjection();
+
+        if (projection) {
+            // Get the map container and its bounding client rectangle to get the mouse position relative to the map
+            const mapContainer = this.getMap().getDiv();
+            const containerRect = mapContainer.getBoundingClientRect();
+            const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+            const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+            const mouseX = eventX - containerRect.left;
+            const mouseY = eventY - containerRect.top;
+
+            // Get the top right x/y coordinates
+            const topRight = projection.fromLatLngToContainerPixel(this.resizeStart.neBounds.toGoogle());
+            // Get the bottom left x/y coordinates
+            const bottomLeft = projection.fromLatLngToContainerPixel(this.resizeStart.swBounds.toGoogle());
+
+            let newWidth: number;
+            let newHeight: number;
+            let newLeft: number;
+            let newTop: number;
+
+            if (this.resizeCorner === 'nw') {
+                // If the current position is below the bottom left corner or to the right of the top right corner,
+                // then do not continue with the resize
+                if (mouseY > bottomLeft.y || mouseX > topRight.x) {
+                    return;
+                }
+                // Calculate the difference between the current position and the top right
+                const diffX = this.resizeStart.nwPos.x - mouseX;
+                const diffY = this.resizeStart.nwPos.y - mouseY;
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width + diffX;
+                newHeight = this.resizeStart.height + diffY;
+                newLeft = this.resizeStart.left - diffX;
+                newTop = this.resizeStart.top - diffY;
+            } else if (this.resizeCorner === 'ne') {
+                // If the current position is below the bottom left corner or to the left of the bottom left corner,
+                // then do not continue with the resize
+                if (mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
+                    return;
+                }
+                // Calculate the difference between the current position and the top right
+                const diffX = topRight.x - mouseX;
+                const diffY = topRight.y - mouseY;
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width - diffX;
+                newHeight = this.resizeStart.height + diffY;
+                newLeft = this.resizeStart.left;
+                newTop = this.resizeStart.top - diffY;
+            } else if (this.resizeCorner === 'sw') {
+                // If the current position is above the top left corner or to the right of the top right corner,
+                // then do not continue with the resize
+                if (mouseY < this.resizeStart.top || mouseX > topRight.x) {
+                    return;
+                }
+
+                // Calculate the difference between the current position and the bottom left
+                const diffX = bottomLeft.x - mouseX;
+                const diffY = bottomLeft.y - mouseY;
+
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width + diffX;
+                newHeight = this.resizeStart.height - diffY;
+                newLeft = this.resizeStart.left - diffX;
+                newTop = this.resizeStart.top;
+            } else if (this.resizeCorner === 'se') {
+                // If the current position is above the top left corner or to the left of the top left corner,
+                // then do not continue with the resize
+                if (mouseY < this.resizeStart.top || mouseX < this.resizeStart.left) {
+                    return;
+                }
+
+                // Calculate the difference between the current position and the bottom right
+                const diffX = this.resizeStart.sePos.x - mouseX;
+                const diffY = this.resizeStart.sePos.y - mouseY;
+
+                // Calculate new dimensions
+                newWidth = this.resizeStart.width - diffX;
+                newHeight = this.resizeStart.height - diffY;
+                newLeft = this.resizeStart.left;
+                newTop = this.resizeStart.top;
+            }
+
+            // Apply aspect ratio constraint if set
+            const constrained = calculateDimensions(this.#resizeAspectRatio, newWidth, newHeight);
+
+            // Update the overlay dimensions and position
+            this.#overlay.style.width = `${constrained.width}px`;
+            this.#overlay.style.height = `${constrained.height}px`;
+            this.#overlay.style.left = `${newLeft}px`;
+            this.#overlay.style.top = `${newTop}px`;
+
+            if (this.#resizeAspectRatio > 0) {
+                // If the aspect ratio is set, then we need to calculate the new lat/lng position based on the new dimensions.
+                const newContainerRect = this.#overlay.getBoundingClientRect();
+                const mapContainerRect = this.getMap().getDiv().getBoundingClientRect();
+                // Need to get the NE and SW pixel coordinates of the container within the map container.
+                const nePos = {
+                    x: newContainerRect.right - mapContainerRect.left,
+                    y: newContainerRect.top - mapContainerRect.top,
+                };
+                const swPos = {
+                    x: newContainerRect.left - mapContainerRect.left,
+                    y: newContainerRect.bottom - mapContainerRect.top,
+                };
+                const neLatLng = this.getContainerLatLngFromPixel(nePos.x, nePos.y);
+                const swLatLng = this.getContainerLatLngFromPixel(swPos.x, swPos.y);
+                this.setBoundsFromResize(neLatLng, swLatLng);
+            } else {
+                // Set the new lat/lng position based on the mouse position.
+                const newLatLng = this.getContainerLatLngFromPixel(mouseX, mouseY);
+                this.updateBoundsFromResize(newLatLng);
+            }
+
+            this.dispatch(OverlayEvents.RESIZE, { event: e, corner: this.resizeCorner });
+        }
+    };
+
+    /**
+     * Handle resize end
+     *
+     * @private
+     * @param {MouseEvent | TouchEvent} e The event
+     */
+    #handleResizeEnd = (e: MouseEvent | TouchEvent): void => {
+        if (!this.#isResizing) return;
+
+        this.#isResizing = false;
+        this.resizeCorner = '';
+
+        document.removeEventListener('mousemove', this.#handleResize);
+        document.removeEventListener('mouseup', this.#handleResizeEnd);
+        document.removeEventListener('touchmove', this.#handleResize);
+        document.removeEventListener('touchend', this.#handleResizeEnd);
+
+        this.dispatch(OverlayEvents.RESIZE_END, { event: e });
+    };
+
+    /**
+     * Update bounds from current position
+     *
+     * @protected
+     */
+    // eslint-disable-next-line class-methods-use-this
+    updateBoundsFromPosition(): void {
+        // This method will be overridden by subclasses
+    }
+
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void {
+        // This method will be overridden by subclasses
+    }
+
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} newLatLng The new lat/lng position
+     */
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars
+    updateBoundsFromResize(newLatLng: LatLng): void {
+        // This method will be overridden by subclasses
     }
 
     /**
