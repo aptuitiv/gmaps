@@ -886,7 +886,7 @@ export class Marker extends Layer {
             this.#options.label = value;
         } else if (isObject(value) && isStringOrNumber(value.text)) {
             this.#options.label = {
-                text: value.text.toString()
+                text: value.text.toString(),
             };
             if (isStringWithValue(value.className)) {
                 this.#options.label.className = value.className;
@@ -1250,7 +1250,7 @@ export class Marker extends Layer {
                 this.#createMarkerObject();
             } else {
                 throw new Error(
-                    'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.'
+                    'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.',
                 );
             }
         }
