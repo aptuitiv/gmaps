@@ -7,6 +7,7 @@
 
 import { Evented } from './Evented';
 import { Map } from './Map';
+import { Popup } from './Popup';
 
 /**
  * Base class to help with drawing stuff on the map.
@@ -38,6 +39,14 @@ class Layer extends Evented {
      * @type {Map|null}
      */
     #map: Map | null = null;
+
+    /**
+     * Holds the Popup object that the layer is added to
+     *
+     * @private
+     * @type {Popup|null}
+     */
+    #popup: Popup | undefined;
 
     /**
      * Get if the layer is visible or not
@@ -94,6 +103,67 @@ class Layer extends Evented {
     // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
     init(): Promise<void> {
         return Promise.resolve();
+    }
+
+    /**
+     * Set the Popup object that the layer is added to
+     *
+     * @internal
+     * @param {Popup} popup The Popup object to add the layer to
+     */
+    setPopup(popup: Popup | null): void {
+        this.#popup = popup;
+    }
+
+    /**
+     * Close the popup for the layer
+     *
+     * @returns {void}
+     */
+    closePopup(): void {
+        if (this.hasPopup()) {
+            this.#popup.close();
+        }
+    }
+
+    /**
+     * Get the Popup object that the layer is added to
+     *
+     * @returns {Popup|undefined}
+     */
+    getPopup(): Popup | undefined {
+        return this.#popup;
+    }
+
+    /**
+     * Check if the layer has a Popup object set
+     *
+     * @returns {boolean}
+     */
+    hasPopup(): boolean {
+        return this.#popup !== undefined;
+    }
+
+    /**
+     * Open the popup for the layer
+     *
+     * @returns {void}
+     */
+    openPopup(): void {
+        if (this.hasPopup()) {
+            this.#popup.show(this);
+        }
+    }
+
+    /**
+     * Toggle the popup for the layer
+     *
+     * @returns {void}
+     */
+    togglePopup(): void {
+        if (this.hasPopup()) {
+            this.#popup.toggle(this);
+        }
     }
 
     /**

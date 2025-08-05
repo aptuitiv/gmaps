@@ -373,6 +373,12 @@ export class Popup extends Overlay {
     async attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup> {
         if (!this.#isAttached) {
             this.#isAttached = true;
+
+            // Set the popup property on the element if it's a Layer
+            if (element instanceof Layer) {
+                element.setPopup(this);
+            }
+
             await element.init().then(() => {
                 if (event === 'clickon' || event === 'hover') {
                     // Don't toggle the display of the InfoWindow for the clickon and hover events.
