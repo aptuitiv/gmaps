@@ -31,6 +31,7 @@ const markp = marker.attachPopup({
 markp.on('open', () => {
     console.log('Marker Popup opened');
 });
+markp.open(marker);
 
 
 const marker2 = G.marker({
