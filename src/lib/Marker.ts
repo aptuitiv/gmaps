@@ -1206,6 +1206,11 @@ export class Marker extends Layer {
                         resolve();
                     });
                 } else {
+                    // Trigger the map to load if it's set.
+                    if (map instanceof Map) {
+                        map.init();
+                    }
+
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().onMapLoad(() => {
@@ -1224,11 +1229,6 @@ export class Marker extends Layer {
                             resolve();
                         });
                     });
-
-                    // Trigger the map to load if it's set.
-                    if (map instanceof Map) {
-                        map.init();
-                    }
                 }
             } else if (this.#isSettingUp && !isObject(this.#marker)) {
                 // The marker is already being set up. Wait for it to finish.
