@@ -1013,7 +1013,7 @@ export class ImageOverlay extends Overlay {
             this.getOverlayElement().appendChild(this.#imageElement);
         }
 
-        if (this.resizable || this.draggable || this.rotate) {
+        if (this.resize || this.drag || this.rotate) {
             // Add the overlay to the float pane to ensure it's above the map and can receive events
             // https://developers.google.com/maps/documentation/javascript/customoverlays#intitialize
             panes.floatPane.appendChild(this.getOverlayElement());
