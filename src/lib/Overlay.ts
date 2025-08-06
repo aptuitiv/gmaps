@@ -514,6 +514,15 @@ export class Overlay extends Layer {
     }
 
     /**
+     * Returns whether the overlay is draggable
+     *
+     * @returns {boolean}
+     */
+    isDraggable(): boolean {
+        return this.drag;
+    }
+
+    /**
      * Moves the overlay to a new position.
      *
      * If the overlay is not visible, it will be shown.
