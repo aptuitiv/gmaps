@@ -322,7 +322,16 @@ export class Marker extends Layer {
      * @returns {LatLng}
      */
     get position(): LatLng {
-        return this.#options.position;
+        let returnValue = this.#options.position;
+        if (this.#marker) {
+            // The marker position could have changed if it was dragged around so try to get the latest position
+            // directly from the Google Maps marker object
+            returnValue = latLng(this.#marker.getPosition());
+        }
+        if (isNullOrUndefined(returnValue)) {
+            returnValue = latLng([0, 0]);
+        }
+        return returnValue;
     }
 
     /**
