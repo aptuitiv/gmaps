@@ -14,6 +14,7 @@ const marker = G.marker({
     map: map,
     title: 'Marker 1',
 });
+console.log('Marker Popup: ', marker.hasPopup(), marker.getPopup());
 const content = `
     <h1>My Popup</h1>
     <p>This is a popup on a marker. Isn't it great!</p>
@@ -28,9 +29,18 @@ const markp = marker.attachPopup({
     styles: { maxWidth: '200px', textAlign: 'center', padding: '10px 20px' },
     theme: 'default'
 });
+console.log('Marker Popup 2: ', marker.hasPopup(), marker.getPopup());
 markp.on('open', () => {
     console.log('Marker Popup opened');
 });
+// markp.open(marker);
+// marker.openPopup();
+marker.togglePopup();
+
+setTimeout(() => {
+    // marker.closePopup();
+    marker.togglePopup();
+}, 3000);
 
 
 const marker2 = G.marker({

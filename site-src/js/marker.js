@@ -185,3 +185,61 @@ showTagsButton.addEventListener('click', () => {
     markerCollection.show(['tag3', 'tag4', 'tag5'], map);
 });
 tagGrid.appendChild(showTagsButton);
+
+// Test dragging functionality
+const dragTestSection = document.createElement('div');
+dragTestSection.style.padding = '10px 0';
+dragTestSection.innerHTML = '<h3>Drag Test</h3>';
+document.body.appendChild(dragTestSection);
+
+// Create a draggable marker
+const draggableMarker = G.marker({
+    latitude: 50,
+    longitude: 3,
+    map: map,
+    title: 'Draggable Marker',
+    drag: true, // Enable custom drag functionality
+    tooltip: 'Drag me around!'
+});
+draggableMarker.setLabel('Drag Me');
+
+// Add event listeners for drag events
+draggableMarker.on('dragend', (e) => {
+    console.log('Marker dragged to new position:', e);
+    // console.log('Marker dragged to new position:', e.position);
+    console.log('New lat/lng:', e.latLng.lat, e.latLng.lng);
+    const newPosition = draggableMarker.getPosition();
+    console.log('New lat/lng:', newPosition.lat, newPosition.lng);
+});
+
+// Buttons to control drag functionality
+const dragControls = document.createElement('div');
+dragControls.style.display = 'flex';
+dragControls.style.gap = '10px';
+dragControls.style.padding = '10px 0';
+dragTestSection.appendChild(dragControls);
+
+const enableDragButton = document.createElement('button');
+enableDragButton.textContent = 'Enable Drag';
+enableDragButton.addEventListener('click', () => {
+    draggableMarker.enableDrag();
+    console.log('Drag enabled');
+});
+dragControls.appendChild(enableDragButton);
+
+const disableDragButton = document.createElement('button');
+disableDragButton.textContent = 'Disable Drag';
+disableDragButton.addEventListener('click', () => {
+    draggableMarker.disableDrag();
+    console.log('Drag disabled');
+});
+dragControls.appendChild(disableDragButton);
+
+const getPositionButton = document.createElement('button');
+getPositionButton.textContent = 'Get Position';
+getPositionButton.addEventListener('click', () => {
+    const position = draggableMarker.getPosition();
+    console.log('Current position:', position);
+    alert(`Latitude: ${position.lat}\nLongitude: ${position.lng}`);
+});
+dragControls.appendChild(getPositionButton);

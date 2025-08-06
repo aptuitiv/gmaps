@@ -404,6 +404,7 @@ declare const MarkerEvents: Readonly<{
 declare const OverlayEvents: Readonly<{
     DRAG_START: "dragstart";
     DRAG: "drag";
+    DRAGGABLE_CHANGED: "draggable_changed";
     DRAG_END: "dragend";
     OPEN: "open";
     RESIZE_START: "resizestart";
@@ -4050,6 +4051,685 @@ declare class Map extends Evented {
  */
 declare const map: (selector: string | HTMLElement, config?: MapOptions) => Map;
 
+type ResizeStart = {
+    neBounds: LatLng;
+    nwPos: {
+        x: number;
+        y: number;
+    };
+    swBounds: LatLng;
+    sePos: {
+        x: number;
+        y: number;
+    };
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+};
+/**
+ * Base class to help with drawing overlays on the map.
+ *
+ * The methods are purposely left blank so you can override them in your own class.
+ * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
+ */
+declare class Overlay extends Layer {
+    #private;
+    /**
+     * The corner being resized (nw, ne, sw, se)
+     *
+     * @protected
+     * @type {string}
+     */
+    resizeCorner: string;
+    /**
+     * The starting bounds when resizing begins
+     *
+     * @protected
+     * @type {object}
+     */
+    resizeStart: ResizeStart;
+    /**
+     * Constructor
+     *
+     * @param {string} objectType The object type for the class
+     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
+     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
+     */
+    constructor(objectType: string, testObject: string, testLibrary?: string);
+    /**
+     * Get the class name for the overlay element
+     *
+     * @returns {string}
+     */
+    get className(): string;
+    /**
+     * Set the class name(s) for the overlay element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the overlay.
+     *    This can be a space separated list of class names.
+     */
+    set className(className: string);
+    /**
+     * Returns whether dragging is enabled
+     *
+     * @returns {boolean}
+     */
+    get drag(): boolean;
+    /**
+     * Set whether dragging is enabled
+     *
+     * @param {boolean} drag Whether dragging is enabled
+     */
+    set drag(drag: boolean);
+    /**
+     * Returns the offset value
+     *
+     * @returns {Point}
+     */
+    get offset(): Point;
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param {PointValue} value The offset value
+     */
+    set offset(value: PointValue);
+    /**
+     * Returns the position of the overlay
+     *
+     * @returns {LatLng}
+     */
+    get position(): LatLng;
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue} value The position of the overlay
+     */
+    set position(value: LatLngValue);
+    /**
+     * Returns whether resizing is enabled
+     *
+     * @returns {boolean}
+     */
+    get resize(): boolean;
+    /**
+     * Set whether resizing is enabled
+     *
+     * @param {boolean} resize Whether resizing is enabled
+     */
+    set resize(resize: boolean);
+    /**
+     * Returns the styles for the overlay element
+     *
+     * @returns {object}
+     */
+    get styles(): object;
+    /**
+     * Set multiple styles for the overlay element
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     */
+    set styles(styles: object);
+    /**
+     * Disable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableDrag(): Overlay;
+    /**
+     * Disable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableResize(): Overlay;
+    /**
+     * Display the overlay on the map
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    display(map: Map): Promise<Overlay>;
+    /**
+     * Enable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableDrag(): Overlay;
+    /**
+     * Enable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableResize(): Overlay;
+    /**
+     * Get the bounds where the overlay should be displayed
+     *
+     * This method should be overridden by subclasses and not called directly.
+     *
+     * @returns {LatLngBounds}
+     */
+    getBounds(): LatLngBounds;
+    /**
+     * Computes the geographical coordinates from pixel coordinates in the map's container.
+     *
+     * This is a shortcut to getting the projection from the overlay and then calling
+     * fromContainerPixelToLatLng on the projection with the pixel value.
+     *
+     * @param {PointValue} x The Point value or the x numeric point value.
+     * @param {number} [y] The y value if x is a number.
+     * @returns {LatLng}
+     */
+    getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng;
+    /**
+     * Computes the geographical coordinates from pixel coordinates in the div that holds the draggable map.
+     *
+     * This is a shortcut to getting the projection from the overlay and then calling
+     * fromDivPixelToLatLng on the projection with the pixel value.
+     *
+     * @param {PointValue} x The Point value or the x numeric point value.
+     * @param {number} [y] The y value if x is a number.
+     * @returns {LatLng}
+     */
+    getDivLatLngFromPixel(x: PointValue, y?: number): LatLng;
+    /**
+     * Get the offset value
+     *
+     * @returns {Point}
+     */
+    getOffset(): Point;
+    /**
+     * Get the overlay HTML element
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
+    /**
+     * Get the position of the overlay
+     *
+     * @returns {LatLng}
+     */
+    getPosition(): LatLng;
+    /**
+     * Returns the MapCanvasProjection object associated with this OverlayView.
+     *
+     * The projection is not initialized until onAdd is called by the API.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
+     *
+     * @returns {google.maps.MapCanvasProjection}
+     */
+    getProjection(): google.maps.MapCanvasProjection;
+    /**
+     * Get the current aspect ratio for resizing
+     *
+     * @returns {number}
+     */
+    getResizeAspectRatio(): number;
+    /**
+     * Returns whether the overlay has a position
+     *
+     * @returns {boolean}
+     */
+    hasPosition(): boolean;
+    /**
+     * Hide the overlay
+     *
+     * @returns {Overlay}
+     */
+    hide(): Overlay;
+    /**
+     * Returns whether the overlay is draggable
+     *
+     * @returns {boolean}
+     */
+    isDraggable(): boolean;
+    /**
+     * Moves the overlay to a new position.
+     *
+     * If the overlay is not visible, it will be shown.
+     * If it's already visible on the map, it will be moved to the new position.
+     *
+     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {Map} [map] The Map object
+     * @returns {Promise<Overlay>}
+     */
+    move(position: LatLngValue, map?: Map): Promise<Overlay>;
+    /**
+     * Add an event listener for when dragging ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when dragging updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the overlay draggable property changes
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDraggableChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when dragging the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the overlay is opened.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onOpen(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResize(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeStart(callback: EventCallback): void;
+    /**
+     * Removes a class name from the overlay element
+     *
+     * @param {string} className The class name to remove from the overlay element
+     * @returns {Overlay}
+     */
+    removeClassName(className: string): Overlay;
+    /**
+     * Set the class name(s) for the overlay element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the overlay.
+     *    This can be a space separated list of class names.
+     * @returns {Overlay}
+     */
+    setClassName(className: string): Overlay;
+    /**
+     * Set the map object to display the overlay in
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    setMap(map: Map): Promise<Overlay>;
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param {PointValue} offset The offset value
+     * @returns {Overlay}
+     */
+    setOffset(offset: PointValue): Overlay;
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @returns {Overlay}
+     */
+    setPosition(position: LatLngValue): Overlay;
+    /**
+     * Set the aspect ratio to maintain during resizing
+     *
+     * @param {number} aspectRatio The aspect ratio (width / height)
+     * @returns {Overlay}
+     */
+    setResizeAspectRatio(aspectRatio: number): Overlay;
+    /**
+     * Set one more styles for the overlay element. This will merge styles with an existing ones.
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     * @returns {Overlay}
+     */
+    setStyles(styles: object): Overlay;
+    /**
+     * Add the overlay to the map.
+     *
+     * Alias for setMap()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    show(map: Map): Promise<Overlay>;
+    /**
+     * Set a single style on the overlay element
+     *
+     * @param {string} name The style name
+     * @param {string} value The style value
+     * @returns {Overlay}
+     */
+    style(name: string, value: string): Overlay;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map} map The map object
+     * @returns {void}
+     */
+    toggle(map: Map): void;
+    /**
+     * Update bounds from current position
+     *
+     * @protected
+     */
+    updateBoundsFromPosition(): void;
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} newLatLng The new lat/lng position
+     */
+    updateBoundsFromResize(newLatLng: LatLng): void;
+    /**
+     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+    /**
+     * Remove the overlay from the map.
+     * This method is called once following a call to setMap(null).
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     */
+    remove(): void;
+}
+/**
+ * Helper function to set up the overlay object
+ *
+ * @returns {Overlay}
+ */
+declare const overlay: () => Overlay;
+
+type PopupOptions = {
+    autoClose?: boolean;
+    center?: boolean;
+    className?: string;
+    clearance?: SizeValue;
+    closeElement?: HTMLElement | string;
+    content: string | HTMLElement | Text;
+    event?: string;
+    fit?: boolean;
+    offset?: PointValue;
+    styles?: object;
+    theme?: string;
+};
+/**
+ * Popup class
+ */
+declare class Popup extends Overlay {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
+     */
+    constructor(options: PopupOptions | string | HTMLElement | Text);
+    /**
+     * Get the autoClose value
+     *
+     * @returns {boolean}
+     */
+    get autoClose(): boolean;
+    /**
+     * Set the autoClose value
+     *
+     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
+     */
+    set autoClose(autoClose: boolean);
+    /**
+     * Returns whether to center the popup horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean;
+    /**
+     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
+     *
+     * @param {boolean} center Whether to center the popup on the element
+     */
+    set center(center: boolean);
+    /**
+     * Returns the amount of space between the popup and the map viewport edge.
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @returns {Size}
+     */
+    get clearance(): Size;
+    /**
+     * Set the amount of space between the popup and the map viewport edge
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @param {SizeValue} clearance The amount of space between the popup and the map viewport edge
+     */
+    set clearance(clearance: SizeValue);
+    /**
+     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @returns {HTMLElement|string}
+     */
+    get closeElement(): HTMLElement | string;
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @param {HTMLElement|string} closeElement The element to close the popup
+     */
+    set closeElement(closeElement: HTMLElement | string);
+    /**
+     * Returns the content for the popup
+     *
+     * @returns {string|HTMLElement|Text}
+     */
+    get content(): string | HTMLElement | Text;
+    /**
+     * Set the content for the popup
+     *
+     * @param {string|HTMLElement|Text} content The content for the popup
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string);
+    /**
+     * Returns whether to fit the popup within the map viewport when it's displayed
+     *
+     * @returns {boolean}
+     */
+    get fit(): boolean;
+    /**
+     * Set whether to fit the popup within the map viewport when it's displayed
+     *
+     * @param {boolean} fit Whether to fit the popup within the map viewport when it's displayed
+     */
+    set fit(fit: boolean);
+    /**
+     * Returns the theme to use for the popup
+     *
+     * @returns {string}
+     */
+    get theme(): string;
+    /**
+     * Set the theme to use for the popup
+     *
+     * @param {string} theme The theme to use for the popup
+     */
+    set theme(theme: string);
+    /**
+     * Attach the popup to a element
+     *
+     * By default the popup will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the popup to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
+     *   - 'click' - Toggle the display of the popup when clicking on the element
+     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+     * @returns {Promise<Popup>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup>;
+    /**
+     * Hide the popup
+     *
+     * Alias to hide()
+     *
+     * @returns {Popup}
+     */
+    close(): Popup;
+    /**
+     * Returns whether the popup already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
+     * Hide the popup
+     *
+     * @returns {Popup}
+     */
+    hide(): Popup;
+    /**
+     * Returns whether the popup is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean;
+    /**
+     * Open the popup
+     *
+     * Alias to show()
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<Popup>}
+     */
+    open(element: Map | Layer): Promise<Popup>;
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     * The popup will be hidden when this element is clicked on.
+     *
+     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
+     * @returns {Popup}
+     */
+    setCloseElement(element: HTMLElement | string): Popup;
+    /**
+     * Set the Popup content
+     *
+     * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
+     */
+    setContent(content: string | HTMLElement | Text): Popup;
+    /**
+     * Sets the options for the popup
+     *
+     * @param {PopupOptions} options Popup options
+     * @returns {Popup}
+     */
+    setOptions(options: PopupOptions): Popup;
+    /**
+     * Open the popup
+     *
+     * You need to pass in either an anchor object or a map object.
+     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
+     * If a map object is passed in then the popup will be displayed at the position of the popup.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     *      This should ideally be the Map or Marker object and not the Google maps object.
+     *      If this is used internally then the Google maps object can be used.
+     * @returns {Promise<Popup>}
+     */
+    show(element: Map | Layer): Promise<Popup>;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     */
+    toggle(element: Map | Layer): void;
+    /**
+     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+}
+type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
+/**
+ * Helper function to set up the Popup class
+ *
+ * @param {PopupValue} [options] The Popup options
+ * @returns {Popup}
+ */
+declare const popup: (options?: PopupValue) => Popup;
+/**
+ * Helper function to close all open popups
+ *
+ * Usage:
+ * G.closeAllPopups();
+ *
+ * @returns {void}
+ */
+declare const closeAllPopups: () => void;
+
 /**
  * Base class to help with drawing stuff on the map.
  *
@@ -4102,6 +4782,43 @@ declare class Layer extends Evented {
      * @returns {Promise<void>}
      */
     init(): Promise<void>;
+    /**
+     * Set the Popup object that the layer is added to
+     *
+     * @internal
+     * @param {Popup} popup The Popup object to add the layer to
+     */
+    setPopup(popup: Popup | null): void;
+    /**
+     * Close the popup for the layer
+     *
+     * @returns {void}
+     */
+    closePopup(): void;
+    /**
+     * Get the Popup object that the layer is added to
+     *
+     * @returns {Popup|undefined}
+     */
+    getPopup(): Popup | undefined;
+    /**
+     * Check if the layer has a Popup object set
+     *
+     * @returns {boolean}
+     */
+    hasPopup(): boolean;
+    /**
+     * Open the popup for the layer
+     *
+     * @returns {void}
+     */
+    openPopup(): void;
+    /**
+     * Toggle the popup for the layer
+     *
+     * @returns {void}
+     */
+    togglePopup(): void;
     /**
      * Clears the map object that the layer is added to
      *
@@ -4818,427 +5535,6 @@ type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
  */
 declare const svgSymbol: (path?: SvgSymbolValue, options?: SvgSymbolOptions) => SvgSymbol;
 
-type ResizeStart = {
-    neBounds: LatLng;
-    nwPos: {
-        x: number;
-        y: number;
-    };
-    swBounds: LatLng;
-    sePos: {
-        x: number;
-        y: number;
-    };
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-};
-/**
- * Base class to help with drawing overlays on the map.
- *
- * The methods are purposely left blank so you can override them in your own class.
- * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
- */
-declare class Overlay extends Layer {
-    #private;
-    /**
-     * The corner being resized (nw, ne, sw, se)
-     *
-     * @protected
-     * @type {string}
-     */
-    resizeCorner: string;
-    /**
-     * The starting bounds when resizing begins
-     *
-     * @protected
-     * @type {object}
-     */
-    resizeStart: ResizeStart;
-    /**
-     * Constructor
-     *
-     * @param {string} objectType The object type for the class
-     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
-     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
-     */
-    constructor(objectType: string, testObject: string, testLibrary?: string);
-    /**
-     * Get the class name for the overlay element
-     *
-     * @returns {string}
-     */
-    get className(): string;
-    /**
-     * Set the class name(s) for the overlay element
-     *
-     * If you need multiple class names then separate them with a space.
-     *
-     * @param {string} className The class name(s) to add to the overlay.
-     *    This can be a space separated list of class names.
-     */
-    set className(className: string);
-    /**
-     * Returns whether dragging is enabled
-     *
-     * @returns {boolean}
-     */
-    get drag(): boolean;
-    /**
-     * Set whether dragging is enabled
-     *
-     * @param {boolean} drag Whether dragging is enabled
-     */
-    set drag(drag: boolean);
-    /**
-     * Returns the offset value
-     *
-     * @returns {Point}
-     */
-    get offset(): Point;
-    /**
-     * Set the x,y offset for the overlay
-     *
-     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
-     *
-     * @param {PointValue} value The offset value
-     */
-    set offset(value: PointValue);
-    /**
-     * Returns the position of the overlay
-     *
-     * @returns {LatLng}
-     */
-    get position(): LatLng;
-    /**
-     * Set the position of the overlay
-     *
-     * @param {LatLngValue} value The position of the overlay
-     */
-    set position(value: LatLngValue);
-    /**
-     * Returns whether resizing is enabled
-     *
-     * @returns {boolean}
-     */
-    get resize(): boolean;
-    /**
-     * Set whether resizing is enabled
-     *
-     * @param {boolean} resize Whether resizing is enabled
-     */
-    set resize(resize: boolean);
-    /**
-     * Returns the styles for the overlay element
-     *
-     * @returns {object}
-     */
-    get styles(): object;
-    /**
-     * Set multiple styles for the overlay element
-     *
-     * @param {object} styles The styles to apply to the overlay element
-     */
-    set styles(styles: object);
-    /**
-     * Disable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableDrag(): Overlay;
-    /**
-     * Disable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableResize(): Overlay;
-    /**
-     * Display the overlay on the map
-     *
-     * Alias to show()
-     *
-     * @param {Map} map The Map object
-     * @returns {Promise<Overlay>}
-     */
-    display(map: Map): Promise<Overlay>;
-    /**
-     * Enable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableDrag(): Overlay;
-    /**
-     * Enable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableResize(): Overlay;
-    /**
-     * Get the bounds where the overlay should be displayed
-     *
-     * This method should be overridden by subclasses and not called directly.
-     *
-     * @returns {LatLngBounds}
-     */
-    getBounds(): LatLngBounds;
-    /**
-     * Computes the geographical coordinates from pixel coordinates in the map's container.
-     *
-     * This is a shortcut to getting the projection from the overlay and then calling
-     * fromContainerPixelToLatLng on the projection with the pixel value.
-     *
-     * @param {PointValue} x The Point value or the x numeric point value.
-     * @param {number} [y] The y value if x is a number.
-     * @returns {LatLng}
-     */
-    getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng;
-    /**
-     * Computes the geographical coordinates from pixel coordinates in the div that holds the draggable map.
-     *
-     * This is a shortcut to getting the projection from the overlay and then calling
-     * fromDivPixelToLatLng on the projection with the pixel value.
-     *
-     * @param {PointValue} x The Point value or the x numeric point value.
-     * @param {number} [y] The y value if x is a number.
-     * @returns {LatLng}
-     */
-    getDivLatLngFromPixel(x: PointValue, y?: number): LatLng;
-    /**
-     * Get the offset value
-     *
-     * @returns {Point}
-     */
-    getOffset(): Point;
-    /**
-     * Get the overlay HTML element
-     *
-     * @returns {HTMLElement}
-     */
-    getOverlayElement(): HTMLElement;
-    /**
-     * Get the position of the overlay
-     *
-     * @returns {LatLng}
-     */
-    getPosition(): LatLng;
-    /**
-     * Returns the MapCanvasProjection object associated with this OverlayView.
-     *
-     * The projection is not initialized until onAdd is called by the API.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
-     *
-     * @returns {google.maps.MapCanvasProjection}
-     */
-    getProjection(): google.maps.MapCanvasProjection;
-    /**
-     * Get the current aspect ratio for resizing
-     *
-     * @returns {number}
-     */
-    getResizeAspectRatio(): number;
-    /**
-     * Returns whether the overlay has a position
-     *
-     * @returns {boolean}
-     */
-    hasPosition(): boolean;
-    /**
-     * Hide the overlay
-     *
-     * @returns {Overlay}
-     */
-    hide(): Overlay;
-    /**
-     * Moves the overlay to a new position.
-     *
-     * If the overlay is not visible, it will be shown.
-     * If it's already visible on the map, it will be moved to the new position.
-     *
-     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
-     * @param {Map} [map] The Map object
-     * @returns {Promise<Overlay>}
-     */
-    move(position: LatLngValue, map?: Map): Promise<Overlay>;
-    /**
-     * Add an event listener for when dragging ends
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onDragEnd(callback: EventCallback): void;
-    /**
-     * Add an event listener for when dragging updates the overlay position
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onDrag(callback: EventCallback): void;
-    /**
-     * Add an event listener for when dragging the overlay starts
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onDragStart(callback: EventCallback): void;
-    /**
-     * Add an event listener for when the overlay is opened.
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onOpen(callback: EventCallback): void;
-    /**
-     * Add an event listener for when resizing ends
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onResizeEnd(callback: EventCallback): void;
-    /**
-     * Add an event listener for when resizing updates the overlay position
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onResize(callback: EventCallback): void;
-    /**
-     * Add an event listener for when resizing the overlay starts
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onResizeStart(callback: EventCallback): void;
-    /**
-     * Removes a class name from the overlay element
-     *
-     * @param {string} className The class name to remove from the overlay element
-     * @returns {Overlay}
-     */
-    removeClassName(className: string): Overlay;
-    /**
-     * Set the class name(s) for the overlay element
-     *
-     * If you need multiple class names then separate them with a space.
-     *
-     * @param {string} className The class name(s) to add to the overlay.
-     *    This can be a space separated list of class names.
-     * @returns {Overlay}
-     */
-    setClassName(className: string): Overlay;
-    /**
-     * Set the map object to display the overlay in
-     *
-     * Alias to show()
-     *
-     * @param {Map} map The Map object
-     * @returns {Promise<Overlay>}
-     */
-    setMap(map: Map): Promise<Overlay>;
-    /**
-     * Set the x,y offset for the overlay
-     *
-     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
-     *
-     * @param {PointValue} offset The offset value
-     * @returns {Overlay}
-     */
-    setOffset(offset: PointValue): Overlay;
-    /**
-     * Set the position of the overlay
-     *
-     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
-     * @returns {Overlay}
-     */
-    setPosition(position: LatLngValue): Overlay;
-    /**
-     * Set the aspect ratio to maintain during resizing
-     *
-     * @param {number} aspectRatio The aspect ratio (width / height)
-     * @returns {Overlay}
-     */
-    setResizeAspectRatio(aspectRatio: number): Overlay;
-    /**
-     * Set one more styles for the overlay element. This will merge styles with an existing ones.
-     *
-     * @param {object} styles The styles to apply to the overlay element
-     * @returns {Overlay}
-     */
-    setStyles(styles: object): Overlay;
-    /**
-     * Add the overlay to the map.
-     *
-     * Alias for setMap()
-     *
-     * @param {Map} map The Map object
-     * @returns {Promise<Overlay>}
-     */
-    show(map: Map): Promise<Overlay>;
-    /**
-     * Set a single style on the overlay element
-     *
-     * @param {string} name The style name
-     * @param {string} value The style value
-     * @returns {Overlay}
-     */
-    style(name: string, value: string): Overlay;
-    /**
-     * Toggle the display of the overlay on the map
-     *
-     * @param {Map} map The map object
-     * @returns {void}
-     */
-    toggle(map: Map): void;
-    /**
-     * Update bounds from current position
-     *
-     * @protected
-     */
-    updateBoundsFromPosition(): void;
-    /**
-     * Update bounds from resize
-     *
-     * @protected
-     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
-     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
-     */
-    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
-    /**
-     * Update bounds from resize
-     *
-     * @protected
-     * @param {LatLng} newLatLng The new lat/lng position
-     */
-    updateBoundsFromResize(newLatLng: LatLng): void;
-    /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-    /**
-     * Remove the overlay from the map.
-     * This method is called once following a call to setMap(null).
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     */
-    remove(): void;
-}
-/**
- * Helper function to set up the overlay object
- *
- * @returns {Overlay}
- */
-declare const overlay: () => Overlay;
-
 type TooltipOptions = {
     center?: boolean;
     className?: string;
@@ -5383,6 +5679,7 @@ type GMMarkerOptions = {
 type MarkerOptions = GMMarkerOptions & {
     anchorPoint?: PointValue;
     data?: CustomData$1;
+    drag?: boolean;
     icon?: IconValue;
     lat?: number | string;
     latitude?: number | string;
@@ -5442,17 +5739,17 @@ declare class Marker extends Layer {
      */
     set data(value: CustomData$1);
     /**
-     * Get whether the marker can be dragged on the map
+     * Returns whether dragging is enabled
      *
      * @returns {boolean}
      */
-    get draggable(): boolean;
+    get drag(): boolean;
     /**
-     * Set whether the marker can be dragged on the map
+     * Set whether the marker can be dragged on the map.
      *
      * @param {boolean} value Whether the marker can be dragged on the map
      */
-    set draggable(value: boolean);
+    set drag(value: boolean);
     /**
      * Get the icon for the marker
      *
@@ -5514,6 +5811,12 @@ declare class Marker extends Layer {
      */
     set title(value: string);
     /**
+     * Disable dragging for this marker
+     *
+     * @returns {Promise<Marker>}
+     */
+    disableDrag(): Promise<Marker>;
+    /**
      * Adds the marker to the map object
      *
      * Alternate of show()
@@ -5523,6 +5826,12 @@ declare class Marker extends Layer {
      */
     display(map: Map): Marker;
     /**
+     * Enable dragging for this marker
+     *
+     * @returns {Promise<Marker>}
+     */
+    enableDrag(): Promise<Marker>;
+    /**
      * Get any custom data attached to the marker object.
      *
      * Optionally pass a data key to get the value for that key.
@@ -5531,12 +5840,6 @@ declare class Marker extends Layer {
      * @returns {any}
      */
     getData(key?: string): CustomData$1;
-    /**
-     * Returns whether the marker can be dragged on the map
-     *
-     * @returns {boolean}
-     */
-    getDraggable(): boolean;
     /**
      * Get the marker position (i.e. the LatLng object)
      *
@@ -5563,6 +5866,12 @@ declare class Marker extends Layer {
      * @returns {Promise<void>}
      */
     init(): Promise<void>;
+    /**
+     * Returns whether the marker is draggable
+     *
+     * @returns {boolean}
+     */
+    isDraggable(): boolean;
     /**
      * @inheritdoc
      */
@@ -5634,11 +5943,15 @@ declare class Marker extends Layer {
     /**
      * Add an event listener for when the user drags the marker.
      *
+     * This uses the Google Maps marker drag event
+     *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
     onDrag(callback: EventCallback): void;
     /**
      * Add an event listener for when the user stops dragging the marker.
+     *
+     * This uses the Google Maps marker dragend event
      *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
@@ -5646,11 +5959,15 @@ declare class Marker extends Layer {
     /**
      * Add an event listener for when the marker draggable property changes.
      *
+     * This uses the Google Maps marker draggable_changed event
+     *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
     onDraggableChanged(callback: EventCallback): void;
     /**
      * Add an event listener for when the user starts dragging the marker.
+     *
+     * This uses the Google Maps marker dragstart event
      *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
@@ -5763,24 +6080,6 @@ declare class Marker extends Layer {
      * @returns {Marker}
      */
     setCursorSync(value: string): Marker;
-    /**
-     * Set whether the marker can be dragged on the map
-     *
-     * @param {boolean} value Whether the marker can be dragged on the map
-     * @returns {Promise<Marker>}
-     */
-    setDraggable(value: boolean): Promise<Marker>;
-    /**
-     * Set whether the marker can be dragged on the map
-     *
-     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
-     * syncronously. If you don't have to set up the marker syncronously, then use setDraggable() instead or pass the
-     * draggable option to the constructor or setOptions().
-     *
-     * @param {boolean} value Whether the marker can be dragged on the map
-     * @returns {Marker}
-     */
-    setDraggableSync(value: boolean): Marker;
     /**
      * Set the icon value for the marker
      *
@@ -7316,251 +7615,5 @@ declare class PolylineCollection {
  * @returns {PolylineCollection}
  */
 declare const polylineCollection: () => PolylineCollection;
-
-type PopupOptions = {
-    autoClose?: boolean;
-    center?: boolean;
-    className?: string;
-    clearance?: SizeValue;
-    closeElement?: HTMLElement | string;
-    content: string | HTMLElement | Text;
-    event?: string;
-    fit?: boolean;
-    offset?: PointValue;
-    styles?: object;
-    theme?: string;
-};
-/**
- * Popup class
- */
-declare class Popup extends Overlay {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
-     */
-    constructor(options: PopupOptions | string | HTMLElement | Text);
-    /**
-     * Get the autoClose value
-     *
-     * @returns {boolean}
-     */
-    get autoClose(): boolean;
-    /**
-     * Set the autoClose value
-     *
-     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
-     */
-    set autoClose(autoClose: boolean);
-    /**
-     * Returns whether to center the popup horizontally on the element.
-     *
-     * @returns {boolean}
-     */
-    get center(): boolean;
-    /**
-     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
-     *
-     * @param {boolean} center Whether to center the popup on the element
-     */
-    set center(center: boolean);
-    /**
-     * Returns the amount of space between the popup and the map viewport edge.
-     * This is used when the map is panned to bring the popup into view.
-     *
-     * @returns {Size}
-     */
-    get clearance(): Size;
-    /**
-     * Set the amount of space between the popup and the map viewport edge
-     * This is used when the map is panned to bring the popup into view.
-     *
-     * @param {SizeValue} clearance The amount of space between the popup and the map viewport edge
-     */
-    set clearance(clearance: SizeValue);
-    /**
-     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
-     *
-     * @returns {HTMLElement|string}
-     */
-    get closeElement(): HTMLElement | string;
-    /**
-     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
-     *
-     * @param {HTMLElement|string} closeElement The element to close the popup
-     */
-    set closeElement(closeElement: HTMLElement | string);
-    /**
-     * Returns the content for the popup
-     *
-     * @returns {string|HTMLElement|Text}
-     */
-    get content(): string | HTMLElement | Text;
-    /**
-     * Set the content for the popup
-     *
-     * @param {string|HTMLElement|Text} content The content for the popup
-     */
-    set content(content: string | HTMLElement | Text);
-    /**
-     * Returns the event to trigger the popup
-     *
-     * @returns {string}
-     */
-    get event(): string;
-    /**
-     * Set the event to trigger the popup
-     *
-     * @param {string} event The event to trigger the popup
-     */
-    set event(event: string);
-    /**
-     * Returns whether to fit the popup within the map viewport when it's displayed
-     *
-     * @returns {boolean}
-     */
-    get fit(): boolean;
-    /**
-     * Set whether to fit the popup within the map viewport when it's displayed
-     *
-     * @param {boolean} fit Whether to fit the popup within the map viewport when it's displayed
-     */
-    set fit(fit: boolean);
-    /**
-     * Returns the theme to use for the popup
-     *
-     * @returns {string}
-     */
-    get theme(): string;
-    /**
-     * Set the theme to use for the popup
-     *
-     * @param {string} theme The theme to use for the popup
-     */
-    set theme(theme: string);
-    /**
-     * Attach the popup to a element
-     *
-     * By default the popup will be shown when the element is clicked on.
-     *
-     * @param {Map | Layer} element The element to attach the popup to
-     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
-     *   - 'click' - Toggle the display of the popup when clicking on the element
-     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
-     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
-     * @returns {Promise<Popup>}
-     */
-    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup>;
-    /**
-     * Hide the popup
-     *
-     * Alias to hide()
-     *
-     * @returns {Popup}
-     */
-    close(): Popup;
-    /**
-     * Returns whether the popup already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean;
-    /**
-     * Hide the popup
-     *
-     * @returns {Popup}
-     */
-    hide(): Popup;
-    /**
-     * Returns whether the popup is open or not
-     *
-     * @returns {boolean}
-     */
-    isOpen(): boolean;
-    /**
-     * Open the popup
-     *
-     * Alias to show()
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     * @returns {Promise<Popup>}
-     */
-    open(element: Map | Layer): Promise<Popup>;
-    /**
-     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
-     * The popup will be hidden when this element is clicked on.
-     *
-     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
-     * @returns {Popup}
-     */
-    setCloseElement(element: HTMLElement | string): Popup;
-    /**
-     * Set the Popup content
-     *
-     * @param {string | HTMLElement | Text} content The Popup content
-     * @returns {Popup}
-     */
-    setContent(content: string | HTMLElement | Text): Popup;
-    /**
-     * Sets the options for the popup
-     *
-     * @param {PopupOptions} options Popup options
-     * @returns {Popup}
-     */
-    setOptions(options: PopupOptions): Popup;
-    /**
-     * Open the popup
-     *
-     * You need to pass in either an anchor object or a map object.
-     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
-     * If a map object is passed in then the popup will be displayed at the position of the popup.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     *      This should ideally be the Map or Marker object and not the Google maps object.
-     *      If this is used internally then the Google maps object can be used.
-     * @returns {Promise<Popup>}
-     */
-    show(element: Map | Layer): Promise<Popup>;
-    /**
-     * Toggle the display of the overlay on the map
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     */
-    toggle(element: Map | Layer): void;
-    /**
-     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-}
-type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
-/**
- * Helper function to set up the Popup class
- *
- * @param {PopupValue} [options] The Popup options
- * @returns {Popup}
- */
-declare const popup: (options?: PopupValue) => Popup;
-/**
- * Helper function to close all open popups
- *
- * Usage:
- * G.closeAllPopups();
- *
- * @returns {void}
- */
-declare const closeAllPopups: () => void;
 
 export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

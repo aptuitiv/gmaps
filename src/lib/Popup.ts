@@ -373,6 +373,12 @@ export class Popup extends Overlay {
     async attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup> {
         if (!this.#isAttached) {
             this.#isAttached = true;
+
+            // Set the popup property on the element if it's a Layer
+            if (element instanceof Layer) {
+                element.setPopup(this);
+            }
+
             await element.init().then(() => {
                 if (event === 'clickon' || event === 'hover') {
                     // Don't toggle the display of the InfoWindow for the clickon and hover events.
@@ -606,16 +612,46 @@ export class Popup extends Overlay {
                     // an InfoWindow should be displayed at. This can also be used with our Popup.
                     // We add the offset value for the Popup to the anchorPoint value.
                     element.toGoogle().then((marker) => {
-                        const anchorPoint = marker.get('anchorPoint');
-                        if (anchorPoint instanceof google.maps.Point) {
-                            this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
-                        } else {
-                            this.#popupOffset = this.getOffset().clone();
-                        }
-                        // Set the element value to display the popup and call the add() and draw() functions.
-                        super.show(element.getMap()).then(() => {
-                            resolve(this);
-                        });
+                        /**
+                         * Try to get the anchor point for the marker.
+                         *
+                         * If the marker was just rendered and it's anchorPoint is not set yet, then
+                         * the anchorPoint will be undefined. This function will retry to get the anchorPoint
+                         * until it's defined or the max number of attempts is reached. The anchorPoint will typically
+                         * be defined shortly after the marker is rendered by the Google maps library.
+                         *
+                         * @param {number} [attempt] The number of attempts to get the anchor point. Defaults to 0.
+                         * @returns {void}
+                         */
+                        const tryGetAnchorPoint = (attempt: number = 0): void => {
+                            const anchorPoint = marker.get('anchorPoint');
+
+                            // If anchorPoint is still undefined and we haven't exceeded max attempts, retry
+                            if (anchorPoint === undefined && attempt < 5) {
+                                const timeouts = [100, 200, 400, 600, 1000];
+                                const timeout = timeouts[attempt];
+
+                                setTimeout(() => {
+                                    tryGetAnchorPoint(attempt + 1);
+                                }, timeout);
+                                return;
+                            }
+
+                            // Either anchorPoint is defined or we've exhausted retries - continue with displaying the popup
+                            if (anchorPoint instanceof google.maps.Point) {
+                                this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
+                            } else {
+                                this.#popupOffset = this.getOffset().clone();
+                            }
+
+                            // Set the element value to display the popup and call the add() and draw() functions.
+                            super.show(element.getMap()).then(() => {
+                                resolve(this);
+                            });
+                        };
+
+                        // Start the retry mechanism
+                        tryGetAnchorPoint();
                     });
                 } else {
                     // If the anchor is a Layer then the position should be set on the Popup.

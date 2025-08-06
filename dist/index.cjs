@@ -579,6 +579,8 @@ var OverlayEvents = Object.freeze({
   DRAG_START: "dragstart",
   // Called when the overlay is dragged
   DRAG: "drag",
+  // Called when the overlay drag status changes
+  DRAGGABLE_CHANGED: "draggable_changed",
   // Called when the overlay is done being dragged
   DRAG_END: "dragend",
   // Called when the overlay opens
@@ -4779,7 +4781,7 @@ var icon = (url, options) => {
 };
 
 // src/lib/Layer.ts
-var _isVisible, _map;
+var _isVisible, _map, _popup;
 var Layer = class extends Evented {
   constructor() {
     super(...arguments);
@@ -4798,6 +4800,13 @@ var Layer = class extends Evented {
      * @type {Map|null}
      */
     __privateAdd(this, _map, null);
+    /**
+     * Holds the Popup object that the layer is added to
+     *
+     * @private
+     * @type {Popup|null}
+     */
+    __privateAdd(this, _popup);
   }
   /**
    * Get if the layer is visible or not
@@ -4852,6 +4861,61 @@ var Layer = class extends Evented {
     return Promise.resolve();
   }
   /**
+   * Set the Popup object that the layer is added to
+   *
+   * @internal
+   * @param {Popup} popup The Popup object to add the layer to
+   */
+  setPopup(popup2) {
+    __privateSet(this, _popup, popup2);
+  }
+  /**
+   * Close the popup for the layer
+   *
+   * @returns {void}
+   */
+  closePopup() {
+    if (this.hasPopup()) {
+      __privateGet(this, _popup).close();
+    }
+  }
+  /**
+   * Get the Popup object that the layer is added to
+   *
+   * @returns {Popup|undefined}
+   */
+  getPopup() {
+    return __privateGet(this, _popup);
+  }
+  /**
+   * Check if the layer has a Popup object set
+   *
+   * @returns {boolean}
+   */
+  hasPopup() {
+    return __privateGet(this, _popup) !== void 0;
+  }
+  /**
+   * Open the popup for the layer
+   *
+   * @returns {void}
+   */
+  openPopup() {
+    if (this.hasPopup()) {
+      __privateGet(this, _popup).show(this);
+    }
+  }
+  /**
+   * Toggle the popup for the layer
+   *
+   * @returns {void}
+   */
+  togglePopup() {
+    if (this.hasPopup()) {
+      __privateGet(this, _popup).toggle(this);
+    }
+  }
+  /**
    * Clears the map object that the layer is added to
    *
    * Note, this does not remove the layer from the map, it just clears the map object from the layer.
@@ -4877,6 +4941,7 @@ var Layer = class extends Evented {
 };
 _isVisible = new WeakMap();
 _map = new WeakMap();
+_popup = new WeakMap();
 var Layer_default = Layer;
 
 // src/lib/Map/FullscreenControl.ts
@@ -8360,7 +8425,7 @@ var svgSymbol = (path, options) => {
 };
 
 // src/lib/Marker.ts
-var _customData, _isSettingUp, _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
+var _customData, _drag, _isSettingUp, _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
 var _Marker = class _Marker extends Layer_default {
   /**
    * Constructor
@@ -8378,6 +8443,13 @@ var _Marker = class _Marker extends Layer_default {
      * @type {CustomData}
      */
     __privateAdd(this, _customData, {});
+    /**
+     * Whether dragging is enabled for this marker
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _drag, false);
     /**
      * Holds if the marker is setting up
      *
@@ -8460,21 +8532,26 @@ var _Marker = class _Marker extends Layer_default {
     }
   }
   /**
-   * Get whether the marker can be dragged on the map
+   * Returns whether dragging is enabled
    *
    * @returns {boolean}
    */
-  get draggable() {
-    var _a;
-    return (_a = __privateGet(this, _options4).draggable) != null ? _a : false;
+  get drag() {
+    return __privateGet(this, _drag);
   }
   /**
-   * Set whether the marker can be dragged on the map
+   * Set whether the marker can be dragged on the map.
    *
    * @param {boolean} value Whether the marker can be dragged on the map
    */
-  set draggable(value) {
-    this.setDraggable(value);
+  set drag(value) {
+    if (isBoolean(value)) {
+      if (value) {
+        this.enableDrag();
+      } else {
+        this.disableDrag();
+      }
+    }
   }
   /**
    * Get the icon for the marker
@@ -8530,7 +8607,14 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
-    return __privateGet(this, _options4).position;
+    let returnValue = __privateGet(this, _options4).position;
+    if (__privateGet(this, _marker)) {
+      returnValue = latLng(__privateGet(this, _marker).getPosition());
+    }
+    if (isNullOrUndefined(returnValue)) {
+      returnValue = latLng([0, 0]);
+    }
+    return returnValue;
   }
   /**
    * Set the latitude and longitude value for the marker
@@ -8557,6 +8641,18 @@ var _Marker = class _Marker extends Layer_default {
     this.setTitle(value);
   }
   /**
+   * Disable dragging for this marker
+   *
+   * @returns {Promise<Marker>}
+   */
+  disableDrag() {
+    return __async(this, null, function* () {
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setDraggable_fn).call(this, false);
+      return this;
+    });
+  }
+  /**
    * Adds the marker to the map object
    *
    * Alternate of show()
@@ -8567,6 +8663,18 @@ var _Marker = class _Marker extends Layer_default {
   display(map2) {
     this.setMap(map2);
     return this;
+  }
+  /**
+   * Enable dragging for this marker
+   *
+   * @returns {Promise<Marker>}
+   */
+  enableDrag() {
+    return __async(this, null, function* () {
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setDraggable_fn).call(this, true);
+      return this;
+    });
   }
   /**
    * Get any custom data attached to the marker object.
@@ -8584,14 +8692,6 @@ var _Marker = class _Marker extends Layer_default {
       return null;
     }
     return __privateGet(this, _customData);
-  }
-  /**
-   * Returns whether the marker can be dragged on the map
-   *
-   * @returns {boolean}
-   */
-  getDraggable() {
-    return this.draggable;
   }
   /**
    * Get the marker position (i.e. the LatLng object)
@@ -8629,6 +8729,14 @@ var _Marker = class _Marker extends Layer_default {
         resolve();
       });
     });
+  }
+  /**
+   * Returns whether the marker is draggable
+   *
+   * @returns {boolean}
+   */
+  isDraggable() {
+    return this.drag;
   }
   /**
    * @inheritdoc
@@ -8729,6 +8837,8 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Add an event listener for when the user drags the marker.
    *
+   * This uses the Google Maps marker drag event
+   *
    * @param {EventCallback} callback The callback function to call when the event is dispatched.
    */
   onDrag(callback) {
@@ -8736,6 +8846,8 @@ var _Marker = class _Marker extends Layer_default {
   }
   /**
    * Add an event listener for when the user stops dragging the marker.
+   *
+   * This uses the Google Maps marker dragend event
    *
    * @param {EventCallback} callback The callback function to call when the event is dispatched.
    */
@@ -8745,6 +8857,8 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Add an event listener for when the marker draggable property changes.
    *
+   * This uses the Google Maps marker draggable_changed event
+   *
    * @param {EventCallback} callback The callback function to call when the event is dispatched.
    */
   onDraggableChanged(callback) {
@@ -8752,6 +8866,8 @@ var _Marker = class _Marker extends Layer_default {
   }
   /**
    * Add an event listener for when the user starts dragging the marker.
+   *
+   * This uses the Google Maps marker dragstart event
    *
    * @param {EventCallback} callback The callback function to call when the event is dispatched.
    */
@@ -8911,34 +9027,6 @@ var _Marker = class _Marker extends Layer_default {
     return this;
   }
   /**
-   * Set whether the marker can be dragged on the map
-   *
-   * @param {boolean} value Whether the marker can be dragged on the map
-   * @returns {Promise<Marker>}
-   */
-  setDraggable(value) {
-    return __async(this, null, function* () {
-      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
-      __privateMethod(this, _Marker_instances, setDraggable_fn).call(this, value);
-      return this;
-    });
-  }
-  /**
-   * Set whether the marker can be dragged on the map
-   *
-   * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
-   * syncronously. If you don't have to set up the marker syncronously, then use setDraggable() instead or pass the
-   * draggable option to the constructor or setOptions().
-   *
-   * @param {boolean} value Whether the marker can be dragged on the map
-   * @returns {Marker}
-   */
-  setDraggableSync(value) {
-    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
-    __privateMethod(this, _Marker_instances, setDraggable_fn).call(this, value);
-    return this;
-  }
-  /**
    * Set the icon value for the marker
    *
    * @param {Icon | SvgSymbol | string} value The icon for the marker
@@ -9034,8 +9122,8 @@ var _Marker = class _Marker extends Layer_default {
     if (options.anchorPoint) {
       this.anchorPoint = options.anchorPoint;
     }
-    if (typeof options.draggable === "boolean") {
-      this.draggable = options.draggable;
+    if (isBoolean(options.drag)) {
+      this.drag = options.drag;
     }
     if (options.icon) {
       this.icon = icon(options.icon);
@@ -9188,6 +9276,7 @@ var _Marker = class _Marker extends Layer_default {
   }
 };
 _customData = new WeakMap();
+_drag = new WeakMap();
 _isSettingUp = new WeakMap();
 _marker = new WeakMap();
 _options4 = new WeakMap();
@@ -9226,7 +9315,7 @@ setCursor_fn = function(value) {
  */
 setDraggable_fn = function(value) {
   if (isBoolean(value)) {
-    __privateGet(this, _options4).draggable = value;
+    __privateSet(this, _drag, value);
     __privateGet(this, _marker).setDraggable(value);
   }
 };
@@ -9354,6 +9443,9 @@ setupGoogleMarker_fn = function(map2) {
           resolve();
         });
       } else {
+        if (map2 instanceof Map) {
+          map2.init();
+        }
         loader().onMapLoad(() => {
           __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this).then(() => {
             const thisMap = this.getMap();
@@ -9366,9 +9458,6 @@ setupGoogleMarker_fn = function(map2) {
             resolve();
           });
         });
-        if (map2 instanceof Map) {
-          map2.init();
-        }
       }
     } else if (__privateGet(this, _isSettingUp) && !isObject(__privateGet(this, _marker))) {
       this.onceImmediate(MarkerEvents.READY, () => {
@@ -9412,6 +9501,9 @@ createMarkerObject_fn = function() {
         });
         if (__privateGet(this, _options4).anchorPoint) {
           markerOptions.anchorPoint = __privateGet(this, _options4).anchorPoint.toGoogle();
+        }
+        if (this.drag) {
+          markerOptions.draggable = true;
         }
         if (__privateGet(this, _options4).icon) {
           if (isString(__privateGet(this, _options4).icon)) {
@@ -11135,7 +11227,7 @@ var MarkerCollection = _MarkerCollection;
 var markerCollection = () => new MarkerCollection();
 
 // src/lib/Overlay.ts
-var _drag, _dragStart, _isDragging, _isResizing, _offset, _overlay, _overlayStart, _overlayView, _position6, _resize, _resizeAspectRatio, _resizeHandles, _styles3, _Overlay_instances, setupDragHandlers_fn, setupResizeHandlers_fn, createResizeHandles_fn, removeResizeHandles_fn, _handleDragStart, _handleDrag, _handleDragEnd, _handleResizeStart, _handleResize, _handleResizeEnd, setupGoogleOverlay_fn;
+var _drag2, _dragStart, _isDragging, _isResizing, _offset, _overlay, _overlayStart, _overlayView, _position6, _resize, _resizeAspectRatio, _resizeHandles, _styles3, _Overlay_instances, setupDragHandlers_fn, setupResizeHandlers_fn, createResizeHandles_fn, removeResizeHandles_fn, _handleDragStart, _handleDrag, _handleDragEnd, _handleResizeStart, _handleResize, _handleResizeEnd, setupGoogleOverlay_fn;
 var Overlay = class extends Layer_default {
   /**
    * Constructor
@@ -11153,7 +11245,7 @@ var Overlay = class extends Layer_default {
      * @private
      * @type {boolean}
      */
-    __privateAdd(this, _drag, false);
+    __privateAdd(this, _drag2, false);
     /**
      * The starting position when dragging begins
      *
@@ -11255,7 +11347,7 @@ var Overlay = class extends Layer_default {
      * @param {MouseEvent | TouchEvent} e The event
      */
     __privateAdd(this, _handleDragStart, (e) => {
-      if (!__privateGet(this, _drag) || __privateGet(this, _isResizing)) return;
+      if (!__privateGet(this, _drag2) || __privateGet(this, _isResizing)) return;
       e.preventDefault();
       e.stopPropagation();
       __privateSet(this, _isDragging, true);
@@ -11494,7 +11586,7 @@ var Overlay = class extends Layer_default {
    * @returns {boolean}
    */
   get drag() {
-    return __privateGet(this, _drag);
+    return __privateGet(this, _drag2);
   }
   /**
    * Set whether dragging is enabled
@@ -11503,7 +11595,7 @@ var Overlay = class extends Layer_default {
    */
   set drag(drag) {
     if (isBoolean(drag)) {
-      __privateSet(this, _drag, drag);
+      __privateSet(this, _drag2, drag);
       __privateMethod(this, _Overlay_instances, setupDragHandlers_fn).call(this);
     }
   }
@@ -11595,6 +11687,9 @@ var Overlay = class extends Layer_default {
    */
   disableDrag() {
     this.drag = false;
+    this.trigger(OverlayEvents.DRAGGABLE_CHANGED, {
+      draggable: this.drag
+    });
     return this;
   }
   /**
@@ -11624,6 +11719,9 @@ var Overlay = class extends Layer_default {
    */
   enableDrag() {
     this.drag = true;
+    this.trigger(OverlayEvents.DRAGGABLE_CHANGED, {
+      draggable: this.drag
+    });
     return this;
   }
   /**
@@ -11753,6 +11851,14 @@ var Overlay = class extends Layer_default {
     return this;
   }
   /**
+   * Returns whether the overlay is draggable
+   *
+   * @returns {boolean}
+   */
+  isDraggable() {
+    return this.drag;
+  }
+  /**
    * Moves the overlay to a new position.
    *
    * If the overlay is not visible, it will be shown.
@@ -11802,6 +11908,14 @@ var Overlay = class extends Layer_default {
    */
   onDrag(callback) {
     this.on(OverlayEvents.DRAG, callback);
+  }
+  /**
+   * Add an event listener for when the overlay draggable property changes
+   *
+   * @param {EventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDraggableChanged(callback) {
+    this.on(OverlayEvents.DRAGGABLE_CHANGED, callback);
   }
   /**
    * Add an event listener for when dragging the overlay starts
@@ -12050,7 +12164,7 @@ var Overlay = class extends Layer_default {
     }
   }
 };
-_drag = new WeakMap();
+_drag2 = new WeakMap();
 _dragStart = new WeakMap();
 _isDragging = new WeakMap();
 _isResizing = new WeakMap();
@@ -12070,7 +12184,7 @@ _Overlay_instances = new WeakSet();
  * @private
  */
 setupDragHandlers_fn = function() {
-  if (__privateGet(this, _drag)) {
+  if (__privateGet(this, _drag2)) {
     __privateGet(this, _overlay).style.cursor = "move";
     __privateGet(this, _overlay).style.pointerEvents = "auto";
     __privateGet(this, _overlay).style.border = "2px solid #007bff";
@@ -12889,7 +13003,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     } else {
       this.getOverlayElement().appendChild(__privateGet(this, _imageElement));
     }
-    if (this.resizable || this.draggable || this.rotate) {
+    if (this.resize || this.drag || this.rotate) {
       panes.floatPane.appendChild(this.getOverlayElement());
     } else {
       panes.overlayLayer.appendChild(this.getOverlayElement());
@@ -15287,6 +15401,9 @@ var Popup = class extends Overlay {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached2)) {
         __privateSet(this, _isAttached2, true);
+        if (element instanceof Layer_default) {
+          element.setPopup(this);
+        }
         yield element.init().then(() => {
           if (event === "clickon" || event === "hover") {
             __privateSet(this, _toggleDisplay2, false);
@@ -15486,15 +15603,26 @@ var Popup = class extends Overlay {
         } else if (element instanceof Marker) {
           this.position = element.getPosition();
           element.toGoogle().then((marker2) => {
-            const anchorPoint = marker2.get("anchorPoint");
-            if (anchorPoint instanceof google.maps.Point) {
-              __privateSet(this, _popupOffset, this.getOffset().add(anchorPoint.x, anchorPoint.y));
-            } else {
-              __privateSet(this, _popupOffset, this.getOffset().clone());
-            }
-            super.show(element.getMap()).then(() => {
-              resolve(this);
-            });
+            const tryGetAnchorPoint = (attempt = 0) => {
+              const anchorPoint = marker2.get("anchorPoint");
+              if (anchorPoint === void 0 && attempt < 5) {
+                const timeouts = [100, 200, 400, 600, 1e3];
+                const timeout = timeouts[attempt];
+                setTimeout(() => {
+                  tryGetAnchorPoint(attempt + 1);
+                }, timeout);
+                return;
+              }
+              if (anchorPoint instanceof google.maps.Point) {
+                __privateSet(this, _popupOffset, this.getOffset().add(anchorPoint.x, anchorPoint.y));
+              } else {
+                __privateSet(this, _popupOffset, this.getOffset().clone());
+              }
+              super.show(element.getMap()).then(() => {
+                resolve(this);
+              });
+            };
+            tryGetAnchorPoint();
           });
         } else {
           __privateSet(this, _popupOffset, this.getOffset().clone());

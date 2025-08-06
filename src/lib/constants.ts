@@ -376,6 +376,8 @@ export const OverlayEvents = Object.freeze({
     DRAG_START: 'dragstart',
     // Called when the overlay is dragged
     DRAG: 'drag',
+    // Called when the overlay drag status changes
+    DRAGGABLE_CHANGED: 'draggable_changed',
     // Called when the overlay is done being dragged
     DRAG_END: 'dragend',
     // Called when the overlay opens
