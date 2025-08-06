@@ -897,6 +897,8 @@ export class Map extends Evented {
                     this.#map.fitBounds(googleBounds);
                     resolve();
                 });
+            } else {
+                resolve();
             }
         });
     }
