@@ -333,6 +333,9 @@ export class Overlay extends Layer {
      */
     disableDrag(): Overlay {
         this.drag = false;
+        this.trigger(OverlayEvents.DRAGGABLE_CHANGED, {
+            draggable: this.drag,
+        });
         return this;
     }
 
@@ -365,6 +368,9 @@ export class Overlay extends Layer {
      */
     enableDrag(): Overlay {
         this.drag = true;
+        this.trigger(OverlayEvents.DRAGGABLE_CHANGED, {
+            draggable: this.drag,
+        });
         return this;
     }
 
@@ -560,6 +566,15 @@ export class Overlay extends Layer {
      */
     onDrag(callback: EventCallback): void {
         this.on(OverlayEvents.DRAG, callback);
+    }
+
+    /**
+     * Add an event listener for when the overlay draggable property changes
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDraggableChanged(callback: EventCallback): void {
+        this.on(OverlayEvents.DRAGGABLE_CHANGED, callback);
     }
 
     /**
