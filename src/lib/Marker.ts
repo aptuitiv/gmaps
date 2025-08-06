@@ -67,6 +67,8 @@ export type MarkerOptions = GMMarkerOptions & {
     anchorPoint?: PointValue;
     // An object containing custom data to attach to the marker object
     data?: CustomData;
+    // Whether dragging is enabled for this marker
+    drag?: boolean;
     // The icon value for the marker
     icon?: IconValue;
     // The latitude for the marker. You can use "lat" or "latitude" as the property name.
@@ -121,6 +123,14 @@ export class Marker extends Layer {
      * @type {CustomData}
      */
     #customData: CustomData = {};
+
+    /**
+     * Whether dragging is enabled for this marker
+     *
+     * @private
+     * @type {boolean}
+     */
+    #drag: boolean = false;
 
     /**
      * Holds if the marker is setting up
@@ -229,21 +239,27 @@ export class Marker extends Layer {
     }
 
     /**
-     * Get whether the marker can be dragged on the map
+     * Returns whether dragging is enabled
      *
      * @returns {boolean}
      */
-    get draggable(): boolean {
-        return this.#options.draggable ?? false;
+    get drag(): boolean {
+        return this.#drag;
     }
 
     /**
-     * Set whether the marker can be dragged on the map
+     * Set whether the marker can be dragged on the map.
      *
      * @param {boolean} value Whether the marker can be dragged on the map
      */
-    set draggable(value: boolean) {
-        this.setDraggable(value);
+    set drag(value: boolean) {
+        if (isBoolean(value)) {
+            if (value) {
+                this.enableDrag();
+            } else {
+                this.disableDrag();
+            }
+        }
     }
 
     /**
@@ -337,6 +353,17 @@ export class Marker extends Layer {
     }
 
     /**
+     * Disable dragging for this marker
+     *
+     * @returns {Promise<Marker>}
+     */
+    async disableDrag(): Promise<Marker> {
+        await this.#setupGoogleMarker();
+        this.#setDraggable(false);
+        return this;
+    }
+
+    /**
      * Adds the marker to the map object
      *
      * Alternate of show()
@@ -346,6 +373,17 @@ export class Marker extends Layer {
      */
     display(map: Map): Marker {
         this.setMap(map);
+        return this;
+    }
+
+    /**
+     * Enable dragging for this marker
+     *
+     * @returns {Promise<Marker>}
+     */
+    async enableDrag(): Promise<Marker> {
+        await this.#setupGoogleMarker();
+        this.#setDraggable(true);
         return this;
     }
 
@@ -365,15 +403,6 @@ export class Marker extends Layer {
             return null;
         }
         return this.#customData;
-    }
-
-    /**
-     * Returns whether the marker can be dragged on the map
-     *
-     * @returns {boolean}
-     */
-    getDraggable(): boolean {
-        return this.draggable;
     }
 
     /**
@@ -414,6 +443,15 @@ export class Marker extends Layer {
                 resolve();
             });
         });
+    }
+
+    /**
+     * Returns whether the marker is draggable
+     *
+     * @returns {boolean}
+     */
+    isDraggable(): boolean {
+        return this.drag;
     }
 
     /**
@@ -529,6 +567,8 @@ export class Marker extends Layer {
     /**
      * Add an event listener for when the user drags the marker.
      *
+     * This uses the Google Maps marker drag event
+     *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
     onDrag(callback: EventCallback): void {
@@ -537,6 +577,8 @@ export class Marker extends Layer {
 
     /**
      * Add an event listener for when the user stops dragging the marker.
+     *
+     * This uses the Google Maps marker dragend event
      *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
@@ -547,6 +589,8 @@ export class Marker extends Layer {
     /**
      * Add an event listener for when the marker draggable property changes.
      *
+     * This uses the Google Maps marker draggable_changed event
+     *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
     onDraggableChanged(callback: EventCallback): void {
@@ -555,6 +599,8 @@ export class Marker extends Layer {
 
     /**
      * Add an event listener for when the user starts dragging the marker.
+     *
+     * This uses the Google Maps marker dragstart event
      *
      * @param {EventCallback} callback The callback function to call when the event is dispatched.
      */
@@ -759,38 +805,10 @@ export class Marker extends Layer {
      * Set whether the marker can be dragged on the map
      *
      * @param {boolean} value Whether the marker can be dragged on the map
-     * @returns {Promise<Marker>}
-     */
-    async setDraggable(value: boolean): Promise<Marker> {
-        await this.#setupGoogleMarker();
-        this.#setDraggable(value);
-        return this;
-    }
-
-    /**
-     * Set whether the marker can be dragged on the map
-     *
-     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
-     * syncronously. If you don't have to set up the marker syncronously, then use setDraggable() instead or pass the
-     * draggable option to the constructor or setOptions().
-     *
-     * @param {boolean} value Whether the marker can be dragged on the map
-     * @returns {Marker}
-     */
-    setDraggableSync(value: boolean): Marker {
-        this.#setupGoogleMarkerSync();
-        this.#setDraggable(value);
-        return this;
-    }
-
-    /**
-     * Set whether the marker can be dragged on the map
-     *
-     * @param {boolean} value Whether the marker can be dragged on the map
      */
     #setDraggable(value: boolean) {
         if (isBoolean(value)) {
-            this.#options.draggable = value;
+            this.#drag = value;
             this.#marker.setDraggable(value);
         }
     }
@@ -978,8 +996,8 @@ export class Marker extends Layer {
         }
 
         // Set if the marker can be dragged
-        if (typeof options.draggable === 'boolean') {
-            this.draggable = options.draggable;
+        if (isBoolean(options.drag)) {
+            this.drag = options.drag;
         }
 
         // Set the icon
@@ -1278,6 +1296,9 @@ export class Marker extends Layer {
                     // Options that have to be converted to Google maps objects
                     if (this.#options.anchorPoint) {
                         markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
+                    }
+                    if (this.drag) {
+                        markerOptions.draggable = true;
                     }
                     if (this.#options.icon) {
                         if (isString(this.#options.icon)) {
