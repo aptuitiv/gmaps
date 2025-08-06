@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2025-08-06
+
+### Added
+
+- Added support to associate the popup with the Layer it's attached to so that the layer can access the attached popup.
+- Added `closePopup`, `getPopup`, `hasPopup`, `openPopup`, and `togglePopup` to Layer. This is available to any class extending Layer like Markers or Polylines.
+- Added Overlay `draggable_changed` event to be consistent with Marker drag events.
+- Added Overlay `isDraggable` function.
+- Added Marker `drag` option. If this is set and `true`, then the Google Maps marker object's `draggable` is set to `true`.
+
+### Changed
+
+- Changed the Marker drag functionality interface to be more consistent with how Overlay handles drag functionality. This involved:
+  - Renaming the `draggable` property to `drag`.
+  - Adding `disableDrag` and `enableDrag` function.
+  - Renaming `getDraggable` function to `isDraggable`.
+  - Removing `setDraggable` and `setDraggableSync` as the `disbleDrag` and `enableDrag` methods provide that functionality.
+
+### Fixed
+
+- Fixed issue where the marker anchorPoint is sometimes not defined when opening a popup attached to a marker.
+- Fixed issue where the "resize", and "drag" property tests for ImageOverlay were using undefined variables.
+- Fixed issue where the Marker object's `getPosition` method and `position` property did not return the current position of the Marker. It was previously only returning the initial position of the marker. It did not reflect is the marker was moved.
+
 ## [0.25.0] - 2025-07-13
 
 ### Added
