@@ -11,6 +11,9 @@
 
 /* global google */
 
+// Set a constant so that the READY event can be used in multiple places.
+const READY_EVENT = 'ready';
+
 /**
  * Events that can be fired by the Autocomplete search box.
  *
@@ -204,6 +207,35 @@ export const ImageOverlayEvents = Object.freeze({
 });
 
 /**
+ * Events that can be fired by the InfoWindow.
+ */
+export const InfoWindowEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow-Events
+    CLOSE: 'close',
+    CLOSECLICK: 'closeclick',
+    CONTENT_CHANGED: 'content_changed',
+    DOMREADY: 'domready',
+    HEADER_CONTENT_CHANGED: 'headercontent_changed',
+    HEADER_DISABLED_CHANGED: 'headerdisabled_changed',
+    POSITION_CHANGED: 'position_changed',
+    VISIBLE: 'visible',
+    ZINDEX_CHANGED: 'zindex_changed',
+
+    // Custom events for this library
+    // Called when the info window is ready
+    READY: READY_EVENT,
+});
+
+/**
+ * Events that can be fired by the Layer.
+ */
+export const LayerEvents = Object.freeze({
+    // Called when the layer is ready
+    READY: READY_EVENT,
+});
+
+/**
  * Events that can be fired by the Loader.
  *
  * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
@@ -254,7 +286,7 @@ export const MapEvents = Object.freeze({
     // The user's location has been found.
     LOCATION_FOUND: 'locationfound',
     // The map is loaded, visible, and ready for use.
-    READY: 'ready',
+    READY: READY_EVENT,
 });
 
 /**
@@ -365,7 +397,7 @@ export const MarkerEvents = Object.freeze({
     // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
 
     // The marker is loaded and ready for use.
-    READY: 'ready',
+    READY: READY_EVENT,
 });
 
 /**
@@ -396,6 +428,29 @@ export const OverlayEvents = Object.freeze({
 export const PlacesSearchBoxEvents = Object.freeze({
     // Called when the user selects a Place.
     PLACES_CHANGED: 'places_changed',
+});
+
+/**
+ * Events that can be fired by the Popup.
+ */
+export const PolylineEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/polygon#Polyline-Events
+    CLICK: 'click',
+    CONTEXT_MENU: 'contextmenu',
+    DBLCLICK: 'dblclick',
+    DRAG: 'drag',
+    DRAG_END: 'dragend',
+    DRAG_START: 'dragstart',
+    MOUSE_DOWN: 'mousedown',
+    MOUSE_MOVE: 'mousemove',
+    MOUSE_OUT: 'mouseout',
+    MOUSE_OVER: 'mouseover',
+    MOUSE_UP: 'mouseup',
+
+    // Custom events for this library
+    // Called when the polyline is ready
+    READY: READY_EVENT,
 });
 
 /**

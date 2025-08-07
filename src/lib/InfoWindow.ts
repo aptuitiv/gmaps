@@ -14,6 +14,7 @@ import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
 import { size, Size, SizeValue } from './Size';
+import { InfoWindowEvents } from './constants';
 
 type GMInfoWindowOptions = {
     // The aria label for the info window
@@ -63,7 +64,10 @@ type InfoWindowEvent =
     | 'closeclick'
     | 'content_changed'
     | 'domready'
+    | 'headercontent_changed'
+    | 'headerdisabled_changed'
     | 'position_changed'
+    | 'ready'
     | 'visible'
     | 'zindex_changed';
 
@@ -555,6 +559,15 @@ export class InfoWindow extends Layer {
     }
 
     /**
+     * Add an event listener for when the info window is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void {
+        this.on(InfoWindowEvents.READY, callback);
+    }
+
+    /**
      * Show the info window
      *
      * Alias to show()
@@ -671,6 +684,8 @@ export class InfoWindow extends Layer {
                 if (this.#toggleDisplay) {
                     this.hide();
                 }
+                // Dispatch the event to say that the info window is ready
+                this.dispatch(InfoWindowEvents.READY);
                 resolve(this);
             } else {
                 // Close other open InfoWindows if necessary
@@ -687,6 +702,8 @@ export class InfoWindow extends Layer {
                         shouldFocus: this.#focus,
                     });
                     this.setMap(element);
+                    // Dispatch the event to say that the info window is ready
+                    this.dispatch(InfoWindowEvents.READY);
                     resolve(this);
                 } else if (element instanceof Marker) {
                     element.toGoogle().then((marker) => {
@@ -695,6 +712,8 @@ export class InfoWindow extends Layer {
                             shouldFocus: this.#focus,
                         });
                         this.setMap(element.getMap());
+                        // Dispatch the event to say that the info window is ready
+                        this.dispatch(InfoWindowEvents.READY);
                         resolve(this);
                     });
                 }

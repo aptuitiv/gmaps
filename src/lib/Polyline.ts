@@ -9,6 +9,7 @@
 /* eslint-disable no-use-before-define -- Done because the PolylineCollection is referenced before it's created */
 /* eslint-disable @typescript-eslint/no-explicit-any -- Custom data could be anything within an obect */
 
+import { PolylineEvents } from './constants';
 import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
@@ -44,7 +45,8 @@ type PolylineEvent =
     | 'mousemove'
     | 'mouseout'
     | 'mouseover'
-    | 'mouseup';
+    | 'mouseup'
+    | 'ready';
 
 // Custom data to attach to the polyline object
 type CustomData = {
@@ -793,6 +795,15 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Add an event listener for when the polyline is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void {
+        this.on(PolylineEvents.READY, callback);
+    }
+
+    /**
      * Sets the polyline to be drawn as a dashed line
      *
      * @param {boolean} dashed Whether the polyline is drawn as a dashed line
@@ -1125,6 +1136,8 @@ export class Polyline extends Layer {
             if (!isObject(this.#polyline)) {
                 if (checkForGoogleMaps('Polyline', 'Polyline', false)) {
                     this.#createPolylineObject();
+                    // Dispatch the event to say that the polyline is ready
+                    this.dispatch(PolylineEvents.READY);
                     resolve();
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
@@ -1142,6 +1155,8 @@ export class Polyline extends Layer {
                                 this.#highlightPolyline.setMap(thisMap, false);
                             }
                         }
+                        // Dispatch the event to say that the polyline is ready
+                        this.dispatch(PolylineEvents.READY);
                         resolve();
                     });
 

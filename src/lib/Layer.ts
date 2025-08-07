@@ -5,7 +5,8 @@
     for documentation.
 =========================================================================== */
 
-import { Evented } from './Evented';
+import { LayerEvents } from './constants';
+import { EventCallback, Evented } from './Evented';
 import { Map } from './Map';
 import { Popup } from './Popup';
 
@@ -142,6 +143,15 @@ class Layer extends Evented {
      */
     hasPopup(): boolean {
         return this.#popup !== undefined;
+    }
+
+    /**
+     * Add an event listener for when the layer is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void {
+        this.on(LayerEvents.READY, callback);
     }
 
     /**
