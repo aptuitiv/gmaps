@@ -12,7 +12,7 @@
 /* global google */
 
 // Set a constant so that the READY event can be used in multiple places.
-const READY_EVENT = 'ready';
+export const READY_EVENT = 'ready';
 
 /**
  * Events that can be fired by the Autocomplete search box.
