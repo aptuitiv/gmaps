@@ -80,9 +80,11 @@ __export(index_exports, {
   ImageOverlay: () => ImageOverlay,
   ImageOverlayEvents: () => ImageOverlayEvents,
   InfoWindow: () => InfoWindow,
+  InfoWindowEvents: () => InfoWindowEvents,
   LatLng: () => LatLng,
   LatLngBounds: () => LatLngBounds,
   Layer: () => Layer_default,
+  LayerEvents: () => LayerEvents,
   Loader: () => Loader,
   LoaderEvents: () => LoaderEvents,
   Map: () => Map,
@@ -103,9 +105,11 @@ __export(index_exports, {
   Point: () => Point,
   Polyline: () => Polyline,
   PolylineCollection: () => PolylineCollection,
+  PolylineEvents: () => PolylineEvents,
   PolylineIcon: () => PolylineIcon,
   Popup: () => Popup,
   PopupEvents: () => PopupEvents,
+  READY_EVENT: () => READY_EVENT,
   RenderingType: () => RenderingType,
   RotateControl: () => RotateControl,
   ScaleControl: () => ScaleControl,
@@ -315,6 +319,7 @@ _objectType = new WeakMap();
 var Base_default = Base;
 
 // src/lib/constants.ts
+var READY_EVENT = "ready";
 var AutocompleteSearchBoxEvents = Object.freeze({
   // Called when the user selects a Place.
   PLACE_CHANGED: "place_changed"
@@ -461,6 +466,26 @@ var ImageOverlayEvents = Object.freeze({
   // Called when the overlay is done being rotated
   ROTATE_END: "rotateend"
 });
+var InfoWindowEvents = Object.freeze({
+  // Google Maps events
+  // https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow-Events
+  CLOSE: "close",
+  CLOSECLICK: "closeclick",
+  CONTENT_CHANGED: "content_changed",
+  DOMREADY: "domready",
+  HEADER_CONTENT_CHANGED: "headercontent_changed",
+  HEADER_DISABLED_CHANGED: "headerdisabled_changed",
+  POSITION_CHANGED: "position_changed",
+  VISIBLE: "visible",
+  ZINDEX_CHANGED: "zindex_changed",
+  // Custom events for this library
+  // Called when the info window is ready
+  READY: READY_EVENT
+});
+var LayerEvents = Object.freeze({
+  // Called when the layer is ready
+  READY: READY_EVENT
+});
 var LoaderEvents = Object.freeze({
   // The API library is loaded.
   LOAD: "load",
@@ -498,7 +523,7 @@ var MapEvents = Object.freeze({
   // The user's location has been found.
   LOCATION_FOUND: "locationfound",
   // The map is loaded, visible, and ready for use.
-  READY: "ready"
+  READY: READY_EVENT
 });
 var MapTypeControlStyle = Object.freeze({
   /**
@@ -572,7 +597,7 @@ var MarkerEvents = Object.freeze({
   // Custom events for this library
   // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
   // The marker is loaded and ready for use.
-  READY: "ready"
+  READY: READY_EVENT
 });
 var OverlayEvents = Object.freeze({
   // Called when the overlay is starting to be dragged
@@ -595,6 +620,24 @@ var OverlayEvents = Object.freeze({
 var PlacesSearchBoxEvents = Object.freeze({
   // Called when the user selects a Place.
   PLACES_CHANGED: "places_changed"
+});
+var PolylineEvents = Object.freeze({
+  // Google Maps events
+  // https://developers.google.com/maps/documentation/javascript/reference/polygon#Polyline-Events
+  CLICK: "click",
+  CONTEXT_MENU: "contextmenu",
+  DBLCLICK: "dblclick",
+  DRAG: "drag",
+  DRAG_END: "dragend",
+  DRAG_START: "dragstart",
+  MOUSE_DOWN: "mousedown",
+  MOUSE_MOVE: "mousemove",
+  MOUSE_OUT: "mouseout",
+  MOUSE_OVER: "mouseover",
+  MOUSE_UP: "mouseup",
+  // Custom events for this library
+  // Called when the polyline is ready
+  READY: READY_EVENT
 });
 var PopupEvents = Object.freeze({
   // Called when the popup opens
@@ -4896,6 +4939,14 @@ var Layer = class extends Evented {
     return __privateGet(this, _popup) !== void 0;
   }
   /**
+   * Add an event listener for when the layer is loaded and ready for use.
+   *
+   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+   */
+  onReady(callback) {
+    this.on(LayerEvents.READY, callback);
+  }
+  /**
    * Open the popup for the layer
    *
    * @returns {void}
@@ -7842,6 +7893,8 @@ fitBounds_fn = function(bounds, maxZoom, minZoom) {
         __privateGet(this, _map2).fitBounds(googleBounds);
         resolve();
       });
+    } else {
+      resolve();
     }
   });
 };
@@ -9064,6 +9117,7 @@ var _Marker = class _Marker extends Layer_default {
     return __async(this, null, function* () {
       yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
       __privateMethod(this, _Marker_instances, setLabel_fn).call(this, value);
+      __privateGet(this, _marker).setLabel(__privateGet(this, _options4).label);
       return this;
     });
   }
@@ -9080,6 +9134,7 @@ var _Marker = class _Marker extends Layer_default {
   setLabelSync(value) {
     __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
     __privateMethod(this, _Marker_instances, setLabel_fn).call(this, value);
+    __privateGet(this, _marker).setLabel(__privateGet(this, _options4).label);
     return this;
   }
   /**
@@ -9115,27 +9170,45 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Set the marker options
    *
+   * This intentionally does not set up the Google Maps marker object. This is so that when the
+   * marker option is created all the options are set one time.
+   *
    * @param {MarkerOptions} options The marker options
    * @returns {Marker}
    */
   setOptions(options) {
     if (options.anchorPoint) {
-      this.anchorPoint = options.anchorPoint;
+      __privateGet(this, _options4).anchorPoint = options.anchorPoint;
+      if (__privateGet(this, _marker)) {
+        this.anchorPoint = options.anchorPoint;
+      }
     }
     if (isBoolean(options.drag)) {
-      this.drag = options.drag;
+      __privateSet(this, _drag, options.drag);
+      if (__privateGet(this, _marker)) {
+        this.drag = options.drag;
+      }
     }
     if (options.icon) {
-      this.icon = icon(options.icon);
+      __privateGet(this, _options4).icon = icon(options.icon);
+      if (__privateGet(this, _marker)) {
+        this.icon = options.icon;
+      }
     } else if (options.svgIcon) {
       if (isString(options.svgIcon)) {
-        this.icon = `data:image/svg+xml;base64,${btoa(options.svgIcon)}`;
+        __privateGet(this, _options4).icon = `data:image/svg+xml;base64,${btoa(options.svgIcon)}`;
       } else {
-        this.icon = svgSymbol(options.svgIcon);
+        __privateGet(this, _options4).icon = svgSymbol(options.svgIcon);
+      }
+      if (__privateGet(this, _marker)) {
+        this.icon = __privateGet(this, _options4).icon;
       }
     }
     if (isStringWithValue(options.label) || isObject(options.label) && isStringOrNumber(options.label.text)) {
-      this.label = options.label;
+      __privateMethod(this, _Marker_instances, setLabel_fn).call(this, options.label);
+      if (__privateGet(this, _marker)) {
+        this.label = options.label;
+      }
     }
     if (isNumberOrNumberString(options.lat) || isNumberOrNumberString(options.latitude) || isNumberOrNumberString(options.lng) || isNumberOrNumberString(options.longitude)) {
       const latLngValue = latLng();
@@ -9149,9 +9222,15 @@ var _Marker = class _Marker extends Layer_default {
       } else if (isNumberOrNumberString(options.longitude)) {
         latLngValue.lng = options.longitude;
       }
-      this.position = latLngValue;
+      __privateMethod(this, _Marker_instances, setPosition_fn).call(this, latLngValue);
+      if (__privateGet(this, _marker)) {
+        this.position = latLngValue;
+      }
     } else if (options.position) {
-      this.position = options.position;
+      __privateMethod(this, _Marker_instances, setPosition_fn).call(this, options.position);
+      if (__privateGet(this, _marker)) {
+        this.position = options.position;
+      }
     }
     if (options.tooltip) {
       let { tooltip: tooltip2 } = options;
@@ -9169,7 +9248,11 @@ var _Marker = class _Marker extends Layer_default {
       }
     });
     if (options.map) {
-      this.setMap(options.map);
+      __privateGet(this, _options4).map = options.map;
+      super.setMap(options.map);
+      if (__privateGet(this, _marker)) {
+        this.setMap(options.map);
+      }
     }
     if (options.data) {
       this.data = options.data;
@@ -9376,7 +9459,6 @@ setLabel_fn = function(value) {
   } else if (isNullOrUndefined(value)) {
     __privateGet(this, _options4).label = void 0;
   }
-  __privateGet(this, _marker).setLabel(__privateGet(this, _options4).label);
 };
 /**
  * Set the map object
@@ -9502,25 +9584,36 @@ createMarkerObject_fn = function() {
         if (__privateGet(this, _options4).anchorPoint) {
           markerOptions.anchorPoint = __privateGet(this, _options4).anchorPoint.toGoogle();
         }
-        if (this.drag) {
+        if (__privateGet(this, _drag)) {
           markerOptions.draggable = true;
         }
         if (__privateGet(this, _options4).icon) {
           if (isString(__privateGet(this, _options4).icon)) {
             markerOptions.icon = __privateGet(this, _options4).icon;
-          } else if (__privateGet(this, _options4).icon instanceof Icon || __privateGet(this, _options4).icon instanceof SvgSymbol) {
-            markerOptions.icon = yield __privateGet(this, _options4).icon.toGoogle();
+          } else if (__privateGet(this, _options4).icon instanceof SvgSymbol) {
+            __privateGet(this, _options4).icon.toGoogle().then((markerIcon) => {
+              __privateGet(this, _marker).setIcon(markerIcon);
+            });
+          } else if (__privateGet(this, _options4).icon instanceof Icon) {
+            markerOptions.icon = __privateGet(this, _options4).icon.toGoogle();
           }
-        }
-        if (__privateGet(this, _options4).map) {
-          markerOptions.map = __privateGet(this, _options4).map.toGoogle();
         }
         if (__privateGet(this, _options4).position) {
           markerOptions.position = __privateGet(this, _options4).position.toGoogle();
         }
-        __privateSet(this, _marker, new google.maps.Marker(markerOptions));
-        this.setEventGoogleObject(__privateGet(this, _marker));
-        resolve();
+        if (__privateGet(this, _options4).map) {
+          const map2 = __privateGet(this, _options4).map.toGoogle();
+          markerOptions.map = map2;
+          __privateGet(this, _options4).map.once(MapEvents.IDLE, () => {
+            __privateSet(this, _marker, new google.maps.Marker(markerOptions));
+            this.setEventGoogleObject(__privateGet(this, _marker));
+            resolve();
+          });
+        } else {
+          __privateSet(this, _marker, new google.maps.Marker(markerOptions));
+          this.setEventGoogleObject(__privateGet(this, _marker));
+          resolve();
+        }
       }))();
     } else {
       resolve();
@@ -9840,39 +9933,41 @@ var InfoWindow = class extends Layer_default {
       if (!__privateGet(this, _isAttached)) {
         __privateSet(this, _isAttached, true);
         yield element.init().then(() => {
-          const triggerEvent = event || __privateGet(this, _event);
-          if (triggerEvent === "clickon" || triggerEvent === "hover") {
-            __privateSet(this, _toggleDisplay, false);
-          }
-          if (triggerEvent === "hover") {
-            element.on("mouseover", (e) => {
-              this.position = e.latLng;
-              this.show(element);
-            });
-            if (element instanceof Map) {
-              element.on("mousemove", (e) => {
+          element.onceImmediate(READY_EVENT, () => {
+            const triggerEvent = event || __privateGet(this, _event);
+            if (triggerEvent === "clickon" || triggerEvent === "hover") {
+              __privateSet(this, _toggleDisplay, false);
+            }
+            if (triggerEvent === "hover") {
+              element.on("mouseover", (e) => {
                 this.position = e.latLng;
                 this.show(element);
               });
+              if (element instanceof Map) {
+                element.on("mousemove", (e) => {
+                  this.position = e.latLng;
+                  this.show(element);
+                });
+              }
+              element.on("mouseout", () => {
+                this.hide();
+              });
+            } else if (triggerEvent === "clickon") {
+              element.on("click", (e) => {
+                if (element instanceof Map) {
+                  this.position = e.latLng;
+                }
+                this.show(element);
+              });
+            } else {
+              element.on("click", (e) => {
+                if (element instanceof Map) {
+                  this.position = e.latLng;
+                }
+                this.show(element);
+              });
             }
-            element.on("mouseout", () => {
-              this.hide();
-            });
-          } else if (triggerEvent === "clickon") {
-            element.on("click", (e) => {
-              if (element instanceof Map) {
-                this.position = e.latLng;
-              }
-              this.show(element);
-            });
-          } else {
-            element.on("click", (e) => {
-              if (element instanceof Map) {
-                this.position = e.latLng;
-              }
-              this.show(element);
-            });
-          }
+          });
         });
       }
       return this;
@@ -9964,6 +10059,14 @@ var InfoWindow = class extends Layer_default {
    */
   onlyOnce(type, callback, config) {
     super.onlyOnce(type, callback, config);
+  }
+  /**
+   * Add an event listener for when the info window is loaded and ready for use.
+   *
+   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+   */
+  onReady(callback) {
+    this.on(InfoWindowEvents.READY, callback);
   }
   /**
    * Show the info window
@@ -10074,6 +10177,7 @@ var InfoWindow = class extends Layer_default {
         if (__privateGet(this, _toggleDisplay)) {
           this.hide();
         }
+        this.dispatch(InfoWindowEvents.READY);
         resolve(this);
       } else {
         if (__privateGet(this, _autoClose)) {
@@ -10087,6 +10191,7 @@ var InfoWindow = class extends Layer_default {
             shouldFocus: __privateGet(this, _focus)
           });
           this.setMap(element);
+          this.dispatch(InfoWindowEvents.READY);
           resolve(this);
         } else if (element instanceof Marker) {
           element.toGoogle().then((marker2) => {
@@ -10095,6 +10200,7 @@ var InfoWindow = class extends Layer_default {
               shouldFocus: __privateGet(this, _focus)
             });
             this.setMap(element.getMap());
+            this.dispatch(InfoWindowEvents.READY);
             resolve(this);
           });
         }
@@ -10187,9 +10293,12 @@ var infoWindowMixin = {
    *
    * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+   * @returns {InfoWindow}
    */
   attachInfoWindow(infoWindowValue, event) {
-    infoWindow(infoWindowValue).attachTo(this, event);
+    const i = infoWindow(infoWindowValue);
+    i.attachTo(this, event);
+    return i;
   }
 };
 Layer_default.include(infoWindowMixin);
@@ -14022,7 +14131,10 @@ var _Polyline = class _Polyline extends Layer_default {
       setValue = true;
     }
     if (setValue && __privateGet(this, _polyline)) {
-      __privateGet(this, _polyline).set("icons", __privateGet(this, _options8).icons.map((icon2) => icon2.toGoogle()));
+      __privateGet(this, _polyline).set(
+        "icons",
+        __privateGet(this, _options8).icons.map((icon2) => icon2.toGoogle())
+      );
     }
   }
   /**
@@ -14386,6 +14498,14 @@ var _Polyline = class _Polyline extends Layer_default {
     super.onlyOnce(type, callback, config);
   }
   /**
+   * Add an event listener for when the polyline is loaded and ready for use.
+   *
+   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+   */
+  onReady(callback) {
+    this.on(PolylineEvents.READY, callback);
+  }
+  /**
    * Sets the polyline to be drawn as a dashed line
    *
    * @param {boolean} dashed Whether the polyline is drawn as a dashed line
@@ -14659,16 +14779,18 @@ setupIconsAndDashedPolylineOptions_fn = function() {
         });
         options.icons = [yield icon2.toGoogle()];
         if (Array.isArray(__privateGet(this, _options8).icons) && __privateGet(this, _options8).icons.length > 0) {
-          const additionalIcons = yield Promise.all(__privateGet(this, _options8).icons.map((icn) => {
-            const returnIcon = polylineIcon(icn);
-            const iconIcn = returnIcon.icon;
-            if (isDefined(__privateGet(this, _options8).strokeOpacity)) {
-              iconIcn.strokeOpacity = __privateGet(this, _options8).strokeOpacity;
-            } else {
-              iconIcn.strokeOpacity = 1;
-            }
-            return returnIcon.toGoogle();
-          }));
+          const additionalIcons = yield Promise.all(
+            __privateGet(this, _options8).icons.map((icn) => {
+              const returnIcon = polylineIcon(icn);
+              const iconIcn = returnIcon.icon;
+              if (isDefined(__privateGet(this, _options8).strokeOpacity)) {
+                iconIcn.strokeOpacity = __privateGet(this, _options8).strokeOpacity;
+              } else {
+                iconIcn.strokeOpacity = 1;
+              }
+              return returnIcon.toGoogle();
+            })
+          );
           options.icons = options.icons.concat(additionalIcons);
         }
       } else {
@@ -14693,6 +14815,7 @@ setupGooglePolyline_fn = function(map2) {
     if (!isObject(__privateGet(this, _polyline))) {
       if (checkForGoogleMaps("Polyline", "Polyline", false)) {
         __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
+        this.dispatch(PolylineEvents.READY);
         resolve();
       } else {
         loader().onMapLoad(() => {
@@ -14704,6 +14827,7 @@ setupGooglePolyline_fn = function(map2) {
               __privateGet(this, _highlightPolyline).setMap(thisMap, false);
             }
           }
+          this.dispatch(PolylineEvents.READY);
           resolve();
         });
         if (map2 instanceof Map) {
@@ -15405,51 +15529,53 @@ var Popup = class extends Overlay {
           element.setPopup(this);
         }
         yield element.init().then(() => {
-          if (event === "clickon" || event === "hover") {
-            __privateSet(this, _toggleDisplay2, false);
-          }
-          const triggerEvent = event || __privateGet(this, _event2);
-          this.event = triggerEvent;
-          if (triggerEvent === "hover") {
-            element.on("mouseover", (e) => {
+          element.onceImmediate(READY_EVENT, () => {
+            if (event === "clickon" || event === "hover") {
+              __privateSet(this, _toggleDisplay2, false);
+            }
+            const triggerEvent = event || __privateGet(this, _event2);
+            this.event = triggerEvent;
+            if (triggerEvent === "hover") {
+              element.on("mouseover", (e) => {
+                if (element instanceof Map) {
+                  this.move(e.latLng, element);
+                } else {
+                  this.move(e.latLng, element.getMap());
+                }
+              });
               if (element instanceof Map) {
-                this.move(e.latLng, element);
-              } else {
-                this.move(e.latLng, element.getMap());
+                element.on("mousemove", (e) => {
+                  this.move(e.latLng, element);
+                });
               }
-            });
-            if (element instanceof Map) {
-              element.on("mousemove", (e) => {
-                this.move(e.latLng, element);
+              element.on("mouseout", () => {
+                this.hide();
+              });
+            } else if (triggerEvent === "clickon") {
+              element.on("click", (e) => {
+                __privateSet(this, _firstDraw, false);
+                const collection = PopupCollection.getInstance();
+                if (!collection.has(this)) {
+                  collection.add(this);
+                }
+                if (__privateGet(this, _autoClose2)) {
+                  collection.hideOthers(this);
+                }
+                if (element instanceof Map) {
+                  this.move(e.latLng, element);
+                } else {
+                  this.move(e.latLng, element.getMap());
+                }
+              });
+            } else {
+              element.on("click", (e) => {
+                if (element instanceof Map || element instanceof Polyline) {
+                  this.position = e.latLng;
+                }
+                this.toggle(element);
               });
             }
-            element.on("mouseout", () => {
-              this.hide();
-            });
-          } else if (triggerEvent === "clickon") {
-            element.on("click", (e) => {
-              __privateSet(this, _firstDraw, false);
-              const collection = PopupCollection.getInstance();
-              if (!collection.has(this)) {
-                collection.add(this);
-              }
-              if (__privateGet(this, _autoClose2)) {
-                collection.hideOthers(this);
-              }
-              if (element instanceof Map) {
-                this.move(e.latLng, element);
-              } else {
-                this.move(e.latLng, element.getMap());
-              }
-            });
-          } else {
-            element.on("click", (e) => {
-              if (element instanceof Map || element instanceof Polyline) {
-                this.position = e.latLng;
-              }
-              this.toggle(element);
-            });
-          }
+          });
         });
       }
       return this;
@@ -15601,10 +15727,10 @@ var Popup = class extends Overlay {
             resolve(this);
           });
         } else if (element instanceof Marker) {
-          this.position = element.getPosition();
           element.toGoogle().then((marker2) => {
             const tryGetAnchorPoint = (attempt = 0) => {
               const anchorPoint = marker2.get("anchorPoint");
+              this.position = element.getPosition();
               if (anchorPoint === void 0 && attempt < 5) {
                 const timeouts = [100, 200, 400, 600, 1e3];
                 const timeout = timeouts[attempt];
@@ -16023,44 +16149,46 @@ var Tooltip = class extends Overlay {
       if (!__privateGet(this, _isAttached3)) {
         __privateSet(this, _isAttached3, true);
         yield element.init().then(() => {
-          const triggerEvent = event || __privateGet(this, _event3);
-          if (triggerEvent === "click") {
-            element.on("click", (e) => {
-              this.setPosition(e.latLng);
-              if (element instanceof Map) {
-                this.toggle(element);
-              } else {
-                this.toggle(element.getMap());
-              }
-            });
-          } else if (triggerEvent === "clickon") {
-            element.on("click", (e) => {
-              this.setPosition(e.latLng);
-              if (element instanceof Map) {
-                this.show(element);
-              } else {
-                this.show(element.getMap());
-              }
-            });
-          } else {
-            element.on("mouseover", (e) => {
-              this.setPosition(e.latLng);
-              if (element instanceof Map) {
-                this.show(element);
-              } else {
-                this.show(element.getMap());
-              }
-            });
-            if (element instanceof Map) {
-              element.on("mousemove", (e) => {
+          element.onceImmediate(READY_EVENT, () => {
+            const triggerEvent = event || __privateGet(this, _event3);
+            if (triggerEvent === "click") {
+              element.on("click", (e) => {
                 this.setPosition(e.latLng);
-                this.show(element);
+                if (element instanceof Map) {
+                  this.toggle(element);
+                } else {
+                  this.toggle(element.getMap());
+                }
+              });
+            } else if (triggerEvent === "clickon") {
+              element.on("click", (e) => {
+                this.setPosition(e.latLng);
+                if (element instanceof Map) {
+                  this.show(element);
+                } else {
+                  this.show(element.getMap());
+                }
+              });
+            } else {
+              element.on("mouseover", (e) => {
+                this.setPosition(e.latLng);
+                if (element instanceof Map) {
+                  this.show(element);
+                } else {
+                  this.show(element.getMap());
+                }
+              });
+              if (element instanceof Map) {
+                element.on("mousemove", (e) => {
+                  this.setPosition(e.latLng);
+                  this.show(element);
+                });
+              }
+              element.on("mouseout", () => {
+                this.hide();
               });
             }
-            element.on("mouseout", () => {
-              this.hide();
-            });
-          }
+          });
         });
       }
       return this;
@@ -16190,6 +16318,7 @@ var tooltipMixin = {
    *
    * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+   * @returns {Tooltip}
    */
   attachTooltip(tooltipValue, event) {
     let tooltipVal = tooltipValue;
@@ -16204,7 +16333,9 @@ var tooltipMixin = {
         attachEvent: tooltipEvent
       };
     }
-    tooltip(tooltipVal).attachTo(this, tooltipEvent);
+    const t = tooltip(tooltipVal);
+    t.attachTo(this, tooltipEvent);
+    return t;
   }
 };
 Layer_default.include(tooltipMixin);
@@ -16226,9 +16357,11 @@ Map.include(tooltipMixin);
   ImageOverlay,
   ImageOverlayEvents,
   InfoWindow,
+  InfoWindowEvents,
   LatLng,
   LatLngBounds,
   Layer,
+  LayerEvents,
   Loader,
   LoaderEvents,
   Map,
@@ -16249,9 +16382,11 @@ Map.include(tooltipMixin);
   Point,
   Polyline,
   PolylineCollection,
+  PolylineEvents,
   PolylineIcon,
   Popup,
   PopupEvents,
+  READY_EVENT,
   RenderingType,
   RotateControl,
   ScaleControl,
