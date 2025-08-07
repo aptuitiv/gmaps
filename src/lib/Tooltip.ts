@@ -385,7 +385,7 @@ export const tooltip = (options?: TooltipValue): Tooltip => {
 export type TooltipConfig = {
     attachConfig: TooltipValue;
     attachEvent?: 'click' | 'clickon' | 'hover';
-}
+};
 
 /**
  * Mixin to add the attachTooltip method to the Marker and Map classes
@@ -406,10 +406,14 @@ const tooltipMixin = {
      * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
      */
-    attachTooltip(tooltipValue: TooltipValue|TooltipConfig, event?: 'click' | 'clickon' | 'hover') {
+    attachTooltip(tooltipValue: TooltipValue | TooltipConfig, event?: 'click' | 'clickon' | 'hover') {
         let tooltipVal = tooltipValue;
         let tooltipEvent = event;
-        if (isObject(tooltipValue) && objectHasValue(tooltipValue, 'attachConfig') && objectHasValue(tooltipValue, 'attachEvent')) {
+        if (
+            isObject(tooltipValue) &&
+            objectHasValue(tooltipValue, 'attachConfig') &&
+            objectHasValue(tooltipValue, 'attachEvent')
+        ) {
             // The tooltipValue is a TooltipConfig object
             tooltipVal = (tooltipValue as TooltipConfig).attachConfig;
             tooltipEvent = (tooltipValue as TooltipConfig).attachEvent;
@@ -419,8 +423,8 @@ const tooltipMixin = {
             // Save the tooltip configuration so that it could be used to recreate the tooltip when cloning the object.
             this.tooltipConfig = {
                 attachConfig: tooltipVal,
-                attachEvent: tooltipEvent
-            }
+                attachEvent: tooltipEvent,
+            };
         }
 
         tooltip(tooltipVal as TooltipValue).attachTo(this, tooltipEvent);
