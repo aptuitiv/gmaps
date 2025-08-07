@@ -136,7 +136,7 @@ export class AutocompleteSearchBox extends Evented {
      */
     constructor(
         input: string | HTMLInputElement | AutocompleteSearchBoxOptions,
-        options?: AutocompleteSearchBoxOptions
+        options?: AutocompleteSearchBoxOptions,
     ) {
         super('placesSearchBox', 'places');
 
@@ -479,7 +479,7 @@ export class AutocompleteSearchBox extends Evented {
     off(
         type?: AutocompleteSearchBoxEvent,
         callback?: AutocompleteSearchBoxEventCallback,
-        options?: EventListenerOptions
+        options?: EventListenerOptions,
     ): void {
         super.off(type, callback, options);
     }
@@ -497,7 +497,7 @@ export class AutocompleteSearchBox extends Evented {
     onImmediate(
         type: AutocompleteSearchBoxEvent,
         callback: AutocompleteSearchBoxEventCallback,
-        config?: EventConfig
+        config?: EventConfig,
     ): void {
         super.onImmediate(type, callback, config);
     }
@@ -532,7 +532,7 @@ export class AutocompleteSearchBox extends Evented {
     onceImmediate(
         type: AutocompleteSearchBoxEvent,
         callback?: AutocompleteSearchBoxEventCallback,
-        config?: EventConfig
+        config?: EventConfig,
     ): void {
         super.onceImmediate(type, callback, config);
     }
@@ -550,7 +550,7 @@ export class AutocompleteSearchBox extends Evented {
     onlyOnce(
         type: AutocompleteSearchBoxEvent,
         callback: AutocompleteSearchBoxEventCallback,
-        config?: EventConfig
+        config?: EventConfig,
     ): void {
         super.onlyOnce(type, callback, config);
     }
@@ -681,7 +681,7 @@ export type AutocompleteSearchBoxValue =
  */
 export const autocompleteSearchBox = (
     input?: AutocompleteSearchBoxValue,
-    options?: AutocompleteSearchBoxOptions
+    options?: AutocompleteSearchBoxOptions,
 ): AutocompleteSearchBox => {
     if (input instanceof AutocompleteSearchBox) {
         return input;
