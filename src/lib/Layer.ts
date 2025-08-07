@@ -16,7 +16,7 @@ import { Popup } from './Popup';
  */
 class Layer extends Evented {
     /**
-     * This is an index signature so that Typescript does't complain about adding properties
+     * This is an index signature so that Typescript doesn't complain about adding properties
      * to the class via mixins.
      *
      * For example, this lets us use attachTooltip() in the Marker class even though attachTooltip()
