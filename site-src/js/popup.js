@@ -34,13 +34,13 @@ markp.on('open', () => {
     console.log('Marker Popup opened');
 });
 // markp.open(marker);
-// marker.openPopup();
-marker.togglePopup();
+marker.openPopup();
+// marker.togglePopup();
 
-setTimeout(() => {
-    // marker.closePopup();
-    marker.togglePopup();
-}, 3000);
+// setTimeout(() => {
+//     // marker.closePopup();
+//     marker.togglePopup();
+// }, 3000);
 
 
 const marker2 = G.marker({
@@ -48,6 +48,7 @@ const marker2 = G.marker({
     longitude: 3.4,
     map: map,
     title: 'Marker 2',
+    tooltip: 'This is a tooltip',
 });
 // marker.attachPopup('My Popup');
 
