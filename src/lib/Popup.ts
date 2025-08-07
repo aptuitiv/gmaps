@@ -606,7 +606,6 @@ export class Popup extends Overlay {
                         resolve(this);
                     });
                 } else if (element instanceof Marker) {
-                    this.position = element.getPosition();
                     // If the anchor is a marker then add the anchor's anchorPoint to the offset.
                     // The anchorPoint for the marker contains the x/y values to add to the marker's position that
                     // an InfoWindow should be displayed at. This can also be used with our Popup.
@@ -625,6 +624,7 @@ export class Popup extends Overlay {
                          */
                         const tryGetAnchorPoint = (attempt: number = 0): void => {
                             const anchorPoint = marker.get('anchorPoint');
+                            this.position = element.getPosition();
 
                             // If anchorPoint is still undefined and we haven't exceeded max attempts, retry
                             if (anchorPoint === undefined && attempt < 5) {
