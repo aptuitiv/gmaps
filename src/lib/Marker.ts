@@ -1349,8 +1349,12 @@ export class Marker extends Layer {
                     if (this.#options.icon) {
                         if (isString(this.#options.icon)) {
                             markerOptions.icon = this.#options.icon;
-                        } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
-                            markerOptions.icon = await this.#options.icon.toGoogle();
+                        } else if (this.#options.icon instanceof SvgSymbol) {
+                            this.#options.icon.toGoogle().then((markerIcon) => {
+                                this.#marker.setIcon(markerIcon);
+                            });
+                        } else if (this.#options.icon instanceof Icon) {
+                            markerOptions.icon = this.#options.icon.toGoogle();
                         }
                     }
                     if (this.#options.position) {
