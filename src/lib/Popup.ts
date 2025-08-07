@@ -7,6 +7,7 @@
 /* global google, HTMLElement, Text */
 /* eslint-disable no-use-before-define -- Done because the PopupCollection is referenced before it's created */
 
+import { READY_EVENT } from './constants';
 import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
@@ -380,66 +381,68 @@ export class Popup extends Overlay {
             }
 
             await element.init().then(() => {
-                if (event === 'clickon' || event === 'hover') {
-                    // Don't toggle the display of the InfoWindow for the clickon and hover events.
-                    // If it's toggled for hover then it'll appear like it's flickering.
-                    // If it's toggled with clickon then it will behave like "click" and hide on the second click.
-                    this.#toggleDisplay = false;
-                }
+                element.onceImmediate(READY_EVENT, () => {
+                    if (event === 'clickon' || event === 'hover') {
+                        // Don't toggle the display of the InfoWindow for the clickon and hover events.
+                        // If it's toggled for hover then it'll appear like it's flickering.
+                        // If it's toggled with clickon then it will behave like "click" and hide on the second click.
+                        this.#toggleDisplay = false;
+                    }
 
-                const triggerEvent = event || this.#event;
-                // Make sure that the event type is updated.
-                this.event = triggerEvent;
+                    const triggerEvent = event || this.#event;
+                    // Make sure that the event type is updated.
+                    this.event = triggerEvent;
 
-                // Show the popup when hovering over the element
-                if (triggerEvent === 'hover') {
-                    element.on('mouseover', (e) => {
+                    // Show the popup when hovering over the element
+                    if (triggerEvent === 'hover') {
+                        element.on('mouseover', (e) => {
+                            if (element instanceof Map) {
+                                this.move(e.latLng, element);
+                            } else {
+                                this.move(e.latLng, element.getMap());
+                            }
+                        });
                         if (element instanceof Map) {
-                            this.move(e.latLng, element);
-                        } else {
-                            this.move(e.latLng, element.getMap());
+                            element.on('mousemove', (e) => {
+                                this.move(e.latLng, element);
+                            });
                         }
-                    });
-                    if (element instanceof Map) {
-                        element.on('mousemove', (e) => {
-                            this.move(e.latLng, element);
+                        element.on('mouseout', () => {
+                            this.hide();
+                        });
+                    } else if (triggerEvent === 'clickon') {
+                        // Show the popup when clicking on the element
+                        element.on('click', (e) => {
+                            // Since the popup is not toggled, we need to set the firstDraw value to false
+                            // so that the popup is fit within the map viewport when it's displayed.
+                            this.#firstDraw = false;
+                            // Make sure that the popup is included in the popup collection so that
+                            // it can be hidden if a different popup is opened.
+                            const collection = PopupCollection.getInstance();
+                            if (!collection.has(this)) {
+                                collection.add(this);
+                            }
+                            // Hide other popups if necessary
+                            if (this.#autoClose) {
+                                collection.hideOthers(this);
+                            }
+
+                            if (element instanceof Map) {
+                                this.move(e.latLng, element);
+                            } else {
+                                this.move(e.latLng, element.getMap());
+                            }
+                        });
+                    } else {
+                        // Show the popup when clicking on the element
+                        element.on('click', (e) => {
+                            if (element instanceof Map || element instanceof Polyline) {
+                                this.position = e.latLng;
+                            }
+                            this.toggle(element);
                         });
                     }
-                    element.on('mouseout', () => {
-                        this.hide();
-                    });
-                } else if (triggerEvent === 'clickon') {
-                    // Show the popup when clicking on the element
-                    element.on('click', (e) => {
-                        // Since the popup is not toggled, we need to set the firstDraw value to false
-                        // so that the popup is fit within the map viewport when it's displayed.
-                        this.#firstDraw = false;
-                        // Make sure that the popup is included in the popup collection so that
-                        // it can be hidden if a different popup is opened.
-                        const collection = PopupCollection.getInstance();
-                        if (!collection.has(this)) {
-                            collection.add(this);
-                        }
-                        // Hide other popups if necessary
-                        if (this.#autoClose) {
-                            collection.hideOthers(this);
-                        }
-
-                        if (element instanceof Map) {
-                            this.move(e.latLng, element);
-                        } else {
-                            this.move(e.latLng, element.getMap());
-                        }
-                    });
-                } else {
-                    // Show the popup when clicking on the element
-                    element.on('click', (e) => {
-                        if (element instanceof Map || element instanceof Polyline) {
-                            this.position = e.latLng;
-                        }
-                        this.toggle(element);
-                    });
-                }
+                });
             });
         }
 
