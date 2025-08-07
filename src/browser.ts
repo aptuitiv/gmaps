@@ -22,8 +22,10 @@ import {
     ControlPosition,
     GeocoderErrorStatus,
     GeocoderLocationType,
-    LoaderEvents,
     ImageOverlayEvents,
+    InfoWindowEvents,
+    LayerEvents,
+    LoaderEvents,
     MapEvents,
     MapTypeControlStyle,
     MapTypeId,
@@ -31,9 +33,11 @@ import {
     OverlayEvents,
     PlacesSearchBoxEvents,
     PopupEvents,
+    PolylineEvents,
     RenderingType,
     StreetViewSource,
     SymbolPath,
+    READY_EVENT,
 } from './lib/constants';
 import { geocode, Geocode } from './lib/Geocode';
 import { icon, Icon } from './lib/Icon';
@@ -72,6 +76,8 @@ type GlobalObj = {
     GeocoderErrorStatus: typeof GeocoderErrorStatus;
     GeocoderLocationType: typeof GeocoderLocationType;
     ImageOverlayEvents: typeof ImageOverlayEvents;
+    InfoWindowEvents: typeof InfoWindowEvents;
+    LayerEvents: typeof LayerEvents;
     LoaderEvents: typeof LoaderEvents;
     MapEvents: typeof MapEvents;
     MapTypeControlStyle: typeof MapTypeControlStyle;
@@ -80,6 +86,7 @@ type GlobalObj = {
     OverlayEvents: typeof OverlayEvents;
     PlacesSearchBoxEvents: typeof PlacesSearchBoxEvents;
     PopupEvents: typeof PopupEvents;
+    PolylineEvents: typeof PolylineEvents;
     RenderingType: typeof RenderingType;
     StreetViewSource: typeof StreetViewSource;
     SymbolPath: typeof SymbolPath;
@@ -132,6 +139,7 @@ type GlobalObj = {
     closeAllPopups: typeof closeAllPopups;
     rotateControl: typeof rotateControl;
     RotateControl: typeof RotateControl;
+    READY_EVENT: typeof READY_EVENT;
     scaleControl: typeof scaleControl;
     ScaleControl: typeof ScaleControl;
     size: typeof size;
@@ -152,8 +160,10 @@ const G: GlobalObj = {
     ControlPosition,
     GeocoderErrorStatus,
     GeocoderLocationType,
-    LoaderEvents,
     ImageOverlayEvents,
+    InfoWindowEvents,
+    LayerEvents,
+    LoaderEvents,
     MapEvents,
     MapTypeControlStyle,
     MapTypeId,
@@ -161,6 +171,7 @@ const G: GlobalObj = {
     OverlayEvents,
     PlacesSearchBoxEvents,
     PopupEvents,
+    PolylineEvents,
     RenderingType,
     StreetViewSource,
     SymbolPath,
@@ -213,6 +224,7 @@ const G: GlobalObj = {
     closeAllPopups,
     rotateControl,
     RotateControl,
+    READY_EVENT,
     scaleControl,
     ScaleControl,
     size,
