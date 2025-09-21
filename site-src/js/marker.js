@@ -25,7 +25,7 @@ G.loader().setApiKey(apiKey).load();
 // });
 
 /* TEST 2 */
-const map = G.map('#map1', { center: { latitude: 48.864716, longitude: 2.3522 }, maxFitBoundsZoom: 4 });
+const map = G.map('#map1', { center: { latitude: 48.864716, longitude: 2.3522 }, maxFitBoundsZoom: 5 });
 map.show().then(() => {
     // Dispatch a custom event
     marker.dispatch('custom', { data: 'test' });
@@ -127,7 +127,11 @@ for (let i = 0; i < 20; i += 1) {
     console.log('marker.getData(custom2): ', marker.getData('custom2'));
     markerCollection.add(marker, tag);
 }
-map.fitToBounds();
+map.show(() => {
+    setTimeout(() => {
+        map.fitToBounds();
+    }, 50);
+});
 
 // Buttons to do stuff
 const grid = document.createElement('div');
