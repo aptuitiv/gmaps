@@ -440,6 +440,12 @@ export class Evented extends Base {
                             this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
                                 this.dispatch(type, e);
                             });
+                        } else if (['bounds_changed', 'zoom_changed'].includes(type)) {
+                            // Certain map events could be added by a library that this library uses, like the google maps loader library.
+                            // This event isn't in the list of event listeners so it's ok for these select events to add them again.
+                            this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                                this.dispatch(type, e);
+                            });
                         }
                     } else {
                         // The Google maps object is not set yet so so save the event listener so that it
