@@ -1629,6 +1629,10 @@ on_fn = function(type, callback, config) {
             __privateGet(this, _googleObject).addListener(type, (e) => {
               this.dispatch(type, e);
             });
+          } else if (["bounds_changed", "zoom_changed"].includes(type)) {
+            __privateGet(this, _googleObject).addListener(type, (e) => {
+              this.dispatch(type, e);
+            });
           }
         } else {
           setupPending = true;
