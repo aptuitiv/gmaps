@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2025-09-21
+
+### Fixed
+
+- Fixed issue where the map `fitBounds` method wouldn't resolve if there were no bounds.
+- Fixed issue with setting up the Marker object and the Google Maps object would get created multiple times.
+- Fixed issue where the `bounds_changed` or `zoom_changed` events wouldn't get set up if they were called before the library was totally set up.
+
 ## [0.26.0] - 2025-08-06
 
 ### Added

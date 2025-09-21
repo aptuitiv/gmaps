@@ -5,7 +5,8 @@
     for documentation.
 =========================================================================== */
 
-import { Evented } from './Evented';
+import { LayerEvents } from './constants';
+import { EventCallback, Evented } from './Evented';
 import { Map } from './Map';
 import { Popup } from './Popup';
 
@@ -16,7 +17,7 @@ import { Popup } from './Popup';
  */
 class Layer extends Evented {
     /**
-     * This is an index signature so that Typescript does't complain about adding properties
+     * This is an index signature so that Typescript doesn't complain about adding properties
      * to the class via mixins.
      *
      * For example, this lets us use attachTooltip() in the Marker class even though attachTooltip()
@@ -142,6 +143,15 @@ class Layer extends Evented {
      */
     hasPopup(): boolean {
         return this.#popup !== undefined;
+    }
+
+    /**
+     * Add an event listener for when the layer is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void {
+        this.on(LayerEvents.READY, callback);
     }
 
     /**

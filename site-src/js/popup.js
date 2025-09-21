@@ -6,13 +6,20 @@
 /* global G */
 
 /* TEST 1  */
-const map = G.map('#map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 } });
+const map = G.map('#map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 }, maxFitBoundsZoom: 10 });
 // map.load();
 const marker = G.marker({
     latitude: 48.9,
     longitude: 2.4,
     map: map,
     title: 'Marker 1',
+});
+map.addToBounds([48.9, 2.4]);
+
+map.show(() => {
+    setTimeout(() => {
+        map.fitToBounds();
+    }, 50);
 });
 console.log('Marker Popup: ', marker.hasPopup(), marker.getPopup());
 const content = `
@@ -34,13 +41,13 @@ markp.on('open', () => {
     console.log('Marker Popup opened');
 });
 // markp.open(marker);
-// marker.openPopup();
-marker.togglePopup();
+marker.openPopup();
+// marker.togglePopup();
 
-setTimeout(() => {
-    // marker.closePopup();
-    marker.togglePopup();
-}, 3000);
+// setTimeout(() => {
+//     // marker.closePopup();
+//     marker.togglePopup();
+// }, 3000);
 
 
 const marker2 = G.marker({
@@ -48,6 +55,7 @@ const marker2 = G.marker({
     longitude: 3.4,
     map: map,
     title: 'Marker 2',
+    tooltip: 'This is a tooltip',
 });
 // marker.attachPopup('My Popup');
 

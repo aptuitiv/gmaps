@@ -6,6 +6,7 @@
 
 /* global google, HTMLElement, Text */
 
+import { READY_EVENT } from './constants';
 import { isObject, isString, isStringWithValue, objectHasValue } from './helpers';
 import { LatLngValue } from './LatLng';
 import Layer from './Layer';
@@ -204,48 +205,50 @@ export class Tooltip extends Overlay {
         if (!this.#isAttached) {
             this.#isAttached = true;
             await element.init().then(() => {
-                const triggerEvent = event || this.#event;
-                // Show the tooltip when hovering over the element
-                if (triggerEvent === 'click') {
-                    // Show the tooltip when clicking on the element
-                    element.on('click', (e) => {
-                        this.setPosition(e.latLng);
-                        if (element instanceof Map) {
-                            this.toggle(element);
-                        } else {
-                            this.toggle(element.getMap());
-                        }
-                    });
-                } else if (triggerEvent === 'clickon') {
-                    // Show the tooltip when clicking on the element
-                    element.on('click', (e) => {
-                        this.setPosition(e.latLng);
-                        if (element instanceof Map) {
-                            this.show(element);
-                        } else {
-                            this.show(element.getMap());
-                        }
-                    });
-                } else {
-                    // Default to hover
-                    element.on('mouseover', (e) => {
-                        this.setPosition(e.latLng);
-                        if (element instanceof Map) {
-                            this.show(element);
-                        } else {
-                            this.show(element.getMap());
-                        }
-                    });
-                    if (element instanceof Map) {
-                        element.on('mousemove', (e) => {
+                element.onceImmediate(READY_EVENT, () => {
+                    const triggerEvent = event || this.#event;
+                    // Show the tooltip when hovering over the element
+                    if (triggerEvent === 'click') {
+                        // Show the tooltip when clicking on the element
+                        element.on('click', (e) => {
                             this.setPosition(e.latLng);
-                            this.show(element);
+                            if (element instanceof Map) {
+                                this.toggle(element);
+                            } else {
+                                this.toggle(element.getMap());
+                            }
+                        });
+                    } else if (triggerEvent === 'clickon') {
+                        // Show the tooltip when clicking on the element
+                        element.on('click', (e) => {
+                            this.setPosition(e.latLng);
+                            if (element instanceof Map) {
+                                this.show(element);
+                            } else {
+                                this.show(element.getMap());
+                            }
+                        });
+                    } else {
+                        // Default to hover
+                        element.on('mouseover', (e) => {
+                            this.setPosition(e.latLng);
+                            if (element instanceof Map) {
+                                this.show(element);
+                            } else {
+                                this.show(element.getMap());
+                            }
+                        });
+                        if (element instanceof Map) {
+                            element.on('mousemove', (e) => {
+                                this.setPosition(e.latLng);
+                                this.show(element);
+                            });
+                        }
+                        element.on('mouseout', () => {
+                            this.hide();
                         });
                     }
-                    element.on('mouseout', () => {
-                        this.hide();
-                    });
-                }
+                });
             });
         }
 
@@ -385,7 +388,7 @@ export const tooltip = (options?: TooltipValue): Tooltip => {
 export type TooltipConfig = {
     attachConfig: TooltipValue;
     attachEvent?: 'click' | 'clickon' | 'hover';
-}
+};
 
 /**
  * Mixin to add the attachTooltip method to the Marker and Map classes
@@ -405,11 +408,16 @@ const tooltipMixin = {
      *
      * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+     * @returns {Tooltip}
      */
-    attachTooltip(tooltipValue: TooltipValue|TooltipConfig, event?: 'click' | 'clickon' | 'hover') {
+    attachTooltip(tooltipValue: TooltipValue | TooltipConfig, event?: 'click' | 'clickon' | 'hover'): Tooltip {
         let tooltipVal = tooltipValue;
         let tooltipEvent = event;
-        if (isObject(tooltipValue) && objectHasValue(tooltipValue, 'attachConfig') && objectHasValue(tooltipValue, 'attachEvent')) {
+        if (
+            isObject(tooltipValue) &&
+            objectHasValue(tooltipValue, 'attachConfig') &&
+            objectHasValue(tooltipValue, 'attachEvent')
+        ) {
             // The tooltipValue is a TooltipConfig object
             tooltipVal = (tooltipValue as TooltipConfig).attachConfig;
             tooltipEvent = (tooltipValue as TooltipConfig).attachEvent;
@@ -419,11 +427,13 @@ const tooltipMixin = {
             // Save the tooltip configuration so that it could be used to recreate the tooltip when cloning the object.
             this.tooltipConfig = {
                 attachConfig: tooltipVal,
-                attachEvent: tooltipEvent
-            }
+                attachEvent: tooltipEvent,
+            };
         }
 
-        tooltip(tooltipVal as TooltipValue).attachTo(this, tooltipEvent);
+        const t = tooltip(tooltipVal as TooltipValue);
+        t.attachTo(this, tooltipEvent);
+        return t;
     },
 };
 

@@ -19,7 +19,7 @@ import { Map } from './Map';
 import { point, Point, PointValue } from './Point';
 import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
-import { MarkerEvents } from './constants';
+import { MapEvents, MarkerEvents } from './constants';
 import {
     checkForGoogleMaps,
     isBoolean,
@@ -884,6 +884,7 @@ export class Marker extends Layer {
     async setLabel(value: string | number | MarkerLabel): Promise<Marker> {
         await this.#setupGoogleMarker();
         this.#setLabel(value);
+        this.#marker.setLabel(this.#options.label);
         return this;
     }
 
@@ -900,6 +901,7 @@ export class Marker extends Layer {
     setLabelSync(value: string | number | MarkerLabel): Marker {
         this.#setupGoogleMarkerSync();
         this.#setLabel(value);
+        this.#marker.setLabel(this.#options.label);
         return this;
     }
 
@@ -938,7 +940,6 @@ export class Marker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.label = undefined;
         }
-        this.#marker.setLabel(this.#options.label);
     }
 
     /**
@@ -995,34 +996,57 @@ export class Marker extends Layer {
     /**
      * Set the marker options
      *
+     * This intentionally does not set up the Google Maps marker object. This is so that when the
+     * marker option is created all the options are set one time.
+     *
      * @param {MarkerOptions} options The marker options
      * @returns {Marker}
      */
     setOptions(options: MarkerOptions): Marker {
         // Set the anchor point
         if (options.anchorPoint) {
-            this.anchorPoint = options.anchorPoint;
+            this.#options.anchorPoint = options.anchorPoint;
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the anchor point.
+                this.anchorPoint = options.anchorPoint;
+            }
         }
 
         // Set if the marker can be dragged
         if (isBoolean(options.drag)) {
-            this.drag = options.drag;
+            this.#drag = options.drag;
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the drag.
+                this.drag = options.drag;
+            }
         }
 
         // Set the icon
         if (options.icon) {
-            this.icon = icon(options.icon);
+            this.#options.icon = icon(options.icon);
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the icon.
+                this.icon = options.icon;
+            }
         } else if (options.svgIcon) {
             if (isString(options.svgIcon)) {
-                this.icon = `data:image/svg+xml;base64,${btoa(options.svgIcon)}`;
+                this.#options.icon = `data:image/svg+xml;base64,${btoa(options.svgIcon)}`;
             } else {
-                this.icon = svgSymbol(options.svgIcon);
+                this.#options.icon = svgSymbol(options.svgIcon);
+            }
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the icon.
+                this.icon = this.#options.icon;
             }
         }
 
         // Set the label
         if (isStringWithValue(options.label) || (isObject(options.label) && isStringOrNumber(options.label.text))) {
-            this.label = options.label;
+            this.#setLabel(options.label);
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the label.
+                this.label = options.label;
+            }
         }
 
         // Set up the position
@@ -1043,9 +1067,17 @@ export class Marker extends Layer {
             } else if (isNumberOrNumberString(options.longitude)) {
                 latLngValue.lng = options.longitude;
             }
-            this.position = latLngValue;
+            this.#setPosition(latLngValue);
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the position.
+                this.position = latLngValue;
+            }
         } else if (options.position) {
-            this.position = options.position;
+            this.#setPosition(options.position);
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the position.
+                this.position = options.position;
+            }
         }
 
         // Set the title and tooltip
@@ -1070,7 +1102,12 @@ export class Marker extends Layer {
 
         // Set the map. This must come last so that the other options are set.
         if (options.map) {
-            this.setMap(options.map);
+            this.#options.map = options.map;
+            super.setMap(options.map);
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the map.
+                this.setMap(options.map);
+            }
         }
 
         // Custom data
@@ -1306,26 +1343,41 @@ export class Marker extends Layer {
                     if (this.#options.anchorPoint) {
                         markerOptions.anchorPoint = this.#options.anchorPoint.toGoogle();
                     }
-                    if (this.drag) {
+                    if (this.#drag) {
                         markerOptions.draggable = true;
                     }
                     if (this.#options.icon) {
                         if (isString(this.#options.icon)) {
                             markerOptions.icon = this.#options.icon;
-                        } else if (this.#options.icon instanceof Icon || this.#options.icon instanceof SvgSymbol) {
-                            markerOptions.icon = await this.#options.icon.toGoogle();
+                        } else if (this.#options.icon instanceof SvgSymbol) {
+                            this.#options.icon.toGoogle().then((markerIcon) => {
+                                this.#marker.setIcon(markerIcon);
+                            });
+                        } else if (this.#options.icon instanceof Icon) {
+                            markerOptions.icon = this.#options.icon.toGoogle();
                         }
-                    }
-                    if (this.#options.map) {
-                        markerOptions.map = this.#options.map.toGoogle();
                     }
                     if (this.#options.position) {
                         markerOptions.position = this.#options.position.toGoogle();
                     }
-
-                    this.#marker = new google.maps.Marker(markerOptions);
-                    this.setEventGoogleObject(this.#marker);
-                    resolve();
+                    if (this.#options.map) {
+                        const map = this.#options.map.toGoogle();
+                        markerOptions.map = map;
+                        // Wait until the map is idle before creating the marker object.
+                        // This is to ensure that the map is fully initialized and the marker object is created
+                        // in the correct position. If the marker is created before the map is idle, then the marker
+                        // could shift after the map tiles have finished loading and the Google Maps map object
+                        // has finished being created.
+                        this.#options.map.once(MapEvents.IDLE, () => {
+                            this.#marker = new google.maps.Marker(markerOptions);
+                            this.setEventGoogleObject(this.#marker);
+                            resolve();
+                        });
+                    } else {
+                        this.#marker = new google.maps.Marker(markerOptions);
+                        this.setEventGoogleObject(this.#marker);
+                        resolve();
+                    }
                 })();
             } else {
                 resolve();

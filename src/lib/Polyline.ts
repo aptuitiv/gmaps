@@ -9,6 +9,7 @@
 /* eslint-disable no-use-before-define -- Done because the PolylineCollection is referenced before it's created */
 /* eslint-disable @typescript-eslint/no-explicit-any -- Custom data could be anything within an obect */
 
+import { PolylineEvents } from './constants';
 import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
@@ -44,7 +45,8 @@ type PolylineEvent =
     | 'mousemove'
     | 'mouseout'
     | 'mouseover'
-    | 'mouseup';
+    | 'mouseup'
+    | 'ready';
 
 // Custom data to attach to the polyline object
 type CustomData = {
@@ -59,7 +61,7 @@ export type PolylineOptions = {
     // Whether the polyline is drawn as a dashed line. Defaults to false.
     dashed?: boolean;
     // The gap between the dashes in pixels or percentage. Defaults to 15px.
-    dashGap?: string|number;
+    dashGap?: string | number;
     // The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline.
     highlightPolyline?: PolylineOptions | Polyline;
     // An array of polyline icons to display on the polyline.
@@ -235,7 +237,7 @@ export class Polyline extends Layer {
      *
      * @param {string|number} value The gap between the dashes in pixels.
      */
-    set dashGap(value: string|number) {
+    set dashGap(value: string | number) {
         const gap = getSizeWithUnit(value);
         if (isStringWithValue(gap)) {
             this.#dashGap = gap;
@@ -370,7 +372,7 @@ export class Polyline extends Layer {
      *
      * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
      */
-    set icons(value: PolylineIconValue|PolylineIconValue[]) {
+    set icons(value: PolylineIconValue | PolylineIconValue[]) {
         let setValue = false;
         if (Array.isArray(value)) {
             setValue = true;
@@ -381,7 +383,10 @@ export class Polyline extends Layer {
             setValue = true;
         }
         if (setValue && this.#polyline) {
-            this.#polyline.set('icons', this.#options.icons.map((icon) => icon.toGoogle()));
+            this.#polyline.set(
+                'icons',
+                this.#options.icons.map((icon) => icon.toGoogle()),
+            );
         }
     }
 
@@ -682,7 +687,7 @@ export class Polyline extends Layer {
                     strokeOpacity: this.#highlightPolyline.strokeOpacity,
                     strokeWeight: this.#highlightPolyline.strokeWeight,
                     zIndex: this.#highlightPolyline.zIndex,
-                }
+                };
                 const allowedOptions = [
                     'clickable',
                     'dashed',
@@ -790,13 +795,22 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Add an event listener for when the polyline is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void {
+        this.on(PolylineEvents.READY, callback);
+    }
+
+    /**
      * Sets the polyline to be drawn as a dashed line
      *
      * @param {boolean} dashed Whether the polyline is drawn as a dashed line
      * @param {string|number} [dashGap] The gap between the dashes in pixels or percentage.
      * @returns {Polyline} The polyline object
      */
-    setDashed(dashed: boolean, dashGap?: string|number): Polyline {
+    setDashed(dashed: boolean, dashGap?: string | number): Polyline {
         this.dashed = dashed;
         if (dashed) {
             this.dashGap = dashGap;
@@ -810,7 +824,7 @@ export class Polyline extends Layer {
      * @param {string|number} gap The gap between the dashes in pixels or percentage. This is only used if the polyline is drawn as a dashed line.
      * @returns {Polyline} The polyline object
      */
-    setDashGap(gap: string|number): Polyline {
+    setDashGap(gap: string | number): Polyline {
         this.dashGap = gap;
         return this;
     }
@@ -838,7 +852,7 @@ export class Polyline extends Layer {
      * @param {PolylineIconValue|PolylineIconValue[]} value The icon value or an array of icon values.
      * @returns {Polyline} The polyline object
      */
-    setIcons(value: PolylineIconValue|PolylineIconValue[]): Polyline {
+    setIcons(value: PolylineIconValue | PolylineIconValue[]): Polyline {
         this.icons = value;
         return this;
     }
@@ -1081,21 +1095,25 @@ export class Polyline extends Layer {
                     // Include any other icons if there are any
                     if (Array.isArray(this.#options.icons) && this.#options.icons.length > 0) {
                         // Merge any additional icons with the dash icon
-                        const additionalIcons = await Promise.all(this.#options.icons.map((icn) => {
-                            const returnIcon = polylineIcon(icn);
-                            // Need to set the strokeOpacity on the PolyIcon icon otherwise it won't be visible;
-                            const iconIcn = returnIcon.icon;
-                            if (isDefined(this.#options.strokeOpacity)) {
-                                iconIcn.strokeOpacity = this.#options.strokeOpacity;
-                            } else {
-                                iconIcn.strokeOpacity = 1;
-                            }
-                            return returnIcon.toGoogle();
-                        }));
+                        const additionalIcons = await Promise.all(
+                            this.#options.icons.map((icn) => {
+                                const returnIcon = polylineIcon(icn);
+                                // Need to set the strokeOpacity on the PolyIcon icon otherwise it won't be visible;
+                                const iconIcn = returnIcon.icon;
+                                if (isDefined(this.#options.strokeOpacity)) {
+                                    iconIcn.strokeOpacity = this.#options.strokeOpacity;
+                                } else {
+                                    iconIcn.strokeOpacity = 1;
+                                }
+                                return returnIcon.toGoogle();
+                            }),
+                        );
                         options.icons = options.icons.concat(additionalIcons);
                     }
                 } else {
-                    options.strokeOpacity = isNumberOrNumberString(this.#options.strokeOpacity) ? this.#options.strokeOpacity : 1;
+                    options.strokeOpacity = isNumberOrNumberString(this.#options.strokeOpacity)
+                        ? this.#options.strokeOpacity
+                        : 1;
                     options.icons = []; // Remove any icons if the polyline is not dashed
                     if (Array.isArray(this.#options.icons) && this.#options.icons.length > 0) {
                         // Set any icons if necessary
@@ -1118,6 +1136,8 @@ export class Polyline extends Layer {
             if (!isObject(this.#polyline)) {
                 if (checkForGoogleMaps('Polyline', 'Polyline', false)) {
                     this.#createPolylineObject();
+                    // Dispatch the event to say that the polyline is ready
+                    this.dispatch(PolylineEvents.READY);
                     resolve();
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
@@ -1135,6 +1155,8 @@ export class Polyline extends Layer {
                                 this.#highlightPolyline.setMap(thisMap, false);
                             }
                         }
+                        // Dispatch the event to say that the polyline is ready
+                        this.dispatch(PolylineEvents.READY);
                         resolve();
                     });
 
@@ -1159,7 +1181,7 @@ export class Polyline extends Layer {
                 this.#createPolylineObject();
             } else {
                 throw new Error(
-                    'The Google maps libray is not available so the polyline object cannot be created. Load the Google maps library first.'
+                    'The Google maps libray is not available so the polyline object cannot be created. Load the Google maps library first.',
                 );
             }
         }

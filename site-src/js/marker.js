@@ -25,7 +25,7 @@ G.loader().setApiKey(apiKey).load();
 // });
 
 /* TEST 2 */
-const map = G.map('#map1', { center: { latitude: 48.864716, longitude: 2.3522 } });
+const map = G.map('#map1', { center: { latitude: 48.864716, longitude: 2.3522 }, maxFitBoundsZoom: 5 });
 map.show().then(() => {
     // Dispatch a custom event
     marker.dispatch('custom', { data: 'test' });
@@ -107,13 +107,17 @@ const tagsUsed = new Set();
 for (let i = 0; i < 20; i += 1) {
     const tag = tags[Math.floor(Math.random() * tags.length)];
     tagsUsed.add(tag);
+    const latitude = lat + randomNumber(-2.5, 2.5);
+    const longitude = lng + randomNumber(-6, 6);
     const marker = G.marker({
-        latitude: lat + randomNumber(-2.5, 2.5),
-        longitude: lng + randomNumber(-6, 6),
+        latitude: latitude,
+        longitude: longitude,
         map: map,
         tooltip: `Marker ${tag}`,
         data: { custom: 'value' }
     });
+    map.addToBounds([latitude, longitude]);
+
     console.log('marker: ', marker);
     console.log('marker.data: ', marker.data);
     console.log('marker.getData: ', marker.getData());
@@ -123,6 +127,11 @@ for (let i = 0; i < 20; i += 1) {
     console.log('marker.getData(custom2): ', marker.getData('custom2'));
     markerCollection.add(marker, tag);
 }
+map.show(() => {
+    setTimeout(() => {
+        map.fitToBounds();
+    }, 50);
+});
 
 // Buttons to do stuff
 const grid = document.createElement('div');

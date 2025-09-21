@@ -14,6 +14,7 @@ import Layer from './Layer';
 import { Map } from './Map';
 import { Marker } from './Marker';
 import { size, Size, SizeValue } from './Size';
+import { InfoWindowEvents, READY_EVENT } from './constants';
 
 type GMInfoWindowOptions = {
     // The aria label for the info window
@@ -63,7 +64,10 @@ type InfoWindowEvent =
     | 'closeclick'
     | 'content_changed'
     | 'domready'
+    | 'headercontent_changed'
+    | 'headerdisabled_changed'
     | 'position_changed'
+    | 'ready'
     | 'visible'
     | 'zindex_changed';
 
@@ -403,47 +407,49 @@ export class InfoWindow extends Layer {
         if (!this.#isAttached) {
             this.#isAttached = true;
             await element.init().then(() => {
-                const triggerEvent = event || this.#event;
+                element.onceImmediate(READY_EVENT, () => {
+                    const triggerEvent = event || this.#event;
 
-                if (triggerEvent === 'clickon' || triggerEvent === 'hover') {
-                    // Don't toggle the display of the InfoWindow for the clickon and hover events.
-                    // If it's toggled for hover then it'll appear like it's flickering.
-                    // If it's toggled with clickon then it will behave like "click" and hide on the second click.
-                    this.#toggleDisplay = false;
-                }
+                    if (triggerEvent === 'clickon' || triggerEvent === 'hover') {
+                        // Don't toggle the display of the InfoWindow for the clickon and hover events.
+                        // If it's toggled for hover then it'll appear like it's flickering.
+                        // If it's toggled with clickon then it will behave like "click" and hide on the second click.
+                        this.#toggleDisplay = false;
+                    }
 
-                // Show the InfoWindow when hovering over the element
-                if (triggerEvent === 'hover') {
-                    element.on('mouseover', (e) => {
-                        this.position = e.latLng;
-                        this.show(element);
-                    });
-                    if (element instanceof Map) {
-                        element.on('mousemove', (e) => {
+                    // Show the InfoWindow when hovering over the element
+                    if (triggerEvent === 'hover') {
+                        element.on('mouseover', (e) => {
                             this.position = e.latLng;
                             this.show(element);
                         });
+                        if (element instanceof Map) {
+                            element.on('mousemove', (e) => {
+                                this.position = e.latLng;
+                                this.show(element);
+                            });
+                        }
+                        element.on('mouseout', () => {
+                            this.hide();
+                        });
+                    } else if (triggerEvent === 'clickon') {
+                        // Show the InfoWindow when clicking on the element
+                        element.on('click', (e) => {
+                            if (element instanceof Map) {
+                                this.position = e.latLng;
+                            }
+                            this.show(element);
+                        });
+                    } else {
+                        // Show the InfoWindow when clicking on the element
+                        element.on('click', (e) => {
+                            if (element instanceof Map) {
+                                this.position = e.latLng;
+                            }
+                            this.show(element);
+                        });
                     }
-                    element.on('mouseout', () => {
-                        this.hide();
-                    });
-                } else if (triggerEvent === 'clickon') {
-                    // Show the InfoWindow when clicking on the element
-                    element.on('click', (e) => {
-                        if (element instanceof Map) {
-                            this.position = e.latLng;
-                        }
-                        this.show(element);
-                    });
-                } else {
-                    // Show the InfoWindow when clicking on the element
-                    element.on('click', (e) => {
-                        if (element instanceof Map) {
-                            this.position = e.latLng;
-                        }
-                        this.show(element);
-                    });
-                }
+                });
             });
         }
 
@@ -552,6 +558,15 @@ export class InfoWindow extends Layer {
      */
     onlyOnce(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void {
         super.onlyOnce(type, callback, config);
+    }
+
+    /**
+     * Add an event listener for when the info window is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void {
+        this.on(InfoWindowEvents.READY, callback);
     }
 
     /**
@@ -671,6 +686,8 @@ export class InfoWindow extends Layer {
                 if (this.#toggleDisplay) {
                     this.hide();
                 }
+                // Dispatch the event to say that the info window is ready
+                this.dispatch(InfoWindowEvents.READY);
                 resolve(this);
             } else {
                 // Close other open InfoWindows if necessary
@@ -687,6 +704,8 @@ export class InfoWindow extends Layer {
                         shouldFocus: this.#focus,
                     });
                     this.setMap(element);
+                    // Dispatch the event to say that the info window is ready
+                    this.dispatch(InfoWindowEvents.READY);
                     resolve(this);
                 } else if (element instanceof Marker) {
                     element.toGoogle().then((marker) => {
@@ -695,6 +714,8 @@ export class InfoWindow extends Layer {
                             shouldFocus: this.#focus,
                         });
                         this.setMap(element.getMap());
+                        // Dispatch the event to say that the info window is ready
+                        this.dispatch(InfoWindowEvents.READY);
                         resolve(this);
                     });
                 }
@@ -805,9 +826,12 @@ const infoWindowMixin = {
      *
      * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
+     * @returns {InfoWindow}
      */
-    attachInfoWindow(infoWindowValue: InfoWindowValue, event?: 'click' | 'clickon' | 'hover') {
-        infoWindow(infoWindowValue).attachTo(this, event);
+    attachInfoWindow(infoWindowValue: InfoWindowValue, event?: 'click' | 'clickon' | 'hover'): InfoWindow {
+        const i = infoWindow(infoWindowValue);
+        i.attachTo(this, event);
+        return i;
     },
 };
 /**

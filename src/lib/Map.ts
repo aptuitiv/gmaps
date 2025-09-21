@@ -897,6 +897,8 @@ export class Map extends Evented {
                     this.#map.fitBounds(googleBounds);
                     resolve();
                 });
+            } else {
+                resolve();
             }
         });
     }
@@ -1034,7 +1036,7 @@ export class Map extends Evented {
                     // eslint-disable-next-line no-console
                     console.warn(
                         'The selected mapTypeId is not one of the allowed types set for the MapType Control.',
-                        this.#options.mapTypeId
+                        this.#options.mapTypeId,
                     );
                 }
             }
@@ -1911,7 +1913,7 @@ export class Map extends Evented {
                 const element = this.#element;
                 if (element === null) {
                     throw new Error(
-                        'The map element could not be found. Make sure the map selector is correct and the element exists.'
+                        'The map element could not be found. Make sure the map selector is correct and the element exists.',
                     );
                 }
 
@@ -1944,7 +1946,7 @@ export class Map extends Evented {
                         },
                         {
                             root: document.documentElement,
-                        }
+                        },
                     );
 
                     observer.observe(element);
