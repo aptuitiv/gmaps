@@ -215,10 +215,20 @@ draggableMarker.setLabel('Drag Me');
 // Add event listeners for drag events
 draggableMarker.on('dragend', (e) => {
     console.log('Marker dragged to new position:', e);
+    console.log('Point: ', e.pixel.x, e.pixel.y);
     // console.log('Marker dragged to new position:', e.position);
     console.log('New lat/lng:', e.latLng.lat, e.latLng.lng);
     const newPosition = draggableMarker.getPosition();
     console.log('New lat/lng:', newPosition.lat, newPosition.lng);
+    console.log('New lat/lng:', draggableMarker.position.lat, draggableMarker.position.lng);
+});
+
+draggableMarker.onDragStart((e) => {
+    console.log('Drag start', e);
+});
+
+draggableMarker.onDrag((e) => {
+    console.log('Drag', e);
 });
 
 // Buttons to control drag functionality
