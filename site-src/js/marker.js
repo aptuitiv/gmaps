@@ -29,6 +29,7 @@ const map = G.map('#map1', { center: { latitude: 48.864716, longitude: 2.3522 },
 map.show().then(() => {
     // Dispatch a custom event
     marker.dispatch('custom', { data: 'test' });
+    createSvgMarker(map);
 });
 const marker = G.marker({
     latitude: 48.9,
@@ -215,10 +216,20 @@ draggableMarker.setLabel('Drag Me');
 // Add event listeners for drag events
 draggableMarker.on('dragend', (e) => {
     console.log('Marker dragged to new position:', e);
+    console.log('Point: ', e.pixel.x, e.pixel.y);
     // console.log('Marker dragged to new position:', e.position);
     console.log('New lat/lng:', e.latLng.lat, e.latLng.lng);
     const newPosition = draggableMarker.getPosition();
     console.log('New lat/lng:', newPosition.lat, newPosition.lng);
+    console.log('New lat/lng:', draggableMarker.position.lat, draggableMarker.position.lng);
+});
+
+draggableMarker.onDragStart((e) => {
+    console.log('Drag start', e);
+});
+
+draggableMarker.onDrag((e) => {
+    console.log('Drag', e);
 });
 
 // Buttons to control drag functionality
@@ -252,3 +263,26 @@ getPositionButton.addEventListener('click', () => {
     alert(`Latitude: ${position.lat}\nLongitude: ${position.lng}`);
 });
 dragControls.appendChild(getPositionButton);
+
+/* Create a marker with an SVG Symbol */
+const createSvgMarker = (map) => {
+    const mdiMapMarker = `M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z`;
+    // const mdiMapMarker = `m28.5 0c-15.74 0-28.5 12.76-28.5 28.5 0 28.11 28.5 43.315 28.5 43.315s28.5-15.205 28.5-43.315c0-15.74-12.76-28.5-28.5-28.5z`;
+    const svgSymbol = G.svgSymbol({
+        anchor: { x: 12, y: 24.5 }, // Move the svg marker to the center of the map marker
+        path: mdiMapMarker,
+        fillColor: '#ac6925',
+        strokeColor: '#ac6925',
+        fillOpacity: 1,
+        // strokeWeight: 1,
+        scale: 2,
+    });
+    const svgMarker = G.marker({
+        drag: true,
+        latitude: 48.864716,
+        longitude: 2.3522,
+        map: map,
+        title: 'My Marker',
+        svgIcon: svgSymbol,
+    });
+}

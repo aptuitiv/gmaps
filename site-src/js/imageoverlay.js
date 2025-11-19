@@ -10,8 +10,8 @@ G.loader().setApiKey(apiKey).load();
 
 // Set the the image URL and the bounds of the image overlay
 const mapCenter = { latitude: 44.3644077301405, longitude: -68.32022737144165 };
-const imageUrl = 'https://bcms-files.s3.amazonaws.com/2ajn2d9Bq3-1851/images/Campground-Map.png';
-// const imageUrl = 'https://developers.google.com/maps/documentation/javascript/examples/full/images/talkeetna.png';
+// const imageUrl = 'https://bcms-files.s3.amazonaws.com/2ajn2d9Bq3-1851/images/Campground-Map.png';
+const imageUrl = 'https://developers.google.com/maps/documentation/javascript/examples/full/images/talkeetna.png';
 const imageBounds = {
     ne: [44.36877953646439, -68.31675122855835], // Northeast corner
     sw: [44.361063461552426, -68.32760881065063], // Southwest corner
