@@ -1042,10 +1042,10 @@ export class ImageOverlay extends Overlay {
                 const swPixel = projection.fromLatLngToDivPixel(sw.toGoogle());
 
                 if (nePixel && swPixel) {
-                    const left = Math.min(nePixel.x, swPixel.x);
-                    const top = Math.min(nePixel.y, swPixel.y);
-                    const width = Math.abs(nePixel.x - swPixel.x);
-                    const height = Math.abs(nePixel.y - swPixel.y);
+                    const left = swPixel.x;
+                    const top = nePixel.y;
+                    const width = nePixel.x - swPixel.x;
+                    const height = swPixel.y - nePixel.y;
 
                     super.style('left', `${left}px`);
                     super.style('top', `${top}px`);
