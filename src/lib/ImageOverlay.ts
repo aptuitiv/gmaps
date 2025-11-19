@@ -156,9 +156,11 @@ export class ImageOverlay extends Overlay {
 
         // Initialize the image element
         this.#imageElement = document.createElement('img');
+        // Images must be set to 100% width and height to ensure they are displayed correctly.
+        // If this is not done then sometimes when zooming in, the image may shift position.
         this.styles = {
-            maxWidth: '100%',
-            height: 'auto',
+            height: '100%',
+            width: '100%',
         };
 
         if (isObject(options)) {
