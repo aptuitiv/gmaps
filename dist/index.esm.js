@@ -12488,8 +12488,6 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     });
     __privateSet(this, _imageElement, document.createElement("img"));
     this.styles = {
-      // maxWidth: '100%',
-      // height: 'auto',
       height: "100%",
       width: "100%"
     };
@@ -13017,6 +13015,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
           super.style("top", `${top}px`);
           super.style("width", `${width}px`);
           super.style("height", `${height}px`);
+          super.style("display", "block");
         }
       }
     }
@@ -13187,7 +13186,7 @@ createRotationHandle_fn = function() {
   __privateGet(this, _rotationHandle).appendChild(handleCircle);
   __privateGet(this, _rotationHandle).addEventListener("mousedown", __privateGet(this, _handleRotationStart));
   __privateGet(this, _rotationHandle).addEventListener("touchstart", __privateGet(this, _handleRotationStart));
-  if (checkForGoogleMaps("ImageOverlay", "    ", false)) {
+  if (checkForGoogleMaps("ImageOverlay", "OverlayView", false)) {
     google.maps.OverlayView.preventMapHitsAndGesturesFrom(__privateGet(this, _rotationHandle));
   }
   const parentElement = __privateGet(this, _rotationContainer) || this.getOverlayElement();
