@@ -12617,8 +12617,10 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     });
     __privateSet(this, _imageElement, document.createElement("img"));
     this.styles = {
-      maxWidth: "100%",
-      height: "auto"
+      // maxWidth: '100%',
+      // height: 'auto',
+      height: "100%",
+      width: "100%"
     };
     if (isObject(options)) {
       this.setOptions(options);
@@ -13136,15 +13138,14 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
         const nePixel = projection.fromLatLngToDivPixel(ne.toGoogle());
         const swPixel = projection.fromLatLngToDivPixel(sw.toGoogle());
         if (nePixel && swPixel) {
-          const left = Math.min(nePixel.x, swPixel.x);
-          const top = Math.min(nePixel.y, swPixel.y);
-          const width = Math.abs(nePixel.x - swPixel.x);
-          const height = Math.abs(nePixel.y - swPixel.y);
+          const left = swPixel.x;
+          const top = nePixel.y;
+          const width = nePixel.x - swPixel.x;
+          const height = swPixel.y - nePixel.y;
           super.style("left", `${left}px`);
           super.style("top", `${top}px`);
           super.style("width", `${width}px`);
           super.style("height", `${height}px`);
-          super.style("display", "block");
         }
       }
     }
@@ -13315,7 +13316,7 @@ createRotationHandle_fn = function() {
   __privateGet(this, _rotationHandle).appendChild(handleCircle);
   __privateGet(this, _rotationHandle).addEventListener("mousedown", __privateGet(this, _handleRotationStart));
   __privateGet(this, _rotationHandle).addEventListener("touchstart", __privateGet(this, _handleRotationStart));
-  if (checkForGoogleMaps("ImageOverlay", "OverlayView", false)) {
+  if (checkForGoogleMaps("ImageOverlay", "    ", false)) {
     google.maps.OverlayView.preventMapHitsAndGesturesFrom(__privateGet(this, _rotationHandle));
   }
   const parentElement = __privateGet(this, _rotationContainer) || this.getOverlayElement();
