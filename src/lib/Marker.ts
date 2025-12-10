@@ -1360,6 +1360,9 @@ export class Marker extends Layer {
                     if (this.#options.position) {
                         markerOptions.position = this.#options.position.toGoogle();
                     }
+                    if (this.#options.label) {
+                        markerOptions.label = this.#options.label;
+                    }
                     if (this.#options.map) {
                         const map = this.#options.map.toGoogle();
                         markerOptions.map = map;
