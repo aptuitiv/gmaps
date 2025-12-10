@@ -207,11 +207,12 @@ const draggableMarker = G.marker({
     latitude: 50,
     longitude: 3,
     map: map,
+    label: 'Drag Me lbl',
     title: 'Draggable Marker',
     drag: true, // Enable custom drag functionality
     tooltip: 'Drag me around!'
 });
-draggableMarker.setLabel('Drag Me');
+// draggableMarker.setLabel('Drag Me');
 
 // Add event listeners for drag events
 draggableMarker.on('dragend', (e) => {

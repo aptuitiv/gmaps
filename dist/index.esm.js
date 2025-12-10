@@ -9471,6 +9471,9 @@ createMarkerObject_fn = function() {
         if (__privateGet(this, _options4).position) {
           markerOptions.position = __privateGet(this, _options4).position.toGoogle();
         }
+        if (__privateGet(this, _options4).label) {
+          markerOptions.label = __privateGet(this, _options4).label;
+        }
         if (__privateGet(this, _options4).map) {
           const map2 = __privateGet(this, _options4).map.toGoogle();
           markerOptions.map = map2;
