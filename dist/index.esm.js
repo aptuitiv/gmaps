@@ -2384,7 +2384,7 @@ extendGoogle_fn = function(latLngObject) {
  * @returns {void}
  */
 extend_fn = function(latLngObject) {
-  __privateGet(this, _boundValues).push(latLngObject.clone());
+  __privateGet(this, _boundValues).push({ lat: latLngObject.latitude, lng: latLngObject.longitude });
   if (__privateGet(this, _northEast) && __privateGet(this, _southWest)) {
     __privateGet(this, _northEast).latitude = Math.max(latLngObject.latitude, __privateGet(this, _northEast).latitude);
     __privateGet(this, _northEast).longitude = Math.max(latLngObject.longitude, __privateGet(this, _northEast).longitude);
@@ -2427,9 +2427,10 @@ createLatLngBoundsObject_fn = function() {
   if (!__privateGet(this, _bounds)) {
     __privateSet(this, _bounds, new google.maps.LatLngBounds());
     if (__privateGet(this, _boundValues)) {
-      __privateGet(this, _boundValues).forEach((latLngObject) => {
-        __privateGet(this, _bounds).extend(latLngObject.toGoogle());
+      __privateGet(this, _boundValues).forEach((latLngLiteral) => {
+        __privateGet(this, _bounds).extend(latLngLiteral);
       });
+      __privateSet(this, _boundValues, []);
     }
   }
 };
@@ -14807,7 +14808,11 @@ var _PolylineCollection = class _PolylineCollection {
    * This also hides all the polylines in the collection.
    */
   clear() {
-    this.hideAll();
+    Object.keys(this.polylines).forEach((tag) => {
+      this.polylines[tag].forEach((p) => {
+        p.setMap(null);
+      });
+    });
     this.polylines = {};
   }
   /**
