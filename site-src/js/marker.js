@@ -44,7 +44,7 @@ const callback = (e) => {
 const otherCallback = (e) => {
     console.log('Other Marker Clicked: ', e);
     e.stop();
-}
+};
 marker.once('click', callback, { once: false });
 
 // Set up a custom event listener
@@ -52,13 +52,11 @@ marker.on('custom', (e) => {
     console.log('custom event: ', e);
 });
 
-
 G.loader({ apiKey: apiKey }).load(() => {
     marker.label = 'New label';
 });
 
 marker.on('click', otherCallback);
-
 
 /* TEST 3 */
 
@@ -115,7 +113,7 @@ for (let i = 0; i < 20; i += 1) {
         longitude: longitude,
         map: map,
         tooltip: `Marker ${tag}`,
-        data: { custom: 'value' }
+        data: { custom: 'value' },
     });
     map.addToBounds([latitude, longitude]);
 
@@ -166,21 +164,23 @@ tagGrid.style.gap = '10px';
 tagGrid.style.padding = '10px 0';
 document.body.appendChild(tagGrid);
 
-Array.from(tagsUsed).sort().forEach((tag) => {
-    const hideButton = document.createElement('button');
-    hideButton.textContent = `Hide ${tag}`;
-    hideButton.addEventListener('click', () => {
-        markerCollection.hide(tag);
-    });
-    tagGrid.appendChild(hideButton);
+Array.from(tagsUsed)
+    .sort()
+    .forEach((tag) => {
+        const hideButton = document.createElement('button');
+        hideButton.textContent = `Hide ${tag}`;
+        hideButton.addEventListener('click', () => {
+            markerCollection.hide(tag);
+        });
+        tagGrid.appendChild(hideButton);
 
-    const showButton = document.createElement('button');
-    showButton.textContent = `Show ${tag}`;
-    showButton.addEventListener('click', () => {
-        markerCollection.show(tag, map);
+        const showButton = document.createElement('button');
+        showButton.textContent = `Show ${tag}`;
+        showButton.addEventListener('click', () => {
+            markerCollection.show(tag, map);
+        });
+        tagGrid.appendChild(showButton);
     });
-    tagGrid.appendChild(showButton);
-});
 
 const hideTagsButton = document.createElement('button');
 hideTagsButton.textContent = `Hide tags 1 - 3`;
@@ -210,7 +210,7 @@ const draggableMarker = G.marker({
     label: 'Drag Me lbl',
     title: 'Draggable Marker',
     drag: true, // Enable custom drag functionality
-    tooltip: 'Drag me around!'
+    tooltip: 'Drag me around!',
 });
 // draggableMarker.setLabel('Drag Me');
 
@@ -286,4 +286,4 @@ const createSvgMarker = (map) => {
         title: 'My Marker',
         svgIcon: svgSymbol,
     });
-}
+};
