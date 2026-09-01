@@ -66,7 +66,7 @@ export class LatLngBounds extends Base {
      * @private
      * @type {LatLng[]}
      */
-    #boundValues: LatLng[] = [];
+    #boundValues: google.maps.LatLngLiteral[] = [];
 
     /**
      * Holds the north-east corner of the LatLngBounds
@@ -275,7 +275,16 @@ export class LatLngBounds extends Base {
      * @returns {void}
      */
     #extend(latLngObject: LatLng): void {
-        this.#boundValues.push(latLngObject.clone());
+        /**
+         * Stored as a plain literal rather than a cloned LatLng.
+         *
+         * Every coordinate passed to extend() is kept until the Google bounds object is built, so
+         * this array is as long as the data - a polyline path can be tens of thousands of points.
+         * A literal is a fraction of the size of a LatLng instance, and it is what
+         * #createLatLngBoundsObject() hands to Google anyway, so nothing has to be converted again
+         * later either.
+         */
+        this.#boundValues.push({ lat: latLngObject.latitude, lng: latLngObject.longitude });
 
         if (this.#northEast && this.#southWest) {
             // Set the north-east corner to the most north-east point
@@ -457,9 +466,11 @@ export class LatLngBounds extends Base {
         if (!this.#bounds) {
             this.#bounds = new google.maps.LatLngBounds();
             if (this.#boundValues) {
-                this.#boundValues.forEach((latLngObject) => {
-                    this.#bounds.extend(latLngObject.toGoogle());
+                this.#boundValues.forEach((latLngLiteral) => {
+                    this.#bounds.extend(latLngLiteral);
                 });
+                // The values have been handed to Google, so stop holding on to them
+                this.#boundValues = [];
             }
         }
     }
