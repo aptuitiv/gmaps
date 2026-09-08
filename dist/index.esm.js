@@ -4560,6 +4560,14 @@ var _DataFeature = class _DataFeature extends Layer_default {
     return __privateGet(this, _feature).getId();
   }
   /**
+   * Get the data layer that the feature belongs to.
+   *
+   * @returns {DataLayer}
+   */
+  get layer() {
+    return __privateGet(this, _layer);
+  }
+  /**
    * Get the geometry type for the feature.
    *
    * This is the GeoJson geometry type. For example "Point", "LineString" or "Polygon".
@@ -4624,6 +4632,16 @@ var _DataFeature = class _DataFeature extends Layer_default {
    */
   getGeometryType() {
     return this.geometryType;
+  }
+  /**
+   * Get the data layer that the feature belongs to.
+   *
+   * Alternate of the layer getter.
+   *
+   * @returns {DataLayer}
+   */
+  getLayer() {
+    return __privateGet(this, _layer);
   }
   /**
    * Get the first path of coordinates for the feature.
@@ -9328,9 +9346,10 @@ var _DataLayer = class _DataLayer extends Layer_default {
         __superGet(_DataLayer.prototype, this, "setMap").call(this, value);
         __privateGet(this, _options4).map = value;
         value.init();
-        yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+        yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => __async(this, null, function* () {
+          yield value.init();
           data.setMap(value.toGoogle());
-        });
+        }));
       } else if (isNullOrUndefined(value)) {
         __superGet(_DataLayer.prototype, this, "setMap").call(this, null);
         __privateGet(this, _options4).map = null;
@@ -9412,11 +9431,12 @@ var _DataLayer = class _DataLayer extends Layer_default {
         return this.setMap(map2);
       }
       const mapObject = __privateMethod(this, _DataLayer_instances, mapObject_fn).call(this);
-      yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => __async(this, null, function* () {
         if (mapObject) {
+          yield mapObject.init();
           data.setMap(mapObject.toGoogle());
         }
-      });
+      }));
       return this;
     });
   }
@@ -9679,10 +9699,6 @@ getGoogleData_fn = function() {
       } else {
         loader().onLoad(() => {
           __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, new google.maps.Data());
-          const mapObject = __privateMethod(this, _DataLayer_instances, mapObject_fn).call(this);
-          if (mapObject && this.isVisible !== false) {
-            __privateGet(this, _data2).setMap(mapObject.toGoogle());
-          }
           resolve(__privateGet(this, _data2));
         });
       }
@@ -17215,7 +17231,7 @@ _Popup_instances = new WeakSet();
  * @returns {void}
  */
 fitPopup_fn = function() {
-  if (this.event !== "hover") {
+  if (__privateGet(this, _fit) && this.event !== "hover") {
     const map2 = this.getMap();
     let offsetY = 0;
     let offsetX = 0;
@@ -17282,6 +17298,146 @@ var popupMixin = {
 };
 Layer_default.include(popupMixin);
 Map.include(popupMixin);
+var dataPopupState = /* @__PURE__ */ new WeakMap();
+var getDataPopupState = (layer) => {
+  let state = dataPopupState.get(layer);
+  if (!state) {
+    state = { features: /* @__PURE__ */ new WeakMap(), listeners: {} };
+    dataPopupState.set(layer, state);
+  }
+  return state;
+};
+var renderDataPopupTemplate = (template, feature) => template.replace(/\{\s*([^{}\s]+)\s*\}/g, (match, key) => {
+  const value = feature.getProperty(key);
+  return isNullOrUndefined(value) ? "" : String(value);
+});
+var getDataPopupContent = (config, feature) => {
+  if (isFunction(config.content)) {
+    return config.content(feature);
+  }
+  if (isString(config.content)) {
+    return renderDataPopupTemplate(config.content, feature);
+  }
+  return void 0;
+};
+var buildDataPopupConfig = (popupValue, event) => {
+  let content;
+  let popupObject;
+  if (isFunction(popupValue)) {
+    popupObject = popup({ content: "" });
+    content = popupValue;
+  } else {
+    popupObject = popup(popupValue);
+    if (isString(popupObject.content)) {
+      content = popupObject.content;
+    }
+  }
+  popupObject.event = event;
+  return { content, event, popup: popupObject };
+};
+var showDataPopup = (config, feature, position) => {
+  const { map: map2 } = feature.getLayer();
+  if (!(map2 instanceof Map) || !position) {
+    return false;
+  }
+  const popupObject = config.popup;
+  const content = getDataPopupContent(config, feature);
+  if (!isNullOrUndefined(content)) {
+    popupObject.setContent(content);
+  }
+  popupObject.hide();
+  popupObject.position = position;
+  popupObject.show(map2);
+  return true;
+};
+var handleDataPopupEvent = (layer, type, event) => {
+  const state = dataPopupState.get(layer);
+  const { feature } = event;
+  if (!state || !(feature instanceof DataFeature)) {
+    return;
+  }
+  const config = state.features.get(feature) || state.layerConfig;
+  if (!config) {
+    return;
+  }
+  if (type === "mouseover") {
+    if (config.event === "hover" && showDataPopup(config, feature, event.latLng)) {
+      state.openFeature = feature;
+    }
+  } else if (type === "mouseout") {
+    if (config.event === "hover") {
+      config.popup.hide();
+      state.openFeature = void 0;
+    }
+  } else if (config.event !== "hover") {
+    if (config.event === "click" && config.popup.isOpen() && state.openFeature === feature) {
+      config.popup.hide();
+      state.openFeature = void 0;
+      return;
+    }
+    if (showDataPopup(config, feature, event.latLng)) {
+      state.openFeature = feature;
+    }
+  }
+};
+var setupDataPopupListeners = (layer, event) => {
+  const state = getDataPopupState(layer);
+  if (!state.listeners.click) {
+    state.listeners.click = true;
+    layer.onClick((e) => {
+      handleDataPopupEvent(layer, "click", e);
+    });
+  }
+  if (event === "hover" && !state.listeners.hover) {
+    state.listeners.hover = true;
+    layer.onMouseOver((e) => {
+      handleDataPopupEvent(layer, "mouseover", e);
+    });
+    layer.onMouseOut((e) => {
+      handleDataPopupEvent(layer, "mouseout", e);
+    });
+  }
+};
+var dataLayerPopupMixin = {
+  /**
+   * Attach a popup to every feature in the data layer.
+   *
+   * The content can hold {property} placeholders, which are replaced with the properties of
+   * whichever feature was clicked. It can also be a function that is called with the feature.
+   *
+   * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
+   * @returns {Popup}
+   */
+  attachPopup(popupValue, event) {
+    const triggerEvent = event || "click";
+    const config = buildDataPopupConfig(popupValue, triggerEvent);
+    getDataPopupState(this).layerConfig = config;
+    setupDataPopupListeners(this, triggerEvent);
+    return config.popup;
+  }
+};
+var dataFeaturePopupMixin = {
+  /**
+   * Attach a popup to this one feature.
+   *
+   * This takes precedence over a popup attached to the whole data layer.
+   *
+   * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
+   * @returns {Popup}
+   */
+  attachPopup(popupValue, event) {
+    const triggerEvent = event || "click";
+    const config = buildDataPopupConfig(popupValue, triggerEvent);
+    const layer = this.getLayer();
+    getDataPopupState(layer).features.set(this, config);
+    setupDataPopupListeners(layer, triggerEvent);
+    return config.popup;
+  }
+};
+DataLayer.include(dataLayerPopupMixin);
+DataFeature.include(dataFeaturePopupMixin);
 var PopupCollection = /* @__PURE__ */ (() => {
   let instance;
   function createInstance() {

@@ -62,6 +62,10 @@ map.data.onClick((event) => {
     console.log('map.data click: ', event.feature.getProperty('name'), event.latLng);
 });
 
+// Attach one popup to every feature in the layer.
+// The {name} placeholder is replaced with each feature's "name" property.
+map.data.attachPopup('<h3>{name}</h3>', 'click');
+
 /* ---------------------------------------------------------------------------
     A separate data layer, styled by a property on each feature
 --------------------------------------------------------------------------- */
@@ -122,6 +126,49 @@ layer.onMouseOut((event) => {
 layer.onClick((event) => {
     console.log('layer click: ', event.feature.getProperty('name'));
     console.log('feature bounds: ', event.feature.getBounds());
+});
+
+/*
+    There are three ways to show a popup for a feature.
+
+    1. Attach one popup to the whole layer, as map1 does above. Every feature gets it.
+    2. Attach a popup to a single feature.
+    3. Show a popup yourself from the layer's click event, for full control.
+*/
+
+// 2. A popup on one feature only. This wins over a popup attached to the whole layer.
+layer.getFeature('water').then((feature) => {
+    feature.attachPopup((f) => `<h3>${f.getProperty('name')}</h3><p>This one has its own popup.</p>`);
+});
+
+// A popup on the whole layer, which the "water" feature above overrides
+layer.attachPopup('<h3>{name}</h3><p>Type: {type}</p>');
+
+// 3. Doing it by hand. This is what you'd use if you need to do more than set the content,
+// such as loading the content from somewhere before showing the popup.
+const manualPopup = G.popup({ autoClose: true, theme: 'default', clearance: [20, 20] });
+const manualMap = G.map('#map3', { apiKey, center: { lat: 48.864716, lng: 2.3522 }, zoom: 12 });
+const manualLayer = G.dataLayer({
+    map: manualMap,
+    style: { fillColor: '#9c27b0', fillOpacity: 0.5, strokeColor: '#4a148c', strokeWeight: 1 },
+});
+
+// fitBounds zooms the map to the data. Without it the map stays at the zoom it was set up with.
+manualLayer.addGeoJson(geoJson, { fitBounds: true });
+
+manualLayer.onClick((event) => {
+    manualPopup.setContent(`<h3>${event.feature.getProperty('name')}</h3>`);
+
+    /*
+        Hide the popup before showing it again.
+
+        The map is only panned to bring the popup into view on the first draw after the popup
+        is shown. Hiding it resets that, so every popup gets scrolled into view and not just
+        the first one. attachPopup() does this for you.
+    */
+    manualPopup.hide();
+    manualPopup.position = event.latLng;
+    manualPopup.show(manualMap);
 });
 
 // Fit the map to everything in the layer

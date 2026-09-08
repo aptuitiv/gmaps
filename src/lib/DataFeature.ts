@@ -13,7 +13,7 @@
 /* global google */
 
 import { GeometryType, GeometryTypeValue } from './constants';
-import { DataLayer, DataStyleOptions } from './DataLayer';
+import type { DataLayer, DataStyleOptions } from './DataLayer';
 import { isNullOrUndefined, isStringOrNumber } from './helpers';
 import Layer from './Layer';
 import { LatLng, latLngConvert } from './LatLng';
@@ -69,6 +69,15 @@ export class DataFeature extends Layer {
      */
     get id(): string | number | undefined {
         return this.#feature.getId();
+    }
+
+    /**
+     * Get the data layer that the feature belongs to.
+     *
+     * @returns {DataLayer}
+     */
+    get layer(): DataLayer {
+        return this.#layer;
     }
 
     /**
@@ -140,6 +149,17 @@ export class DataFeature extends Layer {
      */
     getGeometryType(): GeometryTypeValue | undefined {
         return this.geometryType;
+    }
+
+    /**
+     * Get the data layer that the feature belongs to.
+     *
+     * Alternate of the layer getter.
+     *
+     * @returns {DataLayer}
+     */
+    getLayer(): DataLayer {
+        return this.#layer;
     }
 
     /**

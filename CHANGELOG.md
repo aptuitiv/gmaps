@@ -18,8 +18,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added `DataLayer.clear()` to remove every feature from the layer. The Google maps API doesn't provide a way to do this.
 - Added `DataLayer.getFeatures()`, which returns the features as an array. The Google maps API only provides `forEach()`.
 - Added `DataLayer.loadGeoJson()`, `DataLayer.addGeoJson()` and `DataLayer.toGeoJson()`. These return promises rather than taking a callback like the Google maps API does. `loadGeoJson()` also accepts an array of urls and resolves once all of them have loaded.
+- Added `DataLayer.attachPopup()` to attach one popup to every feature in a data layer, and `DataFeature.attachPopup()` to attach one to a single feature. The content can hold `{property}` placeholders that are replaced with the feature's properties, or it can be a function that is called with the feature.
+- Added `DataFeature.layer` and `DataFeature.getLayer()` to get the data layer that a feature belongs to.
 - Added `DataLayerEvents` and `GeometryType` constants.
 - Added `feature` to the event object. It's set on data layer events and holds the `DataFeature` that the event happened on.
+
+### Fixed
+
+- Fixed the popup `fit` option having no effect. The map was panned to bring the popup into view even when `fit` was set to `false`.
 
 ## [v0.28.1] - 2025-12-10
 

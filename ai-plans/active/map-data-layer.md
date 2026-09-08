@@ -2,7 +2,7 @@
 
 Status: **Complete — all four phases done**
 Created: 2026-09-07
-Updated: 2026-09-08 — scope trimmed to a deliberately small v1; open questions resolved; v1 built and documented
+Updated: 2026-09-08 — v1 built and documented; popup attachment added (was deferred in section 8)
 Target: `src/lib/DataLayer.ts`, `src/lib/DataFeature.ts` (replaces the stub at `src/lib/Map/Data.ts`)
 
 Reference: https://developers.google.com/maps/documentation/javascript/datalayer
@@ -359,7 +359,8 @@ Not rejected — just not first. Each is additive and none of them change the v1
 | `styleBy(property, styles, fallback)` | Declarative "colour by a property", which is the most common real use of `setStyle`. The function form of `setStyle()` covers it in v1; this is the first thing to add back. |
 | `setHoverStyle()` | Auto `overrideStyle`/`revertStyle` on mouseover/mouseout. Users can wire it with `onMouseOver`/`onMouseOut` + `overrideStyle()` for now. |
 | Drawing UI — `setDrawingMode()`, `setControls()`, `setControlPosition()` | Lets users draw points/lines/polygons on the map. Self-contained; add when there is a use for it. |
-| `attachPopup()` / `attachTooltip()` with `{property}` templates | `DataFeature` inherits the mixins, so per-feature popups already work; the layer-wide template sugar is the deferred part. Note the mixin attaches to the layer as a whole, so `DataLayer` would need to override both to bind per feature. |
+| ~~`attachPopup()` with `{property}` templates~~ | **Built.** See section 13. The note here was wrong: `DataFeature` inheriting the mixin did *not* give working per-feature popups. |
+| `attachTooltip()` with `{property}` templates | Not done. The same shape as the popup work in section 13 and can reuse all of it — one mixin pair in `Tooltip.ts` over the same layer events. |
 | `filter()`, `find()`, `getCount()` | Cut in favour of `getFeatures()` returning an array — `(await layer.getFeatures()).filter(...)` gets `Array.prototype` for free. |
 | Tag support for features | à la `PolylineCollection`. `styleBy()` likely covers the real need. |
 | `setGeometry` / `setProperty` / `removeProperty` / `mousedown` / `mouseup` / `contextmenu` event helpers | Reachable through `on()`; no dedicated helpers yet. |
@@ -474,3 +475,120 @@ holes, ring normalisation, features, styles, events, loading, and `map.data` mem
 checks over the deferred path, where a layer is created and used before the Google maps library
 exists and everything replays in order once it loads. Both are in the session scratchpad, not the
 repo — this project has no test runner set up (`npm test` is still the placeholder).
+
+
+---
+
+## 13. Popup attachment (added after v1)
+
+### The claim that was wrong
+
+Section 12 and the section 8 table both said per-feature popups came free because `DataFeature`
+extends `Layer` and so inherits the `attachPopup` mixin. They didn't work at all. Three reasons:
+
+1. `Popup.attachTo()` waits on `element.onceImmediate(READY_EVENT, ...)`, and a `DataFeature`
+   never dispatches `ready`, so the body never ran.
+2. Mouse events fire on the *layer's* Google object, not on any per-feature object. A
+   `DataFeature` never gets `setEventGoogleObject()`, so `feature.on('click')` never fired.
+3. `Popup.attachTo()` only copies `e.latLng` into the popup position for `Map` and `Polyline`
+   instances (`Popup.ts:439`), and `DataFeature.getMap()` returned null.
+
+### What was built
+
+Both halves, as one mechanism:
+
+- `layer.attachPopup(content, event?)` — one popup for every feature in the layer, including
+  features loaded later.
+- `feature.attachPopup(content, event?)` — one feature only, taking precedence over the layer's.
+
+Content is a string with `{property}` placeholders, an `HTMLElement`, a `PopupOptions` object, a
+`Popup`, or a function called with the `DataFeature`. Events are `click` (toggles), `clickon`
+(stays open) and `hover`.
+
+### How it's put together
+
+`Popup.attachTo()` is bypassed entirely — it assumes an element with its own map and events,
+which a data feature doesn't have. Instead the listeners go on the layer and the right popup is
+looked up from `event.feature`.
+
+- All of it lives in `Popup.ts` as two mixins, `DataLayer.include()` and `DataFeature.include()`,
+  the same pattern already used for `Layer` and `Map`. Per-layer state (the layer's config, a
+  `WeakMap` of per-feature configs, which listeners are set up, which feature is open) sits in a
+  module-level `WeakMap` keyed by layer.
+- **This was forced by module cycles, not preference.** `DataLayer` cannot import `Popup`:
+  `Map` imports `DataLayer`, so `Map -> DataLayer -> Popup -> Map` would hit `Map.include()` at
+  the bottom of `Popup.ts` with `Map` still in its temporal dead zone. Putting the code in
+  `Popup.ts` keeps the arrows pointing one way. `DataFeature`'s import of `DataLayer` was also
+  changed to `import type` for the same reason — it only ever used it as a type.
+- The mixins only use public API (`layer.onClick`, `layer.map`, `feature.getLayer()`), so
+  `DataLayer` needed no new internal surface. `DataFeature` gained a `layer` getter and
+  `getLayer()`.
+
+### Panning the popup into view
+
+The popup pans the map to bring itself fully into view, but only on the first draw after being
+shown — deliberate, since it's redrawn on every map move. `hide()` resets that flag, so the
+attach path calls `hide()` before every show and each popup gets brought into view. Anyone
+showing a popup by hand has to do the same; the guide says so explicitly.
+
+`hover` popups never pan, which `Popup.#fitPopup()` already handled by checking the event type.
+
+### Bug found on the way
+
+The popup `fit` option was documented and settable but never read — `#fitPopup()` checked only
+`this.event !== 'hover'`. The map was panned even with `fit: false`. Fixed by adding `this.#fit`
+to that condition. Behaviour change for anyone who set `fit: false` and was getting panning
+anyway.
+
+### Verified with
+
+14 more checks in the scratchpad harness: template rendering, missing properties rendering empty,
+the hide-before-show ordering that makes the panning work, positioning at the click point,
+click-to-toggle, per-feature overriding the layer popup, other features still using the layer
+popup, and the three hover behaviours. 72 checks across all three scripts pass.
+
+
+---
+
+## 14. Attaching to a map that isn't ready yet
+
+Found because the "show a popup by hand" example on the test page rendered its map but none of
+its shapes.
+
+### The bug
+
+`Map.#load()` is `loader().load().then(() => this.#showMap())`, so the loader's `load` event
+fires **before** the Google map object is created. `DataLayer` waited on `loader().onLoad()` and
+then called `map.toGoogle()`, which was still `undefined` at that moment, so the layer was
+attached to nothing and never appeared. Three places did it: the `onLoad` branch of
+`#getGoogleData()`, `setMap()` and `show()`.
+
+It only showed up sometimes, which is what made it easy to miss. A layer whose `setMap` was
+queued behind another call (`layer.addGeoJson(...)` then `layer.setMap(map)`) got an extra
+microtask of delay and happened to find the map object in place. A layer created with
+`dataLayer({ map })` queued `setMap` first and lost the race every time. The test page had one
+of each, which is why one map drew and the other didn't.
+
+### The fix
+
+`setMap()` and `show()` now `await map.init()` inside the queued call before touching
+`toGoogle()`. `Map.init()` resolves only once the map object exists. The attach in
+`#getGoogleData()` was removed rather than fixed — it was redundant, since `setMap()` and
+`show()` are the only ways a layer gets a map and both queue their own attach.
+
+The layer is still created as soon as the library loads, so loading data into a layer before
+there's a map still works. Only the attaching waits.
+
+### Verified with
+
+A fourth scratchpad script, `test-attach.mjs`, with a map whose `toGoogle()` returns `undefined`
+until `init()` resolves, which is what a real map does. Checked against the old code first: 2 of
+its 6 checks fail there and all 6 pass with the fix.
+
+### Worth knowing
+
+`Map.init()` never settles if the map fails to load — its promise has no reject path
+(`Map.ts:958`). Any `DataLayer` call now chains off it, so those calls hang silently rather than
+erroring when a map can't load. That matches how `Map.panTo()` and friends already behave, and a
+map that won't load has bigger problems, so it was left alone. It did mean the popup test needed
+a map stub that actually resolves.

@@ -761,7 +761,11 @@ export class DataLayer extends Layer {
             // Start the map loading. The layer is waiting for the Google maps library to load
             // and this makes sure that something is actually loading it.
             value.init();
-            await this.#enqueue((data) => {
+            await this.#enqueue(async (data) => {
+                // Wait for the map to be ready. The Google maps library loads before the map
+                // object is created, so toGoogle() is not set yet when the library finishes
+                // loading. Attaching the layer to it then would attach it to nothing.
+                await value.init();
                 data.setMap(value.toGoogle());
             });
         } else if (isNullOrUndefined(value)) {
@@ -846,8 +850,10 @@ export class DataLayer extends Layer {
             return this.setMap(map);
         }
         const mapObject = this.#mapObject();
-        await this.#enqueue((data) => {
+        await this.#enqueue(async (data) => {
             if (mapObject) {
+                // Wait for the map to be ready so that the Google map object exists
+                await mapObject.init();
                 data.setMap(mapObject.toGoogle());
             }
         });
@@ -1130,13 +1136,10 @@ export class DataLayer extends Layer {
                     resolve(this.#data);
                 } else {
                     // The Google maps library hasn't loaded yet. Wait for it.
+                    // Only the library is needed to create the Data object. Attaching it to a
+                    // map is left to setMap() and show(), which wait for the map to be ready.
                     loader().onLoad(() => {
                         this.#setDataObject(new google.maps.Data());
-                        // The map may have been set while waiting for the library to load
-                        const mapObject = this.#mapObject();
-                        if (mapObject && this.isVisible !== false) {
-                            this.#data.setMap(mapObject.toGoogle());
-                        }
                         resolve(this.#data);
                     });
                 }

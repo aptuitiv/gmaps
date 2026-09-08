@@ -8,14 +8,17 @@
 /* eslint-disable no-use-before-define -- Done because the PopupCollection is referenced before it's created */
 
 import { READY_EVENT } from './constants';
+import { DataFeature } from './DataFeature';
+import { DataLayer, DataLayerEventObject } from './DataLayer';
 import Layer from './Layer';
+import { LatLng } from './LatLng';
 import { Map } from './Map';
 import { Marker } from './Marker';
 import { Overlay } from './Overlay';
 import { point, Point, PointValue } from './Point';
 import { Polyline } from './Polyline';
 import { Size, size, SizeValue } from './Size';
-import { isObject, isString, isStringWithValue } from './helpers';
+import { isFunction, isNullOrUndefined, isObject, isString, isStringWithValue } from './helpers';
 
 export type PopupOptions = {
     // Whether to automatically hide other open popups when opening this one
@@ -765,7 +768,7 @@ export class Popup extends Overlay {
     #fitPopup(): void {
         // Don't try to fit the popup within the map viewport if the event is hover because the map center could change, which
         // would then cause the element to no longer be hovered over, which would close the popup.
-        if (this.event !== 'hover') {
+        if (this.#fit && this.event !== 'hover') {
             const map = this.getMap();
 
             let offsetY = 0;
@@ -906,6 +909,279 @@ const popupMixin = {
  */
 Layer.include(popupMixin);
 Map.include(popupMixin);
+
+/* ===========================================================================
+    Attaching a popup to a data layer or to one of its features.
+
+    The data layer needs its own handling because the features aren't separate objects on the
+    map. Google draws them all through the one data layer object, and the mouse events are
+    fired on that layer with the feature that they happened on. So the listeners go on the
+    layer and the right popup is worked out from the feature that comes with the event.
+=========================================================================== */
+
+// The content for a popup attached to a data layer.
+// A string can hold {property} placeholders, which are replaced with the feature's properties.
+// A function is called with the feature and returns the content for it.
+export type DataPopupContent =
+    | string
+    | HTMLElement
+    | Text
+    | ((feature: DataFeature) => string | HTMLElement | Text);
+
+// The value that can be passed when attaching a popup to a data layer or a feature
+export type DataPopupValue = DataPopupContent | PopupOptions | Popup;
+
+// The event that triggers a popup
+type PopupEventValue = 'click' | 'clickon' | 'hover';
+
+// The popup set up for a data layer, or for one feature within it
+type DataPopupConfig = {
+    content?: DataPopupContent;
+    event: PopupEventValue;
+    popup: Popup;
+};
+
+// Everything that one data layer needs to hold for its popups
+type DataPopupState = {
+    // The popups attached to individual features
+    features: WeakMap<DataFeature, DataPopupConfig>;
+    // The popup attached to the whole layer, used for any feature without its own
+    layerConfig?: DataPopupConfig;
+    // The event types that listeners have already been set up for
+    listeners: { [key: string]: boolean };
+    // The feature whose popup is currently open, so that clicking it again closes it
+    openFeature?: DataFeature;
+};
+
+// The popup state for each data layer
+const dataPopupState: WeakMap<DataLayer, DataPopupState> = new WeakMap();
+
+/**
+ * Get the popup state for a data layer, setting it up if this is the first popup on the layer
+ *
+ * @param {DataLayer} layer The data layer
+ * @returns {DataPopupState}
+ */
+const getDataPopupState = (layer: DataLayer): DataPopupState => {
+    let state = dataPopupState.get(layer);
+    if (!state) {
+        state = { features: new WeakMap(), listeners: {} };
+        dataPopupState.set(layer, state);
+    }
+    return state;
+};
+
+/**
+ * Replace the {property} placeholders in the content with the feature's property values.
+ *
+ * A property that the feature doesn't have is replaced with an empty string.
+ *
+ * @param {string} template The content with the placeholders in it
+ * @param {DataFeature} feature The feature to get the property values from
+ * @returns {string}
+ */
+const renderDataPopupTemplate = (template: string, feature: DataFeature): string =>
+    template.replace(/\{\s*([^{}\s]+)\s*\}/g, (match, key) => {
+        const value = feature.getProperty(key);
+        return isNullOrUndefined(value) ? '' : String(value);
+    });
+
+/**
+ * Get the popup content for a feature.
+ *
+ * Returns undefined if the content doesn't change for each feature, in which case the content
+ * that the popup already has is left alone.
+ *
+ * @param {DataPopupConfig} config The popup configuration
+ * @param {DataFeature} feature The feature to get the content for
+ * @returns {string|HTMLElement|Text|undefined}
+ */
+const getDataPopupContent = (
+    config: DataPopupConfig,
+    feature: DataFeature,
+): string | HTMLElement | Text | undefined => {
+    if (isFunction(config.content)) {
+        return (config.content as (f: DataFeature) => string | HTMLElement | Text)(feature);
+    }
+    if (isString(config.content)) {
+        return renderDataPopupTemplate(config.content, feature);
+    }
+    return undefined;
+};
+
+/**
+ * Set up the popup configuration from the value that was passed to attachPopup()
+ *
+ * @param {DataPopupValue} popupValue The content for the popup, the popup options, or the Popup object
+ * @param {PopupEventValue} event The event that triggers the popup
+ * @returns {DataPopupConfig}
+ */
+const buildDataPopupConfig = (popupValue: DataPopupValue, event: PopupEventValue): DataPopupConfig => {
+    let content: DataPopupContent;
+    let popupObject: Popup;
+    if (isFunction(popupValue)) {
+        // The content is worked out for each feature so the popup starts with none
+        popupObject = popup({ content: '' });
+        content = popupValue as DataPopupContent;
+    } else {
+        popupObject = popup(popupValue as PopupValue);
+        // A string is kept so that any {property} placeholders in it can be replaced for each feature
+        if (isString(popupObject.content)) {
+            content = popupObject.content;
+        }
+    }
+    // Let the popup know how it's triggered. The popup doesn't pan the map into view for
+    // hover events because that would move the feature out from under the cursor.
+    popupObject.event = event;
+    return { content, event, popup: popupObject };
+};
+
+/**
+ * Show the popup for a feature
+ *
+ * @param {DataPopupConfig} config The popup configuration
+ * @param {DataFeature} feature The feature to show the popup for
+ * @param {LatLng} position The position to show the popup at
+ * @returns {boolean} Whether the popup was shown
+ */
+const showDataPopup = (config: DataPopupConfig, feature: DataFeature, position: LatLng): boolean => {
+    const { map } = feature.getLayer();
+    if (!(map instanceof Map) || !position) {
+        return false;
+    }
+    const popupObject = config.popup;
+    const content = getDataPopupContent(config, feature);
+    if (!isNullOrUndefined(content)) {
+        popupObject.setContent(content);
+    }
+    // Hide the popup first so that it's fit within the map viewport again when it's shown.
+    // The map is only panned to bring the popup into view on the first draw after it's shown,
+    // so without this only the first popup would be brought into view.
+    popupObject.hide();
+    popupObject.position = position;
+    popupObject.show(map);
+    return true;
+};
+
+/**
+ * Handle a mouse event on the data layer and show or hide the popup for the feature
+ *
+ * @param {DataLayer} layer The data layer that the event happened on
+ * @param {string} type The event type
+ * @param {DataLayerEventObject} event The event data
+ * @returns {void}
+ */
+const handleDataPopupEvent = (layer: DataLayer, type: string, event: DataLayerEventObject): void => {
+    const state = dataPopupState.get(layer);
+    const { feature } = event;
+    if (!state || !(feature instanceof DataFeature)) {
+        return;
+    }
+    // A popup on the feature itself wins over one attached to the whole layer
+    const config = state.features.get(feature) || state.layerConfig;
+    if (!config) {
+        return;
+    }
+
+    if (type === 'mouseover') {
+        if (config.event === 'hover' && showDataPopup(config, feature, event.latLng)) {
+            state.openFeature = feature;
+        }
+    } else if (type === 'mouseout') {
+        if (config.event === 'hover') {
+            config.popup.hide();
+            state.openFeature = undefined;
+        }
+    } else if (config.event !== 'hover') {
+        // Clicking the same feature again closes the popup, unless it's a "clickon" popup,
+        // which stays open once it's shown.
+        if (config.event === 'click' && config.popup.isOpen() && state.openFeature === feature) {
+            config.popup.hide();
+            state.openFeature = undefined;
+            return;
+        }
+        if (showDataPopup(config, feature, event.latLng)) {
+            state.openFeature = feature;
+        }
+    }
+};
+
+/**
+ * Set up the event listeners on the data layer for showing popups.
+ *
+ * The listeners are only set up once for each event type however many popups are attached.
+ *
+ * @param {DataLayer} layer The data layer
+ * @param {PopupEventValue} event The event that triggers the popup
+ * @returns {void}
+ */
+const setupDataPopupListeners = (layer: DataLayer, event: PopupEventValue): void => {
+    const state = getDataPopupState(layer);
+    if (!state.listeners.click) {
+        state.listeners.click = true;
+        layer.onClick((e) => {
+            handleDataPopupEvent(layer, 'click', e);
+        });
+    }
+    if (event === 'hover' && !state.listeners.hover) {
+        state.listeners.hover = true;
+        layer.onMouseOver((e) => {
+            handleDataPopupEvent(layer, 'mouseover', e);
+        });
+        layer.onMouseOut((e) => {
+            handleDataPopupEvent(layer, 'mouseout', e);
+        });
+    }
+};
+
+// Set up the mixin for attaching a popup to every feature in a data layer
+const dataLayerPopupMixin = {
+    /**
+     * Attach a popup to every feature in the data layer.
+     *
+     * The content can hold {property} placeholders, which are replaced with the properties of
+     * whichever feature was clicked. It can also be a function that is called with the feature.
+     *
+     * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
+     * @returns {Popup}
+     */
+    attachPopup(popupValue: DataPopupValue, event?: PopupEventValue): Popup {
+        const triggerEvent = event || 'click';
+        const config = buildDataPopupConfig(popupValue, triggerEvent);
+        getDataPopupState(this).layerConfig = config;
+        setupDataPopupListeners(this, triggerEvent);
+        return config.popup;
+    },
+};
+
+// Set up the mixin for attaching a popup to one feature within a data layer
+const dataFeaturePopupMixin = {
+    /**
+     * Attach a popup to this one feature.
+     *
+     * This takes precedence over a popup attached to the whole data layer.
+     *
+     * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
+     * @returns {Popup}
+     */
+    attachPopup(popupValue: DataPopupValue, event?: PopupEventValue): Popup {
+        const triggerEvent = event || 'click';
+        const config = buildDataPopupConfig(popupValue, triggerEvent);
+        const layer = this.getLayer();
+        getDataPopupState(layer).features.set(this, config);
+        setupDataPopupListeners(layer, triggerEvent);
+        return config.popup;
+    },
+};
+
+/**
+ * The data layer and its features need their own attachPopup, so they replace the one that
+ * they would otherwise get from Layer.
+ */
+DataLayer.include(dataLayerPopupMixin);
+DataFeature.include(dataFeaturePopupMixin);
 
 type PopupCollectionObject = {
     popups: Popup[];
