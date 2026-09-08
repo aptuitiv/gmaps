@@ -22,6 +22,10 @@ import { Point } from './Point';
 export type Event = {
     // The corresponding native DOM event. This comes from the Google Maps event data
     domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event;
+    // The data layer feature that the event occurred on.
+    // This is only set for events dispatched by the DataLayer class, where it holds a DataFeature object.
+    // It's typed loosely to avoid a circular dependency between this file and the DataFeature class.
+    feature?: any;
     // The latitude/longitude that was below the cursor when the event occurred.
     latLng?: LatLng;
     // The placeId of the place that was below the cursor when the event occurred.
@@ -206,6 +210,11 @@ export class Evented extends Base {
                     }
                     if (typeof (data as google.maps.IconMouseEvent).placeId !== 'undefined') {
                         eventData.placeId = (data as google.maps.IconMouseEvent).placeId;
+                    }
+                    // The data layer sets the feature that the event occurred on.
+                    // The DataLayer class replaces the Google feature with a DataFeature object before dispatching.
+                    if (typeof (data as any).feature !== 'undefined') {
+                        eventData.feature = (data as any).feature;
                     }
                     if (typeof (data as any).pixel !== 'undefined') {
                         eventData.pixel = new Point((data as any).pixel.x, (data as any).pixel.y);

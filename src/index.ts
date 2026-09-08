@@ -20,6 +20,19 @@ export {
     AutocompleteSearchBoxOptions,
     AutocompleteSearchBoxValue,
 } from './lib/AutocompleteSearchBox';
+export { DataFeature, DataFeatureValue, FeatureProperties } from './lib/DataFeature';
+export {
+    dataLayer,
+    DataLayer,
+    DataLayerEventCallback,
+    DataLayerEventObject,
+    DataLayerOptions,
+    DataLayerValue,
+    DataStyleOptions,
+    DataStyleValue,
+    FeatureOptions,
+    LoadOptions,
+} from './lib/DataLayer';
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
 export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
 export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';

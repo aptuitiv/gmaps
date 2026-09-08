@@ -238,6 +238,42 @@ type ControlPositionValue = (typeof ControlPosition)[keyof typeof ControlPositio
  */
 declare const convertControlPosition: (value: string) => google.maps.ControlPosition;
 /**
+ * Events that can be fired by the DataLayer.
+ */
+declare const DataLayerEvents: Readonly<{
+    ADD_FEATURE: "addfeature";
+    CLICK: "click";
+    CONTEXT_MENU: "contextmenu";
+    DBLCLICK: "dblclick";
+    MOUSE_DOWN: "mousedown";
+    MOUSE_OUT: "mouseout";
+    MOUSE_OVER: "mouseover";
+    MOUSE_UP: "mouseup";
+    REMOVE_FEATURE: "removefeature";
+    REMOVE_PROPERTY: "removeproperty";
+    RIGHT_CLICK: "rightclick";
+    SET_GEOMETRY: "setgeometry";
+    SET_PROPERTY: "setproperty";
+    READY: "ready";
+    LOAD: "load";
+}>;
+/**
+ * The GeoJson geometry types that the data layer supports.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/data#Data.Geometry
+ */
+declare const GeometryType: Readonly<{
+    GEOMETRY_COLLECTION: "GeometryCollection";
+    LINE_STRING: "LineString";
+    LINEAR_RING: "LinearRing";
+    MULTI_LINE_STRING: "MultiLineString";
+    MULTI_POINT: "MultiPoint";
+    MULTI_POLYGON: "MultiPolygon";
+    POINT: "Point";
+    POLYGON: "Polygon";
+}>;
+type GeometryTypeValue = (typeof GeometryType)[keyof typeof GeometryType];
+/**
  * Error status value for the Geocode object.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
@@ -836,6 +872,7 @@ declare const point: (x?: PointValue, y?: number | string) => Point;
 
 type Event$1 = {
     domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event$1;
+    feature?: any;
     latLng?: LatLng;
     placeId?: string;
     pixel?: Point;
@@ -3438,6 +3475,20 @@ declare class Map extends Evented {
      */
     set center(value: LatLngValue);
     /**
+     * Get the data layer for the map.
+     *
+     * This is the map's own data layer, which every map has. Use the dataLayer() function if
+     * you need a separate layer that only holds your own data.
+     *
+     * The layer is created the first time that this is used, and the same layer object is
+     * returned after that.
+     *
+     * https://developers.google.com/maps/documentation/javascript/datalayer
+     *
+     * @returns {DataLayer}
+     */
+    get data(): DataLayer;
+    /**
      * Get whether the default UI is disabled
      *
      * @returns {boolean}
@@ -3638,6 +3689,16 @@ declare class Map extends Evented {
      */
     addCustomControl(position: ControlPositionValue, element: HTMLElement): Map;
     /**
+     * Add GeoJson data to the map's data layer.
+     *
+     * This is the same as calling map.data.addGeoJson().
+     *
+     * @param {object} geoJson The GeoJson object to add
+     * @param {LoadOptions} [options] The options for adding the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    addGeoJson(geoJson: object, options?: LoadOptions): Promise<DataFeature[]>;
+    /**
      * Add a value to the map bounds
      *
      * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
@@ -3757,6 +3818,16 @@ declare class Map extends Evented {
      * @returns {number}
      */
     getZoom(): number;
+    /**
+     * Load GeoJson data into the map's data layer from a url.
+     *
+     * This is the same as calling map.data.loadGeoJson(). More than one url can be passed.
+     *
+     * @param {string|string[]} url The url to load the GeoJson from, or an array of urls
+     * @param {LoadOptions} [options] The options for loading the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    loadGeoJson(url: string | string[], options?: LoadOptions): Promise<DataFeature[]>;
     /**
      * Load and show the map
      *
@@ -4880,6 +4951,854 @@ declare class Layer extends Evented {
     setMap(map: Map | null): void;
 }
 
+type SvgSymbolOptions = {
+    anchor?: PointValue;
+    fillColor?: string;
+    fillOpacity?: number;
+    labelOrigin?: PointValue;
+    path: string;
+    rotation?: number;
+    scale?: number;
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+};
+/**
+ * Class to set up an SVG icon for a marker
+ */
+declare class SvgSymbol extends Base {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {string | SvgSymbolOptions} [path] The SVG path for the icon or the icon options
+     * @param {SvgSymbolOptions} [options] The options for the icon
+     */
+    constructor(path?: string | SvgSymbolOptions, options?: SvgSymbolOptions);
+    /**
+     * Get the anchor point
+     *
+     * @returns {PointValue}
+     */
+    get anchor(): PointValue;
+    /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     *
+     * @param {PointValue} anchor The anchor point value
+     */
+    set anchor(anchor: PointValue);
+    /**
+     * Get the SVG fill color
+     *
+     * @returns {string}
+     */
+    get fillColor(): string;
+    /**
+     * Set the SVG fill color.
+     *
+     * @param {string} fillColor The SVG fill color.
+     */
+    set fillColor(fillColor: string);
+    /**
+     * Get the opacity for the fill
+     *
+     * @returns {number}
+     */
+    get fillOpacity(): number;
+    /**
+     * Set the opacity for the fill
+     *
+     * @param {number|string} fillOpacity The opacity for the fill
+     */
+    set fillOpacity(fillOpacity: number | string);
+    /**
+     * Get the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     *
+     * @returns {PointValue}
+     */
+    get labelOrigin(): PointValue;
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     *
+     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     */
+    set labelOrigin(labelOrigin: PointValue);
+    /**
+     * Get the SVG path for the icon
+     *
+     * @returns {string}
+     */
+    get path(): string;
+    /**
+     * Set the SVG path for the icon
+     *
+     * @param {path} path The SVG path for the icon
+     */
+    set path(path: string);
+    /**
+     * Get the rotation of the icon in degrees clockwise about the anchor point.
+     *
+     * @returns {number}
+     */
+    get rotation(): number;
+    /**
+     * Set the rotation of the icon in degrees clockwise about the anchor point.
+     *
+     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
+     */
+    set rotation(rotation: number | string);
+    /**
+     * Get the amount by which the icon is scaled.
+     *
+     * @returns {number}
+     */
+    get scale(): number;
+    /**
+     * Set the amount by which the icon is scaled.
+     *
+     * @param {number|string} scale The amount by which the icon is scaled.
+     */
+    set scale(scale: number | string);
+    /**
+     * Get the SVG stroke color
+     *
+     * @returns {string}
+     */
+    get strokeColor(): string;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} strokeColor The SVG stroke color.
+     */
+    set strokeColor(strokeColor: string);
+    /**
+     * Get the opacity of the stroke.
+     * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
+     *
+     * @returns {number}
+     */
+    get strokeOpacity(): number;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} strokeOpacity The opacity of the stroke.
+     */
+    set strokeOpacity(strokeOpacity: number | string);
+    /**
+     * Get the weight of the stroke in pixels.
+     *
+     * @returns {number}
+     */
+    get strokeWeight(): number;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} strokeWeight The weight of the stroke.
+     */
+    set strokeWeight(strokeWeight: number | string);
+    /**
+     * Set the icon options
+     *
+     * @param {SvgSymbolOptions} options The icon options
+     * @returns {SvgSymbol}
+     */
+    setOptions(options: SvgSymbolOptions): SvgSymbol;
+    /**
+     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
+     * Use this if for some reason you didn't pass the anchor in the icon options.
+     *
+     * By default, the anchor is located along the center point of the bottom of the image.
+     *
+     * const symbol = G.icon({
+     *    url: 'https://mywebsite.com/images/marker.png',
+     * });
+     * symbol.setAnchor([10, 32]);
+     *
+     * Valid values are:
+     * symbol.setAnchor([10, 32]);
+     * symbol.setAnchor({x: 10, y: 32});
+     * symbol.setAnchor(pointClassInstance);
+     *
+     * @param {PointValue} anchor The anchor point value
+     * @returns {SvgSymbol}
+     */
+    setAnchor(anchor: PointValue): SvgSymbol;
+    /**
+     * Set the SVG fill color.
+     *
+     * @param {string} fillColor The SVG fill color.
+     * @returns {SvgSymbol}
+     */
+    setFillColor(fillColor: string): SvgSymbol;
+    /**
+     * Set the opacity for the fill
+     *
+     * @param {number|string} fillOpacity The opacity for the fill
+     * @returns {SvgSymbol}
+     */
+    setFillOpacity(fillOpacity: number | string): SvgSymbol;
+    /**
+     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     *
+     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
+     * @returns {SvgSymbol}
+     */
+    setLabelOrigin(labelOrigin: PointValue): SvgSymbol;
+    /**
+     * Set the SVG path for the icon
+     *
+     * @param {path} path The SVG path for the icon
+     * @returns {SvgSymbol}
+     */
+    setPath(path: string): SvgSymbol;
+    /**
+     * Set the rotation of the icon in degrees clockwise about the anchor point.
+     *
+     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
+     * @returns {SvgSymbol}
+     */
+    setRotation(rotation: number | string): SvgSymbol;
+    /**
+     * Set the amount by which the icon is scaled.
+     *
+     * @param {number|string} scale The amount by which the icon is scaled.
+     * @returns {SvgSymbol}
+     */
+    setScale(scale: number | string): SvgSymbol;
+    /**
+     * Set the SVG stroke color.
+     *
+     * @param {string} strokeColor The SVG stroke color.
+     * @returns {SvgSymbol}
+     */
+    setStrokeColor(strokeColor: string): SvgSymbol;
+    /**
+     * Set the opacity of the stroke.
+     *
+     * @param {number|string} strokeOpacity The opacity of the stroke.
+     * @returns {SvgSymbol}
+     */
+    setStrokeOpacity(strokeOpacity: number | string): SvgSymbol;
+    /**
+     * Set the weight of the stroke.
+     *
+     * @param {number|string} strokeWeight The weight of the stroke.
+     * @returns {SvgSymbol}
+     */
+    setStrokeWeight(strokeWeight: number | string): SvgSymbol;
+    /**
+     * Get the icon options
+     *
+     * @returns {Promise<google.maps.Symbol>}
+     */
+    toGoogle(): Promise<google.maps.Symbol>;
+}
+type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
+/**
+ * Helper function to set up the icon object
+ *
+ * @param {SvgSymbolValue} [path] The SVG path for the icon, the icon object, or the icon options
+ * @param {SvgSymbolOptions} [options] The options for the icon
+ * @returns {SvgSymbol}
+ */
+declare const svgSymbol: (path?: SvgSymbolValue, options?: SvgSymbolOptions) => SvgSymbol;
+
+type DataLayerEvent = 'addfeature' | 'click' | 'contextmenu' | 'dblclick' | 'load' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'ready' | 'removefeature' | 'removeproperty' | 'rightclick' | 'setgeometry' | 'setproperty';
+type DataLayerEventObject = Event$1 & {
+    feature?: DataFeature;
+};
+type DataLayerEventCallback = (event: DataLayerEventObject) => void;
+/**
+ * The style to apply to a feature.
+ *
+ * These use this library's option names, which match the Polyline options, rather than the
+ * Google maps names.
+ */
+type DataStyleOptions = {
+    clickable?: boolean;
+    cursor?: string;
+    draggable?: boolean;
+    editable?: boolean;
+    fillColor?: string;
+    fillOpacity?: number | string;
+    icon?: Icon | SvgSymbol | string | google.maps.Icon | google.maps.Symbol;
+    strokeColor?: string;
+    strokeOpacity?: number | string;
+    strokeWeight?: number | string;
+    title?: string;
+    visible?: boolean;
+    zIndex?: number | string;
+};
+type DataStyleValue = DataStyleOptions | ((feature: DataFeature) => DataStyleOptions);
+type LoadOptions = {
+    fitBounds?: boolean;
+    idProperty?: string;
+    replace?: boolean;
+};
+type FeatureOptions = {
+    id?: string | number;
+    properties?: FeatureProperties;
+    style?: DataStyleOptions;
+};
+type DataLayerOptions = {
+    fitBounds?: boolean;
+    geoJson?: string | string[] | object;
+    idProperty?: string;
+    map?: Map;
+    style?: DataStyleValue;
+    visible?: boolean;
+};
+/**
+ * The data layer class
+ */
+declare class DataLayer extends Layer {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {DataLayerOptions} [options] The data layer options
+     * @param {Map} [defaultLayerMap] The map to wrap the default data layer for.
+     *      This is only used within this library by the Map class for the map.data value.
+     * @internal
+     */
+    constructor(options?: DataLayerOptions, defaultLayerMap?: Map);
+    /**
+     * Get the map that the layer is attached to
+     *
+     * @returns {Map|null}
+     */
+    get map(): Map | null;
+    /**
+     * Set the map that the layer is attached to
+     *
+     * @param {Map|null} value The map object. Set to null to remove the layer from the map.
+     */
+    set map(value: Map | null);
+    /**
+     * Get the style for the layer
+     *
+     * @returns {DataStyleValue}
+     */
+    get style(): DataStyleValue;
+    /**
+     * Set the style for the layer
+     *
+     * @param {DataStyleValue} value The style to apply to the features in the layer
+     */
+    set style(value: DataStyleValue);
+    /**
+     * Get whether the layer is visible on the map
+     *
+     * @returns {boolean}
+     */
+    get visible(): boolean;
+    /**
+     * Set whether the layer is visible on the map
+     *
+     * @param {boolean} value Whether the layer is visible on the map
+     */
+    set visible(value: boolean);
+    /**
+     * Add GeoJson data to the layer.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/data#Data.addGeoJson
+     *
+     * @param {object} geoJson The GeoJson object to add
+     * @param {LoadOptions} [options] The options for adding the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    addGeoJson(geoJson: object, options?: LoadOptions): Promise<DataFeature[]>;
+    /**
+     * Add a single point to the layer.
+     *
+     * @param {LatLngValue} position The position for the point
+     * @param {FeatureOptions} [options] The options for the feature
+     * @returns {Promise<DataFeature>}
+     */
+    addPoint(position: LatLngValue, options?: FeatureOptions): Promise<DataFeature>;
+    /**
+     * Add a polygon to the layer.
+     *
+     * The paths value can either be a single array of positions for a polygon without any
+     * holes in it, or an array of arrays of positions. When it's an array of arrays the first
+     * one is the outer edge of the polygon and each one after that is a hole within it.
+     *
+     * A ring doesn't need to repeat its first position at the end to close it. If it does,
+     * as GeoJson data does, then the repeated position is dropped.
+     *
+     * @param {LatLngValue[]|LatLngValue[][]} paths The path for the polygon, or an array of paths
+     * @param {FeatureOptions} [options] The options for the feature
+     * @returns {Promise<DataFeature>}
+     */
+    addPolygon(paths: LatLngValue[] | LatLngValue[][], options?: FeatureOptions): Promise<DataFeature>;
+    /**
+     * Add a line to the layer.
+     *
+     * @param {LatLngValue[]} path The path for the line
+     * @param {FeatureOptions} [options] The options for the feature
+     * @returns {Promise<DataFeature>}
+     */
+    addPolyline(path: LatLngValue[], options?: FeatureOptions): Promise<DataFeature>;
+    /**
+     * Remove every feature from the layer.
+     *
+     * The Google maps API doesn't have a way to do this so each feature is removed in turn.
+     *
+     * Take care when calling this on the map's own data layer (map.data). Google gives each map
+     * one shared data layer, so this removes every feature on it, including any that another part
+     * of the application added. Use dataLayer() to create a layer that only holds your own data.
+     *
+     * @returns {DataLayer}
+     */
+    clear(): DataLayer;
+    /**
+     * Returns whether the feature is in this layer.
+     *
+     * @param {DataFeature} feature The feature to test for
+     * @returns {Promise<boolean>}
+     */
+    contains(feature: DataFeature): Promise<boolean>;
+    /**
+     * @inheritdoc
+     */
+    dispatch(event: string, data?: any): Evented;
+    /**
+     * Fit the map to the bounds of the data in the layer.
+     *
+     * Nothing happens if the layer has no features, or if it isn't attached to a map.
+     *
+     * @returns {Promise<DataLayer>}
+     */
+    fitBounds(): Promise<DataLayer>;
+    /**
+     * Call the callback function for each feature in the layer.
+     *
+     * @param {Function} callback The function to call for each feature
+     * @returns {Promise<DataLayer>}
+     */
+    forEach(callback: (feature: DataFeature) => void): Promise<DataLayer>;
+    /**
+     * Get the bounds of all of the features in the layer.
+     *
+     * @returns {Promise<LatLngBounds>}
+     */
+    getBounds(): Promise<LatLngBounds>;
+    /**
+     * Get a feature by its id.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/data#Data.getFeatureById
+     *
+     * @param {string|number} id The feature id
+     * @returns {Promise<DataFeature|undefined>}
+     */
+    getFeature(id: string | number): Promise<DataFeature | undefined>;
+    /**
+     * Get every feature in the layer.
+     *
+     * The Google maps API only provides forEach() so this collects the features into an array.
+     * That gives you the array methods, so filtering is done with filter():
+     *
+     * const parks = (await layer.getFeatures()).filter((feature) => feature.getProperty('type') === 'park');
+     *
+     * @returns {Promise<DataFeature[]>}
+     */
+    getFeatures(): Promise<DataFeature[]>;
+    /**
+     * Hide the layer on the map.
+     *
+     * The features stay in the layer. Use show() to display them again.
+     *
+     * @returns {DataLayer}
+     */
+    hide(): DataLayer;
+    /**
+     * Initialize the data layer
+     *
+     * This is used when another element, like a tooltip, needs to be attached to the layer
+     * but needs to make sure that the layer exists first.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * @inheritdoc
+     */
+    hasListener(type: DataLayerEvent, callback?: EventCallback): boolean;
+    /**
+     * Load GeoJson data into the layer from a url.
+     *
+     * The Google maps API method is callback based. This returns a promise that resolves with
+     * the features that were loaded.
+     *
+     * More than one url can be passed. The promise then resolves once every file has loaded,
+     * with all of the features from all of the files.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/data#Data.loadGeoJson
+     *
+     * @param {string|string[]} url The url to load the GeoJson from, or an array of urls
+     * @param {LoadOptions} [options] The options for loading the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    loadGeoJson(url: string | string[], options?: LoadOptions): Promise<DataFeature[]>;
+    /**
+     * @inheritdoc
+     */
+    off(type?: DataLayerEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: DataLayerEvent, callback: DataLayerEventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: DataLayerEvent, callback: DataLayerEventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: DataLayerEvent, callback?: DataLayerEventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: DataLayerEvent, callback?: DataLayerEventCallback, config?: EventConfig): void;
+    /**
+     * Add an event listener for when a feature is added to the layer.
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onAddFeature(callback: DataLayerEventCallback): void;
+    /**
+     * Add an event listener for when a feature is clicked.
+     *
+     * The feature that was clicked is on the event object.
+     *
+     * layer.onClick((event) => { console.log(event.feature.getProperty('name')); });
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onClick(callback: DataLayerEventCallback): void;
+    /**
+     * Add an event listener for when a feature is double clicked.
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDblClick(callback: DataLayerEventCallback): void;
+    /**
+     * Add an event listener for when GeoJson data has finished loading.
+     *
+     * This is dispatched by loadGeoJson() and addGeoJson().
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onLoad(callback: DataLayerEventCallback): void;
+    /**
+     * Add an event listener for when the mouse leaves a feature.
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOut(callback: DataLayerEventCallback): void;
+    /**
+     * Add an event listener for when the mouse moves over a feature.
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onMouseOver(callback: DataLayerEventCallback): void;
+    /**
+     * Add an event listener for when a feature is removed from the layer.
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRemoveFeature(callback: DataLayerEventCallback): void;
+    /**
+     * Add an event listener for when a feature is right clicked.
+     *
+     * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onRightClick(callback: DataLayerEventCallback): void;
+    /**
+     * Set the style for one feature, overriding the layer style.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/data#Data.overrideStyle
+     *
+     * @param {DataFeatureValue} feature The feature, or the feature id, to set the style on
+     * @param {DataStyleOptions} style The style to set on the feature
+     * @returns {DataLayer}
+     */
+    overrideStyle(feature: DataFeatureValue, style: DataStyleOptions): DataLayer;
+    /**
+     * Remove a feature from the layer.
+     *
+     * @param {DataFeatureValue} feature The feature, or the feature id, to remove
+     * @returns {DataLayer}
+     */
+    remove(feature: DataFeatureValue): DataLayer;
+    /**
+     * Remove the style override for a feature so that it uses the layer style again.
+     *
+     * If no feature is passed then the override is removed from every feature.
+     *
+     * @param {DataFeatureValue} [feature] The feature, or the feature id, to revert the style for
+     * @returns {DataLayer}
+     */
+    revertStyle(feature?: DataFeatureValue): DataLayer;
+    /**
+     * Add the data layer to the map object.
+     *
+     * @param {Map|null} value The map object. Set to null to remove the layer from the map.
+     * @returns {Promise<DataLayer>}
+     */
+    setMap(value: Map | null): Promise<DataLayer>;
+    /**
+     * Set the data layer options
+     *
+     * @param {DataLayerOptions} options The data layer options
+     * @returns {DataLayer}
+     */
+    setOptions(options: DataLayerOptions): DataLayer;
+    /**
+     * Set the style to apply to the features in the layer.
+     *
+     * The style can either be a single style object that is applied to every feature, or a
+     * function that is called for each feature and returns the style for it.
+     *
+     * This replaces the existing style rather than merging with it, which matches the
+     * Google maps API. Set every value that you need each time.
+     *
+     * layer.setStyle({ fillColor: '#4caf50' });
+     * layer.setStyle((feature) => ({ fillColor: feature.getProperty('color') }));
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/data#Data.setStyle
+     *
+     * @param {DataStyleValue} style The style to apply to the features in the layer
+     * @returns {DataLayer}
+     */
+    setStyle(style: DataStyleValue): DataLayer;
+    /**
+     * Show the layer on the map.
+     *
+     * This will also set the map object if it's passed.
+     *
+     * @param {Map} [map] The map object to add the layer to
+     * @returns {Promise<DataLayer>}
+     */
+    show(map?: Map): Promise<DataLayer>;
+    /**
+     * Export every feature in the layer as a GeoJson object.
+     *
+     * The Google maps API method is callback based. This returns a promise instead.
+     *
+     * @returns {Promise<object>}
+     */
+    toGeoJson(): Promise<object>;
+    /**
+     * Returns the Google maps Data object.
+     *
+     * The Data object may not exist yet so this returns a promise that resolves once it does.
+     *
+     * This waits for any calls that were already made on the layer, so the Data object that it
+     * resolves with has had all of them applied to it.
+     *
+     * @returns {Promise<google.maps.Data>}
+     */
+    toGoogle(): Promise<google.maps.Data>;
+}
+type DataLayerValue = DataLayer | DataLayerOptions;
+/**
+ * Helper function to set up the data layer object
+ *
+ * @param {DataLayerValue} [options] The data layer options or the data layer class
+ * @returns {DataLayer}
+ */
+declare const dataLayer: (options?: DataLayerValue) => DataLayer;
+
+type FeatureProperties = {
+    [key: string]: any;
+};
+/**
+ * A single feature within a data layer.
+ *
+ * This is not intended to be created directly. Features are returned by the DataLayer
+ * methods that load or add data.
+ */
+declare class DataFeature extends Layer {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {google.maps.Data.Feature} feature The Google maps Data.Feature object
+     * @param {DataLayer} layer The data layer that the feature belongs to
+     */
+    constructor(feature: google.maps.Data.Feature, layer: DataLayer);
+    /**
+     * Get the feature id.
+     *
+     * The id is only set if the GeoJson data included one, or if it was set when the
+     * feature was added to the data layer.
+     *
+     * @returns {string|number|undefined}
+     */
+    get id(): string | number | undefined;
+    /**
+     * Get the geometry type for the feature.
+     *
+     * This is the GeoJson geometry type. For example "Point", "LineString" or "Polygon".
+     *
+     * @returns {GeometryTypeValue|undefined}
+     */
+    get geometryType(): GeometryTypeValue | undefined;
+    /**
+     * Get all of the properties for the feature as a plain object.
+     *
+     * The Google maps API only lets you get one property at a time, so this collects them all.
+     *
+     * @returns {FeatureProperties}
+     */
+    get properties(): FeatureProperties;
+    /**
+     * Get the bounds of the feature.
+     *
+     * Every Google maps geometry object supports forEachLatLng(), which walks nested
+     * geometries, so this works for every geometry type without needing to handle each one.
+     *
+     * @returns {LatLngBounds}
+     */
+    getBounds(): LatLngBounds;
+    /**
+     * Get the feature id.
+     *
+     * Alternate of the id getter.
+     *
+     * @returns {string|number|undefined}
+     */
+    getId(): string | number | undefined;
+    /**
+     * Get the geometry type for the feature.
+     *
+     * Alternate of the geometryType getter.
+     *
+     * @returns {GeometryTypeValue|undefined}
+     */
+    getGeometryType(): GeometryTypeValue | undefined;
+    /**
+     * Get the first path of coordinates for the feature.
+     *
+     * For a LineString this is the line. For a Polygon this is the outer ring.
+     * Use getPaths() to also get the holes in a polygon.
+     *
+     * @returns {LatLng[]}
+     */
+    getPath(): LatLng[];
+    /**
+     * Get all of the paths of coordinates for the feature.
+     *
+     * For a Polygon the first path is the outer ring and any additional paths are the
+     * holes within it.
+     *
+     * @returns {LatLng[][]}
+     */
+    getPaths(): LatLng[][];
+    /**
+     * Get the position of the feature if it's a Point geometry.
+     *
+     * @returns {LatLng|undefined}
+     */
+    getPosition(): LatLng | undefined;
+    /**
+     * Get a single property value for the feature.
+     *
+     * @param {string} key The property name to get the value for
+     * @returns {any}
+     */
+    getProperty(key: string): any;
+    /**
+     * Get all of the properties for the feature as a plain object.
+     *
+     * Alternate of the properties getter.
+     *
+     * @returns {FeatureProperties}
+     */
+    getProperties(): FeatureProperties;
+    /**
+     * Returns whether the feature has the given property set.
+     *
+     * @param {string} key The property name to test for
+     * @returns {boolean}
+     */
+    hasProperty(key: string): boolean;
+    /**
+     * Initialize the feature
+     *
+     * The feature always wraps an existing Google feature object, so there is nothing to
+     * wait for. This exists so that objects that attach to a layer, like tooltips, work.
+     *
+     * @internal
+     * @returns {Promise<void>}
+     */
+    init(): Promise<void>;
+    /**
+     * Remove the feature from the data layer that it belongs to.
+     *
+     * @returns {DataFeature}
+     */
+    remove(): DataFeature;
+    /**
+     * Remove a property from the feature.
+     *
+     * @param {string} key The property name to remove
+     * @returns {DataFeature}
+     */
+    removeProperty(key: string): DataFeature;
+    /**
+     * Reset the style for this feature back to the data layer style.
+     *
+     * This undoes setStyle().
+     *
+     * @returns {DataFeature}
+     */
+    resetStyle(): DataFeature;
+    /**
+     * Set the style for this one feature, overriding the data layer style.
+     *
+     * Use resetStyle() to go back to the data layer style.
+     *
+     * @param {DataStyleOptions} style The style to set on this feature
+     * @returns {DataFeature}
+     */
+    setStyle(style: DataStyleOptions): DataFeature;
+    /**
+     * Set a property value on the feature.
+     *
+     * @param {string} key The property name to set
+     * @param {any} value The value to set
+     * @returns {DataFeature}
+     */
+    setProperty(key: string, value: any): DataFeature;
+    /**
+     * Set multiple property values on the feature.
+     *
+     * @param {FeatureProperties} properties The properties to set
+     * @returns {DataFeature}
+     */
+    setProperties(properties: FeatureProperties): DataFeature;
+    /**
+     * Export the feature as a GeoJson object.
+     *
+     * The Google maps API method is callback based. This returns a promise instead.
+     *
+     * @returns {Promise<object>}
+     */
+    toGeoJson(): Promise<object>;
+    /**
+     * Returns the Google maps Data.Feature object
+     *
+     * @returns {google.maps.Data.Feature}
+     */
+    toGoogle(): google.maps.Data.Feature;
+}
+type DataFeatureValue = DataFeature | string | number;
+
 type GMInfoWindowOptions = {
     ariaLabel?: string;
     content?: string | HTMLElement | Text;
@@ -5333,258 +6252,6 @@ declare class Loader extends EventTarget {
  * @returns {Loader}
  */
 declare const loader: (config?: LoaderOptions) => Loader;
-
-type SvgSymbolOptions = {
-    anchor?: PointValue;
-    fillColor?: string;
-    fillOpacity?: number;
-    labelOrigin?: PointValue;
-    path: string;
-    rotation?: number;
-    scale?: number;
-    strokeColor?: string;
-    strokeOpacity?: number;
-    strokeWeight?: number;
-};
-/**
- * Class to set up an SVG icon for a marker
- */
-declare class SvgSymbol extends Base {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {string | SvgSymbolOptions} [path] The SVG path for the icon or the icon options
-     * @param {SvgSymbolOptions} [options] The options for the icon
-     */
-    constructor(path?: string | SvgSymbolOptions, options?: SvgSymbolOptions);
-    /**
-     * Get the anchor point
-     *
-     * @returns {PointValue}
-     */
-    get anchor(): PointValue;
-    /**
-     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
-     *
-     * @param {PointValue} anchor The anchor point value
-     */
-    set anchor(anchor: PointValue);
-    /**
-     * Get the SVG fill color
-     *
-     * @returns {string}
-     */
-    get fillColor(): string;
-    /**
-     * Set the SVG fill color.
-     *
-     * @param {string} fillColor The SVG fill color.
-     */
-    set fillColor(fillColor: string);
-    /**
-     * Get the opacity for the fill
-     *
-     * @returns {number}
-     */
-    get fillOpacity(): number;
-    /**
-     * Set the opacity for the fill
-     *
-     * @param {number|string} fillOpacity The opacity for the fill
-     */
-    set fillOpacity(fillOpacity: number | string);
-    /**
-     * Get the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     *
-     * @returns {PointValue}
-     */
-    get labelOrigin(): PointValue;
-    /**
-     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     *
-     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     */
-    set labelOrigin(labelOrigin: PointValue);
-    /**
-     * Get the SVG path for the icon
-     *
-     * @returns {string}
-     */
-    get path(): string;
-    /**
-     * Set the SVG path for the icon
-     *
-     * @param {path} path The SVG path for the icon
-     */
-    set path(path: string);
-    /**
-     * Get the rotation of the icon in degrees clockwise about the anchor point.
-     *
-     * @returns {number}
-     */
-    get rotation(): number;
-    /**
-     * Set the rotation of the icon in degrees clockwise about the anchor point.
-     *
-     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
-     */
-    set rotation(rotation: number | string);
-    /**
-     * Get the amount by which the icon is scaled.
-     *
-     * @returns {number}
-     */
-    get scale(): number;
-    /**
-     * Set the amount by which the icon is scaled.
-     *
-     * @param {number|string} scale The amount by which the icon is scaled.
-     */
-    set scale(scale: number | string);
-    /**
-     * Get the SVG stroke color
-     *
-     * @returns {string}
-     */
-    get strokeColor(): string;
-    /**
-     * Set the SVG stroke color.
-     *
-     * @param {string} strokeColor The SVG stroke color.
-     */
-    set strokeColor(strokeColor: string);
-    /**
-     * Get the opacity of the stroke.
-     * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
-     *
-     * @returns {number}
-     */
-    get strokeOpacity(): number;
-    /**
-     * Set the opacity of the stroke.
-     *
-     * @param {number|string} strokeOpacity The opacity of the stroke.
-     */
-    set strokeOpacity(strokeOpacity: number | string);
-    /**
-     * Get the weight of the stroke in pixels.
-     *
-     * @returns {number}
-     */
-    get strokeWeight(): number;
-    /**
-     * Set the weight of the stroke.
-     *
-     * @param {number|string} strokeWeight The weight of the stroke.
-     */
-    set strokeWeight(strokeWeight: number | string);
-    /**
-     * Set the icon options
-     *
-     * @param {SvgSymbolOptions} options The icon options
-     * @returns {SvgSymbol}
-     */
-    setOptions(options: SvgSymbolOptions): SvgSymbol;
-    /**
-     * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
-     * Use this if for some reason you didn't pass the anchor in the icon options.
-     *
-     * By default, the anchor is located along the center point of the bottom of the image.
-     *
-     * const symbol = G.icon({
-     *    url: 'https://mywebsite.com/images/marker.png',
-     * });
-     * symbol.setAnchor([10, 32]);
-     *
-     * Valid values are:
-     * symbol.setAnchor([10, 32]);
-     * symbol.setAnchor({x: 10, y: 32});
-     * symbol.setAnchor(pointClassInstance);
-     *
-     * @param {PointValue} anchor The anchor point value
-     * @returns {SvgSymbol}
-     */
-    setAnchor(anchor: PointValue): SvgSymbol;
-    /**
-     * Set the SVG fill color.
-     *
-     * @param {string} fillColor The SVG fill color.
-     * @returns {SvgSymbol}
-     */
-    setFillColor(fillColor: string): SvgSymbol;
-    /**
-     * Set the opacity for the fill
-     *
-     * @param {number|string} fillOpacity The opacity for the fill
-     * @returns {SvgSymbol}
-     */
-    setFillOpacity(fillOpacity: number | string): SvgSymbol;
-    /**
-     * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     *
-     * @param {PointValue} labelOrigin The origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
-     * @returns {SvgSymbol}
-     */
-    setLabelOrigin(labelOrigin: PointValue): SvgSymbol;
-    /**
-     * Set the SVG path for the icon
-     *
-     * @param {path} path The SVG path for the icon
-     * @returns {SvgSymbol}
-     */
-    setPath(path: string): SvgSymbol;
-    /**
-     * Set the rotation of the icon in degrees clockwise about the anchor point.
-     *
-     * @param {number|string} rotation The rotation of the icon in degrees clockwise about the anchor point.
-     * @returns {SvgSymbol}
-     */
-    setRotation(rotation: number | string): SvgSymbol;
-    /**
-     * Set the amount by which the icon is scaled.
-     *
-     * @param {number|string} scale The amount by which the icon is scaled.
-     * @returns {SvgSymbol}
-     */
-    setScale(scale: number | string): SvgSymbol;
-    /**
-     * Set the SVG stroke color.
-     *
-     * @param {string} strokeColor The SVG stroke color.
-     * @returns {SvgSymbol}
-     */
-    setStrokeColor(strokeColor: string): SvgSymbol;
-    /**
-     * Set the opacity of the stroke.
-     *
-     * @param {number|string} strokeOpacity The opacity of the stroke.
-     * @returns {SvgSymbol}
-     */
-    setStrokeOpacity(strokeOpacity: number | string): SvgSymbol;
-    /**
-     * Set the weight of the stroke.
-     *
-     * @param {number|string} strokeWeight The weight of the stroke.
-     * @returns {SvgSymbol}
-     */
-    setStrokeWeight(strokeWeight: number | string): SvgSymbol;
-    /**
-     * Get the icon options
-     *
-     * @returns {Promise<google.maps.Symbol>}
-     */
-    toGoogle(): Promise<google.maps.Symbol>;
-}
-type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
-/**
- * Helper function to set up the icon object
- *
- * @param {SvgSymbolValue} [path] The SVG path for the icon, the icon object, or the icon options
- * @param {SvgSymbolOptions} [options] The options for the icon
- * @returns {SvgSymbol}
- */
-declare const svgSymbol: (path?: SvgSymbolValue, options?: SvgSymbolOptions) => SvgSymbol;
 
 type TooltipOptions = {
     center?: boolean;
@@ -7676,4 +8343,4 @@ declare class PolylineCollection {
  */
 declare const polylineCollection: () => PolylineCollection;
 
-export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataStyleOptions, type DataStyleValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

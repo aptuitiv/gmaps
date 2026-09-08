@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Added the `DataLayer` class and the `dataLayer()` function to work with the [Google maps data layer](https://developers.google.com/maps/documentation/javascript/datalayer). It can either wrap the map's own data layer or be a separate layer of its own.
+- Added the `DataFeature` class to represent a single feature within a data layer. It extends `Layer` so tooltips and popups can be attached to a feature.
+- Added `map.data` to get the map's own data layer. The layer is created the first time it's used and the same object is returned after that.
+- Added `map.loadGeoJson()` and `map.addGeoJson()` as shortcuts to the matching methods on `map.data`.
+- Added `DataLayer.addPolygon()` to add a polygon, with or without holes in it, without needing to build GeoJson. It takes either one path of positions or an array of paths, where the first is the outer edge and the rest are holes.
+- Added `DataLayer.addPolyline()` and `DataLayer.addPoint()`.
+- Added `DataLayer.clear()` to remove every feature from the layer. The Google maps API doesn't provide a way to do this.
+- Added `DataLayer.getFeatures()`, which returns the features as an array. The Google maps API only provides `forEach()`.
+- Added `DataLayer.loadGeoJson()`, `DataLayer.addGeoJson()` and `DataLayer.toGeoJson()`. These return promises rather than taking a callback like the Google maps API does. `loadGeoJson()` also accepts an array of urls and resolves once all of them have loaded.
+- Added `DataLayerEvents` and `GeometryType` constants.
+- Added `feature` to the event object. It's set on data layer events and holds the `DataFeature` that the event happened on.
+
 ## [v0.28.1] - 2025-12-10
 
 ### Fixed

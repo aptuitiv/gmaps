@@ -311,6 +311,38 @@ var convertControlPosition = (value) => {
   });
   return returnValue;
 };
+var DataLayerEvents = Object.freeze({
+  // Google Maps events
+  // https://developers.google.com/maps/documentation/javascript/reference/data#Data-Events
+  ADD_FEATURE: "addfeature",
+  CLICK: "click",
+  CONTEXT_MENU: "contextmenu",
+  DBLCLICK: "dblclick",
+  MOUSE_DOWN: "mousedown",
+  MOUSE_OUT: "mouseout",
+  MOUSE_OVER: "mouseover",
+  MOUSE_UP: "mouseup",
+  REMOVE_FEATURE: "removefeature",
+  REMOVE_PROPERTY: "removeproperty",
+  RIGHT_CLICK: "rightclick",
+  SET_GEOMETRY: "setgeometry",
+  SET_PROPERTY: "setproperty",
+  // Custom events for this library
+  // Called when the data layer is ready
+  READY: READY_EVENT,
+  // Called when a loadGeoJson() or addGeoJson() call has finished loading its features
+  LOAD: "load"
+});
+var GeometryType = Object.freeze({
+  GEOMETRY_COLLECTION: "GeometryCollection",
+  LINE_STRING: "LineString",
+  LINEAR_RING: "LinearRing",
+  MULTI_LINE_STRING: "MultiLineString",
+  MULTI_POINT: "MultiPoint",
+  MULTI_POLYGON: "MultiPolygon",
+  POINT: "Point",
+  POLYGON: "Polygon"
+});
 var GeocoderErrorStatus = Object.freeze({
   ERROR: "ERROR",
   INVALID_REQUEST: "INVALID_REQUEST",
@@ -1383,6 +1415,9 @@ var Evented = class extends Base_default {
           }
           if (typeof data.placeId !== "undefined") {
             eventData.placeId = data.placeId;
+          }
+          if (typeof data.feature !== "undefined") {
+            eventData.feature = data.feature;
           }
           if (typeof data.pixel !== "undefined") {
             eventData.pixel = new Point(data.pixel.x, data.pixel.y);
@@ -4313,6 +4348,491 @@ var autocompleteSearchBox = (input, options) => {
   return new AutocompleteSearchBox(input, options);
 };
 
+// src/lib/Layer.ts
+var _isVisible, _map, _popup;
+var Layer = class extends Evented {
+  constructor() {
+    super(...arguments);
+    // eslint-disable-line @typescript-eslint/no-explicit-any
+    /**
+     * Holds if the layer is visible or not
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isVisible, false);
+    /**
+     * Holds the Map object that the layer is added to
+     *
+     * @private
+     * @type {Map|null}
+     */
+    __privateAdd(this, _map, null);
+    /**
+     * Holds the Popup object that the layer is added to
+     *
+     * @private
+     * @type {Popup|null}
+     */
+    __privateAdd(this, _popup);
+  }
+  /**
+   * Get if the layer is visible or not
+   *
+   * @returns {boolean}
+   */
+  get isVisible() {
+    return __privateGet(this, _isVisible);
+  }
+  /**
+   * Set if the layer is visible or not
+   *
+   * @param {boolean} value Whether the layer is visible or not
+   */
+  set isVisible(value) {
+    if (typeof value === "boolean") {
+      __privateSet(this, _isVisible, value);
+    } else {
+      throw new Error("isVisible must be a boolean");
+    }
+  }
+  /**
+   * Return the Map object or null if the Map object is not set
+   *
+   * @returns {Map|null}
+   */
+  getMap() {
+    return __privateGet(this, _map);
+  }
+  /**
+   * Return if the layer has a Map object set
+   *
+   * @returns {boolean}
+   */
+  hasMap() {
+    return __privateGet(this, _map) !== null;
+  }
+  /**
+   * Initialize the layer
+   *
+   * This is intended to be overridden by subclasses to perform any initialization that is needed.
+   * This is not intended to be called outside of this library.
+   *
+   * This is called by other objects that depend on the element being initialized before doing their thing.
+   * For example, attaching a tooltip to a marker will wait for the marker to be initialized before attaching the tooltip.
+   *
+   * @internal
+   * @returns {Promise<void>}
+   */
+  // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
+  init() {
+    return Promise.resolve();
+  }
+  /**
+   * Set the Popup object that the layer is added to
+   *
+   * @internal
+   * @param {Popup} popup The Popup object to add the layer to
+   */
+  setPopup(popup2) {
+    __privateSet(this, _popup, popup2);
+  }
+  /**
+   * Close the popup for the layer
+   *
+   * @returns {void}
+   */
+  closePopup() {
+    if (this.hasPopup()) {
+      __privateGet(this, _popup).close();
+    }
+  }
+  /**
+   * Get the Popup object that the layer is added to
+   *
+   * @returns {Popup|undefined}
+   */
+  getPopup() {
+    return __privateGet(this, _popup);
+  }
+  /**
+   * Check if the layer has a Popup object set
+   *
+   * @returns {boolean}
+   */
+  hasPopup() {
+    return __privateGet(this, _popup) !== void 0;
+  }
+  /**
+   * Add an event listener for when the layer is loaded and ready for use.
+   *
+   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+   */
+  onReady(callback) {
+    this.on(LayerEvents.READY, callback);
+  }
+  /**
+   * Open the popup for the layer
+   *
+   * @returns {void}
+   */
+  openPopup() {
+    if (this.hasPopup()) {
+      __privateGet(this, _popup).show(this);
+    }
+  }
+  /**
+   * Toggle the popup for the layer
+   *
+   * @returns {void}
+   */
+  togglePopup() {
+    if (this.hasPopup()) {
+      __privateGet(this, _popup).toggle(this);
+    }
+  }
+  /**
+   * Clears the map object that the layer is added to
+   *
+   * Note, this does not remove the layer from the map, it just clears the map object from the layer.
+   */
+  removeMap() {
+    __privateSet(this, _map, null);
+  }
+  /**
+   * Sets the map object that the layer is added to
+   *
+   * This does not display the layer on the map, it only sets the map object for the layer.
+   *
+   * @param {Map} map The map object to add the layer to
+   */
+  setMap(map2) {
+    __privateSet(this, _map, map2);
+    if (map2) {
+      this.isVisible = true;
+    } else {
+      this.isVisible = false;
+    }
+  }
+};
+_isVisible = new WeakMap();
+_map = new WeakMap();
+_popup = new WeakMap();
+var Layer_default = Layer;
+
+// src/lib/DataFeature.ts
+var _feature, _layer, _DataFeature_static, geometryPaths_fn;
+var _DataFeature = class _DataFeature extends Layer_default {
+  /**
+   * Constructor
+   *
+   * @param {google.maps.Data.Feature} feature The Google maps Data.Feature object
+   * @param {DataLayer} layer The data layer that the feature belongs to
+   */
+  constructor(feature, layer) {
+    super("datafeature", "Data");
+    /**
+     * Holds the Google maps Data.Feature object
+     *
+     * @private
+     * @type {google.maps.Data.Feature}
+     */
+    __privateAdd(this, _feature);
+    /**
+     * Holds the data layer that the feature belongs to
+     *
+     * @private
+     * @type {DataLayer}
+     */
+    __privateAdd(this, _layer);
+    __privateSet(this, _feature, feature);
+    __privateSet(this, _layer, layer);
+  }
+  /**
+   * Get the feature id.
+   *
+   * The id is only set if the GeoJson data included one, or if it was set when the
+   * feature was added to the data layer.
+   *
+   * @returns {string|number|undefined}
+   */
+  get id() {
+    return __privateGet(this, _feature).getId();
+  }
+  /**
+   * Get the geometry type for the feature.
+   *
+   * This is the GeoJson geometry type. For example "Point", "LineString" or "Polygon".
+   *
+   * @returns {GeometryTypeValue|undefined}
+   */
+  get geometryType() {
+    const geometry = __privateGet(this, _feature).getGeometry();
+    if (geometry) {
+      return geometry.getType();
+    }
+    return void 0;
+  }
+  /**
+   * Get all of the properties for the feature as a plain object.
+   *
+   * The Google maps API only lets you get one property at a time, so this collects them all.
+   *
+   * @returns {FeatureProperties}
+   */
+  get properties() {
+    const properties = {};
+    __privateGet(this, _feature).forEachProperty((value, name) => {
+      properties[name] = value;
+    });
+    return properties;
+  }
+  /**
+   * Get the bounds of the feature.
+   *
+   * Every Google maps geometry object supports forEachLatLng(), which walks nested
+   * geometries, so this works for every geometry type without needing to handle each one.
+   *
+   * @returns {LatLngBounds}
+   */
+  getBounds() {
+    const bounds = latLngBounds();
+    const geometry = __privateGet(this, _feature).getGeometry();
+    if (geometry) {
+      geometry.forEachLatLng((googleLatLng) => {
+        bounds.extend(latLngConvert(googleLatLng));
+      });
+    }
+    return bounds;
+  }
+  /**
+   * Get the feature id.
+   *
+   * Alternate of the id getter.
+   *
+   * @returns {string|number|undefined}
+   */
+  getId() {
+    return this.id;
+  }
+  /**
+   * Get the geometry type for the feature.
+   *
+   * Alternate of the geometryType getter.
+   *
+   * @returns {GeometryTypeValue|undefined}
+   */
+  getGeometryType() {
+    return this.geometryType;
+  }
+  /**
+   * Get the first path of coordinates for the feature.
+   *
+   * For a LineString this is the line. For a Polygon this is the outer ring.
+   * Use getPaths() to also get the holes in a polygon.
+   *
+   * @returns {LatLng[]}
+   */
+  getPath() {
+    const paths = this.getPaths();
+    return paths.length > 0 ? paths[0] : [];
+  }
+  /**
+   * Get all of the paths of coordinates for the feature.
+   *
+   * For a Polygon the first path is the outer ring and any additional paths are the
+   * holes within it.
+   *
+   * @returns {LatLng[][]}
+   */
+  getPaths() {
+    var _a;
+    return __privateMethod(_a = _DataFeature, _DataFeature_static, geometryPaths_fn).call(_a, __privateGet(this, _feature).getGeometry());
+  }
+  /**
+   * Get the position of the feature if it's a Point geometry.
+   *
+   * @returns {LatLng|undefined}
+   */
+  getPosition() {
+    const geometry = __privateGet(this, _feature).getGeometry();
+    if (geometry && geometry.getType() === GeometryType.POINT) {
+      return latLngConvert(geometry.get());
+    }
+    return void 0;
+  }
+  /**
+   * Get a single property value for the feature.
+   *
+   * @param {string} key The property name to get the value for
+   * @returns {any}
+   */
+  getProperty(key) {
+    return __privateGet(this, _feature).getProperty(key);
+  }
+  /**
+   * Get all of the properties for the feature as a plain object.
+   *
+   * Alternate of the properties getter.
+   *
+   * @returns {FeatureProperties}
+   */
+  getProperties() {
+    return this.properties;
+  }
+  /**
+   * Returns whether the feature has the given property set.
+   *
+   * @param {string} key The property name to test for
+   * @returns {boolean}
+   */
+  hasProperty(key) {
+    return !isNullOrUndefined(__privateGet(this, _feature).getProperty(key));
+  }
+  /**
+   * Initialize the feature
+   *
+   * The feature always wraps an existing Google feature object, so there is nothing to
+   * wait for. This exists so that objects that attach to a layer, like tooltips, work.
+   *
+   * @internal
+   * @returns {Promise<void>}
+   */
+  // eslint-disable-next-line class-methods-use-this -- This overrides the Layer method
+  init() {
+    return Promise.resolve();
+  }
+  /**
+   * Remove the feature from the data layer that it belongs to.
+   *
+   * @returns {DataFeature}
+   */
+  remove() {
+    __privateGet(this, _layer).remove(this);
+    return this;
+  }
+  /**
+   * Remove a property from the feature.
+   *
+   * @param {string} key The property name to remove
+   * @returns {DataFeature}
+   */
+  removeProperty(key) {
+    __privateGet(this, _feature).removeProperty(key);
+    return this;
+  }
+  /**
+   * Reset the style for this feature back to the data layer style.
+   *
+   * This undoes setStyle().
+   *
+   * @returns {DataFeature}
+   */
+  resetStyle() {
+    __privateGet(this, _layer).revertStyle(this);
+    return this;
+  }
+  /**
+   * Set the style for this one feature, overriding the data layer style.
+   *
+   * Use resetStyle() to go back to the data layer style.
+   *
+   * @param {DataStyleOptions} style The style to set on this feature
+   * @returns {DataFeature}
+   */
+  setStyle(style) {
+    __privateGet(this, _layer).overrideStyle(this, style);
+    return this;
+  }
+  /**
+   * Set a property value on the feature.
+   *
+   * @param {string} key The property name to set
+   * @param {any} value The value to set
+   * @returns {DataFeature}
+   */
+  setProperty(key, value) {
+    __privateGet(this, _feature).setProperty(key, value);
+    return this;
+  }
+  /**
+   * Set multiple property values on the feature.
+   *
+   * @param {FeatureProperties} properties The properties to set
+   * @returns {DataFeature}
+   */
+  setProperties(properties) {
+    Object.keys(properties).forEach((key) => {
+      __privateGet(this, _feature).setProperty(key, properties[key]);
+    });
+    return this;
+  }
+  /**
+   * Export the feature as a GeoJson object.
+   *
+   * The Google maps API method is callback based. This returns a promise instead.
+   *
+   * @returns {Promise<object>}
+   */
+  toGeoJson() {
+    return new Promise((resolve) => {
+      __privateGet(this, _feature).toGeoJson((geoJson) => {
+        resolve(geoJson);
+      });
+    });
+  }
+  /**
+   * Returns the Google maps Data.Feature object
+   *
+   * @returns {google.maps.Data.Feature}
+   */
+  toGoogle() {
+    return __privateGet(this, _feature);
+  }
+};
+_feature = new WeakMap();
+_layer = new WeakMap();
+_DataFeature_static = new WeakSet();
+geometryPaths_fn = function(geometry) {
+  if (!geometry) {
+    return [];
+  }
+  switch (geometry.getType()) {
+    case GeometryType.POINT:
+      return [[latLngConvert(geometry.get())]];
+    case GeometryType.MULTI_POINT:
+    case GeometryType.LINE_STRING:
+    case GeometryType.LINEAR_RING:
+      return [
+        geometry.getArray().map((value) => latLngConvert(value))
+      ];
+    case GeometryType.POLYGON:
+      return geometry.getArray().map((ring) => ring.getArray().map((value) => latLngConvert(value)));
+    case GeometryType.MULTI_LINE_STRING:
+      return geometry.getArray().map((line) => line.getArray().map((value) => latLngConvert(value)));
+    case GeometryType.MULTI_POLYGON:
+      return geometry.getArray().reduce(
+        (paths, polygon) => {
+          var _a;
+          return paths.concat(__privateMethod(_a = _DataFeature, _DataFeature_static, geometryPaths_fn).call(_a, polygon));
+        },
+        []
+      );
+    case GeometryType.GEOMETRY_COLLECTION:
+      return geometry.getArray().reduce(
+        (paths, value) => {
+          var _a;
+          return paths.concat(__privateMethod(_a = _DataFeature, _DataFeature_static, geometryPaths_fn).call(_a, value));
+        },
+        []
+      );
+    default:
+      return [];
+  }
+};
+__privateAdd(_DataFeature, _DataFeature_static);
+var DataFeature = _DataFeature;
+
 // src/lib/Size.ts
 var _sizeObject, _width, _height;
 var _Size = class _Size extends Base_default {
@@ -4693,178 +5213,6 @@ var icon = (url, options) => {
   }
   return new Icon(url, options);
 };
-
-// src/lib/Layer.ts
-var _isVisible, _map, _popup;
-var Layer = class extends Evented {
-  constructor() {
-    super(...arguments);
-    // eslint-disable-line @typescript-eslint/no-explicit-any
-    /**
-     * Holds if the layer is visible or not
-     *
-     * @private
-     * @type {boolean}
-     */
-    __privateAdd(this, _isVisible, false);
-    /**
-     * Holds the Map object that the layer is added to
-     *
-     * @private
-     * @type {Map|null}
-     */
-    __privateAdd(this, _map, null);
-    /**
-     * Holds the Popup object that the layer is added to
-     *
-     * @private
-     * @type {Popup|null}
-     */
-    __privateAdd(this, _popup);
-  }
-  /**
-   * Get if the layer is visible or not
-   *
-   * @returns {boolean}
-   */
-  get isVisible() {
-    return __privateGet(this, _isVisible);
-  }
-  /**
-   * Set if the layer is visible or not
-   *
-   * @param {boolean} value Whether the layer is visible or not
-   */
-  set isVisible(value) {
-    if (typeof value === "boolean") {
-      __privateSet(this, _isVisible, value);
-    } else {
-      throw new Error("isVisible must be a boolean");
-    }
-  }
-  /**
-   * Return the Map object or null if the Map object is not set
-   *
-   * @returns {Map|null}
-   */
-  getMap() {
-    return __privateGet(this, _map);
-  }
-  /**
-   * Return if the layer has a Map object set
-   *
-   * @returns {boolean}
-   */
-  hasMap() {
-    return __privateGet(this, _map) !== null;
-  }
-  /**
-   * Initialize the layer
-   *
-   * This is intended to be overridden by subclasses to perform any initialization that is needed.
-   * This is not intended to be called outside of this library.
-   *
-   * This is called by other objects that depend on the element being initialized before doing their thing.
-   * For example, attaching a tooltip to a marker will wait for the marker to be initialized before attaching the tooltip.
-   *
-   * @internal
-   * @returns {Promise<void>}
-   */
-  // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
-  init() {
-    return Promise.resolve();
-  }
-  /**
-   * Set the Popup object that the layer is added to
-   *
-   * @internal
-   * @param {Popup} popup The Popup object to add the layer to
-   */
-  setPopup(popup2) {
-    __privateSet(this, _popup, popup2);
-  }
-  /**
-   * Close the popup for the layer
-   *
-   * @returns {void}
-   */
-  closePopup() {
-    if (this.hasPopup()) {
-      __privateGet(this, _popup).close();
-    }
-  }
-  /**
-   * Get the Popup object that the layer is added to
-   *
-   * @returns {Popup|undefined}
-   */
-  getPopup() {
-    return __privateGet(this, _popup);
-  }
-  /**
-   * Check if the layer has a Popup object set
-   *
-   * @returns {boolean}
-   */
-  hasPopup() {
-    return __privateGet(this, _popup) !== void 0;
-  }
-  /**
-   * Add an event listener for when the layer is loaded and ready for use.
-   *
-   * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
-   */
-  onReady(callback) {
-    this.on(LayerEvents.READY, callback);
-  }
-  /**
-   * Open the popup for the layer
-   *
-   * @returns {void}
-   */
-  openPopup() {
-    if (this.hasPopup()) {
-      __privateGet(this, _popup).show(this);
-    }
-  }
-  /**
-   * Toggle the popup for the layer
-   *
-   * @returns {void}
-   */
-  togglePopup() {
-    if (this.hasPopup()) {
-      __privateGet(this, _popup).toggle(this);
-    }
-  }
-  /**
-   * Clears the map object that the layer is added to
-   *
-   * Note, this does not remove the layer from the map, it just clears the map object from the layer.
-   */
-  removeMap() {
-    __privateSet(this, _map, null);
-  }
-  /**
-   * Sets the map object that the layer is added to
-   *
-   * This does not display the layer on the map, it only sets the map object for the layer.
-   *
-   * @param {Map} map The map object to add the layer to
-   */
-  setMap(map2) {
-    __privateSet(this, _map, map2);
-    if (map2) {
-      this.isVisible = true;
-    } else {
-      this.isVisible = false;
-    }
-  }
-};
-_isVisible = new WeakMap();
-_map = new WeakMap();
-_popup = new WeakMap();
-var Layer_default = Layer;
 
 // src/lib/Map/FullscreenControl.ts
 var _enabled, _position;
@@ -6199,7 +6547,7 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _element, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _maxFitBoundsZoom, _minFitBoundsZoom, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
+var _bounds4, _customControls, _data, _element, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _maxFitBoundsZoom, _minFitBoundsZoom, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -6225,6 +6573,17 @@ var Map = class extends Evented {
      * @type {CustomControl[]}
      */
     __privateAdd(this, _customControls, []);
+    /**
+     * Holds the data layer for the map.
+     *
+     * This is created the first time that the data getter is used so that maps that don't
+     * use the data layer don't pay for it. It's then held so that map.data is always the
+     * same object.
+     *
+     * @private
+     * @type {DataLayer}
+     */
+    __privateAdd(this, _data);
     /**
      * Holds the HTML element that the map will be rendered in.
      *
@@ -6469,6 +6828,25 @@ var Map = class extends Evented {
         __privateGet(this, _map2).setCenter(__privateGet(this, _options2).center.toGoogle());
       }
     }
+  }
+  /**
+   * Get the data layer for the map.
+   *
+   * This is the map's own data layer, which every map has. Use the dataLayer() function if
+   * you need a separate layer that only holds your own data.
+   *
+   * The layer is created the first time that this is used, and the same layer object is
+   * returned after that.
+   *
+   * https://developers.google.com/maps/documentation/javascript/datalayer
+   *
+   * @returns {DataLayer}
+   */
+  get data() {
+    if (!__privateGet(this, _data)) {
+      __privateSet(this, _data, new DataLayer(void 0, this));
+    }
+    return __privateGet(this, _data);
   }
   /**
    * Get whether the default UI is disabled
@@ -6883,6 +7261,18 @@ var Map = class extends Evented {
     return this;
   }
   /**
+   * Add GeoJson data to the map's data layer.
+   *
+   * This is the same as calling map.data.addGeoJson().
+   *
+   * @param {object} geoJson The GeoJson object to add
+   * @param {LoadOptions} [options] The options for adding the data
+   * @returns {Promise<DataFeature[]>}
+   */
+  addGeoJson(geoJson, options) {
+    return this.data.addGeoJson(geoJson, options);
+  }
+  /**
    * Add a value to the map bounds
    *
    * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
@@ -7081,6 +7471,18 @@ var Map = class extends Evented {
    */
   getZoom() {
     return this.zoom;
+  }
+  /**
+   * Load GeoJson data into the map's data layer from a url.
+   *
+   * This is the same as calling map.data.loadGeoJson(). More than one url can be passed.
+   *
+   * @param {string|string[]} url The url to load the GeoJson from, or an array of urls
+   * @param {LoadOptions} [options] The options for loading the data
+   * @returns {Promise<DataFeature[]>}
+   */
+  loadGeoJson(url, options) {
+    return this.data.loadGeoJson(url, options);
   }
   /**
    * Load and show the map
@@ -7721,6 +8123,7 @@ var Map = class extends Evented {
 };
 _bounds4 = new WeakMap();
 _customControls = new WeakMap();
+_data = new WeakMap();
 _element = new WeakMap();
 _fullscreenControl = new WeakMap();
 _latitude2 = new WeakMap();
@@ -8348,8 +8751,1087 @@ var svgSymbol = (path, options) => {
   return new SvgSymbol(path, options);
 };
 
+// src/lib/DataLayer.ts
+var _data2, _defaultLayerMap, _features, _options4, _pendingChain, _setupPromise, _style2, _svgSymbols, _DataLayer_instances, addFeature_fn, afterLoad_fn, applyStyle_fn, convertIcon_fn, convertStyle_fn, enqueue_fn, featureFor_fn, fitBounds_fn2, geoJsonOptions_fn, getGoogleData_fn, googleFeatureFor_fn, handleReplace_fn, mapObject_fn, queue_fn, setDataObject_fn, setup_fn, _DataLayer_static, bounds_fn, googleFeatures_fn, toPositions_fn, toRingPositions_fn, toRings_fn;
+var _DataLayer = class _DataLayer extends Layer_default {
+  /**
+   * Constructor
+   *
+   * @param {DataLayerOptions} [options] The data layer options
+   * @param {Map} [defaultLayerMap] The map to wrap the default data layer for.
+   *      This is only used within this library by the Map class for the map.data value.
+   * @internal
+   */
+  constructor(options, defaultLayerMap) {
+    super("datalayer", "Data");
+    __privateAdd(this, _DataLayer_instances);
+    /**
+     * Holds the Google maps Data object
+     *
+     * @private
+     * @type {google.maps.Data}
+     */
+    __privateAdd(this, _data2);
+    /**
+     * Holds the map that this layer is the default data layer for.
+     *
+     * This is only set when the layer wraps a map's own data layer (map.data).
+     * It's kept separate from the Layer map value so that the layer can still be
+     * shown again after hide() sets the map to null.
+     *
+     * @private
+     * @type {Map}
+     */
+    __privateAdd(this, _defaultLayerMap);
+    /**
+     * Holds the DataFeature object for each Google maps feature.
+     *
+     * This makes sure that the same Google feature always gets the same DataFeature
+     * object back, which matters for things like attached tooltips and style overrides.
+     *
+     * @private
+     * @type {WeakMap}
+     */
+    __privateAdd(this, _features, /* @__PURE__ */ new WeakMap());
+    /**
+     * Holds the data layer options
+     *
+     * @private
+     * @type {DataLayerOptions}
+     */
+    __privateAdd(this, _options4, {});
+    /**
+     * Holds the chain of calls that are waiting for the Google maps Data object.
+     *
+     * Every public call is added to the end of this chain so that calls are always run in
+     * the order that they were made, however long the map takes to be ready.
+     *
+     * @private
+     * @type {Promise<void>}
+     */
+    __privateAdd(this, _pendingChain, Promise.resolve());
+    /**
+     * Holds the promise for setting up the Google maps Data object.
+     *
+     * This is memoized so that the Data object is only ever created once.
+     *
+     * @private
+     * @type {Promise<google.maps.Data>}
+     */
+    __privateAdd(this, _setupPromise);
+    /**
+     * Holds the style for the layer
+     *
+     * @private
+     * @type {DataStyleValue}
+     */
+    __privateAdd(this, _style2);
+    /**
+     * Holds the Google symbol for each SvgSymbol used in a style.
+     *
+     * The Google maps API calls the style function for each feature and uses the value that
+     * it returns straight away, so the style function has to be synchronous. SvgSymbol.toGoogle()
+     * is not, so resolved symbols are cached here and the style is applied again once one resolves.
+     *
+     * @private
+     * @type {WeakMap}
+     */
+    __privateAdd(this, _svgSymbols, /* @__PURE__ */ new WeakMap());
+    if (defaultLayerMap instanceof Map) {
+      __privateSet(this, _defaultLayerMap, defaultLayerMap);
+      super.setMap(defaultLayerMap);
+    }
+    if (isObject(options)) {
+      this.setOptions(options);
+    }
+  }
+  /**
+   * Get the map that the layer is attached to
+   *
+   * @returns {Map|null}
+   */
+  get map() {
+    return __privateMethod(this, _DataLayer_instances, mapObject_fn).call(this);
+  }
+  /**
+   * Set the map that the layer is attached to
+   *
+   * @param {Map|null} value The map object. Set to null to remove the layer from the map.
+   */
+  set map(value) {
+    this.setMap(value);
+  }
+  /**
+   * Get the style for the layer
+   *
+   * @returns {DataStyleValue}
+   */
+  get style() {
+    return __privateGet(this, _style2);
+  }
+  /**
+   * Set the style for the layer
+   *
+   * @param {DataStyleValue} value The style to apply to the features in the layer
+   */
+  set style(value) {
+    this.setStyle(value);
+  }
+  /**
+   * Get whether the layer is visible on the map
+   *
+   * @returns {boolean}
+   */
+  get visible() {
+    return this.isVisible;
+  }
+  /**
+   * Set whether the layer is visible on the map
+   *
+   * @param {boolean} value Whether the layer is visible on the map
+   */
+  set visible(value) {
+    if (isBoolean(value)) {
+      if (value) {
+        this.show();
+      } else {
+        this.hide();
+      }
+    }
+  }
+  /**
+   * Add GeoJson data to the layer.
+   *
+   * https://developers.google.com/maps/documentation/javascript/reference/data#Data.addGeoJson
+   *
+   * @param {object} geoJson The GeoJson object to add
+   * @param {LoadOptions} [options] The options for adding the data
+   * @returns {Promise<DataFeature[]>}
+   */
+  addGeoJson(geoJson, options) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      __privateMethod(this, _DataLayer_instances, handleReplace_fn).call(this, data, options);
+      const features = data.addGeoJson(geoJson, __privateMethod(this, _DataLayer_instances, geoJsonOptions_fn).call(this, options));
+      return __privateMethod(this, _DataLayer_instances, afterLoad_fn).call(this, data, features, options);
+    });
+  }
+  /**
+   * Add a single point to the layer.
+   *
+   * @param {LatLngValue} position The position for the point
+   * @param {FeatureOptions} [options] The options for the feature
+   * @returns {Promise<DataFeature>}
+   */
+  addPoint(position, options) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      const point2 = latLng(position);
+      if (!point2.isValid()) {
+        throw new Error(
+          `Invalid latitude/longitude data passed to DataLayer.addPoint. You passed: ${JSON.stringify(position)}`
+        );
+      }
+      return __privateMethod(this, _DataLayer_instances, addFeature_fn).call(this, data, new google.maps.Data.Point(point2.toGoogle()), options);
+    });
+  }
+  /**
+   * Add a polygon to the layer.
+   *
+   * The paths value can either be a single array of positions for a polygon without any
+   * holes in it, or an array of arrays of positions. When it's an array of arrays the first
+   * one is the outer edge of the polygon and each one after that is a hole within it.
+   *
+   * A ring doesn't need to repeat its first position at the end to close it. If it does,
+   * as GeoJson data does, then the repeated position is dropped.
+   *
+   * @param {LatLngValue[]|LatLngValue[][]} paths The path for the polygon, or an array of paths
+   * @param {FeatureOptions} [options] The options for the feature
+   * @returns {Promise<DataFeature>}
+   */
+  addPolygon(paths, options) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      var _a;
+      const rings = __privateMethod(_a = _DataLayer, _DataLayer_static, toRings_fn).call(_a, paths).map((ring) => {
+        var _a2;
+        return __privateMethod(_a2 = _DataLayer, _DataLayer_static, toRingPositions_fn).call(_a2, ring);
+      });
+      if (rings.length === 0 || rings[0].length < 3) {
+        throw new Error("A polygon needs at least three positions in its first path");
+      }
+      return __privateMethod(this, _DataLayer_instances, addFeature_fn).call(this, data, new google.maps.Data.Polygon(rings), options);
+    });
+  }
+  /**
+   * Add a line to the layer.
+   *
+   * @param {LatLngValue[]} path The path for the line
+   * @param {FeatureOptions} [options] The options for the feature
+   * @returns {Promise<DataFeature>}
+   */
+  addPolyline(path, options) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      var _a;
+      const positions = __privateMethod(_a = _DataLayer, _DataLayer_static, toPositions_fn).call(_a, path);
+      if (positions.length < 2) {
+        throw new Error("A line needs at least two positions in its path");
+      }
+      return __privateMethod(this, _DataLayer_instances, addFeature_fn).call(this, data, new google.maps.Data.LineString(positions), options);
+    });
+  }
+  /**
+   * Remove every feature from the layer.
+   *
+   * The Google maps API doesn't have a way to do this so each feature is removed in turn.
+   *
+   * Take care when calling this on the map's own data layer (map.data). Google gives each map
+   * one shared data layer, so this removes every feature on it, including any that another part
+   * of the application added. Use dataLayer() to create a layer that only holds your own data.
+   *
+   * @returns {DataLayer}
+   */
+  clear() {
+    return __privateMethod(this, _DataLayer_instances, queue_fn).call(this, (data) => {
+      var _a;
+      __privateMethod(_a = _DataLayer, _DataLayer_static, googleFeatures_fn).call(_a, data).forEach((feature) => {
+        data.remove(feature);
+      });
+    });
+  }
+  /**
+   * Returns whether the feature is in this layer.
+   *
+   * @param {DataFeature} feature The feature to test for
+   * @returns {Promise<boolean>}
+   */
+  contains(feature) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => feature instanceof DataFeature && data.contains(feature.toGoogle()));
+  }
+  /**
+   * @inheritdoc
+   */
+  dispatch(event, data) {
+    if (isObject(data) && !isNullOrUndefined(data.feature)) {
+      const googleEvent = data;
+      const eventData = { feature: __privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, googleEvent.feature) };
+      if (typeof googleEvent.domEvent !== "undefined") {
+        eventData.domEvent = googleEvent.domEvent;
+        eventData.latLng = googleEvent.latLng;
+        eventData.stop = googleEvent.stop;
+      }
+      return super.dispatch(event, eventData);
+    }
+    return super.dispatch(event, data);
+  }
+  /**
+   * Fit the map to the bounds of the data in the layer.
+   *
+   * Nothing happens if the layer has no features, or if it isn't attached to a map.
+   *
+   * @returns {Promise<DataLayer>}
+   */
+  fitBounds() {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => __privateMethod(this, _DataLayer_instances, fitBounds_fn2).call(this, data));
+  }
+  /**
+   * Call the callback function for each feature in the layer.
+   *
+   * @param {Function} callback The function to call for each feature
+   * @returns {Promise<DataLayer>}
+   */
+  forEach(callback) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      var _a;
+      __privateMethod(_a = _DataLayer, _DataLayer_static, googleFeatures_fn).call(_a, data).forEach((feature) => {
+        callback(__privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, feature));
+      });
+      return this;
+    });
+  }
+  /**
+   * Get the bounds of all of the features in the layer.
+   *
+   * @returns {Promise<LatLngBounds>}
+   */
+  getBounds() {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      var _a;
+      return __privateMethod(_a = _DataLayer, _DataLayer_static, bounds_fn).call(_a, data).bounds;
+    });
+  }
+  /**
+   * Get a feature by its id.
+   *
+   * https://developers.google.com/maps/documentation/javascript/reference/data#Data.getFeatureById
+   *
+   * @param {string|number} id The feature id
+   * @returns {Promise<DataFeature|undefined>}
+   */
+  getFeature(id) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      const feature = data.getFeatureById(id);
+      return feature ? __privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, feature) : void 0;
+    });
+  }
+  /**
+   * Get every feature in the layer.
+   *
+   * The Google maps API only provides forEach() so this collects the features into an array.
+   * That gives you the array methods, so filtering is done with filter():
+   *
+   * const parks = (await layer.getFeatures()).filter((feature) => feature.getProperty('type') === 'park');
+   *
+   * @returns {Promise<DataFeature[]>}
+   */
+  getFeatures() {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      var _a;
+      return __privateMethod(_a = _DataLayer, _DataLayer_static, googleFeatures_fn).call(_a, data).map((feature) => __privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, feature));
+    });
+  }
+  /**
+   * Hide the layer on the map.
+   *
+   * The features stay in the layer. Use show() to display them again.
+   *
+   * @returns {DataLayer}
+   */
+  hide() {
+    this.isVisible = false;
+    return __privateMethod(this, _DataLayer_instances, queue_fn).call(this, (data) => {
+      data.setMap(null);
+    });
+  }
+  /**
+   * Initialize the data layer
+   *
+   * This is used when another element, like a tooltip, needs to be attached to the layer
+   * but needs to make sure that the layer exists first.
+   *
+   * This is not intended to be called outside of this library.
+   *
+   * @internal
+   * @returns {Promise<void>}
+   */
+  init() {
+    return __privateMethod(this, _DataLayer_instances, getGoogleData_fn).call(this).then(() => {
+    });
+  }
+  /**
+   * @inheritdoc
+   */
+  hasListener(type, callback) {
+    return super.hasListener(type, callback);
+  }
+  /**
+   * Load GeoJson data into the layer from a url.
+   *
+   * The Google maps API method is callback based. This returns a promise that resolves with
+   * the features that were loaded.
+   *
+   * More than one url can be passed. The promise then resolves once every file has loaded,
+   * with all of the features from all of the files.
+   *
+   * https://developers.google.com/maps/documentation/javascript/reference/data#Data.loadGeoJson
+   *
+   * @param {string|string[]} url The url to load the GeoJson from, or an array of urls
+   * @param {LoadOptions} [options] The options for loading the data
+   * @returns {Promise<DataFeature[]>}
+   */
+  loadGeoJson(url, options) {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+      const urls = (Array.isArray(url) ? url : [url]).filter((value) => isStringWithValue(value));
+      if (urls.length === 0) {
+        throw new Error("A url is required to load GeoJson data");
+      }
+      __privateMethod(this, _DataLayer_instances, handleReplace_fn).call(this, data, options);
+      const geoJsonOptions = __privateMethod(this, _DataLayer_instances, geoJsonOptions_fn).call(this, options);
+      return Promise.all(
+        urls.map(
+          (value) => new Promise((resolve) => {
+            data.loadGeoJson(value, geoJsonOptions, (features) => {
+              resolve(features);
+            });
+          })
+        )
+      ).then((results) => {
+        const features = [];
+        results.forEach((value) => {
+          features.push(...value);
+        });
+        return __privateMethod(this, _DataLayer_instances, afterLoad_fn).call(this, data, features, options);
+      });
+    });
+  }
+  /**
+   * @inheritdoc
+   */
+  off(type, callback, options) {
+    super.off(type, callback, options);
+  }
+  /**
+   * @inheritdoc
+   */
+  on(type, callback, config) {
+    __privateMethod(this, _DataLayer_instances, setup_fn).call(this);
+    super.on(type, callback, config);
+  }
+  /**
+   * @inheritdoc
+   */
+  onImmediate(type, callback, config) {
+    __privateMethod(this, _DataLayer_instances, setup_fn).call(this);
+    super.onImmediate(type, callback, config);
+  }
+  /**
+   * @inheritdoc
+   */
+  once(type, callback, config) {
+    __privateMethod(this, _DataLayer_instances, setup_fn).call(this);
+    super.once(type, callback, config);
+  }
+  /**
+   * @inheritdoc
+   */
+  onceImmediate(type, callback, config) {
+    __privateMethod(this, _DataLayer_instances, setup_fn).call(this);
+    super.onceImmediate(type, callback, config);
+  }
+  /**
+   * Add an event listener for when a feature is added to the layer.
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onAddFeature(callback) {
+    this.on(DataLayerEvents.ADD_FEATURE, callback);
+  }
+  /**
+   * Add an event listener for when a feature is clicked.
+   *
+   * The feature that was clicked is on the event object.
+   *
+   * layer.onClick((event) => { console.log(event.feature.getProperty('name')); });
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onClick(callback) {
+    this.on(DataLayerEvents.CLICK, callback);
+  }
+  /**
+   * Add an event listener for when a feature is double clicked.
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onDblClick(callback) {
+    this.on(DataLayerEvents.DBLCLICK, callback);
+  }
+  /**
+   * Add an event listener for when GeoJson data has finished loading.
+   *
+   * This is dispatched by loadGeoJson() and addGeoJson().
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onLoad(callback) {
+    this.on(DataLayerEvents.LOAD, callback);
+  }
+  /**
+   * Add an event listener for when the mouse leaves a feature.
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOut(callback) {
+    this.on(DataLayerEvents.MOUSE_OUT, callback);
+  }
+  /**
+   * Add an event listener for when the mouse moves over a feature.
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onMouseOver(callback) {
+    this.on(DataLayerEvents.MOUSE_OVER, callback);
+  }
+  /**
+   * Add an event listener for when a feature is removed from the layer.
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onRemoveFeature(callback) {
+    this.on(DataLayerEvents.REMOVE_FEATURE, callback);
+  }
+  /**
+   * Add an event listener for when a feature is right clicked.
+   *
+   * @param {DataLayerEventCallback} callback The callback function to call when the event is dispatched.
+   */
+  onRightClick(callback) {
+    this.on(DataLayerEvents.RIGHT_CLICK, callback);
+  }
+  /**
+   * Set the style for one feature, overriding the layer style.
+   *
+   * https://developers.google.com/maps/documentation/javascript/reference/data#Data.overrideStyle
+   *
+   * @param {DataFeatureValue} feature The feature, or the feature id, to set the style on
+   * @param {DataStyleOptions} style The style to set on the feature
+   * @returns {DataLayer}
+   */
+  overrideStyle(feature, style) {
+    return __privateMethod(this, _DataLayer_instances, queue_fn).call(this, (data) => {
+      const googleFeature = __privateMethod(this, _DataLayer_instances, googleFeatureFor_fn).call(this, data, feature);
+      if (googleFeature) {
+        data.overrideStyle(googleFeature, __privateMethod(this, _DataLayer_instances, convertStyle_fn).call(this, style));
+      }
+    });
+  }
+  /**
+   * Remove a feature from the layer.
+   *
+   * @param {DataFeatureValue} feature The feature, or the feature id, to remove
+   * @returns {DataLayer}
+   */
+  remove(feature) {
+    return __privateMethod(this, _DataLayer_instances, queue_fn).call(this, (data) => {
+      const googleFeature = __privateMethod(this, _DataLayer_instances, googleFeatureFor_fn).call(this, data, feature);
+      if (googleFeature) {
+        data.remove(googleFeature);
+      }
+    });
+  }
+  /**
+   * Remove the style override for a feature so that it uses the layer style again.
+   *
+   * If no feature is passed then the override is removed from every feature.
+   *
+   * @param {DataFeatureValue} [feature] The feature, or the feature id, to revert the style for
+   * @returns {DataLayer}
+   */
+  revertStyle(feature) {
+    return __privateMethod(this, _DataLayer_instances, queue_fn).call(this, (data) => {
+      if (isNullOrUndefined(feature)) {
+        data.revertStyle();
+      } else {
+        const googleFeature = __privateMethod(this, _DataLayer_instances, googleFeatureFor_fn).call(this, data, feature);
+        if (googleFeature) {
+          data.revertStyle(googleFeature);
+        }
+      }
+    });
+  }
+  /**
+   * Add the data layer to the map object.
+   *
+   * @param {Map|null} value The map object. Set to null to remove the layer from the map.
+   * @returns {Promise<DataLayer>}
+   */
+  setMap(value) {
+    return __async(this, null, function* () {
+      if (value instanceof Map) {
+        __superGet(_DataLayer.prototype, this, "setMap").call(this, value);
+        __privateGet(this, _options4).map = value;
+        value.init();
+        yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+          data.setMap(value.toGoogle());
+        });
+      } else if (isNullOrUndefined(value)) {
+        __superGet(_DataLayer.prototype, this, "setMap").call(this, null);
+        __privateGet(this, _options4).map = null;
+        yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+          data.setMap(null);
+        });
+      }
+      return this;
+    });
+  }
+  /**
+   * Set the data layer options
+   *
+   * @param {DataLayerOptions} options The data layer options
+   * @returns {DataLayer}
+   */
+  setOptions(options) {
+    if (isObject(options)) {
+      if (isStringWithValue(options.idProperty)) {
+        __privateGet(this, _options4).idProperty = options.idProperty;
+      }
+      if (isBoolean(options.fitBounds)) {
+        __privateGet(this, _options4).fitBounds = options.fitBounds;
+      }
+      if (options.style) {
+        this.setStyle(options.style);
+      }
+      if (options.map) {
+        this.setMap(options.map);
+      }
+      if (options.geoJson) {
+        if (isString(options.geoJson) || Array.isArray(options.geoJson)) {
+          this.loadGeoJson(options.geoJson);
+        } else {
+          this.addGeoJson(options.geoJson);
+        }
+      }
+      if (isBoolean(options.visible)) {
+        this.visible = options.visible;
+      }
+    }
+    return this;
+  }
+  /**
+   * Set the style to apply to the features in the layer.
+   *
+   * The style can either be a single style object that is applied to every feature, or a
+   * function that is called for each feature and returns the style for it.
+   *
+   * This replaces the existing style rather than merging with it, which matches the
+   * Google maps API. Set every value that you need each time.
+   *
+   * layer.setStyle({ fillColor: '#4caf50' });
+   * layer.setStyle((feature) => ({ fillColor: feature.getProperty('color') }));
+   *
+   * https://developers.google.com/maps/documentation/javascript/reference/data#Data.setStyle
+   *
+   * @param {DataStyleValue} style The style to apply to the features in the layer
+   * @returns {DataLayer}
+   */
+  setStyle(style) {
+    __privateSet(this, _style2, style);
+    return __privateMethod(this, _DataLayer_instances, queue_fn).call(this, () => {
+      __privateMethod(this, _DataLayer_instances, applyStyle_fn).call(this);
+    });
+  }
+  /**
+   * Show the layer on the map.
+   *
+   * This will also set the map object if it's passed.
+   *
+   * @param {Map} [map] The map object to add the layer to
+   * @returns {Promise<DataLayer>}
+   */
+  show(map2) {
+    return __async(this, null, function* () {
+      this.isVisible = true;
+      if (map2 instanceof Map) {
+        return this.setMap(map2);
+      }
+      const mapObject = __privateMethod(this, _DataLayer_instances, mapObject_fn).call(this);
+      yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
+        if (mapObject) {
+          data.setMap(mapObject.toGoogle());
+        }
+      });
+      return this;
+    });
+  }
+  /**
+   * Export every feature in the layer as a GeoJson object.
+   *
+   * The Google maps API method is callback based. This returns a promise instead.
+   *
+   * @returns {Promise<object>}
+   */
+  toGeoJson() {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => new Promise((resolve) => {
+      data.toGeoJson((geoJson) => {
+        resolve(geoJson);
+      });
+    }));
+  }
+  /**
+   * Returns the Google maps Data object.
+   *
+   * The Data object may not exist yet so this returns a promise that resolves once it does.
+   *
+   * This waits for any calls that were already made on the layer, so the Data object that it
+   * resolves with has had all of them applied to it.
+   *
+   * @returns {Promise<google.maps.Data>}
+   */
+  toGoogle() {
+    return __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => data);
+  }
+};
+_data2 = new WeakMap();
+_defaultLayerMap = new WeakMap();
+_features = new WeakMap();
+_options4 = new WeakMap();
+_pendingChain = new WeakMap();
+_setupPromise = new WeakMap();
+_style2 = new WeakMap();
+_svgSymbols = new WeakMap();
+_DataLayer_instances = new WeakSet();
+/**
+ * Add a feature with the given geometry to the layer
+ *
+ * @private
+ * @param {google.maps.Data} data The Google maps Data object
+ * @param {google.maps.Data.Geometry} geometry The geometry for the feature
+ * @param {FeatureOptions} [options] The options for the feature
+ * @returns {DataFeature}
+ */
+addFeature_fn = function(data, geometry, options) {
+  const featureOptions = { geometry };
+  if (isObject(options)) {
+    if (isStringOrNumber(options.id)) {
+      featureOptions.id = options.id;
+    }
+    if (isObject(options.properties)) {
+      featureOptions.properties = options.properties;
+    }
+  }
+  const googleFeature = data.add(featureOptions);
+  if (isObject(options) && isObject(options.style)) {
+    data.overrideStyle(googleFeature, __privateMethod(this, _DataLayer_instances, convertStyle_fn).call(this, options.style));
+  }
+  return __privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, googleFeature);
+};
+/**
+ * Handle the work that needs to happen after GeoJson data has been loaded
+ *
+ * @private
+ * @param {google.maps.Data} data The Google maps Data object
+ * @param {google.maps.Data.Feature[]} googleFeatures The features that were loaded
+ * @param {LoadOptions} [options] The options that the data was loaded with
+ * @returns {Promise<DataFeature[]>}
+ */
+afterLoad_fn = function(data, googleFeatures, options) {
+  const features = googleFeatures.map((feature) => __privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, feature));
+  this.dispatch(DataLayerEvents.LOAD);
+  const fit = isObject(options) && isBoolean(options.fitBounds) ? options.fitBounds : __privateGet(this, _options4).fitBounds;
+  if (fit === true) {
+    return __privateMethod(this, _DataLayer_instances, fitBounds_fn2).call(this, data).then(() => features);
+  }
+  return Promise.resolve(features);
+};
+/**
+ * Apply the layer style to the Google maps Data object
+ *
+ * @private
+ */
+applyStyle_fn = function() {
+  if (!__privateGet(this, _data2)) {
+    return;
+  }
+  const style = __privateGet(this, _style2);
+  if (isFunction(style)) {
+    __privateGet(this, _data2).setStyle(
+      (googleFeature) => __privateMethod(this, _DataLayer_instances, convertStyle_fn).call(this, style(__privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, googleFeature)))
+    );
+  } else if (isObject(style)) {
+    __privateGet(this, _data2).setStyle(__privateMethod(this, _DataLayer_instances, convertStyle_fn).call(this, style));
+  } else {
+    __privateGet(this, _data2).setStyle(null);
+  }
+};
+/**
+ * Convert an icon value to the value that the Google maps API needs.
+ *
+ * This has to be synchronous because the Google maps API uses the value that the style
+ * function returns straight away. SvgSymbol.toGoogle() returns a promise, so a symbol that
+ * hasn't resolved yet is left off the style and the style is applied again once it resolves.
+ *
+ * @private
+ * @param {any} value The icon value from the style
+ * @returns {any}
+ */
+convertIcon_fn = function(value) {
+  if (value instanceof Icon) {
+    return value.toGoogle();
+  }
+  if (value instanceof SvgSymbol) {
+    const symbol = __privateGet(this, _svgSymbols).get(value);
+    if (symbol) {
+      return symbol;
+    }
+    value.toGoogle().then((resolved) => {
+      __privateGet(this, _svgSymbols).set(value, resolved);
+      __privateMethod(this, _DataLayer_instances, applyStyle_fn).call(this);
+    });
+    return void 0;
+  }
+  return value;
+};
+/**
+ * Convert this library's style options to the Google maps style options
+ *
+ * @private
+ * @param {DataStyleOptions} style The style options
+ * @returns {google.maps.Data.StyleOptions}
+ */
+convertStyle_fn = function(style) {
+  const styleOptions = {};
+  if (!isObject(style)) {
+    return styleOptions;
+  }
+  ["cursor", "fillColor", "strokeColor", "title"].forEach((key) => {
+    if (isStringWithValue(style[key])) {
+      styleOptions[key] = style[key];
+    }
+  });
+  ["clickable", "draggable", "editable", "visible"].forEach((key) => {
+    if (isBoolean(style[key])) {
+      styleOptions[key] = style[key];
+    }
+  });
+  ["fillOpacity", "strokeOpacity", "strokeWeight", "zIndex"].forEach((key) => {
+    if (isNumberOrNumberString(style[key])) {
+      styleOptions[key] = Number(style[key]);
+    }
+  });
+  if (!isNullOrUndefined(style.icon)) {
+    const icon2 = __privateMethod(this, _DataLayer_instances, convertIcon_fn).call(this, style.icon);
+    if (!isNullOrUndefined(icon2)) {
+      styleOptions.icon = icon2;
+    }
+  }
+  return styleOptions;
+};
+/**
+ * Add a call to the end of the chain of calls waiting for the Google maps Data object.
+ *
+ * Calls are always run in the order that they were made, however long the map takes to
+ * be ready. A call that fails doesn't stop the calls after it from running.
+ *
+ * @private
+ * @param {Function} callback The function to call with the Google maps Data object
+ * @returns {Promise}
+ */
+enqueue_fn = function(callback) {
+  const result = __privateGet(this, _pendingChain).then(() => __privateMethod(this, _DataLayer_instances, getGoogleData_fn).call(this)).then((data) => callback(data));
+  __privateSet(this, _pendingChain, result.then(
+    () => void 0,
+    () => void 0
+  ));
+  return result;
+};
+/**
+ * Get the DataFeature object for a Google maps feature.
+ *
+ * The same Google feature always gets the same DataFeature object back.
+ *
+ * @private
+ * @param {google.maps.Data.Feature} googleFeature The Google maps feature
+ * @returns {DataFeature}
+ */
+featureFor_fn = function(googleFeature) {
+  if (!googleFeature) {
+    return void 0;
+  }
+  let feature = __privateGet(this, _features).get(googleFeature);
+  if (!feature) {
+    feature = new DataFeature(googleFeature, this);
+    __privateGet(this, _features).set(googleFeature, feature);
+  }
+  return feature;
+};
+/**
+ * Fit the map to the bounds of the data in the layer.
+ *
+ * This is the internal version that already has the Google maps Data object, so that it
+ * can be called from within a queued call without waiting on the queue again.
+ *
+ * @private
+ * @param {google.maps.Data} data The Google maps Data object
+ * @returns {Promise<DataLayer>}
+ */
+fitBounds_fn2 = function(data) {
+  var _a;
+  const mapObject = __privateMethod(this, _DataLayer_instances, mapObject_fn).call(this);
+  const { bounds, hasPositions } = __privateMethod(_a = _DataLayer, _DataLayer_static, bounds_fn).call(_a, data);
+  if (mapObject && hasPositions) {
+    return mapObject.fitBounds(bounds).then(() => this);
+  }
+  return Promise.resolve(this);
+};
+/**
+ * Get the GeoJson options to pass to the Google maps API
+ *
+ * @private
+ * @param {LoadOptions} [options] The load options
+ * @returns {google.maps.Data.GeoJsonOptions}
+ */
+geoJsonOptions_fn = function(options) {
+  const idProperty = isObject(options) && isStringWithValue(options.idProperty) ? options.idProperty : __privateGet(this, _options4).idProperty;
+  if (isStringWithValue(idProperty)) {
+    return { idPropertyName: idProperty };
+  }
+  return null;
+};
+/**
+ * Set up the Google maps Data object if necessary.
+ *
+ * The map's own data layer needs the map to be set up first. Any other layer only needs the
+ * Google maps library to be loaded, so data can be loaded into it before there's a map.
+ *
+ * The promise is held so that the Data object is only ever created once.
+ *
+ * @private
+ * @returns {Promise<google.maps.Data>}
+ */
+getGoogleData_fn = function() {
+  if (!__privateGet(this, _setupPromise)) {
+    __privateSet(this, _setupPromise, new Promise((resolve) => {
+      if (__privateGet(this, _defaultLayerMap) instanceof Map) {
+        __privateGet(this, _defaultLayerMap).init().then(() => {
+          __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, __privateGet(this, _defaultLayerMap).toGoogle().data);
+          resolve(__privateGet(this, _data2));
+        });
+      } else if (checkForGoogleMaps("DataLayer", "Data", false)) {
+        __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, new google.maps.Data());
+        resolve(__privateGet(this, _data2));
+      } else {
+        loader().onLoad(() => {
+          __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, new google.maps.Data());
+          const mapObject = __privateMethod(this, _DataLayer_instances, mapObject_fn).call(this);
+          if (mapObject && this.isVisible !== false) {
+            __privateGet(this, _data2).setMap(mapObject.toGoogle());
+          }
+          resolve(__privateGet(this, _data2));
+        });
+      }
+    }));
+  }
+  return __privateGet(this, _setupPromise);
+};
+/**
+ * Get the Google maps feature for a feature value
+ *
+ * @private
+ * @param {google.maps.Data} data The Google maps Data object
+ * @param {DataFeatureValue} feature The feature, or the feature id
+ * @returns {google.maps.Data.Feature|undefined}
+ */
+// eslint-disable-next-line class-methods-use-this -- This is grouped with the other private methods
+googleFeatureFor_fn = function(data, feature) {
+  if (feature instanceof DataFeature) {
+    return feature.toGoogle();
+  }
+  if (isStringOrNumber(feature)) {
+    return data.getFeatureById(feature);
+  }
+  return void 0;
+};
+/**
+ * Remove the existing features if the load options ask for it
+ *
+ * @private
+ * @param {google.maps.Data} data The Google maps Data object
+ * @param {LoadOptions} [options] The load options
+ */
+// eslint-disable-next-line class-methods-use-this -- This is grouped with the other private methods
+handleReplace_fn = function(data, options) {
+  var _a;
+  if (isObject(options) && options.replace === true) {
+    __privateMethod(_a = _DataLayer, _DataLayer_static, googleFeatures_fn).call(_a, data).forEach((feature) => {
+      data.remove(feature);
+    });
+  }
+};
+/**
+ * Get the map that the layer belongs to.
+ *
+ * For the map's own data layer this is still the map even after hide() has set the map
+ * on the Google object to null.
+ *
+ * @private
+ * @returns {Map|null}
+ */
+mapObject_fn = function() {
+  var _a;
+  const map2 = this.getMap();
+  if (map2 instanceof Map) {
+    return map2;
+  }
+  return (_a = __privateGet(this, _defaultLayerMap)) != null ? _a : null;
+};
+/**
+ * Add a call that doesn't return a value to the queue and return the layer so that
+ * calls can be chained.
+ *
+ * @private
+ * @param {Function} callback The function to call with the Google maps Data object
+ * @returns {DataLayer}
+ */
+queue_fn = function(callback) {
+  __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, callback).catch((error) => {
+    console.error(error);
+  });
+  return this;
+};
+/**
+ * Set the Google maps Data object and everything that depends on it
+ *
+ * @private
+ * @param {google.maps.Data} data The Google maps Data object
+ */
+setDataObject_fn = function(data) {
+  __privateSet(this, _data2, data);
+  this.setEventGoogleObject(data);
+  __privateMethod(this, _DataLayer_instances, applyStyle_fn).call(this);
+  this.dispatch(DataLayerEvents.READY);
+};
+/**
+ * Start setting up the Google maps Data object without waiting for it
+ *
+ * @private
+ */
+setup_fn = function() {
+  __privateMethod(this, _DataLayer_instances, getGoogleData_fn).call(this).catch((error) => {
+    console.error(error);
+  });
+};
+_DataLayer_static = new WeakSet();
+bounds_fn = function(data) {
+  const bounds = latLngBounds();
+  let hasPositions = false;
+  data.forEach((feature) => {
+    const geometry = feature.getGeometry();
+    if (geometry) {
+      geometry.forEachLatLng((googleLatLng) => {
+        hasPositions = true;
+        bounds.extend(latLngConvert(googleLatLng));
+      });
+    }
+  });
+  return { bounds, hasPositions };
+};
+googleFeatures_fn = function(data) {
+  const features = [];
+  data.forEach((feature) => {
+    features.push(feature);
+  });
+  return features;
+};
+toPositions_fn = function(path) {
+  if (!Array.isArray(path)) {
+    return [];
+  }
+  return path.map((value) => latLng(value)).filter((value) => value.isValid()).map((value) => value.toGoogle());
+};
+toRingPositions_fn = function(ring) {
+  const positions = Array.isArray(ring) ? ring.map((value) => latLng(value)).filter((value) => value.isValid()) : [];
+  if (positions.length > 2 && positions[0].equals(positions[positions.length - 1])) {
+    positions.pop();
+  }
+  return positions.map((value) => value.toGoogle());
+};
+toRings_fn = function(paths) {
+  if (!Array.isArray(paths) || paths.length === 0) {
+    return [];
+  }
+  if (latLng(paths[0]).isValid()) {
+    return [paths];
+  }
+  return paths;
+};
+__privateAdd(_DataLayer, _DataLayer_static);
+var DataLayer = _DataLayer;
+var dataLayer = (options) => {
+  if (options instanceof DataLayer) {
+    return options;
+  }
+  return new DataLayer(options);
+};
+
 // src/lib/Marker.ts
-var _customData, _drag, _isSettingUp, _marker, _options4, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
+var _customData, _drag, _isSettingUp, _marker, _options5, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
 var _Marker = class _Marker extends Layer_default {
   /**
    * Constructor
@@ -8394,8 +9876,8 @@ var _Marker = class _Marker extends Layer_default {
      * @private
      * @type {GMMarkerOptions}
      */
-    __privateAdd(this, _options4, {});
-    __privateGet(this, _options4).position = latLng([0, 0]);
+    __privateAdd(this, _options5, {});
+    __privateGet(this, _options5).position = latLng([0, 0]);
     if (position instanceof LatLng || Array.isArray(position)) {
       this.setPosition(position);
       if (isObject(options)) {
@@ -8411,7 +9893,7 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Point}
    */
   get anchorPoint() {
-    return __privateGet(this, _options4).anchorPoint;
+    return __privateGet(this, _options5).anchorPoint;
   }
   /**
    * Set the anchor point for the marker
@@ -8427,7 +9909,7 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {string}
    */
   get cursor() {
-    return __privateGet(this, _options4).cursor;
+    return __privateGet(this, _options5).cursor;
   }
   /**
    * Set the cursor type to show on hover
@@ -8483,7 +9965,7 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Icon | SvgSymbol | string}
    */
   get icon() {
-    return __privateGet(this, _options4).icon;
+    return __privateGet(this, _options5).icon;
   }
   /**
    * Set the icon for the marker
@@ -8499,7 +9981,7 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {string | number | MarkerLabel}
    */
   get label() {
-    return __privateGet(this, _options4).label;
+    return __privateGet(this, _options5).label;
   }
   /**
    * Set the label for the marker
@@ -8515,7 +9997,7 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {Map}
    */
   get map() {
-    return __privateGet(this, _options4).map;
+    return __privateGet(this, _options5).map;
   }
   /**
    * Set the map object
@@ -8531,7 +10013,7 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
-    let returnValue = __privateGet(this, _options4).position;
+    let returnValue = __privateGet(this, _options5).position;
     if (__privateGet(this, _marker)) {
       returnValue = latLng(__privateGet(this, _marker).getPosition());
     }
@@ -8554,7 +10036,7 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {string}
    */
   get title() {
-    return __privateGet(this, _options4).title;
+    return __privateGet(this, _options5).title;
   }
   /**
    * Set the title for the marker
@@ -8988,7 +10470,7 @@ var _Marker = class _Marker extends Layer_default {
     return __async(this, null, function* () {
       yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
       __privateMethod(this, _Marker_instances, setLabel_fn).call(this, value);
-      __privateGet(this, _marker).setLabel(__privateGet(this, _options4).label);
+      __privateGet(this, _marker).setLabel(__privateGet(this, _options5).label);
       return this;
     });
   }
@@ -9005,7 +10487,7 @@ var _Marker = class _Marker extends Layer_default {
   setLabelSync(value) {
     __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
     __privateMethod(this, _Marker_instances, setLabel_fn).call(this, value);
-    __privateGet(this, _marker).setLabel(__privateGet(this, _options4).label);
+    __privateGet(this, _marker).setLabel(__privateGet(this, _options5).label);
     return this;
   }
   /**
@@ -9049,7 +10531,7 @@ var _Marker = class _Marker extends Layer_default {
    */
   setOptions(options) {
     if (options.anchorPoint) {
-      __privateGet(this, _options4).anchorPoint = options.anchorPoint;
+      __privateGet(this, _options5).anchorPoint = options.anchorPoint;
       if (__privateGet(this, _marker)) {
         this.anchorPoint = options.anchorPoint;
       }
@@ -9061,18 +10543,18 @@ var _Marker = class _Marker extends Layer_default {
       }
     }
     if (options.icon) {
-      __privateGet(this, _options4).icon = icon(options.icon);
+      __privateGet(this, _options5).icon = icon(options.icon);
       if (__privateGet(this, _marker)) {
         this.icon = options.icon;
       }
     } else if (options.svgIcon) {
       if (isString(options.svgIcon)) {
-        __privateGet(this, _options4).icon = `data:image/svg+xml;base64,${btoa(options.svgIcon)}`;
+        __privateGet(this, _options5).icon = `data:image/svg+xml;base64,${btoa(options.svgIcon)}`;
       } else {
-        __privateGet(this, _options4).icon = svgSymbol(options.svgIcon);
+        __privateGet(this, _options5).icon = svgSymbol(options.svgIcon);
       }
       if (__privateGet(this, _marker)) {
-        this.icon = __privateGet(this, _options4).icon;
+        this.icon = __privateGet(this, _options5).icon;
       }
     }
     if (isStringWithValue(options.label) || isObject(options.label) && isStringOrNumber(options.label.text)) {
@@ -9115,11 +10597,11 @@ var _Marker = class _Marker extends Layer_default {
     const stringOptions = ["cursor"];
     stringOptions.forEach((key) => {
       if (options[key] && isStringWithValue(options[key])) {
-        __privateGet(this, _options4)[key] = options[key];
+        __privateGet(this, _options5)[key] = options[key];
       }
     });
     if (options.map) {
-      __privateGet(this, _options4).map = options.map;
+      __privateGet(this, _options5).map = options.map;
       super.setMap(options.map);
       if (__privateGet(this, _marker)) {
         this.setMap(options.map);
@@ -9233,7 +10715,7 @@ _customData = new WeakMap();
 _drag = new WeakMap();
 _isSettingUp = new WeakMap();
 _marker = new WeakMap();
-_options4 = new WeakMap();
+_options5 = new WeakMap();
 _Marker_instances = new WeakSet();
 /**
  * Set the anchor point for the marker
@@ -9243,11 +10725,11 @@ _Marker_instances = new WeakSet();
 setAnchorPoint_fn = function(value) {
   const anchor = point(value);
   if (anchor.isValid()) {
-    __privateGet(this, _options4).anchorPoint = anchor;
+    __privateGet(this, _options5).anchorPoint = anchor;
   } else {
-    __privateGet(this, _options4).anchorPoint = void 0;
+    __privateGet(this, _options5).anchorPoint = void 0;
   }
-  __privateGet(this, _marker).setOptions({ anchorPoint: __privateGet(this, _options4).anchorPoint.toGoogle() });
+  __privateGet(this, _marker).setOptions({ anchorPoint: __privateGet(this, _options5).anchorPoint.toGoogle() });
 };
 /**
  * Set the cursor for the marker
@@ -9256,11 +10738,11 @@ setAnchorPoint_fn = function(value) {
  */
 setCursor_fn = function(value) {
   if (isStringWithValue(value)) {
-    __privateGet(this, _options4).cursor = value;
+    __privateGet(this, _options5).cursor = value;
   } else if (isNullOrUndefined(value)) {
-    __privateGet(this, _options4).cursor = void 0;
+    __privateGet(this, _options5).cursor = void 0;
   }
-  __privateGet(this, _marker).setCursor(__privateGet(this, _options4).cursor);
+  __privateGet(this, _marker).setCursor(__privateGet(this, _options5).cursor);
 };
 /**
  * Set whether the marker can be dragged on the map
@@ -9280,19 +10762,19 @@ setDraggable_fn = function(value) {
  */
 setIcon_fn = function(value) {
   if (isString(value) || value instanceof Icon || value instanceof SvgSymbol) {
-    __privateGet(this, _options4).icon = value;
+    __privateGet(this, _options5).icon = value;
   } else if (isNullOrUndefined(value)) {
-    __privateGet(this, _options4).icon = void 0;
+    __privateGet(this, _options5).icon = void 0;
   }
-  if (isString(__privateGet(this, _options4).icon)) {
-    __privateGet(this, _marker).setIcon(__privateGet(this, _options4).icon);
+  if (isString(__privateGet(this, _options5).icon)) {
+    __privateGet(this, _marker).setIcon(__privateGet(this, _options5).icon);
   } else {
-    if (__privateGet(this, _options4).icon instanceof SvgSymbol) {
-      __privateGet(this, _options4).icon.toGoogle().then((markerIcon) => {
+    if (__privateGet(this, _options5).icon instanceof SvgSymbol) {
+      __privateGet(this, _options5).icon.toGoogle().then((markerIcon) => {
         __privateGet(this, _marker).setIcon(markerIcon);
       });
     } else {
-      __privateGet(this, _marker).setIcon(__privateGet(this, _options4).icon.toGoogle());
+      __privateGet(this, _marker).setIcon(__privateGet(this, _options5).icon.toGoogle());
     }
   }
 };
@@ -9303,32 +10785,32 @@ setIcon_fn = function(value) {
  */
 setLabel_fn = function(value) {
   if (isStringWithValue(value)) {
-    __privateGet(this, _options4).label = value;
+    __privateGet(this, _options5).label = value;
   } else if (isObject(value) && isStringOrNumber(value.text)) {
-    __privateGet(this, _options4).label = {
+    __privateGet(this, _options5).label = {
       text: value.text.toString()
     };
     if (isStringWithValue(value.className)) {
-      __privateGet(this, _options4).label.className = value.className;
+      __privateGet(this, _options5).label.className = value.className;
     }
     if (isStringWithValue(value.color)) {
-      __privateGet(this, _options4).label.color = value.color;
+      __privateGet(this, _options5).label.color = value.color;
     }
     if (isStringWithValue(value.fontFamily)) {
-      __privateGet(this, _options4).label.fontFamily = value.fontFamily;
+      __privateGet(this, _options5).label.fontFamily = value.fontFamily;
     }
     if (isStringWithValue(value.fontWeight)) {
-      __privateGet(this, _options4).label.fontWeight = value.fontWeight;
+      __privateGet(this, _options5).label.fontWeight = value.fontWeight;
     }
     if (isStringWithValue(value.fontSize) || isNumber(value.fontSize)) {
       if (isNumber(value.fontSize)) {
-        __privateGet(this, _options4).label.fontSize = `${value.fontSize}px`;
+        __privateGet(this, _options5).label.fontSize = `${value.fontSize}px`;
       } else {
-        __privateGet(this, _options4).label.fontSize = value.fontSize.toString();
+        __privateGet(this, _options5).label.fontSize = value.fontSize.toString();
       }
     }
   } else if (isNullOrUndefined(value)) {
-    __privateGet(this, _options4).label = void 0;
+    __privateGet(this, _options5).label = void 0;
   }
 };
 /**
@@ -9338,11 +10820,11 @@ setLabel_fn = function(value) {
  */
 setMap_fn = function(value) {
   if (value instanceof Map) {
-    __privateGet(this, _options4).map = value;
+    __privateGet(this, _options5).map = value;
     __superGet(_Marker.prototype, this, "setMap").call(this, value);
     __privateGet(this, _marker).setMap(value.toGoogle());
   } else if (isNullOrUndefined(value)) {
-    __privateGet(this, _options4).map = null;
+    __privateGet(this, _options5).map = null;
     __superGet(_Marker.prototype, this, "setMap").call(this, null);
     if (__privateGet(this, _marker)) {
       __privateGet(this, _marker).setMap(null);
@@ -9357,14 +10839,14 @@ setMap_fn = function(value) {
 setPosition_fn = function(value) {
   const position = latLng(value);
   if (position.isValid()) {
-    __privateGet(this, _options4).position = position;
+    __privateGet(this, _options5).position = position;
   }
 };
 /**
  * Set the position for the marker on the Google marker object
  */
 setGoogleMarkerPosition_fn = function() {
-  __privateGet(this, _marker).setPosition(__privateGet(this, _options4).position.toGoogle());
+  __privateGet(this, _marker).setPosition(__privateGet(this, _options5).position.toGoogle());
 };
 /**
  * Set the title for the marker
@@ -9373,11 +10855,11 @@ setGoogleMarkerPosition_fn = function() {
  */
 setTitle_fn = function(value) {
   if (isStringWithValue(value)) {
-    __privateGet(this, _options4).title = value;
+    __privateGet(this, _options5).title = value;
   } else if (isNullOrUndefined(value)) {
-    __privateGet(this, _options4).title = void 0;
+    __privateGet(this, _options5).title = void 0;
   }
-  __privateGet(this, _marker).setTitle(__privateGet(this, _options4).title);
+  __privateGet(this, _marker).setTitle(__privateGet(this, _options5).title);
 };
 /**
  * Set up the Google maps marker object if necessary
@@ -9448,37 +10930,37 @@ createMarkerObject_fn = function() {
         const markerOptions = {};
         const optionsToSet = ["cursor", "title"];
         optionsToSet.forEach((key) => {
-          if (typeof __privateGet(this, _options4)[key] !== "undefined") {
-            markerOptions[key] = __privateGet(this, _options4)[key];
+          if (typeof __privateGet(this, _options5)[key] !== "undefined") {
+            markerOptions[key] = __privateGet(this, _options5)[key];
           }
         });
-        if (__privateGet(this, _options4).anchorPoint) {
-          markerOptions.anchorPoint = __privateGet(this, _options4).anchorPoint.toGoogle();
+        if (__privateGet(this, _options5).anchorPoint) {
+          markerOptions.anchorPoint = __privateGet(this, _options5).anchorPoint.toGoogle();
         }
         if (__privateGet(this, _drag)) {
           markerOptions.draggable = true;
         }
-        if (__privateGet(this, _options4).icon) {
-          if (isString(__privateGet(this, _options4).icon)) {
-            markerOptions.icon = __privateGet(this, _options4).icon;
-          } else if (__privateGet(this, _options4).icon instanceof SvgSymbol) {
-            __privateGet(this, _options4).icon.toGoogle().then((markerIcon) => {
+        if (__privateGet(this, _options5).icon) {
+          if (isString(__privateGet(this, _options5).icon)) {
+            markerOptions.icon = __privateGet(this, _options5).icon;
+          } else if (__privateGet(this, _options5).icon instanceof SvgSymbol) {
+            __privateGet(this, _options5).icon.toGoogle().then((markerIcon) => {
               __privateGet(this, _marker).setIcon(markerIcon);
             });
-          } else if (__privateGet(this, _options4).icon instanceof Icon) {
-            markerOptions.icon = __privateGet(this, _options4).icon.toGoogle();
+          } else if (__privateGet(this, _options5).icon instanceof Icon) {
+            markerOptions.icon = __privateGet(this, _options5).icon.toGoogle();
           }
         }
-        if (__privateGet(this, _options4).position) {
-          markerOptions.position = __privateGet(this, _options4).position.toGoogle();
+        if (__privateGet(this, _options5).position) {
+          markerOptions.position = __privateGet(this, _options5).position.toGoogle();
         }
-        if (__privateGet(this, _options4).label) {
-          markerOptions.label = __privateGet(this, _options4).label;
+        if (__privateGet(this, _options5).label) {
+          markerOptions.label = __privateGet(this, _options5).label;
         }
-        if (__privateGet(this, _options4).map) {
-          const map2 = __privateGet(this, _options4).map.toGoogle();
+        if (__privateGet(this, _options5).map) {
+          const map2 = __privateGet(this, _options5).map.toGoogle();
           markerOptions.map = map2;
-          __privateGet(this, _options4).map.once(MapEvents.IDLE, () => {
+          __privateGet(this, _options5).map.once(MapEvents.IDLE, () => {
             __privateSet(this, _marker, new google.maps.Marker(markerOptions));
             this.setEventGoogleObject(__privateGet(this, _marker));
             resolve();
@@ -9503,7 +10985,7 @@ var marker = (position, options) => {
 };
 
 // src/lib/InfoWindow.ts
-var _autoClose, _event, _focus, _isAttached, _isOpen, _options5, _toggleDisplay, _infoWindow, _InfoWindow_instances, setupGoogleInfoWindow_fn;
+var _autoClose, _event, _focus, _isAttached, _isOpen, _options6, _toggleDisplay, _infoWindow, _InfoWindow_instances, setupGoogleInfoWindow_fn;
 var InfoWindow = class extends Layer_default {
   /**
    * Constructor
@@ -9554,7 +11036,7 @@ var InfoWindow = class extends Layer_default {
      * @private
      * @type {InfoWindowOptions}
      */
-    __privateAdd(this, _options5, {});
+    __privateAdd(this, _options6, {});
     /**
      * Whether clicking the thing that triggered the info window to open should also close the info window
      *
@@ -9569,7 +11051,7 @@ var InfoWindow = class extends Layer_default {
      * @type {google.maps.InfoWindow}
      */
     __privateAdd(this, _infoWindow);
-    __privateGet(this, _options5).pixelOffset = size(0, -4);
+    __privateGet(this, _options6).pixelOffset = size(0, -4);
     if (isObject(options)) {
       if (options instanceof HTMLElement || options instanceof Text) {
         this.content = options;
@@ -9586,7 +11068,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {string}
    */
   get ariaLabel() {
-    return __privateGet(this, _options5).ariaLabel;
+    return __privateGet(this, _options6).ariaLabel;
   }
   /**
    * Set the aria label for the InfoWindow
@@ -9595,10 +11077,10 @@ var InfoWindow = class extends Layer_default {
    */
   set ariaLabel(ariaLabel) {
     if (isStringWithValue(ariaLabel) || isNumber(ariaLabel)) {
-      __privateGet(this, _options5).ariaLabel = ariaLabel.toString();
+      __privateGet(this, _options6).ariaLabel = ariaLabel.toString();
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
-        __privateGet(this, _infoWindow).setOptions({ ariaLabel: __privateGet(this, _options5).ariaLabel });
+        __privateGet(this, _infoWindow).setOptions({ ariaLabel: __privateGet(this, _options6).ariaLabel });
       }
     }
   }
@@ -9608,7 +11090,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {string|HTMLElement|Text}
    */
   get content() {
-    return __privateGet(this, _options5).content;
+    return __privateGet(this, _options6).content;
   }
   /**
    * Set the content for the InfoWindow
@@ -9617,7 +11099,7 @@ var InfoWindow = class extends Layer_default {
    */
   set content(content) {
     if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
-      __privateGet(this, _options5).content = content;
+      __privateGet(this, _options6).content = content;
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
         __privateGet(this, _infoWindow).setContent(content);
@@ -9630,7 +11112,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {boolean}
    */
   get disableAutoPan() {
-    return typeof __privateGet(this, _options5).disableAutoPan === "boolean" && __privateGet(this, _options5).disableAutoPan === true;
+    return typeof __privateGet(this, _options6).disableAutoPan === "boolean" && __privateGet(this, _options6).disableAutoPan === true;
   }
   /**
    * Set the disableAutoPan option for the InfoWindow
@@ -9639,10 +11121,10 @@ var InfoWindow = class extends Layer_default {
    */
   set disableAutoPan(disableAutoPan) {
     if (typeof disableAutoPan !== "boolean") {
-      __privateGet(this, _options5).disableAutoPan = disableAutoPan;
+      __privateGet(this, _options6).disableAutoPan = disableAutoPan;
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
-        __privateGet(this, _infoWindow).setOptions({ disableAutoPan: __privateGet(this, _options5).disableAutoPan });
+        __privateGet(this, _infoWindow).setOptions({ disableAutoPan: __privateGet(this, _options6).disableAutoPan });
       }
     }
   }
@@ -9672,7 +11154,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {number}
    */
   get maxWidth() {
-    return __privateGet(this, _options5).maxWidth;
+    return __privateGet(this, _options6).maxWidth;
   }
   /**
    * Set the maxWidth option for the InfoWindow
@@ -9685,10 +11167,10 @@ var InfoWindow = class extends Layer_default {
       if (isNumberString(width)) {
         width = Number(width);
       }
-      __privateGet(this, _options5).maxWidth = width;
+      __privateGet(this, _options6).maxWidth = width;
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
-        __privateGet(this, _infoWindow).setOptions({ maxWidth: __privateGet(this, _options5).maxWidth });
+        __privateGet(this, _infoWindow).setOptions({ maxWidth: __privateGet(this, _options6).maxWidth });
       }
     }
   }
@@ -9698,7 +11180,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {number}
    */
   get minWidth() {
-    return __privateGet(this, _options5).minWidth;
+    return __privateGet(this, _options6).minWidth;
   }
   /**
    * Set the minWidth option for the InfoWindow
@@ -9711,10 +11193,10 @@ var InfoWindow = class extends Layer_default {
       if (isNumberString(width)) {
         width = Number(width);
       }
-      __privateGet(this, _options5).minWidth = width;
+      __privateGet(this, _options6).minWidth = width;
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
-        __privateGet(this, _infoWindow).setOptions({ minWidth: __privateGet(this, _options5).minWidth });
+        __privateGet(this, _infoWindow).setOptions({ minWidth: __privateGet(this, _options6).minWidth });
       }
     }
   }
@@ -9724,7 +11206,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {Size}
    */
   get pixelOffset() {
-    return __privateGet(this, _options5).pixelOffset;
+    return __privateGet(this, _options6).pixelOffset;
   }
   /**
    * Set the pixelOffset option for the InfoWindow
@@ -9735,9 +11217,9 @@ var InfoWindow = class extends Layer_default {
     const sizeValue = size(pixelOffset);
     if (sizeValue.isValid()) {
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
-      __privateGet(this, _options5).pixelOffset = sizeValue;
+      __privateGet(this, _options6).pixelOffset = sizeValue;
       if (__privateGet(this, _infoWindow)) {
-        __privateGet(this, _infoWindow).setOptions({ pixelOffset: __privateGet(this, _options5).pixelOffset.toGoogle() });
+        __privateGet(this, _infoWindow).setOptions({ pixelOffset: __privateGet(this, _options6).pixelOffset.toGoogle() });
       }
     }
   }
@@ -9747,7 +11229,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
-    return __privateGet(this, _options5).position;
+    return __privateGet(this, _options6).position;
   }
   /**
    * Set the position option for the InfoWindow
@@ -9758,9 +11240,9 @@ var InfoWindow = class extends Layer_default {
     const latLngValue = latLng(position);
     if (latLngValue.isValid()) {
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
-      __privateGet(this, _options5).position = latLngValue;
+      __privateGet(this, _options6).position = latLngValue;
       if (__privateGet(this, _infoWindow)) {
-        __privateGet(this, _infoWindow).setPosition(__privateGet(this, _options5).position.toGoogle());
+        __privateGet(this, _infoWindow).setPosition(__privateGet(this, _options6).position.toGoogle());
       }
     }
   }
@@ -9770,7 +11252,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {number}
    */
   get zIndex() {
-    return __privateGet(this, _options5).zIndex;
+    return __privateGet(this, _options6).zIndex;
   }
   /**
    * Set the zIndex option for the InfoWindow
@@ -9783,10 +11265,10 @@ var InfoWindow = class extends Layer_default {
       if (isNumberString(zIndexValue)) {
         zIndexValue = Number(zIndexValue);
       }
-      __privateGet(this, _options5).zIndex = zIndexValue;
+      __privateGet(this, _options6).zIndex = zIndexValue;
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
-        __privateGet(this, _infoWindow).setOptions({ zIndex: __privateGet(this, _options5).zIndex });
+        __privateGet(this, _infoWindow).setOptions({ zIndex: __privateGet(this, _options6).zIndex });
       }
     }
   }
@@ -9863,7 +11345,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {boolean}
    */
   hasContent() {
-    return typeof __privateGet(this, _options5).content !== "undefined" && (isStringWithValue(__privateGet(this, _options5).content) || __privateGet(this, _options5).content instanceof HTMLElement || __privateGet(this, _options5).content instanceof Text);
+    return typeof __privateGet(this, _options6).content !== "undefined" && (isStringWithValue(__privateGet(this, _options6).content) || __privateGet(this, _options6).content instanceof HTMLElement || __privateGet(this, _options6).content instanceof Text);
   }
   /**
    * Hide the info window
@@ -10111,7 +11593,7 @@ _event = new WeakMap();
 _focus = new WeakMap();
 _isAttached = new WeakMap();
 _isOpen = new WeakMap();
-_options5 = new WeakMap();
+_options6 = new WeakMap();
 _toggleDisplay = new WeakMap();
 _infoWindow = new WeakMap();
 _InfoWindow_instances = new WeakSet();
@@ -10126,15 +11608,15 @@ setupGoogleInfoWindow_fn = function() {
       const infoWindowOptions = {};
       const optionsToSet = ["ariaLabel", "content", "disableAutoPan", "maxWidth", "minWidth", "zIndex"];
       optionsToSet.forEach((key) => {
-        if (typeof __privateGet(this, _options5)[key] !== "undefined") {
-          infoWindowOptions[key] = __privateGet(this, _options5)[key];
+        if (typeof __privateGet(this, _options6)[key] !== "undefined") {
+          infoWindowOptions[key] = __privateGet(this, _options6)[key];
         }
       });
-      if (__privateGet(this, _options5).pixelOffset) {
-        infoWindowOptions.pixelOffset = __privateGet(this, _options5).pixelOffset.toGoogle();
+      if (__privateGet(this, _options6).pixelOffset) {
+        infoWindowOptions.pixelOffset = __privateGet(this, _options6).pixelOffset.toGoogle();
       }
-      if (__privateGet(this, _options5).position) {
-        infoWindowOptions.position = __privateGet(this, _options5).position.toGoogle();
+      if (__privateGet(this, _options6).position) {
+        infoWindowOptions.position = __privateGet(this, _options6).position.toGoogle();
       }
       __privateSet(this, _infoWindow, new google.maps.InfoWindow(infoWindowOptions));
       __privateGet(this, _infoWindow).addListener("closeclick", () => {
@@ -13219,7 +14701,7 @@ var imageOverlay = (options, bounds) => {
 };
 
 // src/lib/PlacesSearchBox.ts
-var _input2, _places, _placesBounds, _searchBox2, _options6, _createPlacesSearchBox;
+var _input2, _places, _placesBounds, _searchBox2, _options7, _createPlacesSearchBox;
 var PlacesSearchBox = class extends Evented {
   /**
    * Constructor
@@ -13265,7 +14747,7 @@ var PlacesSearchBox = class extends Evented {
      * @private
      * @type {GMPlacesSearchBoxOptions}
      */
-    __privateAdd(this, _options6, {});
+    __privateAdd(this, _options7, {});
     /**
      * Create the places search box object
      *
@@ -13275,7 +14757,7 @@ var PlacesSearchBox = class extends Evented {
       if (!__privateGet(this, _searchBox2)) {
         const options = {};
         if (options.bounds) {
-          options.bounds = yield __privateGet(this, _options6).bounds.toGoogle();
+          options.bounds = yield __privateGet(this, _options7).bounds.toGoogle();
         }
         __privateSet(this, _searchBox2, new google.maps.places.SearchBox(__privateGet(this, _input2), options));
         __privateGet(this, _searchBox2).addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
@@ -13316,7 +14798,7 @@ var PlacesSearchBox = class extends Evented {
    */
   get bounds() {
     var _a;
-    return (_a = __privateGet(this, _options6).bounds) != null ? _a : void 0;
+    return (_a = __privateGet(this, _options7).bounds) != null ? _a : void 0;
   }
   /**
    * Sets the region to use for biasing query predictions.
@@ -13327,7 +14809,7 @@ var PlacesSearchBox = class extends Evented {
    */
   set bounds(value) {
     const boundsValue = latLngBounds(value);
-    __privateGet(this, _options6).bounds = boundsValue;
+    __privateGet(this, _options7).bounds = boundsValue;
     if (__privateGet(this, _searchBox2)) {
       boundsValue.toGoogle().then((bounds) => {
         __privateGet(this, _searchBox2).setBounds(bounds);
@@ -13544,7 +15026,7 @@ _input2 = new WeakMap();
 _places = new WeakMap();
 _placesBounds = new WeakMap();
 _searchBox2 = new WeakMap();
-_options6 = new WeakMap();
+_options7 = new WeakMap();
 _createPlacesSearchBox = new WeakMap();
 var placesSearchBox = (input, options) => {
   if (input instanceof PlacesSearchBox) {
@@ -13554,7 +15036,7 @@ var placesSearchBox = (input, options) => {
 };
 
 // src/lib/PolylineIcon.ts
-var _options7;
+var _options8;
 var PolylineIcon = class extends Base_default {
   /**
    * Constructor
@@ -13569,8 +15051,8 @@ var PolylineIcon = class extends Base_default {
      * @private
      * @type {PolylineGoogleOptions}
      */
-    __privateAdd(this, _options7);
-    __privateSet(this, _options7, {});
+    __privateAdd(this, _options8);
+    __privateSet(this, _options8, {});
     if (isObject(options)) {
       this.setOptions(options);
     }
@@ -13581,7 +15063,7 @@ var PolylineIcon = class extends Base_default {
    * @returns {boolean} True if the icon has a fixed rotation, false otherwise
    */
   get fixedRotation() {
-    return !!__privateGet(this, _options7).fixedRotation;
+    return !!__privateGet(this, _options8).fixedRotation;
   }
   /**
    * Set the fixed rotation setting for the icon
@@ -13592,7 +15074,7 @@ var PolylineIcon = class extends Base_default {
    */
   set fixedRotation(fixedRotation) {
     if (isBoolean(fixedRotation)) {
-      __privateGet(this, _options7).fixedRotation = fixedRotation;
+      __privateGet(this, _options8).fixedRotation = fixedRotation;
     }
   }
   /**
@@ -13601,7 +15083,7 @@ var PolylineIcon = class extends Base_default {
    * @returns {SvgSymbol|undefined} The icon value or undefined if not set
    */
   get icon() {
-    return __privateGet(this, _options7).icon;
+    return __privateGet(this, _options8).icon;
   }
   /**
    * Set the icon value
@@ -13610,7 +15092,7 @@ var PolylineIcon = class extends Base_default {
    * @see {@link SvgSymbol} for more details on the icon value
    */
   set icon(icon2) {
-    __privateGet(this, _options7).icon = svgSymbol(icon2);
+    __privateGet(this, _options8).icon = svgSymbol(icon2);
   }
   /**
    * Get the offset value
@@ -13618,7 +15100,7 @@ var PolylineIcon = class extends Base_default {
    * @returns {string|undefined} The offset value or undefined if not set
    */
   get offset() {
-    return __privateGet(this, _options7).offset;
+    return __privateGet(this, _options8).offset;
   }
   /**
    * Set the distance from the start of the line at which an icon is to be rendered.
@@ -13629,7 +15111,7 @@ var PolylineIcon = class extends Base_default {
   set offset(value) {
     const val = getSizeWithUnit(value);
     if (isStringWithValue(val)) {
-      __privateGet(this, _options7).offset = val;
+      __privateGet(this, _options8).offset = val;
     }
   }
   /**
@@ -13638,7 +15120,7 @@ var PolylineIcon = class extends Base_default {
    * @returns {string|undefined} The repeat value or undefined if not set
    */
   get repeat() {
-    return __privateGet(this, _options7).repeat;
+    return __privateGet(this, _options8).repeat;
   }
   /**
    * Set the repeat value. This sets the distance between consecutive icons along the polyline.
@@ -13651,7 +15133,7 @@ var PolylineIcon = class extends Base_default {
   set repeat(value) {
     const val = getSizeWithUnit(value);
     if (isStringWithValue(val)) {
-      __privateGet(this, _options7).repeat = val;
+      __privateGet(this, _options8).repeat = val;
     }
   }
   /**
@@ -13732,24 +15214,24 @@ var PolylineIcon = class extends Base_default {
     return new Promise((resolve) => {
       (() => __async(this, null, function* () {
         const options = {};
-        if (isDefined(__privateGet(this, _options7).fixedRotation)) {
-          options.fixedRotation = __privateGet(this, _options7).fixedRotation;
+        if (isDefined(__privateGet(this, _options8).fixedRotation)) {
+          options.fixedRotation = __privateGet(this, _options8).fixedRotation;
         }
-        if (isDefined(__privateGet(this, _options7).offset)) {
-          options.offset = __privateGet(this, _options7).offset;
+        if (isDefined(__privateGet(this, _options8).offset)) {
+          options.offset = __privateGet(this, _options8).offset;
         }
-        if (isDefined(__privateGet(this, _options7).repeat)) {
-          options.repeat = __privateGet(this, _options7).repeat;
+        if (isDefined(__privateGet(this, _options8).repeat)) {
+          options.repeat = __privateGet(this, _options8).repeat;
         }
-        if (__privateGet(this, _options7).icon) {
-          options.icon = yield __privateGet(this, _options7).icon.toGoogle();
+        if (__privateGet(this, _options8).icon) {
+          options.icon = yield __privateGet(this, _options8).icon.toGoogle();
         }
         resolve(options);
       }))();
     });
   }
 };
-_options7 = new WeakMap();
+_options8 = new WeakMap();
 var polylineIcon = (options) => {
   if (options instanceof PolylineIcon) {
     return options;
@@ -13758,7 +15240,7 @@ var polylineIcon = (options) => {
 };
 
 // src/lib/Polyline.ts
-var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _isHighlighted, _options8, _polyline, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
+var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _isHighlighted, _options9, _polyline, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -13822,7 +15304,7 @@ var _Polyline = class _Polyline extends Layer_default {
      * @private
      * @type {PolylineOptions}
      */
-    __privateAdd(this, _options8, {});
+    __privateAdd(this, _options9, {});
     /**
      * Holds the Google maps Polyline object
      *
@@ -13840,7 +15322,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {boolean}
    */
   get clickable() {
-    return __privateGet(this, _options8).clickable;
+    return __privateGet(this, _options9).clickable;
   }
   /**
    * Set whether the polyline handles click events.
@@ -13849,7 +15331,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   set clickable(value) {
     if (typeof value === "boolean") {
-      __privateGet(this, _options8).clickable = value;
+      __privateGet(this, _options9).clickable = value;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ clickable: value });
       }
@@ -13871,7 +15353,7 @@ var _Polyline = class _Polyline extends Layer_default {
   set dashed(value) {
     if (isBoolean(value)) {
       __privateSet(this, _dashed, value);
-      __privateGet(this, _options8).dashed = value;
+      __privateGet(this, _options9).dashed = value;
     }
     if (__privateGet(this, _polyline)) {
       __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
@@ -13898,7 +15380,7 @@ var _Polyline = class _Polyline extends Layer_default {
     const gap = getSizeWithUnit(value);
     if (isStringWithValue(gap)) {
       __privateSet(this, _dashGap, gap);
-      __privateGet(this, _options8).dashGap = gap;
+      __privateGet(this, _options9).dashGap = gap;
       if (__privateGet(this, _polyline)) {
         __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
           __privateGet(this, _polyline).setOptions(opts);
@@ -13944,7 +15426,7 @@ var _Polyline = class _Polyline extends Layer_default {
     if (value instanceof _Polyline) {
       __privateSet(this, _highlightPolyline, value);
     } else if (isObject(value)) {
-      __privateSet(this, _highlightPolyline, new _Polyline(__spreadValues(__spreadValues({}, __privateGet(this, _options8)), value)));
+      __privateSet(this, _highlightPolyline, new _Polyline(__spreadValues(__spreadValues({}, __privateGet(this, _options9)), value)));
     }
     __privateGet(this, _highlightPolyline).clickable = true;
     __privateGet(this, _highlightPolyline).path = this.path;
@@ -13990,7 +15472,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {PolylineIcon[]}
    */
   get icons() {
-    return __privateGet(this, _options8).icons || [];
+    return __privateGet(this, _options9).icons || [];
   }
   /**
    * Set the icons for the polyline
@@ -14004,15 +15486,15 @@ var _Polyline = class _Polyline extends Layer_default {
     let setValue = false;
     if (Array.isArray(value)) {
       setValue = true;
-      __privateGet(this, _options8).icons = value.map((iconValue) => polylineIcon(iconValue));
+      __privateGet(this, _options9).icons = value.map((iconValue) => polylineIcon(iconValue));
     } else {
-      __privateGet(this, _options8).icons = [polylineIcon(value)];
+      __privateGet(this, _options9).icons = [polylineIcon(value)];
       setValue = true;
     }
     if (setValue && __privateGet(this, _polyline)) {
       __privateGet(this, _polyline).set(
         "icons",
-        __privateGet(this, _options8).icons.map((icon2) => icon2.toGoogle())
+        __privateGet(this, _options9).icons.map((icon2) => icon2.toGoogle())
       );
     }
   }
@@ -14022,7 +15504,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {Map}
    */
   get map() {
-    return __privateGet(this, _options8).map;
+    return __privateGet(this, _options9).map;
   }
   /**
    * Set the map object
@@ -14040,7 +15522,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {LatLngValue[]}
    */
   get path() {
-    return __privateGet(this, _options8).path;
+    return __privateGet(this, _options9).path;
   }
   /**
    * Set the path of the polyline.
@@ -14058,7 +15540,7 @@ var _Polyline = class _Polyline extends Layer_default {
           paths.push(position);
         }
       });
-      __privateGet(this, _options8).path = paths;
+      __privateGet(this, _options9).path = paths;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setPath(paths.map((path) => path.toGoogle()));
       }
@@ -14070,7 +15552,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {string}
    */
   get strokeColor() {
-    return __privateGet(this, _options8).strokeColor;
+    return __privateGet(this, _options9).strokeColor;
   }
   /**
    * Set the SVG stroke color.
@@ -14079,7 +15561,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   set strokeColor(value) {
     if (isStringWithValue(value)) {
-      __privateGet(this, _options8).strokeColor = value;
+      __privateGet(this, _options9).strokeColor = value;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ strokeColor: value });
       }
@@ -14092,7 +15574,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {number}
    */
   get strokeOpacity() {
-    return __privateGet(this, _options8).strokeOpacity;
+    return __privateGet(this, _options9).strokeOpacity;
   }
   /**
    * Set the opacity of the stroke.
@@ -14102,9 +15584,9 @@ var _Polyline = class _Polyline extends Layer_default {
   set strokeOpacity(value) {
     if (isNumberOrNumberString(value)) {
       if (isNumber(value)) {
-        __privateGet(this, _options8).strokeOpacity = value;
+        __privateGet(this, _options9).strokeOpacity = value;
       } else if (isNumberString(value)) {
-        __privateGet(this, _options8).strokeOpacity = Number(value);
+        __privateGet(this, _options9).strokeOpacity = Number(value);
       }
       if (__privateGet(this, _polyline)) {
         if (__privateGet(this, _dashed)) {
@@ -14112,7 +15594,7 @@ var _Polyline = class _Polyline extends Layer_default {
             __privateGet(this, _polyline).setOptions(opts);
           });
         } else {
-          __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options8).strokeOpacity });
+          __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options9).strokeOpacity });
         }
       }
     }
@@ -14123,7 +15605,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {number}
    */
   get strokeWeight() {
-    return __privateGet(this, _options8).strokeWeight;
+    return __privateGet(this, _options9).strokeWeight;
   }
   /**
    * Set the weight of the stroke.
@@ -14133,9 +15615,9 @@ var _Polyline = class _Polyline extends Layer_default {
   set strokeWeight(value) {
     if (isNumberOrNumberString(value)) {
       if (isNumber(value)) {
-        __privateGet(this, _options8).strokeWeight = value;
+        __privateGet(this, _options9).strokeWeight = value;
       } else if (isNumberString(value)) {
-        __privateGet(this, _options8).strokeWeight = Number(value);
+        __privateGet(this, _options9).strokeWeight = Number(value);
       }
       if (__privateGet(this, _polyline)) {
         if (__privateGet(this, _dashed)) {
@@ -14154,7 +15636,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {boolean}
    */
   get visible() {
-    return __privateGet(this, _options8).visible;
+    return __privateGet(this, _options9).visible;
   }
   /**
    * Set whether the polyline is visible on the map.
@@ -14163,7 +15645,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   set visible(value) {
     if (typeof value === "boolean") {
-      __privateGet(this, _options8).visible = value;
+      __privateGet(this, _options9).visible = value;
       this.isVisible = value;
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setVisible(value);
@@ -14176,7 +15658,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {number}
    */
   get zIndex() {
-    return __privateGet(this, _options8).zIndex;
+    return __privateGet(this, _options9).zIndex;
   }
   /**
    * Set the zIndex of the polyline.
@@ -14186,9 +15668,9 @@ var _Polyline = class _Polyline extends Layer_default {
   set zIndex(value) {
     if (isNumberOrNumberString(value)) {
       if (isNumber(value)) {
-        __privateGet(this, _options8).zIndex = value;
+        __privateGet(this, _options9).zIndex = value;
       } else if (isNumberString(value)) {
-        __privateGet(this, _options8).zIndex = Number(value);
+        __privateGet(this, _options9).zIndex = Number(value);
       }
       if (__privateGet(this, _polyline)) {
         __privateGet(this, _polyline).setOptions({ zIndex: Number(value) });
@@ -14205,7 +15687,7 @@ var _Polyline = class _Polyline extends Layer_default {
     if (__privateGet(this, _highlightPolyline)) {
       clone.setHighlightPolyline(__privateGet(this, _highlightPolyline).clone());
     }
-    clone.setOptions(__privateGet(this, _options8));
+    clone.setOptions(__privateGet(this, _options9));
     clone.data = __privateGet(this, _customData2);
     clone.setMap(this.getMap());
     if (isObjectWithValues(this.tooltipConfig)) {
@@ -14236,7 +15718,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @returns {boolean}
    */
   hasZIndex() {
-    return typeof __privateGet(this, _options8).zIndex !== "undefined";
+    return typeof __privateGet(this, _options9).zIndex !== "undefined";
   }
   /**
    * Hide the polyline
@@ -14451,11 +15933,11 @@ var _Polyline = class _Polyline extends Layer_default {
       yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value);
       if (value instanceof Map) {
         this.visible = isVisible;
-        __privateGet(this, _options8).map = value;
+        __privateGet(this, _options9).map = value;
         __superGet(_Polyline.prototype, this, "setMap").call(this, value);
         __privateGet(this, _polyline).setMap(value.toGoogle());
       } else if (isNullOrUndefined(value)) {
-        __privateGet(this, _options8).map = null;
+        __privateGet(this, _options9).map = null;
         __superGet(_Polyline.prototype, this, "setMap").call(this, null);
         if (__privateGet(this, _polyline)) {
           __privateGet(this, _polyline).setMap(null);
@@ -14624,7 +16106,7 @@ _dashGap = new WeakMap();
 _highlightOriginalOptions = new WeakMap();
 _highlightPolyline = new WeakMap();
 _isHighlighted = new WeakMap();
-_options8 = new WeakMap();
+_options9 = new WeakMap();
 _polyline = new WeakMap();
 _Polyline_instances = new WeakSet();
 /**
@@ -14644,11 +16126,11 @@ setupIconsAndDashedPolylineOptions_fn = function() {
           strokeOpacity: 1,
           scale: 3
         });
-        if (isDefined(__privateGet(this, _options8).strokeOpacity)) {
-          lineSymbol.strokeOpacity = __privateGet(this, _options8).strokeOpacity;
+        if (isDefined(__privateGet(this, _options9).strokeOpacity)) {
+          lineSymbol.strokeOpacity = __privateGet(this, _options9).strokeOpacity;
         }
-        if (isDefined(__privateGet(this, _options8).strokeWeight)) {
-          lineSymbol.scale = __privateGet(this, _options8).strokeWeight;
+        if (isDefined(__privateGet(this, _options9).strokeWeight)) {
+          lineSymbol.scale = __privateGet(this, _options9).strokeWeight;
         }
         options.strokeOpacity = 0;
         const icon2 = polylineIcon({
@@ -14657,13 +16139,13 @@ setupIconsAndDashedPolylineOptions_fn = function() {
           repeat: __privateGet(this, _dashGap)
         });
         options.icons = [yield icon2.toGoogle()];
-        if (Array.isArray(__privateGet(this, _options8).icons) && __privateGet(this, _options8).icons.length > 0) {
+        if (Array.isArray(__privateGet(this, _options9).icons) && __privateGet(this, _options9).icons.length > 0) {
           const additionalIcons = yield Promise.all(
-            __privateGet(this, _options8).icons.map((icn) => {
+            __privateGet(this, _options9).icons.map((icn) => {
               const returnIcon = polylineIcon(icn);
               const iconIcn = returnIcon.icon;
-              if (isDefined(__privateGet(this, _options8).strokeOpacity)) {
-                iconIcn.strokeOpacity = __privateGet(this, _options8).strokeOpacity;
+              if (isDefined(__privateGet(this, _options9).strokeOpacity)) {
+                iconIcn.strokeOpacity = __privateGet(this, _options9).strokeOpacity;
               } else {
                 iconIcn.strokeOpacity = 1;
               }
@@ -14673,10 +16155,10 @@ setupIconsAndDashedPolylineOptions_fn = function() {
           options.icons = options.icons.concat(additionalIcons);
         }
       } else {
-        options.strokeOpacity = isNumberOrNumberString(__privateGet(this, _options8).strokeOpacity) ? __privateGet(this, _options8).strokeOpacity : 1;
+        options.strokeOpacity = isNumberOrNumberString(__privateGet(this, _options9).strokeOpacity) ? __privateGet(this, _options9).strokeOpacity : 1;
         options.icons = [];
-        if (Array.isArray(__privateGet(this, _options8).icons) && __privateGet(this, _options8).icons.length > 0) {
-          options.icons = yield Promise.all(__privateGet(this, _options8).icons.map((icn) => icn.toGoogle()));
+        if (Array.isArray(__privateGet(this, _options9).icons) && __privateGet(this, _options9).icons.length > 0) {
+          options.icons = yield Promise.all(__privateGet(this, _options9).icons.map((icn) => icn.toGoogle()));
         }
       }
       resolve(options);
@@ -14750,12 +16232,12 @@ createPolylineObject_fn = function() {
       "zIndex"
     ];
     optionsToSet.forEach((key) => {
-      if (typeof __privateGet(this, _options8)[key] !== "undefined") {
-        polylineOptions[key] = __privateGet(this, _options8)[key];
+      if (typeof __privateGet(this, _options9)[key] !== "undefined") {
+        polylineOptions[key] = __privateGet(this, _options9)[key];
       }
     });
-    if (Array.isArray(__privateGet(this, _options8).path)) {
-      polylineOptions.path = __privateGet(this, _options8).path.map((path) => latLng(path).toGoogle());
+    if (Array.isArray(__privateGet(this, _options9).path)) {
+      polylineOptions.path = __privateGet(this, _options9).path.map((path) => latLng(path).toGoogle());
     }
     __privateSet(this, _polyline, new google.maps.Polyline(polylineOptions));
     __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
@@ -16228,6 +17710,9 @@ export {
   AutocompleteSearchBoxEvents,
   Base_default as Base,
   ControlPosition,
+  DataFeature,
+  DataLayer,
+  DataLayerEvents,
   Evented,
   FullscreenControl,
   Geocode,
@@ -16235,6 +17720,7 @@ export {
   Results_default as GeocodeResults,
   GeocoderErrorStatus,
   GeocoderLocationType,
+  GeometryType,
   Icon,
   ImageOverlay,
   ImageOverlayEvents,
@@ -16287,6 +17773,7 @@ export {
   convertControlPosition,
   convertMapTypeControlStyle,
   convertSymbolPath,
+  dataLayer,
   fullscreenControl,
   geocode,
   getBoolean,

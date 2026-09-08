@@ -23,6 +23,8 @@ import {
     MapTypeId,
     MapTypeIdValue,
 } from './constants';
+import { DataFeature } from './DataFeature';
+import { DataLayer, LoadOptions } from './DataLayer';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
@@ -106,6 +108,18 @@ export class Map extends Evented {
      * @type {CustomControl[]}
      */
     #customControls: CustomControl[] = [];
+
+    /**
+     * Holds the data layer for the map.
+     *
+     * This is created the first time that the data getter is used so that maps that don't
+     * use the data layer don't pay for it. It's then held so that map.data is always the
+     * same object.
+     *
+     * @private
+     * @type {DataLayer}
+     */
+    #data: DataLayer;
 
     /**
      * Holds the HTML element that the map will be rendered in.
@@ -330,6 +344,26 @@ export class Map extends Evented {
                 this.#map.setCenter(this.#options.center.toGoogle());
             }
         }
+    }
+
+    /**
+     * Get the data layer for the map.
+     *
+     * This is the map's own data layer, which every map has. Use the dataLayer() function if
+     * you need a separate layer that only holds your own data.
+     *
+     * The layer is created the first time that this is used, and the same layer object is
+     * returned after that.
+     *
+     * https://developers.google.com/maps/documentation/javascript/datalayer
+     *
+     * @returns {DataLayer}
+     */
+    get data(): DataLayer {
+        if (!this.#data) {
+            this.#data = new DataLayer(undefined, this);
+        }
+        return this.#data;
     }
 
     /**
@@ -780,6 +814,19 @@ export class Map extends Evented {
     }
 
     /**
+     * Add GeoJson data to the map's data layer.
+     *
+     * This is the same as calling map.data.addGeoJson().
+     *
+     * @param {object} geoJson The GeoJson object to add
+     * @param {LoadOptions} [options] The options for adding the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    addGeoJson(geoJson: object, options?: LoadOptions): Promise<DataFeature[]> {
+        return this.data.addGeoJson(geoJson, options);
+    }
+
+    /**
      * Add a value to the map bounds
      *
      * @param {LatLngValue | LatLngValue[]} value The latitude/longitude value to add to the bounds
@@ -1156,6 +1203,19 @@ export class Map extends Evented {
      */
     getZoom(): number {
         return this.zoom;
+    }
+
+    /**
+     * Load GeoJson data into the map's data layer from a url.
+     *
+     * This is the same as calling map.data.loadGeoJson(). More than one url can be passed.
+     *
+     * @param {string|string[]} url The url to load the GeoJson from, or an array of urls
+     * @param {LoadOptions} [options] The options for loading the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    loadGeoJson(url: string | string[], options?: LoadOptions): Promise<DataFeature[]> {
+        return this.data.loadGeoJson(url, options);
     }
 
     /**

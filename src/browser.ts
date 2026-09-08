@@ -20,7 +20,9 @@ import { autocompleteSearchBox, AutocompleteSearchBox } from './lib/Autocomplete
 import {
     AutocompleteSearchBoxEvents,
     ControlPosition,
+    DataLayerEvents,
     GeocoderErrorStatus,
+    GeometryType,
     GeocoderLocationType,
     ImageOverlayEvents,
     InfoWindowEvents,
@@ -39,6 +41,8 @@ import {
     SymbolPath,
     READY_EVENT,
 } from './lib/constants';
+import { DataFeature } from './lib/DataFeature';
+import { dataLayer, DataLayer } from './lib/DataLayer';
 import { geocode, Geocode } from './lib/Geocode';
 import { icon, Icon } from './lib/Icon';
 import { infoWindow, InfoWindow } from './lib/InfoWindow';
@@ -73,7 +77,9 @@ import { tooltip, Tooltip } from './lib/Tooltip';
 type GlobalObj = {
     AutocompleteSearchBoxEvents: typeof AutocompleteSearchBoxEvents;
     ControlPosition: typeof ControlPosition;
+    DataLayerEvents: typeof DataLayerEvents;
     GeocoderErrorStatus: typeof GeocoderErrorStatus;
+    GeometryType: typeof GeometryType;
     GeocoderLocationType: typeof GeocoderLocationType;
     ImageOverlayEvents: typeof ImageOverlayEvents;
     InfoWindowEvents: typeof InfoWindowEvents;
@@ -92,6 +98,9 @@ type GlobalObj = {
     SymbolPath: typeof SymbolPath;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
+    dataLayer: typeof dataLayer;
+    DataLayer: typeof DataLayer;
+    DataFeature: typeof DataFeature;
     fullscreenControl: typeof fullscreenControl;
     FullscreenControl: typeof FullscreenControl;
     geocode: typeof geocode;
@@ -158,8 +167,10 @@ type GlobalObj = {
 const G: GlobalObj = {
     AutocompleteSearchBoxEvents,
     ControlPosition,
+    DataLayerEvents,
     GeocoderErrorStatus,
     GeocoderLocationType,
+    GeometryType,
     ImageOverlayEvents,
     InfoWindowEvents,
     LayerEvents,
@@ -177,6 +188,9 @@ const G: GlobalObj = {
     SymbolPath,
     autocompleteSearchBox,
     AutocompleteSearchBox,
+    dataLayer,
+    DataLayer,
+    DataFeature,
     fullscreenControl,
     FullscreenControl,
     geocode,

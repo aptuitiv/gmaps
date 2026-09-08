@@ -164,6 +164,52 @@ export const convertControlPosition = (value: string): google.maps.ControlPositi
 };
 
 /**
+ * Events that can be fired by the DataLayer.
+ */
+export const DataLayerEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/data#Data-Events
+    ADD_FEATURE: 'addfeature',
+    CLICK: 'click',
+    CONTEXT_MENU: 'contextmenu',
+    DBLCLICK: 'dblclick',
+    MOUSE_DOWN: 'mousedown',
+    MOUSE_OUT: 'mouseout',
+    MOUSE_OVER: 'mouseover',
+    MOUSE_UP: 'mouseup',
+    REMOVE_FEATURE: 'removefeature',
+    REMOVE_PROPERTY: 'removeproperty',
+    RIGHT_CLICK: 'rightclick',
+    SET_GEOMETRY: 'setgeometry',
+    SET_PROPERTY: 'setproperty',
+
+    // Custom events for this library
+    // Called when the data layer is ready
+    READY: READY_EVENT,
+    // Called when a loadGeoJson() or addGeoJson() call has finished loading its features
+    LOAD: 'load',
+});
+
+/**
+ * The GeoJson geometry types that the data layer supports.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/data#Data.Geometry
+ */
+export const GeometryType = Object.freeze({
+    GEOMETRY_COLLECTION: 'GeometryCollection',
+    LINE_STRING: 'LineString',
+    LINEAR_RING: 'LinearRing',
+    MULTI_LINE_STRING: 'MultiLineString',
+    MULTI_POINT: 'MultiPoint',
+    MULTI_POLYGON: 'MultiPolygon',
+    POINT: 'Point',
+    POLYGON: 'Polygon',
+});
+
+// Type for the GeometryType values
+export type GeometryTypeValue = (typeof GeometryType)[keyof typeof GeometryType];
+
+/**
  * Error status value for the Geocode object.
  *
  * https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
