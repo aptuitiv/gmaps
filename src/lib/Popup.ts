@@ -129,6 +129,25 @@ export class Popup extends Overlay {
     #fit: boolean = true;
 
     /**
+     * Holds the popup that this one last showed for the object it's attached to.
+     *
+     * This is only used when a callback function returns a different Popup object for each
+     * thing that the popup is shown for, so that the previous one can be hidden.
+     *
+     * @private
+     * @type {Popup}
+     */
+    #activePopup: Popup;
+
+    /**
+     * Holds the callback function that works out what to show, if one was given.
+     *
+     * @private
+     * @type {PopupCallback}
+     */
+    #callback: PopupCallback;
+
+    /**
      * Whether the popup is attached to an element
      *
      * @private
@@ -372,11 +391,21 @@ export class Popup extends Overlay {
      *   - 'click' - Toggle the display of the popup when clicking on the element
      *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
      *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+     * @param {PopupCallback} [callback] A function that is called every time the popup is about to be shown.
+     *      It's passed the element that the popup is attached to and returns the content for the popup,
+     *      a PopupOptions object, or a Popup object to show instead.
      * @returns {Promise<Popup>}
      */
-    async attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Popup> {
+    async attachTo(
+        element: Map | Layer,
+        event?: 'click' | 'clickon' | 'hover',
+        callback?: PopupCallback,
+    ): Promise<Popup> {
         if (!this.#isAttached) {
             this.#isAttached = true;
+            if (isFunction(callback)) {
+                this.#callback = callback;
+            }
 
             // Set the popup property on the element if it's a Layer
             if (element instanceof Layer) {
@@ -396,53 +425,52 @@ export class Popup extends Overlay {
                     // Make sure that the event type is updated.
                     this.event = triggerEvent;
 
+                    // The map that the popup is shown on
+                    const elementMap = () => (element instanceof Map ? element : element.getMap());
+
                     // Show the popup when hovering over the element
                     if (triggerEvent === 'hover') {
                         element.on('mouseover', (e) => {
-                            if (element instanceof Map) {
-                                this.move(e.latLng, element);
-                            } else {
-                                this.move(e.latLng, element.getMap());
-                            }
+                            this.#popupFor(element).move(e.latLng, elementMap());
                         });
                         if (element instanceof Map) {
                             element.on('mousemove', (e) => {
-                                this.move(e.latLng, element);
+                                // The callback isn't called again while the mouse moves. The popup
+                                // that's already showing just follows the cursor.
+                                (this.#activePopup || this).move(e.latLng, element);
                             });
                         }
                         element.on('mouseout', () => {
-                            this.hide();
+                            (this.#activePopup || this).hide();
                         });
                     } else if (triggerEvent === 'clickon') {
                         // Show the popup when clicking on the element
                         element.on('click', (e) => {
+                            const popupObject = this.#popupFor(element);
                             // Since the popup is not toggled, we need to set the firstDraw value to false
                             // so that the popup is fit within the map viewport when it's displayed.
-                            this.#firstDraw = false;
+                            popupObject.#firstDraw = false;
                             // Make sure that the popup is included in the popup collection so that
                             // it can be hidden if a different popup is opened.
                             const collection = PopupCollection.getInstance();
-                            if (!collection.has(this)) {
-                                collection.add(this);
+                            if (!collection.has(popupObject)) {
+                                collection.add(popupObject);
                             }
                             // Hide other popups if necessary
-                            if (this.#autoClose) {
-                                collection.hideOthers(this);
+                            if (popupObject.#autoClose) {
+                                collection.hideOthers(popupObject);
                             }
 
-                            if (element instanceof Map) {
-                                this.move(e.latLng, element);
-                            } else {
-                                this.move(e.latLng, element.getMap());
-                            }
+                            popupObject.move(e.latLng, elementMap());
                         });
                     } else {
                         // Show the popup when clicking on the element
                         element.on('click', (e) => {
+                            const popupObject = this.#popupFor(element);
                             if (element instanceof Map || element instanceof Polyline) {
-                                this.position = e.latLng;
+                                popupObject.position = e.latLng;
                             }
-                            this.toggle(element);
+                            popupObject.toggle(element);
                         });
                     }
                 });
@@ -841,6 +869,31 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Work out the popup to show for the thing that the event happened on.
+     *
+     * Without a callback function this is always the popup itself, which is how a popup with
+     * fixed content works. With one, the callback is called every time the popup is about to be
+     * shown so that the content, the options, or the whole popup can be different each time.
+     *
+     * @private
+     * @param {Map|Layer} target The object that the popup is attached to
+     * @returns {Popup}
+     */
+    #popupFor(target: Map | Layer): Popup {
+        if (!isFunction(this.#callback)) {
+            return this;
+        }
+        const popupObject = popupFromCallback(this, this.#callback(target));
+        // If the callback returned a different popup than the one that's showing then the old
+        // one is hidden. Otherwise it would be left open on the map with nothing referring to it.
+        if (this.#activePopup && this.#activePopup !== popupObject) {
+            this.#activePopup.hide();
+        }
+        this.#activePopup = popupObject;
+        return popupObject;
+    }
+
+    /**
      * Handle the close click event
      *
      * This is here so that any previous click event listeners are removed before adding the new one.
@@ -863,6 +916,41 @@ export class Popup extends Overlay {
 }
 
 export type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
+
+/**
+ * A function that works out what popup to show.
+ *
+ * It's called every time the popup is about to be shown and is passed the object that the popup
+ * is attached to. It can return the content for the popup, a PopupOptions object, or a Popup
+ * object to show instead.
+ */
+export type PopupCallback = (target?: Map | Layer) => PopupValue;
+
+// The value that can be passed to attachPopup()
+export type AttachPopupValue = PopupValue | PopupCallback;
+
+/**
+ * Apply the value that a popup callback returned and return the popup to show.
+ *
+ * - A Popup object is shown instead of the popup that the callback belongs to.
+ * - A PopupOptions object is set on the popup.
+ * - Anything else is set as the popup content.
+ *
+ * @param {Popup} basePopup The popup that the callback is attached to
+ * @param {PopupValue} value The value that the callback returned
+ * @returns {Popup} The popup to show
+ */
+const popupFromCallback = (basePopup: Popup, value: PopupValue): Popup => {
+    if (value instanceof Popup) {
+        return value;
+    }
+    if (isString(value) || value instanceof HTMLElement || value instanceof Text) {
+        basePopup.setContent(value);
+    } else if (isObject(value)) {
+        basePopup.setOptions(value as PopupOptions);
+    }
+    return basePopup;
+};
 
 /**
  * Helper function to set up the Popup class
@@ -892,14 +980,28 @@ export const closeAllPopups = (): void => {
 // Set up the mixing for attaching the popup to other elements.
 const popupMixin = {
     /**
+     * Attach a popup to this object.
      *
-     * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
+     * A function can be passed instead of a fixed value. It's called every time the popup is
+     * about to be shown, is passed this object, and returns the content for the popup, a
+     * PopupOptions object, or a Popup object to show instead.
+     *
+     * @param {AttachPopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup
+     *      object, or a function that returns one of those.
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      * @returns {Popup}
      */
-    attachPopup(popupValue: PopupValue, event?: 'click' | 'clickon' | 'hover'): Popup {
-        const p = popup(popupValue);
-        p.attachTo(this, event);
+    attachPopup(popupValue: AttachPopupValue, event?: 'click' | 'clickon' | 'hover'): Popup {
+        let p: Popup;
+        let callback: PopupCallback;
+        if (isFunction(popupValue)) {
+            // The popup is worked out each time it's shown, so it starts out with no content
+            callback = popupValue as PopupCallback;
+            p = popup({ content: '' });
+        } else {
+            p = popup(popupValue as PopupValue);
+        }
+        p.attachTo(this, event, callback);
         return p;
     },
 };
@@ -919,26 +1021,32 @@ Map.include(popupMixin);
     layer and the right popup is worked out from the feature that comes with the event.
 =========================================================================== */
 
-// The content for a popup attached to a data layer.
-// A string can hold {property} placeholders, which are replaced with the feature's properties.
-// A function is called with the feature and returns the content for it.
-export type DataPopupContent =
-    | string
-    | HTMLElement
-    | Text
-    | ((feature: DataFeature) => string | HTMLElement | Text);
+/**
+ * A function that works out the popup to show for a data layer feature.
+ *
+ * It's the data layer version of PopupCallback. It's called every time the popup is about to be
+ * shown and is passed the feature that the event happened on. It can return the content for the
+ * popup, a PopupOptions object, or a Popup object to show instead.
+ */
+export type DataPopupCallback = (feature: DataFeature) => PopupValue;
 
-// The value that can be passed when attaching a popup to a data layer or a feature
-export type DataPopupValue = DataPopupContent | PopupOptions | Popup;
+// The value that can be passed when attaching a popup to a data layer or a feature.
+// A string, or the content in a PopupOptions object, can hold {property} placeholders, which are
+// replaced with the properties of the feature that the popup is being shown for.
+export type DataPopupValue = PopupValue | DataPopupCallback;
 
 // The event that triggers a popup
 type PopupEventValue = 'click' | 'clickon' | 'hover';
 
 // The popup set up for a data layer, or for one feature within it
 type DataPopupConfig = {
-    content?: DataPopupContent;
+    // The function that works out the popup, if one was given
+    callback?: DataPopupCallback;
     event: PopupEventValue;
+    // The popup to show, and the one that content and options are set on
     popup: Popup;
+    // The content holding {property} placeholders, if the content was a fixed string
+    template?: string;
 };
 
 // Everything that one data layer needs to hold for its popups
@@ -951,6 +1059,9 @@ type DataPopupState = {
     listeners: { [key: string]: boolean };
     // The feature whose popup is currently open, so that clicking it again closes it
     openFeature?: DataFeature;
+    // The popup that is currently open. A callback can return a different Popup object for each
+    // feature, so this isn't always the popup on the config.
+    openPopup?: Popup;
 };
 
 // The popup state for each data layer
@@ -987,26 +1098,24 @@ const renderDataPopupTemplate = (template: string, feature: DataFeature): string
     });
 
 /**
- * Get the popup content for a feature.
+ * Work out the popup to show for a feature.
  *
- * Returns undefined if the content doesn't change for each feature, in which case the content
- * that the popup already has is left alone.
+ * A callback function is called with the feature and can return the content, a PopupOptions
+ * object, or a different Popup object, the same as a callback on any other popup. Otherwise the
+ * fixed content is used, with any {property} placeholders replaced for this feature.
  *
  * @param {DataPopupConfig} config The popup configuration
- * @param {DataFeature} feature The feature to get the content for
- * @returns {string|HTMLElement|Text|undefined}
+ * @param {DataFeature} feature The feature to get the popup for
+ * @returns {Popup}
  */
-const getDataPopupContent = (
-    config: DataPopupConfig,
-    feature: DataFeature,
-): string | HTMLElement | Text | undefined => {
-    if (isFunction(config.content)) {
-        return (config.content as (f: DataFeature) => string | HTMLElement | Text)(feature);
+const getDataPopup = (config: DataPopupConfig, feature: DataFeature): Popup => {
+    if (isFunction(config.callback)) {
+        return popupFromCallback(config.popup, config.callback(feature));
     }
-    if (isString(config.content)) {
-        return renderDataPopupTemplate(config.content, feature);
+    if (isString(config.template)) {
+        config.popup.setContent(renderDataPopupTemplate(config.template, feature));
     }
-    return undefined;
+    return config.popup;
 };
 
 /**
@@ -1017,23 +1126,24 @@ const getDataPopupContent = (
  * @returns {DataPopupConfig}
  */
 const buildDataPopupConfig = (popupValue: DataPopupValue, event: PopupEventValue): DataPopupConfig => {
-    let content: DataPopupContent;
+    let callback: DataPopupCallback;
+    let template: string;
     let popupObject: Popup;
     if (isFunction(popupValue)) {
-        // The content is worked out for each feature so the popup starts with none
+        // The popup is worked out for each feature so it starts out with no content
         popupObject = popup({ content: '' });
-        content = popupValue as DataPopupContent;
+        callback = popupValue as DataPopupCallback;
     } else {
         popupObject = popup(popupValue as PopupValue);
         // A string is kept so that any {property} placeholders in it can be replaced for each feature
         if (isString(popupObject.content)) {
-            content = popupObject.content;
+            template = popupObject.content;
         }
     }
     // Let the popup know how it's triggered. The popup doesn't pan the map into view for
     // hover events because that would move the feature out from under the cursor.
     popupObject.event = event;
-    return { content, event, popup: popupObject };
+    return { callback, event, popup: popupObject, template };
 };
 
 /**
@@ -1042,17 +1152,24 @@ const buildDataPopupConfig = (popupValue: DataPopupValue, event: PopupEventValue
  * @param {DataPopupConfig} config The popup configuration
  * @param {DataFeature} feature The feature to show the popup for
  * @param {LatLng} position The position to show the popup at
- * @returns {boolean} Whether the popup was shown
+ * @param {Popup} [openPopup] The popup that is currently open, if there is one
+ * @returns {Popup|undefined} The popup that was shown
  */
-const showDataPopup = (config: DataPopupConfig, feature: DataFeature, position: LatLng): boolean => {
+const showDataPopup = (
+    config: DataPopupConfig,
+    feature: DataFeature,
+    position: LatLng,
+    openPopup?: Popup,
+): Popup | undefined => {
     const { map } = feature.getLayer();
     if (!(map instanceof Map) || !position) {
-        return false;
+        return undefined;
     }
-    const popupObject = config.popup;
-    const content = getDataPopupContent(config, feature);
-    if (!isNullOrUndefined(content)) {
-        popupObject.setContent(content);
+    const popupObject = getDataPopup(config, feature);
+    // A callback can return a different Popup object for each feature. Hide the one that was
+    // showing, otherwise it would be left open on the map with nothing referring to it.
+    if (openPopup && openPopup !== popupObject) {
+        openPopup.hide();
     }
     // Hide the popup first so that it's fit within the map viewport again when it's shown.
     // The map is only panned to bring the popup into view on the first draw after it's shown,
@@ -1060,7 +1177,7 @@ const showDataPopup = (config: DataPopupConfig, feature: DataFeature, position: 
     popupObject.hide();
     popupObject.position = position;
     popupObject.show(map);
-    return true;
+    return popupObject;
 };
 
 /**
@@ -1084,24 +1201,32 @@ const handleDataPopupEvent = (layer: DataLayer, type: string, event: DataLayerEv
     }
 
     if (type === 'mouseover') {
-        if (config.event === 'hover' && showDataPopup(config, feature, event.latLng)) {
-            state.openFeature = feature;
+        if (config.event === 'hover') {
+            const shown = showDataPopup(config, feature, event.latLng, state.openPopup);
+            if (shown) {
+                state.openFeature = feature;
+                state.openPopup = shown;
+            }
         }
     } else if (type === 'mouseout') {
-        if (config.event === 'hover') {
-            config.popup.hide();
+        if (config.event === 'hover' && state.openPopup) {
+            state.openPopup.hide();
             state.openFeature = undefined;
+            state.openPopup = undefined;
         }
     } else if (config.event !== 'hover') {
         // Clicking the same feature again closes the popup, unless it's a "clickon" popup,
         // which stays open once it's shown.
-        if (config.event === 'click' && config.popup.isOpen() && state.openFeature === feature) {
-            config.popup.hide();
+        if (config.event === 'click' && state.openPopup?.isOpen() && state.openFeature === feature) {
+            state.openPopup.hide();
             state.openFeature = undefined;
+            state.openPopup = undefined;
             return;
         }
-        if (showDataPopup(config, feature, event.latLng)) {
+        const shown = showDataPopup(config, feature, event.latLng, state.openPopup);
+        if (shown) {
             state.openFeature = feature;
+            state.openPopup = shown;
         }
     }
 };

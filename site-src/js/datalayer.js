@@ -137,8 +137,13 @@ layer.onClick((event) => {
 */
 
 // 2. A popup on one feature only. This wins over a popup attached to the whole layer.
+// The function can return the content, a PopupOptions object, or a whole Popup object.
 layer.getFeature('water').then((feature) => {
-    feature.attachPopup((f) => `<h3>${f.getProperty('name')}</h3><p>This one has its own popup.</p>`);
+    feature.attachPopup((f) => ({
+        className: 'waterPopup',
+        content: `<h3>${f.getProperty('name')}</h3><p>This one has its own popup.</p>`,
+        theme: 'default',
+    }));
 });
 
 // A popup on the whole layer, which the "water" feature above overrides

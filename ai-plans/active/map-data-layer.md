@@ -592,3 +592,58 @@ its 6 checks fail there and all 6 pass with the fix.
 erroring when a map can't load. That matches how `Map.panTo()` and friends already behave, and a
 map that won't load has bigger problems, so it was left alone. It did mean the popup test needed
 a map stub that actually resolves.
+
+
+---
+
+## 15. Generalising the popup callback
+
+The data layer's callback turned out to be useful beyond the data layer, so it was pulled up into
+the core popup handling rather than left as data-layer-only.
+
+### What moved up
+
+`attachPopup()` on any `Layer` or on `Map` now accepts a function as well as a fixed value. It's
+called every time the popup is about to be shown and is passed the object the popup is attached
+to. Both the core and data layer callbacks return the same thing — a `PopupValue`:
+
+| Returned | What happens |
+|---|---|
+| string / `HTMLElement` / `Text` | Set as the popup content |
+| `PopupOptions` | Set on the popup with `setOptions()`, for when more than the content changes |
+| `Popup` | That popup is shown instead of the one `attachPopup()` returned |
+
+New types: `PopupCallback` (`(target?: Map \| Layer) => PopupValue`) and `AttachPopupValue`
+(`PopupValue \| PopupCallback`). `Popup.attachTo()` gained an optional third `callback` parameter.
+
+### What stayed data-layer specific
+
+- **`{property}` templating.** It needs feature properties, which only a `DataFeature` has.
+  (A generalised version could read a `Marker` or `Polyline`'s custom `data` — not built, but
+  the shape is there if it's ever wanted.)
+- **`DataPopupCallback`.** Identical to `PopupCallback` except it's passed the `DataFeature`
+  rather than the layer, because one data layer holds many features.
+- **The event wiring**, which has to go on the layer and dispatch by feature.
+
+### How it's shared
+
+One module-level function, `popupFromCallback(basePopup, value)`, applies whatever the callback
+returned and hands back the popup to show. Both `Popup.#popupFor()` (core) and `getDataPopup()`
+(data layer) call it, so the two paths can't drift.
+
+Both paths also hide the previously shown popup when a callback returns a different `Popup`
+object, so switching between them doesn't leave one stranded on the map. The core path tracks
+this in `Popup.#activePopup`; the data layer path in `state.openPopup`.
+
+### Templating rule
+
+`{property}` substitution applies only to content configured up front, not to strings a callback
+returns. A callback already has the feature and can build whatever it wants, so substituting
+again would be surprising. Documented in both the reference and the guide.
+
+### Verified with
+
+The popup script grew from 14 to 24 checks: callbacks returning options and returning a `Popup`
+on the data layer, the core `attachPopup` callback on a `Map` (called with the target, shows the
+popup, can return a `Popup`), and a check that a fixed string still behaves exactly as before —
+content set up front, never re-set on show. 88 checks across the four scripts.

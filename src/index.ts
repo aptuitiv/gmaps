@@ -72,11 +72,13 @@ export { polyline, Polyline, PolylineOptions, PolylineValue } from './lib/Polyli
 export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
 export { polylineIcon, PolylineIcon, PolylineIconOptions, PolylineIconValue } from './lib/PolylineIcon';
 export {
+    AttachPopupValue,
     closeAllPopups,
-    DataPopupContent,
+    DataPopupCallback,
     DataPopupValue,
     popup,
     Popup,
+    PopupCallback,
     PopupOptions,
     PopupValue,
 } from './lib/Popup';

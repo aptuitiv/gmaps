@@ -16601,7 +16601,7 @@ var PolylineCollection = _PolylineCollection;
 var polylineCollection = () => new PolylineCollection();
 
 // src/lib/Popup.ts
-var _autoClose2, _center, _clearance, _closeElement, _content, _event2, _firstDraw, _fit, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _Popup_instances, fitPopup_fn, _handleCloseClick, _setupCloseClick;
+var _autoClose2, _center, _clearance, _closeElement, _content, _event2, _firstDraw, _fit, _activePopup, _callback, _isAttached2, _isOpen2, _popupOffset, _theme, _toggleDisplay2, _Popup_instances, fitPopup_fn, popupFor_fn, _handleCloseClick, _setupCloseClick;
 var Popup = class extends Overlay {
   /**
    * Constructor
@@ -16674,6 +16674,23 @@ var Popup = class extends Overlay {
      * @type {boolean}
      */
     __privateAdd(this, _fit, true);
+    /**
+     * Holds the popup that this one last showed for the object it's attached to.
+     *
+     * This is only used when a callback function returns a different Popup object for each
+     * thing that the popup is shown for, so that the previous one can be hidden.
+     *
+     * @private
+     * @type {Popup}
+     */
+    __privateAdd(this, _activePopup);
+    /**
+     * Holds the callback function that works out what to show, if one was given.
+     *
+     * @private
+     * @type {PopupCallback}
+     */
+    __privateAdd(this, _callback);
     /**
      * Whether the popup is attached to an element
      *
@@ -16900,12 +16917,18 @@ var Popup = class extends Overlay {
    *   - 'click' - Toggle the display of the popup when clicking on the element
    *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
    *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+   * @param {PopupCallback} [callback] A function that is called every time the popup is about to be shown.
+   *      It's passed the element that the popup is attached to and returns the content for the popup,
+   *      a PopupOptions object, or a Popup object to show instead.
    * @returns {Promise<Popup>}
    */
-  attachTo(element, event) {
+  attachTo(element, event, callback) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached2)) {
         __privateSet(this, _isAttached2, true);
+        if (isFunction(callback)) {
+          __privateSet(this, _callback, callback);
+        }
         if (element instanceof Layer_default) {
           element.setPopup(this);
         }
@@ -16916,44 +16939,39 @@ var Popup = class extends Overlay {
             }
             const triggerEvent = event || __privateGet(this, _event2);
             this.event = triggerEvent;
+            const elementMap = () => element instanceof Map ? element : element.getMap();
             if (triggerEvent === "hover") {
               element.on("mouseover", (e) => {
-                if (element instanceof Map) {
-                  this.move(e.latLng, element);
-                } else {
-                  this.move(e.latLng, element.getMap());
-                }
+                __privateMethod(this, _Popup_instances, popupFor_fn).call(this, element).move(e.latLng, elementMap());
               });
               if (element instanceof Map) {
                 element.on("mousemove", (e) => {
-                  this.move(e.latLng, element);
+                  (__privateGet(this, _activePopup) || this).move(e.latLng, element);
                 });
               }
               element.on("mouseout", () => {
-                this.hide();
+                (__privateGet(this, _activePopup) || this).hide();
               });
             } else if (triggerEvent === "clickon") {
               element.on("click", (e) => {
-                __privateSet(this, _firstDraw, false);
+                const popupObject = __privateMethod(this, _Popup_instances, popupFor_fn).call(this, element);
+                __privateSet(popupObject, _firstDraw, false);
                 const collection = PopupCollection.getInstance();
-                if (!collection.has(this)) {
-                  collection.add(this);
+                if (!collection.has(popupObject)) {
+                  collection.add(popupObject);
                 }
-                if (__privateGet(this, _autoClose2)) {
-                  collection.hideOthers(this);
+                if (__privateGet(popupObject, _autoClose2)) {
+                  collection.hideOthers(popupObject);
                 }
-                if (element instanceof Map) {
-                  this.move(e.latLng, element);
-                } else {
-                  this.move(e.latLng, element.getMap());
-                }
+                popupObject.move(e.latLng, elementMap());
               });
             } else {
               element.on("click", (e) => {
+                const popupObject = __privateMethod(this, _Popup_instances, popupFor_fn).call(this, element);
                 if (element instanceof Map || element instanceof Polyline) {
-                  this.position = e.latLng;
+                  popupObject.position = e.latLng;
                 }
-                this.toggle(element);
+                popupObject.toggle(element);
               });
             }
           });
@@ -17219,6 +17237,8 @@ _content = new WeakMap();
 _event2 = new WeakMap();
 _firstDraw = new WeakMap();
 _fit = new WeakMap();
+_activePopup = new WeakMap();
+_callback = new WeakMap();
 _isAttached2 = new WeakMap();
 _isOpen2 = new WeakMap();
 _popupOffset = new WeakMap();
@@ -17272,8 +17292,41 @@ fitPopup_fn = function() {
     }
   }
 };
+/**
+ * Work out the popup to show for the thing that the event happened on.
+ *
+ * Without a callback function this is always the popup itself, which is how a popup with
+ * fixed content works. With one, the callback is called every time the popup is about to be
+ * shown so that the content, the options, or the whole popup can be different each time.
+ *
+ * @private
+ * @param {Map|Layer} target The object that the popup is attached to
+ * @returns {Popup}
+ */
+popupFor_fn = function(target) {
+  if (!isFunction(__privateGet(this, _callback))) {
+    return this;
+  }
+  const popupObject = popupFromCallback(this, __privateGet(this, _callback).call(this, target));
+  if (__privateGet(this, _activePopup) && __privateGet(this, _activePopup) !== popupObject) {
+    __privateGet(this, _activePopup).hide();
+  }
+  __privateSet(this, _activePopup, popupObject);
+  return popupObject;
+};
 _handleCloseClick = new WeakMap();
 _setupCloseClick = new WeakMap();
+var popupFromCallback = (basePopup, value) => {
+  if (value instanceof Popup) {
+    return value;
+  }
+  if (isString(value) || value instanceof HTMLElement || value instanceof Text) {
+    basePopup.setContent(value);
+  } else if (isObject(value)) {
+    basePopup.setOptions(value);
+  }
+  return basePopup;
+};
 var popup = (options) => {
   if (options instanceof Popup) {
     return options;
@@ -17285,14 +17338,27 @@ var closeAllPopups = () => {
 };
 var popupMixin = {
   /**
+   * Attach a popup to this object.
    *
-   * @param { PopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup object
+   * A function can be passed instead of a fixed value. It's called every time the popup is
+   * about to be shown, is passed this object, and returns the content for the popup, a
+   * PopupOptions object, or a Popup object to show instead.
+   *
+   * @param {AttachPopupValue} popupValue The content for the Popup, or the Popup options object, or the Popup
+   *      object, or a function that returns one of those.
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
    * @returns {Popup}
    */
   attachPopup(popupValue, event) {
-    const p = popup(popupValue);
-    p.attachTo(this, event);
+    let p;
+    let callback;
+    if (isFunction(popupValue)) {
+      callback = popupValue;
+      p = popup({ content: "" });
+    } else {
+      p = popup(popupValue);
+    }
+    p.attachTo(this, event, callback);
     return p;
   }
 };
@@ -17311,46 +17377,47 @@ var renderDataPopupTemplate = (template, feature) => template.replace(/\{\s*([^{
   const value = feature.getProperty(key);
   return isNullOrUndefined(value) ? "" : String(value);
 });
-var getDataPopupContent = (config, feature) => {
-  if (isFunction(config.content)) {
-    return config.content(feature);
+var getDataPopup = (config, feature) => {
+  if (isFunction(config.callback)) {
+    return popupFromCallback(config.popup, config.callback(feature));
   }
-  if (isString(config.content)) {
-    return renderDataPopupTemplate(config.content, feature);
+  if (isString(config.template)) {
+    config.popup.setContent(renderDataPopupTemplate(config.template, feature));
   }
-  return void 0;
+  return config.popup;
 };
 var buildDataPopupConfig = (popupValue, event) => {
-  let content;
+  let callback;
+  let template;
   let popupObject;
   if (isFunction(popupValue)) {
     popupObject = popup({ content: "" });
-    content = popupValue;
+    callback = popupValue;
   } else {
     popupObject = popup(popupValue);
     if (isString(popupObject.content)) {
-      content = popupObject.content;
+      template = popupObject.content;
     }
   }
   popupObject.event = event;
-  return { content, event, popup: popupObject };
+  return { callback, event, popup: popupObject, template };
 };
-var showDataPopup = (config, feature, position) => {
+var showDataPopup = (config, feature, position, openPopup) => {
   const { map: map2 } = feature.getLayer();
   if (!(map2 instanceof Map) || !position) {
-    return false;
+    return void 0;
   }
-  const popupObject = config.popup;
-  const content = getDataPopupContent(config, feature);
-  if (!isNullOrUndefined(content)) {
-    popupObject.setContent(content);
+  const popupObject = getDataPopup(config, feature);
+  if (openPopup && openPopup !== popupObject) {
+    openPopup.hide();
   }
   popupObject.hide();
   popupObject.position = position;
   popupObject.show(map2);
-  return true;
+  return popupObject;
 };
 var handleDataPopupEvent = (layer, type, event) => {
+  var _a;
   const state = dataPopupState.get(layer);
   const { feature } = event;
   if (!state || !(feature instanceof DataFeature)) {
@@ -17361,22 +17428,30 @@ var handleDataPopupEvent = (layer, type, event) => {
     return;
   }
   if (type === "mouseover") {
-    if (config.event === "hover" && showDataPopup(config, feature, event.latLng)) {
-      state.openFeature = feature;
+    if (config.event === "hover") {
+      const shown = showDataPopup(config, feature, event.latLng, state.openPopup);
+      if (shown) {
+        state.openFeature = feature;
+        state.openPopup = shown;
+      }
     }
   } else if (type === "mouseout") {
-    if (config.event === "hover") {
-      config.popup.hide();
+    if (config.event === "hover" && state.openPopup) {
+      state.openPopup.hide();
       state.openFeature = void 0;
+      state.openPopup = void 0;
     }
   } else if (config.event !== "hover") {
-    if (config.event === "click" && config.popup.isOpen() && state.openFeature === feature) {
-      config.popup.hide();
+    if (config.event === "click" && ((_a = state.openPopup) == null ? void 0 : _a.isOpen()) && state.openFeature === feature) {
+      state.openPopup.hide();
       state.openFeature = void 0;
+      state.openPopup = void 0;
       return;
     }
-    if (showDataPopup(config, feature, event.latLng)) {
+    const shown = showDataPopup(config, feature, event.latLng, state.openPopup);
+    if (shown) {
       state.openFeature = feature;
+      state.openPopup = shown;
     }
   }
 };
