@@ -595,7 +595,7 @@ export class InfoWindow extends Layer {
         if (options.content) {
             this.content = options.content;
         }
-        if (options.disableAutoPan) {
+        if (typeof options.disableAutoPan === 'boolean') {
             this.disableAutoPan = options.disableAutoPan;
         }
         if (options.event) {
