@@ -128,7 +128,7 @@ export class DefaultRenderer implements Renderer {
         if (isStringWithValue(color)) {
             this.#colorRangeTop = color;
         } else if (isObject(color) && isStringWithValue(color.bgColor)) {
-            this.#colorRangeBottom = color;
+            this.#colorRangeTop = color;
         }
     }
 
