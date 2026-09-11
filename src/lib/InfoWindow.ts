@@ -730,7 +730,9 @@ export class InfoWindow extends Layer {
      * @returns {void}
      */
     toggle(element: Map | Layer): void {
-        if (this.isVisible) {
+        // Use #isOpen instead of isVisible. isVisible is set when the InfoWindow is opened but it's not
+        // reset when it's closed. #isOpen is also reset when the close button is clicked.
+        if (this.#isOpen) {
             this.hide();
         } else {
             this.show(element);
