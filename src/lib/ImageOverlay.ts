@@ -167,7 +167,7 @@ export class ImageOverlay extends Overlay {
             this.setOptions(options);
         } else {
             // The image URL was passed as the first parameter
-            this.image = options;
+            this.imageUrl = options;
             if (bounds) {
                 this.bounds = bounds;
             }
