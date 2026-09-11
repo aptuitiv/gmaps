@@ -19,7 +19,7 @@ import { Map } from './Map';
 import { point, Point, PointValue } from './Point';
 import { svgSymbol, SvgSymbol, SvgSymbolValue } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
-import { MapEvents, MarkerEvents } from './constants';
+import { MarkerEvents } from './constants';
 import {
     checkForGoogleMaps,
     isBoolean,
@@ -982,7 +982,17 @@ export class Marker extends Layer {
             // Set the map
             this.#options.map = value;
             super.setMap(value);
-            this.#marker.setMap(value.toGoogle());
+            if (value.getIsReady()) {
+                this.#marker.setMap(value.toGoogle());
+            } else {
+                // The map hasn't been rendered yet, for example because its element is hidden.
+                // Add the marker once the map is ready, as long as the marker wasn't moved to another map in the meantime.
+                value.onReady(() => {
+                    if (this.#options.map === value && this.#marker) {
+                        this.#marker.setMap(value.toGoogle());
+                    }
+                });
+            }
         } else if (isNullOrUndefined(value)) {
             // Remove the marker from the map
             this.#options.map = null;
@@ -1351,7 +1361,12 @@ export class Marker extends Layer {
                             markerOptions.icon = this.#options.icon;
                         } else if (this.#options.icon instanceof SvgSymbol) {
                             this.#options.icon.toGoogle().then((markerIcon) => {
-                                this.#marker.setIcon(markerIcon);
+                                if (this.#marker) {
+                                    this.#marker.setIcon(markerIcon);
+                                } else {
+                                    // The marker is created later, after the map is ready, so use the icon when it's created.
+                                    markerOptions.icon = markerIcon;
+                                }
                             });
                         } else if (this.#options.icon instanceof Icon) {
                             markerOptions.icon = this.#options.icon.toGoogle();
@@ -1364,14 +1379,15 @@ export class Marker extends Layer {
                         markerOptions.label = this.#options.label;
                     }
                     if (this.#options.map) {
-                        const map = this.#options.map.toGoogle();
-                        markerOptions.map = map;
-                        // Wait until the map is idle before creating the marker object.
-                        // This is to ensure that the map is fully initialized and the marker object is created
-                        // in the correct position. If the marker is created before the map is idle, then the marker
-                        // could shift after the map tiles have finished loading and the Google Maps map object
-                        // has finished being created.
-                        this.#options.map.once(MapEvents.IDLE, () => {
+                        // Wait until the map is ready before creating the marker object. This runs right away if the
+                        // map is already ready. Don't wait for the "idle" event because it may have already happened,
+                        // which would leave the marker hidden until the next time the map is panned or zoomed.
+                        this.#options.map.onReady(() => {
+                            // Get the Google map now instead of before waiting. If the map hadn't been rendered yet,
+                            // for example because its element was hidden, then the Google map didn't exist yet.
+                            if (this.#options.map) {
+                                markerOptions.map = this.#options.map.toGoogle();
+                            }
                             this.#marker = new google.maps.Marker(markerOptions);
                             this.setEventGoogleObject(this.#marker);
                             resolve();
