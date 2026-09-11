@@ -89,6 +89,17 @@ type CustomControl = {
     element: HTMLElement;
 };
 
+// The feature types that are hidden by the shortcut options, like hideBusinesses.
+// https://developers.google.com/maps/documentation/javascript/style-reference#style-features
+const hideFeatureTypes = {
+    hideBusinesses: 'poi.business',
+    hidePointsOfInterest: 'poi',
+    hideTransit: 'transit',
+};
+
+// The shortcut options to hide features on the map
+type HideFeatureOption = keyof typeof hideFeatureTypes;
+
 /**
  * The map class
  */
@@ -136,6 +147,18 @@ export class Map extends Evented {
      * @type {FullscreenControl}
      */
     #fullscreenControl: FullscreenControl;
+
+    /**
+     * Holds whether each of the shortcut options to hide features on the map is enabled
+     *
+     * @private
+     * @type {Record<HideFeatureOption, boolean>}
+     */
+    #hiddenFeatures: Record<HideFeatureOption, boolean> = {
+        hideBusinesses: false,
+        hidePointsOfInterest: false,
+        hideTransit: false,
+    };
 
     /**
      * Holds the latitude portion of the center point for the map
@@ -418,6 +441,69 @@ export class Map extends Evented {
                 });
             });
         }
+    }
+
+    /**
+     * Get whether businesses are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hideBusinesses(): boolean {
+        return this.#hiddenFeatures.hideBusinesses;
+    }
+
+    /**
+     * Set whether to hide businesses on the map.
+     *
+     * This hides the "poi.business" feature type, which includes things like stores, restaurants, and hotels.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide businesses
+     */
+    set hideBusinesses(value: boolean) {
+        this.#setHideFeature('hideBusinesses', value);
+    }
+
+    /**
+     * Get whether all points of interest are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hidePointsOfInterest(): boolean {
+        return this.#hiddenFeatures.hidePointsOfInterest;
+    }
+
+    /**
+     * Set whether to hide all points of interest on the map.
+     *
+     * This hides the "poi" feature type, which includes businesses, parks, schools, attractions, and places of worship.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide all points of interest
+     */
+    set hidePointsOfInterest(value: boolean) {
+        this.#setHideFeature('hidePointsOfInterest', value);
+    }
+
+    /**
+     * Get whether transit lines and stations are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hideTransit(): boolean {
+        return this.#hiddenFeatures.hideTransit;
+    }
+
+    /**
+     * Set whether to hide transit lines and stations on the map.
+     *
+     * This hides the "transit" feature type, which includes things like bus stops, train stations, and rail lines.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide transit lines and stations
+     */
+    set hideTransit(value: boolean) {
+        this.#setHideFeature('hideTransit', value);
     }
 
     /**
@@ -1122,13 +1208,55 @@ export class Map extends Evented {
                 mapOptions.zoomControl = this.#zoomControl.enabled;
                 const zoomControlOptions = await this.#zoomControl.toGoogle();
                 mapOptions.zoomControlOptions = zoomControlOptions;
-                // Map styles
-                if (this.#styles.length > 0) {
-                    mapOptions.styles = this.#styles.map((style) => style.toGoogle());
+                // Map styles, including the styles for the shortcut options to hide features
+                const styles = this.#getGoogleStyles();
+                if (styles.length > 0) {
+                    mapOptions.styles = styles;
                 }
                 resolve(mapOptions);
             })();
         });
+    }
+
+    /**
+     * Get the styles to send to Google Maps.
+     *
+     * This combines the styles set with the "styles" option with the styles for the shortcut options
+     * to hide features, like hideBusinesses. The shortcut styles are added last so that they take
+     * precedence over any other styles for the same feature type.
+     *
+     * @private
+     * @returns {google.maps.MapTypeStyle[]}
+     */
+    #getGoogleStyles(): google.maps.MapTypeStyle[] {
+        const styles = this.#styles.map((style) => style.toGoogle());
+        (Object.keys(hideFeatureTypes) as HideFeatureOption[]).forEach((key) => {
+            if (this.#hiddenFeatures[key]) {
+                styles.push(
+                    mapStyle({ featureType: hideFeatureTypes[key], stylers: [{ visibility: 'off' }] }).toGoogle(),
+                );
+            }
+        });
+        return styles;
+    }
+
+    /**
+     * Set whether a feature type is hidden by one of the shortcut options, like hideBusinesses.
+     *
+     * If the map has already been rendered then the styles are updated on it right away.
+     *
+     * @private
+     * @param {HideFeatureOption} key The shortcut option
+     * @param {boolean} value Whether to hide the feature type
+     */
+    #setHideFeature(key: HideFeatureOption, value: boolean): void {
+        if (isBoolean(value)) {
+            this.#hiddenFeatures[key] = value;
+            if (this.#map) {
+                // Always set the styles, even if the array is empty, so that turning an option off removes its style.
+                this.#map.setOptions({ styles: this.#getGoogleStyles() });
+            }
+        }
     }
 
     /**
@@ -1714,6 +1842,45 @@ export class Map extends Evented {
     }
 
     /**
+     * Set whether to hide businesses on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide businesses. Defaults to true.
+     * @returns {Map}
+     */
+    setHideBusinesses(value: boolean = true): Map {
+        this.hideBusinesses = value;
+        return this;
+    }
+
+    /**
+     * Set whether to hide all points of interest on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide all points of interest. Defaults to true.
+     * @returns {Map}
+     */
+    setHidePointsOfInterest(value: boolean = true): Map {
+        this.hidePointsOfInterest = value;
+        return this;
+    }
+
+    /**
+     * Set whether to hide transit lines and stations on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide transit lines and stations. Defaults to true.
+     * @returns {Map}
+     */
+    setHideTransit(value: boolean = true): Map {
+        this.hideTransit = value;
+        return this;
+    }
+
+    /**
      * Set the latitude and longitude values and optionally update the center point.
      *
      * The times when you would not want to update the center point are when you are setting the latitude and longitude
@@ -1862,6 +2029,13 @@ export class Map extends Evented {
             } else if (options.styles instanceof MapStyle) {
                 this.#styles = [options.styles];
             }
+
+            // Set the shortcut options to hide features on the map
+            (Object.keys(hideFeatureTypes) as HideFeatureOption[]).forEach((key) => {
+                if (isBoolean(options[key])) {
+                    this.#setHideFeature(key, options[key]);
+                }
+            });
 
             // Set the zoom level for the map
             if (options.zoom) {
