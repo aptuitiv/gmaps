@@ -180,6 +180,7 @@ export class MapTypeControl {
     set hybrid(value: boolean) {
         if (isBoolean(value)) {
             this.#typeHybrid = value;
+            this.#setMapType(MapTypeId.HYBRID, value);
         }
     }
 
@@ -223,6 +224,7 @@ export class MapTypeControl {
     set roadmap(value: boolean) {
         if (isBoolean(value)) {
             this.#typeRoadmap = value;
+            this.#setMapType(MapTypeId.ROADMAP, value);
         }
     }
 
@@ -243,6 +245,7 @@ export class MapTypeControl {
     set satellite(value: boolean) {
         if (isBoolean(value)) {
             this.#typeSatellite = value;
+            this.#setMapType(MapTypeId.SATELLITE, value);
         }
     }
 
@@ -281,6 +284,7 @@ export class MapTypeControl {
     set terrain(value: boolean) {
         if (isBoolean(value)) {
             this.#typeTerrain = value;
+            this.#setMapType(MapTypeId.TERRAIN, value);
         }
     }
 
@@ -312,6 +316,26 @@ export class MapTypeControl {
      */
     hasMapType(mapTypeId: MapTypeIdValue): boolean {
         return this.#mapTypeIds.includes(mapTypeId);
+    }
+
+    /**
+     * Add or remove a map type from the map types included in the control.
+     *
+     * This keeps the map type ids that are sent to Google in sync with the hybrid, roadmap, satellite,
+     * and terrain properties.
+     *
+     * @private
+     * @param {MapTypeIdValue} mapTypeId The map type id to add or remove
+     * @param {boolean} enabled Whether to include the map type in the control
+     */
+    #setMapType(mapTypeId: MapTypeIdValue, enabled: boolean): void {
+        if (enabled) {
+            if (!this.#mapTypeIds.includes(mapTypeId)) {
+                this.#mapTypeIds.push(mapTypeId);
+            }
+        } else {
+            this.#mapTypeIds = this.#mapTypeIds.filter((id) => id !== mapTypeId);
+        }
     }
 
     /**
