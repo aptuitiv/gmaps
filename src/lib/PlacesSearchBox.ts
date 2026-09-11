@@ -235,7 +235,7 @@ export class PlacesSearchBox extends Evented {
     #createPlacesSearchBox = async () => {
         if (!this.#searchBox) {
             const options: google.maps.places.SearchBoxOptions = {};
-            if (options.bounds) {
+            if (this.#options.bounds) {
                 options.bounds = await this.#options.bounds.toGoogle();
             }
             this.#searchBox = new google.maps.places.SearchBox(this.#input, options);
