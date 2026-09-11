@@ -2093,6 +2093,17 @@ declare const objectHasValue: (obj: any, key: string) => boolean;
  * @param {Function|undefined} callback The callback function to call
  * @param {any[]} args The arguments to pass to the callback function
  */
+/**
+ * Replace the {placeholder} values in a string with values looked up for each one.
+ *
+ * A placeholder that the lookup has no value for is replaced with an empty string so that
+ * "undefined" doesn't end up in the output.
+ *
+ * @param {string} template The string holding the placeholders
+ * @param {Function} getValue Called with each placeholder name and returns the value for it
+ * @returns {string}
+ */
+declare const renderTemplate: (template: string, getValue: (key: string) => any) => string;
 declare const callCallback: (callback: Function | undefined, ...args: any[]) => void;
 /**
  * Calculate the dimensions of the container based on the image aspect ratio
@@ -6368,9 +6379,12 @@ declare class Tooltip extends Overlay {
      *   - 'click' - Toggle the display of the tooltip when clicking on the element
      *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
      *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
+     * @param {TooltipCallback} [callback] A function that is called every time the tooltip is about to be shown.
+     *      It's passed the element that the tooltip is attached to and returns the content for the tooltip,
+     *      a TooltipOptions object, or a Tooltip object to show instead.
      * @returns {Promise<Tooltip>}
      */
-    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<Tooltip>;
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover', callback?: TooltipCallback): Promise<Tooltip>;
     /**
      * Returns whether the tooltip already has content
      *
@@ -6408,12 +6422,30 @@ declare class Tooltip extends Overlay {
 }
 type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
 /**
+ * A function that works out what tooltip to show.
+ *
+ * It's called every time the tooltip is about to be shown and is passed the object that the
+ * tooltip is attached to. It can return the content for the tooltip, a TooltipOptions object,
+ * or a Tooltip object to show instead.
+ */
+type TooltipCallback = (target?: Map | Layer) => TooltipValue;
+type AttachTooltipValue = TooltipValue | TooltipCallback;
+/**
  * Helper function to set up the tooltip object
  *
  * @param {TooltipValue} [options] The tooltip options or the tooltip class
  * @returns {Tooltip}
  */
 declare const tooltip: (options?: TooltipValue) => Tooltip;
+/**
+ * A function that works out the tooltip to show for a data layer feature.
+ *
+ * It's the data layer version of TooltipCallback. It's called every time the tooltip is about to
+ * be shown and is passed the feature that the event happened on. It can return the content for
+ * the tooltip, a TooltipOptions object, or a Tooltip object to show instead.
+ */
+type DataTooltipCallback = (feature: DataFeature) => TooltipValue;
+type DataTooltipValue = TooltipValue | DataTooltipCallback;
 
 type MarkerLabel = google.maps.MarkerLabel;
 type CustomData$1 = {
@@ -7237,6 +7269,8 @@ declare class MarkerCollection {
  * @returns {MarkerCollection}
  */
 declare const markerCollection: () => MarkerCollection;
+
+type AttachEventValue = 'click' | 'clickon' | 'hover';
 
 type ImageOverlayOptions = {
     bounds: LatLngBoundsValue;
@@ -8378,4 +8412,4 @@ declare class PolylineCollection {
  */
 declare const polylineCollection: () => PolylineCollection;
 
-export { type AttachPopupValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { type AttachEventValue, type AttachPopupValue, type AttachTooltipValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DataTooltipCallback, type DataTooltipValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipCallback, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, renderTemplate, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

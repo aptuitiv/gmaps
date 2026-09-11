@@ -66,6 +66,9 @@ map.data.onClick((event) => {
 // The {name} placeholder is replaced with each feature's "name" property.
 map.data.attachPopup('<h3>{name}</h3>', 'click');
 
+// A layer can have a tooltip as well as a popup. The tooltip shows on hover by default.
+map.data.attachTooltip('{name}');
+
 /* ---------------------------------------------------------------------------
     A separate data layer, styled by a property on each feature
 --------------------------------------------------------------------------- */
@@ -148,6 +151,9 @@ layer.getFeature('water').then((feature) => {
 
 // A popup on the whole layer, which the "water" feature above overrides
 layer.attachPopup('<h3>{name}</h3><p>Type: {type}</p>');
+
+// Tooltips work the same way. This one builds its content from the feature.
+layer.attachTooltip((feature) => `${feature.getProperty('name')} (${feature.getProperty('type')})`);
 
 // 3. Doing it by hand. This is what you'd use if you need to do more than set the content,
 // such as loading the content from somewhere before showing the popup.

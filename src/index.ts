@@ -65,6 +65,7 @@ export {
 } from './lib/MarkerCluster';
 export { markerCollection, MarkerCollection } from './lib/MarkerCollection';
 export { overlay, Overlay } from './lib/Overlay';
+export { AttachEventValue } from './lib/OverlayAttachment';
 export { imageOverlay, ImageOverlay, ImageOverlayOptions, ImageOverlayValue } from './lib/ImageOverlay';
 export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchBoxValue } from './lib/PlacesSearchBox';
 export { point, Point, PointObject, PointValue } from './lib/Point';
@@ -84,4 +85,13 @@ export {
 } from './lib/Popup';
 export { size, Size, SizeObject, SizeValue } from './lib/Size';
 export { svgSymbol, SvgSymbol, SvgSymbolOptions, SvgSymbolValue } from './lib/SvgSymbol';
-export { tooltip, Tooltip, TooltipOptions, TooltipValue } from './lib/Tooltip';
+export {
+    AttachTooltipValue,
+    DataTooltipCallback,
+    DataTooltipValue,
+    tooltip,
+    Tooltip,
+    TooltipCallback,
+    TooltipOptions,
+    TooltipValue,
+} from './lib/Tooltip';

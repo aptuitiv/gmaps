@@ -705,6 +705,10 @@ var objectEquals = (a, b) => {
   return keys.every((k) => objectEquals(a[k], b[k]));
 };
 var objectHasValue = (obj, key) => isObject(obj) && key in obj;
+var renderTemplate = (template, getValue) => template.replace(/\{\s*([^{}\s]+)\s*\}/g, (match, key) => {
+  const value = getValue(key);
+  return isNullOrUndefined(value) ? "" : String(value);
+});
 var callCallback = (callback, ...args) => {
   if (isFunction(callback)) {
     callback(...args);
@@ -13839,6 +13843,146 @@ var getOverlayViewClass = (classObject) => {
 };
 var overlay = () => new Overlay("overlay", "OverlayView");
 
+// src/lib/OverlayAttachment.ts
+var attachmentStates = {};
+var getState = (layer, adapter) => {
+  if (!attachmentStates[adapter.kind]) {
+    attachmentStates[adapter.kind] = /* @__PURE__ */ new WeakMap();
+  }
+  const states = attachmentStates[adapter.kind];
+  let state = states.get(layer);
+  if (!state) {
+    state = { features: /* @__PURE__ */ new WeakMap(), listeners: {} };
+    states.set(layer, state);
+  }
+  return state;
+};
+var overlayFromCallback = (base, value, adapter) => {
+  if (adapter.isOverlay(value)) {
+    return value;
+  }
+  if (isString(value) || value instanceof HTMLElement || value instanceof Text) {
+    base.setContent(value);
+  } else if (isObject(value)) {
+    base.setOptions(value);
+  }
+  return base;
+};
+var buildConfig = (value, event, adapter) => {
+  let callback;
+  let template;
+  let overlay2;
+  if (isFunction(value)) {
+    overlay2 = adapter.create({ content: "" });
+    callback = value;
+  } else {
+    overlay2 = adapter.create(value);
+    const { content } = overlay2;
+    if (isString(content)) {
+      template = content;
+    }
+  }
+  overlay2.event = event;
+  return { callback, event, overlay: overlay2, template };
+};
+var getOverlay = (config, feature, adapter) => {
+  if (isFunction(config.callback)) {
+    return overlayFromCallback(config.overlay, config.callback(feature), adapter);
+  }
+  if (isString(config.template)) {
+    config.overlay.setContent(renderTemplate(config.template, (key) => feature.getProperty(key)));
+  }
+  return config.overlay;
+};
+var showOverlay = (config, feature, position, adapter, openOverlay) => {
+  const { map: map2 } = feature.getLayer();
+  if (!(map2 instanceof Map) || !position) {
+    return void 0;
+  }
+  const overlay2 = getOverlay(config, feature, adapter);
+  if (openOverlay && openOverlay !== overlay2) {
+    openOverlay.hide();
+  }
+  if (adapter.resetBeforeShow) {
+    overlay2.hide();
+  }
+  overlay2.setPosition(position);
+  overlay2.show(map2);
+  return overlay2;
+};
+var handleEvent = (layer, type, event, adapter) => {
+  var _a, _b;
+  const state = (_a = attachmentStates[adapter.kind]) == null ? void 0 : _a.get(layer);
+  const { feature } = event;
+  if (!state || !(feature instanceof DataFeature)) {
+    return;
+  }
+  const config = state.features.get(feature) || state.layerConfig;
+  if (!config) {
+    return;
+  }
+  if (type === "mouseover") {
+    if (config.event === "hover") {
+      const shown = showOverlay(config, feature, event.latLng, adapter, state.openOverlay);
+      if (shown) {
+        state.openFeature = feature;
+        state.openOverlay = shown;
+      }
+    }
+  } else if (type === "mouseout") {
+    if (config.event === "hover" && state.openOverlay) {
+      state.openOverlay.hide();
+      state.openFeature = void 0;
+      state.openOverlay = void 0;
+    }
+  } else if (config.event !== "hover") {
+    if (config.event === "click" && ((_b = state.openOverlay) == null ? void 0 : _b.isVisible) && state.openFeature === feature) {
+      state.openOverlay.hide();
+      state.openFeature = void 0;
+      state.openOverlay = void 0;
+      return;
+    }
+    const shown = showOverlay(config, feature, event.latLng, adapter, state.openOverlay);
+    if (shown) {
+      state.openFeature = feature;
+      state.openOverlay = shown;
+    }
+  }
+};
+var setupListeners = (layer, event, adapter) => {
+  const state = getState(layer, adapter);
+  if (event !== "hover" && !state.listeners.click) {
+    state.listeners.click = true;
+    layer.onClick((e) => {
+      handleEvent(layer, "click", e, adapter);
+    });
+  }
+  if (event === "hover" && !state.listeners.hover) {
+    state.listeners.hover = true;
+    layer.onMouseOver((e) => {
+      handleEvent(layer, "mouseover", e, adapter);
+    });
+    layer.onMouseOut((e) => {
+      handleEvent(layer, "mouseout", e, adapter);
+    });
+  }
+};
+var attachToDataLayer = (layer, value, event, adapter) => {
+  const triggerEvent = event || adapter.defaultEvent;
+  const config = buildConfig(value, triggerEvent, adapter);
+  getState(layer, adapter).layerConfig = config;
+  setupListeners(layer, triggerEvent, adapter);
+  return config.overlay;
+};
+var attachToDataFeature = (feature, value, event, adapter) => {
+  const triggerEvent = event || adapter.defaultEvent;
+  const config = buildConfig(value, triggerEvent, adapter);
+  const layer = feature.getLayer();
+  getState(layer, adapter).features.set(feature, config);
+  setupListeners(layer, triggerEvent, adapter);
+  return config.overlay;
+};
+
 // src/lib/ImageOverlay.ts
 var _bounds5, _imageElement, _imageUrl, _isRotating, _opacity, _rotate, _rotation, _rotationCenter, _rotationContainer, _rotationHandle, _styles4, _ImageOverlay_instances, performFitToImage_fn, updateImageRotation_fn, setupRotationHandlers_fn, createRotationContainer_fn, removeRotationContainer_fn, createRotationHandle_fn, removeRotationHandle_fn, _handleRotationStart, _handleRotation, _handleRotationEnd;
 var _ImageOverlay = class _ImageOverlay extends Overlay {
@@ -17307,7 +17451,7 @@ popupFor_fn = function(target) {
   if (!isFunction(__privateGet(this, _callback))) {
     return this;
   }
-  const popupObject = popupFromCallback(this, __privateGet(this, _callback).call(this, target));
+  const popupObject = overlayFromCallback(this, __privateGet(this, _callback).call(this, target), popupAdapter);
   if (__privateGet(this, _activePopup) && __privateGet(this, _activePopup) !== popupObject) {
     __privateGet(this, _activePopup).hide();
   }
@@ -17316,17 +17460,6 @@ popupFor_fn = function(target) {
 };
 _handleCloseClick = new WeakMap();
 _setupCloseClick = new WeakMap();
-var popupFromCallback = (basePopup, value) => {
-  if (value instanceof Popup) {
-    return value;
-  }
-  if (isString(value) || value instanceof HTMLElement || value instanceof Text) {
-    basePopup.setContent(value);
-  } else if (isObject(value)) {
-    basePopup.setOptions(value);
-  }
-  return basePopup;
-};
 var popup = (options) => {
   if (options instanceof Popup) {
     return options;
@@ -17364,114 +17497,14 @@ var popupMixin = {
 };
 Layer_default.include(popupMixin);
 Map.include(popupMixin);
-var dataPopupState = /* @__PURE__ */ new WeakMap();
-var getDataPopupState = (layer) => {
-  let state = dataPopupState.get(layer);
-  if (!state) {
-    state = { features: /* @__PURE__ */ new WeakMap(), listeners: {} };
-    dataPopupState.set(layer, state);
-  }
-  return state;
-};
-var renderDataPopupTemplate = (template, feature) => template.replace(/\{\s*([^{}\s]+)\s*\}/g, (match, key) => {
-  const value = feature.getProperty(key);
-  return isNullOrUndefined(value) ? "" : String(value);
-});
-var getDataPopup = (config, feature) => {
-  if (isFunction(config.callback)) {
-    return popupFromCallback(config.popup, config.callback(feature));
-  }
-  if (isString(config.template)) {
-    config.popup.setContent(renderDataPopupTemplate(config.template, feature));
-  }
-  return config.popup;
-};
-var buildDataPopupConfig = (popupValue, event) => {
-  let callback;
-  let template;
-  let popupObject;
-  if (isFunction(popupValue)) {
-    popupObject = popup({ content: "" });
-    callback = popupValue;
-  } else {
-    popupObject = popup(popupValue);
-    if (isString(popupObject.content)) {
-      template = popupObject.content;
-    }
-  }
-  popupObject.event = event;
-  return { callback, event, popup: popupObject, template };
-};
-var showDataPopup = (config, feature, position, openPopup) => {
-  const { map: map2 } = feature.getLayer();
-  if (!(map2 instanceof Map) || !position) {
-    return void 0;
-  }
-  const popupObject = getDataPopup(config, feature);
-  if (openPopup && openPopup !== popupObject) {
-    openPopup.hide();
-  }
-  popupObject.hide();
-  popupObject.position = position;
-  popupObject.show(map2);
-  return popupObject;
-};
-var handleDataPopupEvent = (layer, type, event) => {
-  var _a;
-  const state = dataPopupState.get(layer);
-  const { feature } = event;
-  if (!state || !(feature instanceof DataFeature)) {
-    return;
-  }
-  const config = state.features.get(feature) || state.layerConfig;
-  if (!config) {
-    return;
-  }
-  if (type === "mouseover") {
-    if (config.event === "hover") {
-      const shown = showDataPopup(config, feature, event.latLng, state.openPopup);
-      if (shown) {
-        state.openFeature = feature;
-        state.openPopup = shown;
-      }
-    }
-  } else if (type === "mouseout") {
-    if (config.event === "hover" && state.openPopup) {
-      state.openPopup.hide();
-      state.openFeature = void 0;
-      state.openPopup = void 0;
-    }
-  } else if (config.event !== "hover") {
-    if (config.event === "click" && ((_a = state.openPopup) == null ? void 0 : _a.isOpen()) && state.openFeature === feature) {
-      state.openPopup.hide();
-      state.openFeature = void 0;
-      state.openPopup = void 0;
-      return;
-    }
-    const shown = showDataPopup(config, feature, event.latLng, state.openPopup);
-    if (shown) {
-      state.openFeature = feature;
-      state.openPopup = shown;
-    }
-  }
-};
-var setupDataPopupListeners = (layer, event) => {
-  const state = getDataPopupState(layer);
-  if (!state.listeners.click) {
-    state.listeners.click = true;
-    layer.onClick((e) => {
-      handleDataPopupEvent(layer, "click", e);
-    });
-  }
-  if (event === "hover" && !state.listeners.hover) {
-    state.listeners.hover = true;
-    layer.onMouseOver((e) => {
-      handleDataPopupEvent(layer, "mouseover", e);
-    });
-    layer.onMouseOut((e) => {
-      handleDataPopupEvent(layer, "mouseout", e);
-    });
-  }
+var popupAdapter = {
+  create: (value) => popup(value),
+  defaultEvent: "click",
+  isOverlay: (value) => value instanceof Popup,
+  kind: "popup",
+  // The popup only pans the map to bring itself into view on the first draw after it's shown.
+  // Hiding it first resets that so that every popup is brought into view, not just the first.
+  resetBeforeShow: true
 };
 var dataLayerPopupMixin = {
   /**
@@ -17480,16 +17513,13 @@ var dataLayerPopupMixin = {
    * The content can hold {property} placeholders, which are replaced with the properties of
    * whichever feature was clicked. It can also be a function that is called with the feature.
    *
-   * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object
+   * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object,
+   *      or a function that returns one of those.
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
    * @returns {Popup}
    */
   attachPopup(popupValue, event) {
-    const triggerEvent = event || "click";
-    const config = buildDataPopupConfig(popupValue, triggerEvent);
-    getDataPopupState(this).layerConfig = config;
-    setupDataPopupListeners(this, triggerEvent);
-    return config.popup;
+    return attachToDataLayer(this, popupValue, event, popupAdapter);
   }
 };
 var dataFeaturePopupMixin = {
@@ -17498,17 +17528,13 @@ var dataFeaturePopupMixin = {
    *
    * This takes precedence over a popup attached to the whole data layer.
    *
-   * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object
+   * @param {DataPopupValue} popupValue The content for the popup, or the Popup options object, or the Popup object,
+   *      or a function that returns one of those.
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
    * @returns {Popup}
    */
   attachPopup(popupValue, event) {
-    const triggerEvent = event || "click";
-    const config = buildDataPopupConfig(popupValue, triggerEvent);
-    const layer = this.getLayer();
-    getDataPopupState(layer).features.set(this, config);
-    setupDataPopupListeners(layer, triggerEvent);
-    return config.popup;
+    return attachToDataFeature(this, popupValue, event, popupAdapter);
   }
 };
 DataLayer.include(dataLayerPopupMixin);
@@ -17594,7 +17620,7 @@ var PopupCollection = /* @__PURE__ */ (() => {
 })();
 
 // src/lib/Tooltip.ts
-var _center2, _content2, _event3, _isAttached3, _theme2;
+var _activeTooltip, _callback2, _center2, _content2, _event3, _isAttached3, _theme2, _Tooltip_instances, tooltipFor_fn;
 var Tooltip = class extends Overlay {
   /**
    * Constructor
@@ -17603,6 +17629,24 @@ var Tooltip = class extends Overlay {
    */
   constructor(options) {
     super("tooltip", "Tooltip");
+    __privateAdd(this, _Tooltip_instances);
+    /**
+     * Holds the tooltip that this one last showed for the object it's attached to.
+     *
+     * This is only used when a callback function returns a different Tooltip object for each
+     * thing that the tooltip is shown for, so that the previous one can be hidden.
+     *
+     * @private
+     * @type {Tooltip}
+     */
+    __privateAdd(this, _activeTooltip);
+    /**
+     * Holds the callback function that works out what to show, if one was given.
+     *
+     * @private
+     * @type {TooltipCallback}
+     */
+    __privateAdd(this, _callback2);
     /**
      * Whether to center the tooltip on the element. Useful if the tooltip is on a marker.
      *
@@ -17738,50 +17782,49 @@ var Tooltip = class extends Overlay {
    *   - 'click' - Toggle the display of the tooltip when clicking on the element
    *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
    *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
+   * @param {TooltipCallback} [callback] A function that is called every time the tooltip is about to be shown.
+   *      It's passed the element that the tooltip is attached to and returns the content for the tooltip,
+   *      a TooltipOptions object, or a Tooltip object to show instead.
    * @returns {Promise<Tooltip>}
    */
-  attachTo(element, event) {
+  attachTo(element, event, callback) {
     return __async(this, null, function* () {
       if (!__privateGet(this, _isAttached3)) {
         __privateSet(this, _isAttached3, true);
+        if (isFunction(callback)) {
+          __privateSet(this, _callback2, callback);
+        }
         yield element.init().then(() => {
           element.onceImmediate(READY_EVENT, () => {
             const triggerEvent = event || __privateGet(this, _event3);
+            const elementMap = () => element instanceof Map ? element : element.getMap();
             if (triggerEvent === "click") {
               element.on("click", (e) => {
-                this.setPosition(e.latLng);
-                if (element instanceof Map) {
-                  this.toggle(element);
-                } else {
-                  this.toggle(element.getMap());
-                }
+                const tooltipObject = __privateMethod(this, _Tooltip_instances, tooltipFor_fn).call(this, element);
+                tooltipObject.setPosition(e.latLng);
+                tooltipObject.toggle(elementMap());
               });
             } else if (triggerEvent === "clickon") {
               element.on("click", (e) => {
-                this.setPosition(e.latLng);
-                if (element instanceof Map) {
-                  this.show(element);
-                } else {
-                  this.show(element.getMap());
-                }
+                const tooltipObject = __privateMethod(this, _Tooltip_instances, tooltipFor_fn).call(this, element);
+                tooltipObject.setPosition(e.latLng);
+                tooltipObject.show(elementMap());
               });
             } else {
               element.on("mouseover", (e) => {
-                this.setPosition(e.latLng);
-                if (element instanceof Map) {
-                  this.show(element);
-                } else {
-                  this.show(element.getMap());
-                }
+                const tooltipObject = __privateMethod(this, _Tooltip_instances, tooltipFor_fn).call(this, element);
+                tooltipObject.setPosition(e.latLng);
+                tooltipObject.show(elementMap());
               });
               if (element instanceof Map) {
                 element.on("mousemove", (e) => {
-                  this.setPosition(e.latLng);
-                  this.show(element);
+                  const tooltipObject = __privateGet(this, _activeTooltip) || this;
+                  tooltipObject.setPosition(e.latLng);
+                  tooltipObject.show(element);
                 });
               }
               element.on("mouseout", () => {
-                this.hide();
+                (__privateGet(this, _activeTooltip) || this).hide();
               });
             }
           });
@@ -17889,11 +17932,36 @@ var Tooltip = class extends Overlay {
     }
   }
 };
+_activeTooltip = new WeakMap();
+_callback2 = new WeakMap();
 _center2 = new WeakMap();
 _content2 = new WeakMap();
 _event3 = new WeakMap();
 _isAttached3 = new WeakMap();
 _theme2 = new WeakMap();
+_Tooltip_instances = new WeakSet();
+/**
+ * Work out the tooltip to show for the thing that the event happened on.
+ *
+ * Without a callback function this is always the tooltip itself, which is how a tooltip with
+ * fixed content works. With one, the callback is called every time the tooltip is about to
+ * be shown so that the content, the options, or the whole tooltip can be different each time.
+ *
+ * @private
+ * @param {Map|Layer} target The object that the tooltip is attached to
+ * @returns {Tooltip}
+ */
+tooltipFor_fn = function(target) {
+  if (!isFunction(__privateGet(this, _callback2))) {
+    return this;
+  }
+  const tooltipObject = overlayFromCallback(this, __privateGet(this, _callback2).call(this, target), tooltipAdapter);
+  if (__privateGet(this, _activeTooltip) && __privateGet(this, _activeTooltip) !== tooltipObject) {
+    __privateGet(this, _activeTooltip).hide();
+  }
+  __privateSet(this, _activeTooltip, tooltipObject);
+  return tooltipObject;
+};
 var tooltip = (options) => {
   if (options instanceof Tooltip) {
     return options;
@@ -17912,7 +17980,12 @@ var tooltipMixin = {
   /**
    * Attach an Tooltip to the layer
    *
-   * @param {TooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the Tooltip object
+   * A function can be passed instead of a fixed value. It's called every time the tooltip is
+   * about to be shown, is passed this object, and returns the content for the tooltip, a
+   * TooltipOptions object, or a Tooltip object to show instead.
+   *
+   * @param {AttachTooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the
+   *      Tooltip object, or a function that returns one of those.
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
    * @returns {Tooltip}
    */
@@ -17929,13 +18002,62 @@ var tooltipMixin = {
         attachEvent: tooltipEvent
       };
     }
-    const t = tooltip(tooltipVal);
-    t.attachTo(this, tooltipEvent);
+    let t;
+    let callback;
+    if (isFunction(tooltipVal)) {
+      callback = tooltipVal;
+      t = tooltip({ content: "" });
+    } else {
+      t = tooltip(tooltipVal);
+    }
+    t.attachTo(this, tooltipEvent, callback);
     return t;
   }
 };
 Layer_default.include(tooltipMixin);
 Map.include(tooltipMixin);
+var tooltipAdapter = {
+  create: (value) => tooltip(value),
+  defaultEvent: "hover",
+  isOverlay: (value) => value instanceof Tooltip,
+  kind: "tooltip",
+  // Unlike the popup, the tooltip doesn't pan the map to bring itself into view, so there's
+  // nothing to reset and hiding it first would only make it flicker.
+  resetBeforeShow: false
+};
+var dataLayerTooltipMixin = {
+  /**
+   * Attach a tooltip to every feature in the data layer.
+   *
+   * The content can hold {property} placeholders, which are replaced with the properties of
+   * whichever feature the mouse is over. It can also be a function that is called with the feature.
+   *
+   * @param {DataTooltipValue} tooltipValue The content for the tooltip, or the Tooltip options object, or the
+   *      Tooltip object, or a function that returns one of those.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'.
+   * @returns {Tooltip}
+   */
+  attachTooltip(tooltipValue, event) {
+    return attachToDataLayer(this, tooltipValue, event, tooltipAdapter);
+  }
+};
+var dataFeatureTooltipMixin = {
+  /**
+   * Attach a tooltip to this one feature.
+   *
+   * This takes precedence over a tooltip attached to the whole data layer.
+   *
+   * @param {DataTooltipValue} tooltipValue The content for the tooltip, or the Tooltip options object, or the
+   *      Tooltip object, or a function that returns one of those.
+   * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'.
+   * @returns {Tooltip}
+   */
+  attachTooltip(tooltipValue, event) {
+    return attachToDataFeature(this, tooltipValue, event, tooltipAdapter);
+  }
+};
+DataLayer.include(dataLayerTooltipMixin);
+DataFeature.include(dataFeatureTooltipMixin);
 export {
   AutocompleteSearchBox,
   AutocompleteSearchBoxEvents,
@@ -18048,6 +18170,7 @@ export {
   polylineCollection,
   polylineIcon,
   popup,
+  renderTemplate,
   rotateControl,
   scaleControl,
   size,

@@ -360,7 +360,7 @@ Not rejected — just not first. Each is additive and none of them change the v1
 | `setHoverStyle()` | Auto `overrideStyle`/`revertStyle` on mouseover/mouseout. Users can wire it with `onMouseOver`/`onMouseOut` + `overrideStyle()` for now. |
 | Drawing UI — `setDrawingMode()`, `setControls()`, `setControlPosition()` | Lets users draw points/lines/polygons on the map. Self-contained; add when there is a use for it. |
 | ~~`attachPopup()` with `{property}` templates~~ | **Built.** See section 13. The note here was wrong: `DataFeature` inheriting the mixin did *not* give working per-feature popups. |
-| `attachTooltip()` with `{property}` templates | Not done. The same shape as the popup work in section 13 and can reuse all of it — one mixin pair in `Tooltip.ts` over the same layer events. |
+| ~~`attachTooltip()` with `{property}` templates~~ | **Built.** See section 16. |
 | `filter()`, `find()`, `getCount()` | Cut in favour of `getFeatures()` returning an array — `(await layer.getFeatures()).filter(...)` gets `Array.prototype` for free. |
 | Tag support for features | à la `PolylineCollection`. `styleBy()` likely covers the real need. |
 | `setGeometry` / `setProperty` / `removeProperty` / `mousedown` / `mouseup` / `contextmenu` event helpers | Reachable through `on()`; no dedicated helpers yet. |
@@ -647,3 +647,63 @@ The popup script grew from 14 to 24 checks: callbacks returning options and retu
 on the data layer, the core `attachPopup` callback on a `Map` (called with the target, shows the
 popup, can return a `Popup`), and a check that a fixed string still behaves exactly as before —
 content set up front, never re-set on show. 88 checks across the four scripts.
+
+
+---
+
+## 16. Tooltips on the data layer
+
+### What already worked, and what didn't
+
+Checked rather than assumed this time, with a probe script:
+
+- `layer.attachTooltip('fixed text')` **already worked** through the inherited mixin.
+  `DataLayer` does dispatch `ready` (in `#setDataObject`), so `Tooltip.attachTo()`'s
+  `onceImmediate(READY_EVENT)` fires, `on('mouseover')` works because the layer has the Google
+  object, and `getMap()` returns the map. Probe output: `[["setPosition",5],["show","map"]]` on
+  mouseover, `["hide"]` on mouseout.
+- `feature.attachTooltip(...)` **did nothing** — no calls at all, because a `DataFeature` never
+  dispatches `ready`.
+- Neither supported per-feature content, which is the point on a data layer.
+
+So the layer case had "another way" but a useless one: every feature showing the same text.
+
+### The refactor
+
+Rather than copy ~150 lines of event and state logic into `Tooltip.ts`, the shared machinery was
+pulled out into **`src/lib/OverlayAttachment.ts`**. `Popup` and `Tooltip` both extend `Overlay`
+and are attached identically, so the module works on `Overlay` and each kind supplies a small
+adapter:
+
+| Adapter field | Popup | Tooltip |
+|---|---|---|
+| `defaultEvent` | `click` | `hover` |
+| `resetBeforeShow` | `true` (hide first so the map pans it into view again) | `false` (nothing to reset, and hiding first would flicker) |
+| `create` / `isOverlay` | `popup()` / `instanceof Popup` | `tooltip()` / `instanceof Tooltip` |
+| `kind` | `'popup'` | `'tooltip'` |
+
+`kind` is what lets one layer hold both a tooltip and a popup — state is keyed by layer *and*
+kind. There's a test for exactly that.
+
+The `{property}` substitution also moved out, to `renderTemplate()` in `helpers.ts`, taking a
+lookup function so it isn't tied to data features.
+
+`Tooltip` gained the same callback support as `Popup` — `TooltipCallback`,
+`AttachTooltipValue`, a third `callback` parameter on `attachTo()`, and `#tooltipFor()`.
+
+### One behaviour change from the refactor
+
+The toggle check moved from `Popup.isOpen()` to `Overlay.isVisible`, since that's what both
+overlays share. Equivalent in practice — `Overlay.show()`/`hide()` maintain it — but it did break
+two popup tests whose spies stubbed `show`/`hide` without updating `isVisible`. The spies were
+wrong, not the code; they now do what `Overlay` does.
+
+Also: the click listener is no longer registered for a `hover`-only attachment. It used to be
+registered always and the handler ignored the event.
+
+### Verified with
+
+A fifth script, `test-tooltip.mjs`, 19 checks: templates, per-feature winning over layer-wide,
+callbacks returning options and returning a `Tooltip`, the `click` event and its toggle, hover
+being ignored by a click tooltip, a layer holding both a tooltip and a popup, the core callback
+on a `Map`, and fixed strings still behaving as before. 107 checks across the five scripts.

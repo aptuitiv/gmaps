@@ -322,6 +322,22 @@ export const objectHasValue = (obj: any, key: string): boolean => isObject(obj) 
  * @param {Function|undefined} callback The callback function to call
  * @param {any[]} args The arguments to pass to the callback function
  */
+/**
+ * Replace the {placeholder} values in a string with values looked up for each one.
+ *
+ * A placeholder that the lookup has no value for is replaced with an empty string so that
+ * "undefined" doesn't end up in the output.
+ *
+ * @param {string} template The string holding the placeholders
+ * @param {Function} getValue Called with each placeholder name and returns the value for it
+ * @returns {string}
+ */
+export const renderTemplate = (template: string, getValue: (key: string) => any): string =>
+    template.replace(/\{\s*([^{}\s]+)\s*\}/g, (match, key) => {
+        const value = getValue(key);
+        return isNullOrUndefined(value) ? '' : String(value);
+    });
+
 export const callCallback = (callback: Function | undefined, ...args: any[]): void => {
     if (isFunction(callback)) {
         callback(...args);

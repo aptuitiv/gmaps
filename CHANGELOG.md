@@ -19,9 +19,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added `DataLayer.getFeatures()`, which returns the features as an array. The Google maps API only provides `forEach()`.
 - Added `DataLayer.loadGeoJson()`, `DataLayer.addGeoJson()` and `DataLayer.toGeoJson()`. These return promises rather than taking a callback like the Google maps API does. `loadGeoJson()` also accepts an array of urls and resolves once all of them have loaded.
 - Added support for passing a function to `attachPopup()` on any layer or on the map. It's called every time the popup is about to be shown, is passed the object the popup is attached to, and returns the content, a `PopupOptions` object, or a `Popup` object to show instead. This lets the popup be worked out when it's shown rather than when it's set up. The `PopupCallback` and `AttachPopupValue` types were added for this, and `Popup.attachTo()` takes an optional third `callback` parameter.
+- Added support for passing a function to `attachTooltip()`, the same as `attachPopup()`. The `TooltipCallback` and `AttachTooltipValue` types were added for this, and `Tooltip.attachTo()` takes an optional third `callback` parameter.
+- Added `DataLayer.attachTooltip()` and `DataFeature.attachTooltip()`, which work the same way as the popup versions. A data layer can have both a tooltip and a popup attached at once.
 - Added `DataLayer.attachPopup()` to attach one popup to every feature in a data layer, and `DataFeature.attachPopup()` to attach one to a single feature. The content can hold `{property}` placeholders that are replaced with the feature's properties, or it can be a `DataPopupCallback` function that is called with the feature and returns the same things as a `PopupCallback`.
 - Added `DataFeature.layer` and `DataFeature.getLayer()` to get the data layer that a feature belongs to.
 - Added `DataLayerEvents` and `GeometryType` constants.
+- Added the `renderTemplate()` helper, which replaces `{placeholder}` values in a string.
 - Added `feature` to the event object. It's set on data layer events and holds the `DataFeature` that the event happened on.
 
 ### Fixed
