@@ -202,6 +202,8 @@ export class StreetViewControl {
             loader().onLoad(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
+                    // The StreetViewSource values are the same strings that Google's StreetViewSource enum uses
+                    sources: this.#sources as unknown as google.maps.StreetViewSource[],
                 });
             });
         });
