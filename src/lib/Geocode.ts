@@ -318,32 +318,31 @@ export class Geocode extends Base {
      *
      * @returns {Promise<GeocodeResults>}
      */
-    #runGeocode = (): Promise<GeocodeResults> =>
-        new Promise((resolve, reject) => {
-            const options: google.maps.GeocoderRequest = {};
-            if (this.#address) {
-                options.address = this.#address;
-            } else if (this.#location) {
-                options.location = this.#location.toGoogle();
-            } else if (this.#placeId) {
-                options.placeId = this.#placeId;
-            }
+    #runGeocode = async (): Promise<GeocodeResults> => {
+        const options: google.maps.GeocoderRequest = {};
+        if (this.#address) {
+            options.address = this.#address;
+        } else if (this.#location) {
+            options.location = this.#location.toGoogle();
+        } else if (this.#placeId) {
+            options.placeId = this.#placeId;
+        }
 
-            if (this.#bounds) {
-                (async () => {
-                    options.bounds = await this.#bounds.toGoogle();
-                })();
-            }
-            if (this.#componentRestrictions) {
-                options.componentRestrictions = this.#componentRestrictions;
-            }
-            if (this.#language) {
-                options.language = this.#language;
-            }
-            if (this.#region) {
-                options.region = this.#region;
-            }
+        // Wait for the bounds so that they're set before the request is sent
+        if (this.#bounds) {
+            options.bounds = await this.#bounds.toGoogle();
+        }
+        if (this.#componentRestrictions) {
+            options.componentRestrictions = this.#componentRestrictions;
+        }
+        if (this.#language) {
+            options.language = this.#language;
+        }
+        if (this.#region) {
+            options.region = this.#region;
+        }
 
+        return new Promise((resolve, reject) => {
             const geocoder = new google.maps.Geocoder();
             geocoder.geocode(options, (results, status) => {
                 if (status === google.maps.GeocoderStatus.OK) {
@@ -354,6 +353,7 @@ export class Geocode extends Base {
                 }
             });
         });
+    };
 
     /**
      * Set the address to geocode
