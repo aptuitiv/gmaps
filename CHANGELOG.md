@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Fixed the popup `fit` option having no effect. The map was panned to bring the popup into view even when `fit` was set to `false`.
+- Fixed issue with attaching events to the polyline when it has a highlight polyline.
 
 ## [v0.28.1] - 2025-12-10
 

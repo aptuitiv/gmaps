@@ -745,6 +745,15 @@ export class Polyline extends Layer {
      * @inheritdoc
      */
     off(type?: PolylineEvent, callback?: EventCallback, options?: EventListenerOptions): void {
+        // Remove the event from the highlight polyline as well since on() adds it there.
+        // Check for the listener first because the event may have been added before the highlight polyline was set.
+        if (
+            this.#highlightPolyline &&
+            type !== PolylineEvents.READY &&
+            (!type || this.#highlightPolyline.hasListener(type))
+        ) {
+            this.#highlightPolyline.off(type, callback, options);
+        }
         super.off(type, callback, options);
     }
 
@@ -752,8 +761,10 @@ export class Polyline extends Layer {
      * @inheritdoc
      */
     on(type: PolylineEvent, callback: EventCallback, config?: EventConfig): void {
-        if (this.#highlightPolyline) {
-            // Add the event to the highlight polyline as well
+        // Add the event to the highlight polyline as well so that mouse events on it behave the same as this polyline.
+        // The "ready" event is not added because the highlight polyline has already dispatched its own ready event.
+        // Adding it would call "immediate" callbacks, like the one in Popup.attachTo(), a second time.
+        if (this.#highlightPolyline && type !== PolylineEvents.READY) {
             this.#highlightPolyline.on(type, callback, config);
         }
         super.on(type, callback, config);

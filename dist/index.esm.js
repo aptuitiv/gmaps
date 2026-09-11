@@ -15977,13 +15977,16 @@ var _Polyline = class _Polyline extends Layer_default {
    * @inheritdoc
    */
   off(type, callback, options) {
+    if (__privateGet(this, _highlightPolyline) && type !== PolylineEvents.READY && (!type || __privateGet(this, _highlightPolyline).hasListener(type))) {
+      __privateGet(this, _highlightPolyline).off(type, callback, options);
+    }
     super.off(type, callback, options);
   }
   /**
    * @inheritdoc
    */
   on(type, callback, config) {
-    if (__privateGet(this, _highlightPolyline)) {
+    if (__privateGet(this, _highlightPolyline) && type !== PolylineEvents.READY) {
       __privateGet(this, _highlightPolyline).on(type, callback, config);
     }
     super.on(type, callback, config);
