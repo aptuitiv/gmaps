@@ -442,13 +442,14 @@ export class AutocompleteSearchBox extends Evented {
                 const bounds = latLngBounds();
                 // Set up the map bounds based on the place
                 // https://developers.google.com/maps/documentation/javascript/reference/places-service#PlaceGeometry
+                // A place may not have geometry, for example if the user pressed Enter without picking a suggestion.
                 if (place.geometry) {
                     if (place.geometry.viewport) {
                         // Only geocodes have viewport.
                         bounds.union(place.geometry.viewport);
+                    } else if (place.geometry.location) {
+                        bounds.extend(latLng(place.geometry.location));
                     }
-                } else if (place.geometry.location) {
-                    bounds.extend(latLng(place.geometry.location));
                 }
                 this.#place = place;
                 this.#placeBounds = bounds;
