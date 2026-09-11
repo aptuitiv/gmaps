@@ -3601,7 +3601,7 @@ var Geocode = class extends Base_default {
      *
      * @returns {Promise<GeocodeResults>}
      */
-    __privateAdd(this, _runGeocode, () => new Promise((resolve, reject) => {
+    __privateAdd(this, _runGeocode, () => __async(this, null, function* () {
       const options = {};
       if (__privateGet(this, _address)) {
         options.address = __privateGet(this, _address);
@@ -3611,9 +3611,7 @@ var Geocode = class extends Base_default {
         options.placeId = __privateGet(this, _placeId2);
       }
       if (__privateGet(this, _bounds2)) {
-        (() => __async(this, null, function* () {
-          options.bounds = yield __privateGet(this, _bounds2).toGoogle();
-        }))();
+        options.bounds = yield __privateGet(this, _bounds2).toGoogle();
       }
       if (__privateGet(this, _componentRestrictions)) {
         options.componentRestrictions = __privateGet(this, _componentRestrictions);
@@ -3624,14 +3622,16 @@ var Geocode = class extends Base_default {
       if (__privateGet(this, _region)) {
         options.region = __privateGet(this, _region);
       }
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode(options, (results, status) => {
-        if (status === google.maps.GeocoderStatus.OK) {
-          const resultsObj = new Results_default(results);
-          resolve(resultsObj);
-        } else {
-          reject(status);
-        }
+      return new Promise((resolve, reject) => {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode(options, (results, status) => {
+          if (status === google.maps.GeocoderStatus.OK) {
+            const resultsObj = new Results_default(results);
+            resolve(resultsObj);
+          } else {
+            reject(status);
+          }
+        });
       });
     }));
     if (isObject(options)) {
@@ -4041,9 +4041,9 @@ var AutocompleteSearchBox = class extends Evented {
           if (place.geometry) {
             if (place.geometry.viewport) {
               bounds.union(place.geometry.viewport);
+            } else if (place.geometry.location) {
+              bounds.extend(latLng(place.geometry.location));
             }
-          } else if (place.geometry.location) {
-            bounds.extend(latLng(place.geometry.location));
           }
           __privateSet(this, _place, place);
           __privateSet(this, _placeBounds, bounds);
@@ -5699,7 +5699,7 @@ var mapRestriction = (options) => {
 };
 
 // src/lib/Map/MapTypeControl.ts
-var _enabled3, _mapTypeIds, _position2, _style, _typeHybrid, _typeRoadmap, _typeSatellite, _typeTerrain;
+var _enabled3, _mapTypeIds, _position2, _style, _typeHybrid, _typeRoadmap, _typeSatellite, _typeTerrain, _MapTypeControl_instances, setMapType_fn;
 var MapTypeControl = class {
   /**
    * Class constructor
@@ -5707,6 +5707,7 @@ var MapTypeControl = class {
    * @param {MapTypeControlOptions | boolean} [options] Either the MapTypeControl options or a boolean value to disable the control.
    */
   constructor(options) {
+    __privateAdd(this, _MapTypeControl_instances);
     /**
      * Holds whether the Map Type control is enabled or not
      *
@@ -5826,6 +5827,7 @@ var MapTypeControl = class {
   set hybrid(value) {
     if (isBoolean(value)) {
       __privateSet(this, _typeHybrid, value);
+      __privateMethod(this, _MapTypeControl_instances, setMapType_fn).call(this, MapTypeId.HYBRID, value);
     }
   }
   /**
@@ -5864,6 +5866,7 @@ var MapTypeControl = class {
   set roadmap(value) {
     if (isBoolean(value)) {
       __privateSet(this, _typeRoadmap, value);
+      __privateMethod(this, _MapTypeControl_instances, setMapType_fn).call(this, MapTypeId.ROADMAP, value);
     }
   }
   /**
@@ -5882,6 +5885,7 @@ var MapTypeControl = class {
   set satellite(value) {
     if (isBoolean(value)) {
       __privateSet(this, _typeSatellite, value);
+      __privateMethod(this, _MapTypeControl_instances, setMapType_fn).call(this, MapTypeId.SATELLITE, value);
     }
   }
   /**
@@ -5916,6 +5920,7 @@ var MapTypeControl = class {
   set terrain(value) {
     if (isBoolean(value)) {
       __privateSet(this, _typeTerrain, value);
+      __privateMethod(this, _MapTypeControl_instances, setMapType_fn).call(this, MapTypeId.TERRAIN, value);
     }
   }
   /**
@@ -6014,6 +6019,26 @@ _typeHybrid = new WeakMap();
 _typeRoadmap = new WeakMap();
 _typeSatellite = new WeakMap();
 _typeTerrain = new WeakMap();
+_MapTypeControl_instances = new WeakSet();
+/**
+ * Add or remove a map type from the map types included in the control.
+ *
+ * This keeps the map type ids that are sent to Google in sync with the hybrid, roadmap, satellite,
+ * and terrain properties.
+ *
+ * @private
+ * @param {MapTypeIdValue} mapTypeId The map type id to add or remove
+ * @param {boolean} enabled Whether to include the map type in the control
+ */
+setMapType_fn = function(mapTypeId, enabled) {
+  if (enabled) {
+    if (!__privateGet(this, _mapTypeIds).includes(mapTypeId)) {
+      __privateGet(this, _mapTypeIds).push(mapTypeId);
+    }
+  } else {
+    __privateSet(this, _mapTypeIds, __privateGet(this, _mapTypeIds).filter((id) => id !== mapTypeId));
+  }
+};
 var mapTypeControl = (options) => {
   if (options instanceof MapTypeControl) {
     return options;
@@ -6566,7 +6591,9 @@ var StreetViewControl = class {
     return new Promise((resolve) => {
       loader().onLoad(() => {
         resolve({
-          position: convertControlPosition(__privateGet(this, _position4))
+          position: convertControlPosition(__privateGet(this, _position4)),
+          // The StreetViewSource values are the same strings that Google's StreetViewSource enum uses
+          sources: __privateGet(this, _sources)
         });
       });
     });
@@ -7802,7 +7829,7 @@ var Map = class extends Evented {
         }
       };
       const error = (err) => {
-        this.dispatch("locationerror", err);
+        this.dispatch("locationerror", { code: err.code, message: err.message });
         console.error(err);
       };
       if (config.watch) {
@@ -10873,7 +10900,7 @@ var _Marker = class _Marker extends Layer_default {
         this.icon = __privateGet(this, _options5).icon;
       }
     }
-    if (isStringWithValue(options.label) || isObject(options.label) && isStringOrNumber(options.label.text)) {
+    if (isStringWithValue(options.label) || isNumber(options.label) || isObject(options.label) && isStringOrNumber(options.label.text)) {
       __privateMethod(this, _Marker_instances, setLabel_fn).call(this, options.label);
       if (__privateGet(this, _marker)) {
         this.label = options.label;
@@ -11095,13 +11122,15 @@ setIcon_fn = function(value) {
   }
 };
 /**
- * Set the latitude and longitude value for the marker
+ * Set the label value for the marker
  *
- * @param {string | number | MarkerLabel} value The latitude/longitude position for the marker
+ * @param {string | number | MarkerLabel} value The label for the marker
  */
 setLabel_fn = function(value) {
   if (isStringWithValue(value)) {
     __privateGet(this, _options5).label = value;
+  } else if (isNumber(value)) {
+    __privateGet(this, _options5).label = value.toString();
   } else if (isObject(value) && isStringOrNumber(value.text)) {
     __privateGet(this, _options5).label = {
       text: value.text.toString()
@@ -11138,7 +11167,15 @@ setMap_fn = function(value) {
   if (value instanceof Map) {
     __privateGet(this, _options5).map = value;
     __superGet(_Marker.prototype, this, "setMap").call(this, value);
-    __privateGet(this, _marker).setMap(value.toGoogle());
+    if (value.getIsReady()) {
+      __privateGet(this, _marker).setMap(value.toGoogle());
+    } else {
+      value.onReady(() => {
+        if (__privateGet(this, _options5).map === value && __privateGet(this, _marker)) {
+          __privateGet(this, _marker).setMap(value.toGoogle());
+        }
+      });
+    }
   } else if (isNullOrUndefined(value)) {
     __privateGet(this, _options5).map = null;
     __superGet(_Marker.prototype, this, "setMap").call(this, null);
@@ -11261,7 +11298,11 @@ createMarkerObject_fn = function() {
             markerOptions.icon = __privateGet(this, _options5).icon;
           } else if (__privateGet(this, _options5).icon instanceof SvgSymbol) {
             __privateGet(this, _options5).icon.toGoogle().then((markerIcon) => {
-              __privateGet(this, _marker).setIcon(markerIcon);
+              if (__privateGet(this, _marker)) {
+                __privateGet(this, _marker).setIcon(markerIcon);
+              } else {
+                markerOptions.icon = markerIcon;
+              }
             });
           } else if (__privateGet(this, _options5).icon instanceof Icon) {
             markerOptions.icon = __privateGet(this, _options5).icon.toGoogle();
@@ -11274,9 +11315,10 @@ createMarkerObject_fn = function() {
           markerOptions.label = __privateGet(this, _options5).label;
         }
         if (__privateGet(this, _options5).map) {
-          const map2 = __privateGet(this, _options5).map.toGoogle();
-          markerOptions.map = map2;
-          __privateGet(this, _options5).map.once(MapEvents.IDLE, () => {
+          __privateGet(this, _options5).map.onReady(() => {
+            if (__privateGet(this, _options5).map) {
+              markerOptions.map = __privateGet(this, _options5).map.toGoogle();
+            }
             __privateSet(this, _marker, new google.maps.Marker(markerOptions));
             this.setEventGoogleObject(__privateGet(this, _marker));
             resolve();
@@ -11436,7 +11478,7 @@ var InfoWindow = class extends Layer_default {
    * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
    */
   set disableAutoPan(disableAutoPan) {
-    if (typeof disableAutoPan !== "boolean") {
+    if (typeof disableAutoPan === "boolean") {
       __privateGet(this, _options6).disableAutoPan = disableAutoPan;
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
       if (__privateGet(this, _infoWindow)) {
@@ -11764,7 +11806,7 @@ var InfoWindow = class extends Layer_default {
     if (options.content) {
       this.content = options.content;
     }
-    if (options.disableAutoPan) {
+    if (typeof options.disableAutoPan === "boolean") {
       this.disableAutoPan = options.disableAutoPan;
     }
     if (options.event) {
@@ -11886,7 +11928,7 @@ var InfoWindow = class extends Layer_default {
    * @returns {void}
    */
   toggle(element) {
-    if (this.isVisible) {
+    if (__privateGet(this, _isOpen)) {
       this.hide();
     } else {
       this.show(element);
@@ -12137,7 +12179,7 @@ var DefaultRenderer = class {
     if (isStringWithValue(color)) {
       __privateSet(this, _colorRangeTop, color);
     } else if (isObject(color) && isStringWithValue(color.bgColor)) {
-      __privateSet(this, _colorRangeBottom, color);
+      __privateSet(this, _colorRangeTop, color);
     }
   }
   /**
@@ -14431,7 +14473,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     if (isObject(options)) {
       this.setOptions(options);
     } else {
-      this.image = options;
+      this.imageUrl = options;
       if (bounds) {
         this.bounds = bounds;
       }
@@ -15207,7 +15249,7 @@ var PlacesSearchBox = class extends Evented {
     __privateAdd(this, _createPlacesSearchBox, () => __async(this, null, function* () {
       if (!__privateGet(this, _searchBox2)) {
         const options = {};
-        if (options.bounds) {
+        if (__privateGet(this, _options7).bounds) {
           options.bounds = yield __privateGet(this, _options7).bounds.toGoogle();
         }
         __privateSet(this, _searchBox2, new google.maps.places.SearchBox(__privateGet(this, _input2), options));
@@ -15218,9 +15260,9 @@ var PlacesSearchBox = class extends Evented {
             if (place.geometry) {
               if (place.geometry.viewport) {
                 bounds.union(place.geometry.viewport);
+              } else if (place.geometry.location) {
+                bounds.extend(latLng(place.geometry.location));
               }
-            } else if (place.geometry.location) {
-              bounds.extend(latLng(place.geometry.location));
             }
           });
           __privateSet(this, _places, places);
@@ -16844,7 +16886,7 @@ var _PolylineCollection = class _PolylineCollection {
    *
    * @returns {boolean}
    */
-  isEmtpy() {
+  isEmpty() {
     return Object.keys(this.polylines).length === 0;
   }
   /**

@@ -8441,7 +8441,7 @@ declare class PolylineCollection {
      *
      * @returns {boolean}
      */
-    isEmtpy(): boolean;
+    isEmpty(): boolean;
     /**
      * Remove the polyline from the collection, optionally by tag.
      *
