@@ -1,0 +1,14 @@
+---
+title: "Geolocation Test Page"
+layout: "base.njk"
+---
+
+<h1>Geolocation</h1>
+<p>The map starts hidden. Your location is requested when the page loads and a marker is placed at it. The marker keeps moving if your location changes.</p>
+<div style="margin: 10px 0">
+    <button id="toggleMap" type="button" aria-controls="locateMap" aria-expanded="false">Show map</button>
+</div>
+<p id="locateStatus" aria-live="polite" style="margin: 10px 0">Requesting your location...</p>
+<div id="locateMap" class="mapContainer" hidden></div>
+
+<script src="{{ '/js/geolocation.js'|url|safe}}"></script>
