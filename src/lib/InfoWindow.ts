@@ -226,7 +226,7 @@ export class InfoWindow extends Layer {
      * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
      */
     set disableAutoPan(disableAutoPan: boolean) {
-        if (typeof disableAutoPan !== 'boolean') {
+        if (typeof disableAutoPan === 'boolean') {
             this.#options.disableAutoPan = disableAutoPan;
             this.#setupGoogleInfoWindow();
             if (this.#infoWindow) {
