@@ -208,7 +208,7 @@ export class PolylineCollection {
      *
      * @returns {boolean}
      */
-    isEmtpy(): boolean {
+    isEmpty(): boolean {
         return Object.keys(this.polylines).length === 0;
     }
 
