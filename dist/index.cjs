@@ -1638,9 +1638,9 @@ var Evented = class extends Base_default {
         if (index > -1) {
           __privateGet(this, _onlyEventListeners).splice(index, 1);
         }
-      }
-      if (__privateGet(this, _eventListeners)[type].length === 0 && __privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
-        google.maps.event.clearListeners(__privateGet(this, _googleObject), type);
+        if (__privateGet(this, _eventListeners)[type].length === 0 && __privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
+          google.maps.event.clearListeners(__privateGet(this, _googleObject), type);
+        }
       }
     } else {
       this.offAll();
@@ -6052,7 +6052,7 @@ var MapStyle = class {
      */
     __privateAdd(this, _styles, []);
     if (isObject(options)) {
-      if (isDefined(options.elementType) || isDefined(options.featureType) || isDefined(options.styles)) {
+      if (isDefined(options.elementType) || isDefined(options.featureType) || isDefined(options.styles) || isDefined(options.stylers)) {
         const opts = options;
         if (opts.elementType) {
           this.elementType = opts.elementType;
@@ -6061,7 +6061,9 @@ var MapStyle = class {
           this.featureType = opts.featureType;
         }
         if (opts.styles) {
-          __privateSet(this, _styles, opts.styles);
+          this.styles = opts.styles;
+        } else if (opts.stylers) {
+          this.styles = opts.stylers;
         }
       } else {
         this.styles = options;
@@ -6709,7 +6711,12 @@ var zoomControl = (options) => {
 };
 
 // src/lib/Map.ts
-var _bounds4, _customControls, _data, _element, _fullscreenControl, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _maxFitBoundsZoom, _minFitBoundsZoom, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
+var hideFeatureTypes = {
+  hideBusinesses: "poi.business",
+  hidePointsOfInterest: "poi",
+  hideTransit: "transit"
+};
+var _bounds4, _customControls, _data, _element, _fullscreenControl, _hiddenFeatures, _latitude2, _longitude2, _isGettingMapOptions, _isInitialized, _isInitializing, _isReady, _map2, _mapTypeControl, _maxFitBoundsZoom, _minFitBoundsZoom, _options2, _restriction, _rotateControl, _scaleControl, _streetViewControl, _styles2, _watchId, _zoomControl, _Map_instances, fitBounds_fn, handleZoomAfterFitBounds_fn, getMapOptions_fn, getGoogleStyles_fn, setHideFeature_fn, load_fn, showMap_fn, _setupMapObject, _setMapAsReady;
 var Map = class extends Evented {
   /**
    * Class constructor
@@ -6760,6 +6767,17 @@ var Map = class extends Evented {
      * @type {FullscreenControl}
      */
     __privateAdd(this, _fullscreenControl);
+    /**
+     * Holds whether each of the shortcut options to hide features on the map is enabled
+     *
+     * @private
+     * @type {Record<HideFeatureOption, boolean>}
+     */
+    __privateAdd(this, _hiddenFeatures, {
+      hideBusinesses: false,
+      hidePointsOfInterest: false,
+      hideTransit: false
+    });
     /**
      * Holds the latitude portion of the center point for the map
      *
@@ -7059,6 +7077,63 @@ var Map = class extends Evented {
         });
       });
     }
+  }
+  /**
+   * Get whether businesses are hidden on the map
+   *
+   * @returns {boolean}
+   */
+  get hideBusinesses() {
+    return __privateGet(this, _hiddenFeatures).hideBusinesses;
+  }
+  /**
+   * Set whether to hide businesses on the map.
+   *
+   * This hides the "poi.business" feature type, which includes things like stores, restaurants, and hotels.
+   * If the map has already been rendered then it's updated right away.
+   *
+   * @param {boolean} value Whether to hide businesses
+   */
+  set hideBusinesses(value) {
+    __privateMethod(this, _Map_instances, setHideFeature_fn).call(this, "hideBusinesses", value);
+  }
+  /**
+   * Get whether all points of interest are hidden on the map
+   *
+   * @returns {boolean}
+   */
+  get hidePointsOfInterest() {
+    return __privateGet(this, _hiddenFeatures).hidePointsOfInterest;
+  }
+  /**
+   * Set whether to hide all points of interest on the map.
+   *
+   * This hides the "poi" feature type, which includes businesses, parks, schools, attractions, and places of worship.
+   * If the map has already been rendered then it's updated right away.
+   *
+   * @param {boolean} value Whether to hide all points of interest
+   */
+  set hidePointsOfInterest(value) {
+    __privateMethod(this, _Map_instances, setHideFeature_fn).call(this, "hidePointsOfInterest", value);
+  }
+  /**
+   * Get whether transit lines and stations are hidden on the map
+   *
+   * @returns {boolean}
+   */
+  get hideTransit() {
+    return __privateGet(this, _hiddenFeatures).hideTransit;
+  }
+  /**
+   * Set whether to hide transit lines and stations on the map.
+   *
+   * This hides the "transit" feature type, which includes things like bus stops, train stations, and rail lines.
+   * If the map has already been rendered then it's updated right away.
+   *
+   * @param {boolean} value Whether to hide transit lines and stations
+   */
+  set hideTransit(value) {
+    __privateMethod(this, _Map_instances, setHideFeature_fn).call(this, "hideTransit", value);
   }
   /**
    * Get the latitude value for the center point
@@ -8047,6 +8122,42 @@ var Map = class extends Evented {
     return this;
   }
   /**
+   * Set whether to hide businesses on the map.
+   *
+   * This can be called after the map has been rendered.
+   *
+   * @param {boolean} [value] Whether to hide businesses. Defaults to true.
+   * @returns {Map}
+   */
+  setHideBusinesses(value = true) {
+    this.hideBusinesses = value;
+    return this;
+  }
+  /**
+   * Set whether to hide all points of interest on the map.
+   *
+   * This can be called after the map has been rendered.
+   *
+   * @param {boolean} [value] Whether to hide all points of interest. Defaults to true.
+   * @returns {Map}
+   */
+  setHidePointsOfInterest(value = true) {
+    this.hidePointsOfInterest = value;
+    return this;
+  }
+  /**
+   * Set whether to hide transit lines and stations on the map.
+   *
+   * This can be called after the map has been rendered.
+   *
+   * @param {boolean} [value] Whether to hide transit lines and stations. Defaults to true.
+   * @returns {Map}
+   */
+  setHideTransit(value = true) {
+    this.hideTransit = value;
+    return this;
+  }
+  /**
    * Set the latitude and longitude values and optionally update the center point.
    *
    * The times when you would not want to update the center point are when you are setting the latitude and longitude
@@ -8182,6 +8293,11 @@ var Map = class extends Evented {
       } else if (options.styles instanceof MapStyle) {
         __privateSet(this, _styles2, [options.styles]);
       }
+      Object.keys(hideFeatureTypes).forEach((key) => {
+        if (isBoolean(options[key])) {
+          __privateMethod(this, _Map_instances, setHideFeature_fn).call(this, key, options[key]);
+        }
+      });
       if (options.zoom) {
         this.zoom = options.zoom;
       }
@@ -8288,6 +8404,7 @@ _customControls = new WeakMap();
 _data = new WeakMap();
 _element = new WeakMap();
 _fullscreenControl = new WeakMap();
+_hiddenFeatures = new WeakMap();
 _latitude2 = new WeakMap();
 _longitude2 = new WeakMap();
 _isGettingMapOptions = new WeakMap();
@@ -8438,12 +8555,51 @@ getMapOptions_fn = function() {
       mapOptions.zoomControl = __privateGet(this, _zoomControl).enabled;
       const zoomControlOptions = yield __privateGet(this, _zoomControl).toGoogle();
       mapOptions.zoomControlOptions = zoomControlOptions;
-      if (__privateGet(this, _styles2).length > 0) {
-        mapOptions.styles = __privateGet(this, _styles2).map((style) => style.toGoogle());
+      const styles = __privateMethod(this, _Map_instances, getGoogleStyles_fn).call(this);
+      if (styles.length > 0) {
+        mapOptions.styles = styles;
       }
       resolve(mapOptions);
     }))();
   });
+};
+/**
+ * Get the styles to send to Google Maps.
+ *
+ * This combines the styles set with the "styles" option with the styles for the shortcut options
+ * to hide features, like hideBusinesses. The shortcut styles are added last so that they take
+ * precedence over any other styles for the same feature type.
+ *
+ * @private
+ * @returns {google.maps.MapTypeStyle[]}
+ */
+getGoogleStyles_fn = function() {
+  const styles = __privateGet(this, _styles2).map((style) => style.toGoogle());
+  Object.keys(hideFeatureTypes).forEach((key) => {
+    if (__privateGet(this, _hiddenFeatures)[key]) {
+      styles.push(
+        mapStyle({ featureType: hideFeatureTypes[key], stylers: [{ visibility: "off" }] }).toGoogle()
+      );
+    }
+  });
+  return styles;
+};
+/**
+ * Set whether a feature type is hidden by one of the shortcut options, like hideBusinesses.
+ *
+ * If the map has already been rendered then the styles are updated on it right away.
+ *
+ * @private
+ * @param {HideFeatureOption} key The shortcut option
+ * @param {boolean} value Whether to hide the feature type
+ */
+setHideFeature_fn = function(key, value) {
+  if (isBoolean(value)) {
+    __privateGet(this, _hiddenFeatures)[key] = value;
+    if (__privateGet(this, _map2)) {
+      __privateGet(this, _map2).setOptions({ styles: __privateMethod(this, _Map_instances, getGoogleStyles_fn).call(this) });
+    }
+  }
 };
 /**
  * Load and show the map
@@ -16112,7 +16268,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * @inheritdoc
    */
   off(type, callback, options) {
-    if (__privateGet(this, _highlightPolyline) && type !== PolylineEvents.READY && (!type || __privateGet(this, _highlightPolyline).hasListener(type))) {
+    if (__privateGet(this, _highlightPolyline) && type !== PolylineEvents.READY) {
       __privateGet(this, _highlightPolyline).off(type, callback, options);
     }
     super.off(type, callback, options);

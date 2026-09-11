@@ -2998,6 +2998,7 @@ type MapStyleOptions = {
     elementType?: string;
     featureType?: string;
     styles?: Style[];
+    stylers?: Style[];
 };
 /**
  * MapStyle class
@@ -3408,6 +3409,9 @@ type MapOptions = {
     gestureHandling?: string;
     heading?: number;
     headingInteractionEnabled?: boolean;
+    hideBusinesses?: boolean;
+    hidePointsOfInterest?: boolean;
+    hideTransit?: boolean;
     isFractionalZoomEnabled?: boolean;
     keyboardShortcuts?: boolean;
     lat?: number | string;
@@ -3523,6 +3527,51 @@ declare class Map extends Evented {
      * @param {boolean|FullscreenControl} value The fullscreen control option
      */
     set fullscreenControl(value: boolean | FullscreenControl);
+    /**
+     * Get whether businesses are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hideBusinesses(): boolean;
+    /**
+     * Set whether to hide businesses on the map.
+     *
+     * This hides the "poi.business" feature type, which includes things like stores, restaurants, and hotels.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide businesses
+     */
+    set hideBusinesses(value: boolean);
+    /**
+     * Get whether all points of interest are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hidePointsOfInterest(): boolean;
+    /**
+     * Set whether to hide all points of interest on the map.
+     *
+     * This hides the "poi" feature type, which includes businesses, parks, schools, attractions, and places of worship.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide all points of interest
+     */
+    set hidePointsOfInterest(value: boolean);
+    /**
+     * Get whether transit lines and stations are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hideTransit(): boolean;
+    /**
+     * Set whether to hide transit lines and stations on the map.
+     *
+     * This hides the "transit" feature type, which includes things like bus stops, train stations, and rail lines.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide transit lines and stations
+     */
+    set hideTransit(value: boolean);
     /**
      * Get the latitude value for the center point
      *
@@ -4103,6 +4152,33 @@ declare class Map extends Evented {
      * @returns {Map}
      */
     setCenter(latitude: number | LatLngValue, longitude?: number): Map;
+    /**
+     * Set whether to hide businesses on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide businesses. Defaults to true.
+     * @returns {Map}
+     */
+    setHideBusinesses(value?: boolean): Map;
+    /**
+     * Set whether to hide all points of interest on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide all points of interest. Defaults to true.
+     * @returns {Map}
+     */
+    setHidePointsOfInterest(value?: boolean): Map;
+    /**
+     * Set whether to hide transit lines and stations on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide transit lines and stations. Defaults to true.
+     * @returns {Map}
+     */
+    setHideTransit(value?: boolean): Map;
     /**
      * Set the latitude and longitude values and optionally update the center point.
      *
