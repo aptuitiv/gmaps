@@ -28,11 +28,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added `feature` to the event object. It's set on data layer events and holds the `DataFeature` that the event happened on.
 - Added the `hideBusinesses`, `hidePointsOfInterest`, and `hideTransit` map options as shortcuts to hide the `poi.business`, `poi`, and `transit` feature types. Each is also available as a property and as a method (`setHideBusinesses()`, `setHidePointsOfInterest()`, `setHideTransit()`) so that they can be changed after the map has been rendered. They're combined with any styles set with the `styles` option. Like other styles, they have no effect when a `mapId` is set.
 - Added support for the `stylers` property in `MapStyle` options as an alias of `styles`. This matches the Google Maps `MapTypeStyle` format so Google's style JSON can be used as is.
+- Added `PolylineCollection.isEmpty()`. It replaces the misspelled `isEmtpy()` method.
+
 
 ### Fixed
 
 - Fixed the popup `fit` option having no effect. The map was panned to bring the popup into view even when `fit` was set to `false`.
 - Fixed issue with attaching events to the polyline when it has a highlight polyline.
+- Fixed the `locationerror` event data not including the error details. The event data now includes the `code` and `message` values from the Geolocation API error.
+- Fixed a marker not showing when it was added to a map that hadn't been rendered yet, for example because the map element was hidden. This applied to setting the map in the marker options and to `setMap()`.
+- Fixed a marker only showing after the map was panned or zoomed. The marker waited for the map's `idle` event, which may have already happened. It now waits until the map is ready.
+- Fixed the `svgIcon` marker option being ignored when the marker was created after the map was ready. The default Google marker icon was shown instead.
+- Fixed `G.imageOverlay(url, bounds)` not displaying the image. The image URL passed as the first parameter was never set.
+- Fixed the `PlacesSearchBox` bounds not being used if they were set before `init()` was called.
+- Fixed the `Geocode` bounds not being sent to Google. The request was sent before the bounds were set.
+- Fixed `PlacesSearchBox` and `AutocompleteSearchBox` throwing an error when a place didn't have any geometry. Also fixed the place location not being added to the bounds when the place didn't have a viewport.
+- Fixed the `InfoWindow` `disableAutoPan` option having no effect. The value was only saved if it wasn't a boolean. Setting it to `false` in the options now works too.
+- Fixed `InfoWindow.toggle()` not opening the info window again after it had been closed.
+- Fixed the marker cluster top color range being set as the bottom color range when the color was passed as an object with `bgColor`.
+- Fixed a marker label that was a number, like `5`, being ignored. Number labels are now converted to a string.
+- Fixed the `MapTypeControl` `hybrid`, `roadmap`, `satellite`, and `terrain` properties not changing the map types shown in the control. Setting one to `false` now removes that map type from the control and setting it to `true` adds it back.
+- Fixed the `StreetViewControl` `sources` option not being passed to Google.
 
 ## [v0.28.1] - 2025-12-10
 
