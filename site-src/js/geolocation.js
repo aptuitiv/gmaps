@@ -21,29 +21,29 @@ map.show();
 let marker = null;
 let userPosition = null;
 
-// Add the marker, or move it if it already exists.
-// This waits until the map is ready because the map isn't rendered while it's hidden.
-const updateMarker = () => {
-    if (userPosition === null || !map.getIsReady()) {
-        return;
-    }
-    if (marker === null) {
-        marker = G.marker({ map: map, position: userPosition, title: 'You are here' });
-    } else {
-        marker.position = userPosition;
-    }
-};
-map.onReady(updateMarker);
-
 map.onLocationFound((position) => {
-    const isFirstLocation = userPosition === null;
     userPosition = position.latLng;
-    if (isFirstLocation) {
+    if (marker === null) {
+        // The marker can be added while the map is still hidden. It shows up once the map is rendered.
+        marker = G.marker({
+            map: map,
+            position: userPosition,
+            svgIcon: {
+                anchor: { x: 11, y: 11 }, // Move the svg marker to the center of the map marker. The icon is 22x22 pixels.
+                fillColor: '#5284ed',
+                fillOpacity: 1,
+                path: 'M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0',
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+            },
+            title: 'You are here',
+        });
         // Center on the user the first time only so that later updates don't undo the user panning the map
         map.setCenter(userPosition);
         map.zoom = 15;
+    } else {
+        marker.position = userPosition;
     }
-    updateMarker();
 
     let status = `Your location: ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`;
     if (typeof position.accuracy === 'number') {
@@ -52,8 +52,14 @@ map.onLocationFound((position) => {
     statusElement.textContent = status;
 });
 
-map.onLocationError(() => {
-    statusElement.textContent = 'Unable to get your location. Check that location access is allowed for this site.';
+map.onLocationError((error) => {
+    // error.code is 1 (permission denied), 2 (position unavailable), or 3 (timeout)
+    if (error.code === 1) {
+        statusElement.textContent =
+            'Location access was denied. Allow location access for this site to see your location.';
+    } else {
+        statusElement.textContent = `Unable to get your location: ${error.message}`;
+    }
 });
 
 // Watch the user's location. watch is true by default, so the marker moves as the location changes.
