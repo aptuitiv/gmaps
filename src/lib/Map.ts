@@ -1451,7 +1451,9 @@ export class Map extends Evented {
                 }
             };
             const error = (err: GeolocationPositionError) => {
-                this.dispatch('locationerror', err);
+                // Pass the values as a plain object. The GeolocationPositionError values are getters on
+                // its prototype so they would be lost when the event data is merged.
+                this.dispatch('locationerror', { code: err.code, message: err.message });
                 // eslint-disable-next-line no-console
                 console.error(err);
             };
