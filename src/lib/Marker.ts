@@ -906,13 +906,16 @@ export class Marker extends Layer {
     }
 
     /**
-     * Set the latitude and longitude value for the marker
+     * Set the label value for the marker
      *
-     * @param {string | number | MarkerLabel} value The latitude/longitude position for the marker
+     * @param {string | number | MarkerLabel} value The label for the marker
      */
     #setLabel(value: string | number | MarkerLabel) {
         if (isStringWithValue(value)) {
             this.#options.label = value;
+        } else if (isNumber(value)) {
+            // Google Maps requires the label to be a string
+            this.#options.label = value.toString();
         } else if (isObject(value) && isStringOrNumber(value.text)) {
             this.#options.label = {
                 text: value.text.toString(),
@@ -1051,7 +1054,11 @@ export class Marker extends Layer {
         }
 
         // Set the label
-        if (isStringWithValue(options.label) || (isObject(options.label) && isStringOrNumber(options.label.text))) {
+        if (
+            isStringWithValue(options.label) ||
+            isNumber(options.label) ||
+            (isObject(options.label) && isStringOrNumber(options.label.text))
+        ) {
             this.#setLabel(options.label);
             if (this.#marker) {
                 // The Google Maps marker is set up. Fully set the label.
