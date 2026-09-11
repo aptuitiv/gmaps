@@ -308,11 +308,11 @@ export class Evented extends Base {
                 if (index > -1) {
                     this.#onlyEventListeners.splice(index, 1);
                 }
-            }
 
-            // If there are no more event listeners for the given type then remove the listener from the Google maps object
-            if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
-                google.maps.event.clearListeners(this.#googleObject, type);
+                // If there are no more event listeners for the given type then remove the listener from the Google maps object
+                if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
+                    google.maps.event.clearListeners(this.#googleObject, type);
+                }
             }
         } else {
             this.offAll();

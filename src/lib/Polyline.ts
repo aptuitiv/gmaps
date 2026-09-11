@@ -746,12 +746,7 @@ export class Polyline extends Layer {
      */
     off(type?: PolylineEvent, callback?: EventCallback, options?: EventListenerOptions): void {
         // Remove the event from the highlight polyline as well since on() adds it there.
-        // Check for the listener first because the event may have been added before the highlight polyline was set.
-        if (
-            this.#highlightPolyline &&
-            type !== PolylineEvents.READY &&
-            (!type || this.#highlightPolyline.hasListener(type))
-        ) {
+        if (this.#highlightPolyline && type !== PolylineEvents.READY) {
             this.#highlightPolyline.off(type, callback, options);
         }
         super.off(type, callback, options);
