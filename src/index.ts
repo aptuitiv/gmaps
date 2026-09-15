@@ -69,7 +69,7 @@ export { AttachEventValue } from './lib/OverlayAttachment';
 export { imageOverlay, ImageOverlay, ImageOverlayOptions, ImageOverlayValue } from './lib/ImageOverlay';
 export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchBoxValue } from './lib/PlacesSearchBox';
 export { point, Point, PointObject, PointValue } from './lib/Point';
-export { polyline, Polyline, PolylineOptions, PolylineValue } from './lib/Polyline';
+export { polyline, Polyline, PolylineOptions, PolylineSimplifyOptions, PolylineValue } from './lib/Polyline';
 export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
 export { polylineIcon, PolylineIcon, PolylineIconOptions, PolylineIconValue } from './lib/PolylineIcon';
 export { DEFAULT_SIMPLIFY_TOLERANCE, simplifyPath } from './lib/simplifyPath';

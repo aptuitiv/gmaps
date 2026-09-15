@@ -14,6 +14,9 @@ const zoomTestButton = document.getElementById('zoomTest');
 const resultsBody = document.getElementById('results');
 const stat = (id) => document.getElementById(id);
 
+// The tolerances used for the "By zoom level" option
+const zoomTolerances = { 0: 10, 14: 5, 16: 2, 18: 1 };
+
 // The generated track
 let track = [];
 
@@ -55,6 +58,21 @@ const gpsTrack = (count) => {
 };
 
 /**
+ * Get the value for the polyline simplify option from the form
+ *
+ * @returns {number|object}
+ */
+const simplifyValue = () => {
+    const debug = form.debug.checked;
+    if (form.tolerance.value === 'zoom') {
+        return { zoom: zoomTolerances, debug };
+    }
+    const tolerance = Number(form.tolerance.value);
+    // Use the object form only when debug is on so that the simple number form is also used on this page
+    return debug ? { tolerance, debug } : tolerance;
+};
+
+/**
  * Show the results table
  */
 const renderResults = () => {
@@ -74,27 +92,42 @@ const renderResults = () => {
 };
 
 /**
- * Show the point counts for the simplified line and start a new row in the results table
+ * Show the current tolerance and point counts
  *
- * @param {number} ms The time it took to simplify the path
+ * @returns {Promise<object>} The counts
  */
-const updateStats = async (ms) => {
+const refreshCounts = async () => {
     const googleLine = await simplifiedLine.toGoogle();
     const pathCount = simplifiedLine.path.length;
     const drawnCount = googleLine.getPath().getLength();
     const reduction = `${(100 - (drawnCount / pathCount) * 100).toFixed(1)}%`;
+    const tolerance = simplifiedLine.simplify;
+    stat('statTolerance').textContent = tolerance === 0 ? 'Off' : `${tolerance} m`;
     stat('statPath').textContent = pathCount.toLocaleString();
     stat('statDrawn').textContent = drawnCount.toLocaleString();
     stat('statReduction').textContent = reduction;
+    return { pathCount, drawnCount, reduction, tolerance };
+};
+
+/**
+ * Show the counts and start a new row in the results table
+ *
+ * @param {number} ms The time it took to simplify the path
+ */
+const updateStats = async (ms) => {
+    const { pathCount, drawnCount, reduction, tolerance } = await refreshCounts();
     stat('statTime').textContent = `${ms.toFixed(1)}ms`;
     lowestFps = null;
     stat('statLowestFps').textContent = '-';
 
     const row = document.createElement('tr');
     resultsBody.prepend(row);
-    const tolerance = simplifiedLine.simplify;
+    let toleranceLabel = tolerance === 0 ? 'Off' : `${tolerance} m`;
+    if (form.tolerance.value === 'zoom') {
+        toleranceLabel = `By zoom (${toleranceLabel} at zoom ${map.zoom})`;
+    }
     currentRun = {
-        tolerance: tolerance === 0 ? 'Off' : `${tolerance} m`,
+        tolerance: toleranceLabel,
         pathCount: pathCount.toLocaleString(),
         drawnCount: drawnCount.toLocaleString(),
         reduction,
@@ -138,13 +171,12 @@ const drawTrack = async () => {
     }
 
     track = gpsTrack(Number(form.count.value));
-    const tolerance = Number(form.tolerance.value);
 
     // Time how long it takes to make the Google polyline with the simplified path
     const start = performance.now();
     simplifiedLine = G.polyline({
         path: track,
-        simplify: tolerance,
+        simplify: simplifyValue(),
         strokeColor: '#d62828',
         strokeWeight: 3,
         zIndex: 2,
@@ -159,14 +191,14 @@ const drawTrack = async () => {
 };
 
 /**
- * Change the tolerance on the existing line
+ * Change the simplify option on the existing line
  */
 const changeTolerance = () => {
     if (!simplifiedLine) {
         return;
     }
     const start = performance.now();
-    simplifiedLine.setSimplify(Number(form.tolerance.value));
+    simplifiedLine.setSimplify(simplifyValue());
     updateStats(performance.now() - start);
 };
 
@@ -234,6 +266,13 @@ map.load().then(() => {
     map.on('bounds_changed', () => {
         movedInWindow = true;
     });
+    // The polyline updates its tolerance when the map finishes moving. Wait a moment so that
+    // the counts are read after the polyline has updated.
+    map.onIdle(() => {
+        if (simplifiedLine) {
+            setTimeout(refreshCounts, 0);
+        }
+    });
     drawTrack();
 });
 
@@ -242,5 +281,6 @@ form.addEventListener('submit', (e) => {
     drawTrack();
 });
 form.tolerance.addEventListener('change', changeTolerance);
+form.debug.addEventListener('change', changeTolerance);
 form.showOriginal.addEventListener('change', updateOriginalLine);
 zoomTestButton.addEventListener('click', runZoomTest);

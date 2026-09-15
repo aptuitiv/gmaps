@@ -26,6 +26,11 @@ layout: "base.njk"
 <ul>
     <li>"Points drawn" is the number of points that Google actually has for the line. "Points in the path" is always every point.</li>
     <li>Turn on "Show the original path" to draw every point in blue under the simplified red line. Zoom in close to see where they differ.</li>
+    <li>
+        "By zoom level" uses 10 m below zoom 14, 5 m from zoom 14, 2 m from zoom 16, and 1 m from zoom 18.
+        The tolerance and points drawn update after the map finishes zooming.
+    </li>
+    <li>Turn on "Log to the console" to see what the <code>debug</code> option logs each time the path is simplified.</li>
     <li>Run the zoom test with each tolerance and compare the lowest frame rate. Each run is added to the results table.</li>
     <li>On an iPhone, connect it to a Mac and open Safari's Web Inspector. Watch the console for "Total canvas memory use exceeds the maximum limit".</li>
 </ul>
@@ -48,10 +53,12 @@ layout: "base.njk"
             <option value="5">5 meters</option>
             <option value="10">10 meters</option>
             <option value="25">25 meters</option>
+            <option value="zoom">By zoom level (10 / 5 / 2 / 1 m)</option>
         </select>
     </div>
     <div>
         <label class="SimplifyCheckbox"><input type="checkbox" name="showOriginal"> Show the original path</label>
+        <label class="SimplifyCheckbox"><input type="checkbox" name="debug"> Log to the console (debug option)</label>
     </div>
     <div>
         <button type="submit">New track</button>
@@ -60,6 +67,7 @@ layout: "base.njk"
 </form>
 
 <div class="SimplifyStats">
+    <span>Tolerance now: <strong id="statTolerance">-</strong></span>
     <span>Points in the path: <strong id="statPath">-</strong></span>
     <span>Points drawn: <strong id="statDrawn">-</strong></span>
     <span>Fewer points: <strong id="statReduction">-</strong></span>

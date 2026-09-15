@@ -54,6 +54,20 @@ type CustomData = {
     [key: string]: any;
 };
 
+// The options for simplifying the path that is drawn on the map
+export type PolylineSimplifyOptions = {
+    // Log to the console how many points are drawn each time the path is simplified. Defaults to false.
+    debug?: boolean;
+    // How far, in meters, the drawn line can be from the original path. Defaults to 2.
+    // This is used at zoom levels that don't have their own tolerance in the "zoom" option.
+    tolerance?: number;
+    // A tolerance for different zoom levels. The key is the zoom level and the value is the tolerance, in meters,
+    // to use at that zoom level and higher, up to the next zoom level that is set. 0 means every point is drawn.
+    // For example: { 0: 10, 14: 5, 16: 2, 18: 1 }
+    // The tolerance is updated after the map finishes zooming.
+    zoom?: { [zoom: number]: number };
+};
+
 export type PolylineOptions = {
     // Whether the polyline handles click events. Defaults to true.
     clickable?: boolean;
@@ -73,9 +87,10 @@ export type PolylineOptions = {
     path?: LatLngValue[];
     // Simplify the path that is drawn on the map so that it has fewer points but keeps the same shape.
     // This is useful for paths with a lot of points, like GPS tracks. Set a number for how far, in meters,
-    // the drawn line can be from the original path, or true to use 2 meters. The path property still holds every point.
+    // the drawn line can be from the original path, or true to use 2 meters. Use an object to set a tolerance
+    // for different zoom levels or to log debug information. The path property still holds every point.
     // Defaults to false.
-    simplify?: boolean | number;
+    simplify?: boolean | number | PolylineSimplifyOptions;
     // The stroke color. All CSS3 colors are supported except for extended named colors.
     strokeColor?: string;
     // The stroke opacity between 0.0 and 1.0.
@@ -88,6 +103,45 @@ export type PolylineOptions = {
     visible?: boolean;
     // The zIndex value compared to other polygons.
     zIndex?: number;
+};
+
+// The simplify settings after the value passed to the simplify option has been checked
+type SimplifyConfig = {
+    debug: boolean;
+    tolerance: number;
+    // The zoom levels that have their own tolerance, lowest zoom level first
+    zoom: { level: number; tolerance: number }[];
+};
+
+/**
+ * Get the simplify settings from the value passed to the simplify option
+ *
+ * @param {unknown} value The simplify option value
+ * @returns {SimplifyConfig|undefined} Undefined if simplifying is off or the value isn't valid
+ */
+const getSimplifyConfig = (value: unknown): SimplifyConfig | undefined => {
+    if (value === true) {
+        return { debug: false, tolerance: DEFAULT_SIMPLIFY_TOLERANCE, zoom: [] };
+    }
+    if (isNumberOrNumberString(value)) {
+        const tolerance = Number(value);
+        return tolerance > 0 ? { debug: false, tolerance, zoom: [] } : undefined;
+    }
+    if (isObject(value)) {
+        const options = value as PolylineSimplifyOptions;
+        const tolerance =
+            isNumberOrNumberString(options.tolerance) && Number(options.tolerance) >= 0
+                ? Number(options.tolerance)
+                : DEFAULT_SIMPLIFY_TOLERANCE;
+        const zoom = isObject(options.zoom)
+            ? Object.entries(options.zoom)
+                  .map(([level, zoomTolerance]) => ({ level: Number(level), tolerance: Number(zoomTolerance) }))
+                  .filter((z) => Number.isFinite(z.level) && Number.isFinite(z.tolerance) && z.tolerance >= 0)
+                  .sort((a, b) => a.level - b.level)
+            : [];
+        return { debug: options.debug === true, tolerance, zoom };
+    }
+    return undefined;
 };
 
 /**
@@ -202,6 +256,42 @@ export class Polyline extends Layer {
      * @type {number}
      */
     #simplifyTolerance: number = 0;
+
+    /**
+     * Holds the simplify settings. This is undefined if the path isn't simplified.
+     *
+     * @private
+     * @type {SimplifyConfig|undefined}
+     */
+    #simplifyConfig: SimplifyConfig | undefined;
+
+    /**
+     * Holds the simplified Google Maps path for each tolerance when the tolerance changes with the zoom level.
+     * They're kept so that the path doesn't have to be simplified again when zooming back to the same zoom levels.
+     *
+     * @private
+     * @type {object}
+     */
+    #simplifiedPaths: { [tolerance: number]: google.maps.LatLng[] } = {};
+
+    /**
+     * Holds the map most recently passed to setMap().
+     *
+     * It's set right away, before the Google polyline is set up, so that the tolerance
+     * for the map's zoom level can be used when the polyline is first drawn.
+     *
+     * @private
+     * @type {Map|null}
+     */
+    #requestedMap: Map | null = null;
+
+    /**
+     * Holds the map that has the "idle" event listener to update the tolerance for the zoom level
+     *
+     * @private
+     * @type {Map|null}
+     */
+    #zoomListenerMap: Map | null = null;
 
     /**
      * Holds the Google maps Polyline object
@@ -354,9 +444,11 @@ export class Polyline extends Layer {
             // which is typically the stroke color, opacity, and weight.
             // The map and path are left out. They're set when the highlight polyline is first shown.
             // See #setupHighlightPolyline().
+            // The simplify option is left out too. This polyline gives the highlight polyline its current tolerance.
             const options: PolylineOptions = { ...this.#options, ...value };
             delete options.map;
             delete options.path;
+            delete options.simplify;
             highlight = new Polyline(options);
         }
 
@@ -508,6 +600,8 @@ export class Polyline extends Layer {
                 }
             });
             this.#options.path = paths;
+            // The simplified paths that were kept are for the old path
+            this.#simplifiedPaths = {};
             if (this.#polyline) {
                 this.#polyline.setPath(this.#getGooglePath());
             }
@@ -519,7 +613,9 @@ export class Polyline extends Layer {
     }
 
     /**
-     * Get how far, in meters, the line drawn on the map can be from the original path when it's simplified.
+     * Get how far, in meters, the line drawn on the map is allowed to be from the original path.
+     *
+     * If the tolerance changes with the zoom level, this is the tolerance for the current zoom level.
      *
      * @returns {number} 0 if the path isn't simplified.
      */
@@ -533,31 +629,28 @@ export class Polyline extends Layer {
      * Simplifying gives the map fewer points to draw but keeps the same shape.
      * The path property still holds every point.
      *
-     * @param {boolean|number|string} value How far, in meters, the drawn line can be from the original path.
-     *      true uses 2 meters. false or 0 turns simplifying off.
+     * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
+     *      original path. true uses 2 meters. false or 0 turns simplifying off. Use an object to set a tolerance for
+     *      different zoom levels or to log debug information.
      */
-    set simplify(value: boolean | number | string) {
-        let tolerance: number | undefined;
-        if (value === true) {
-            tolerance = DEFAULT_SIMPLIFY_TOLERANCE;
-        } else if (value === false) {
-            tolerance = 0;
-        } else if (isNumberOrNumberString(value) && Number(value) >= 0) {
-            tolerance = Number(value);
-        }
-        if (typeof tolerance === 'undefined' || tolerance === this.#simplifyTolerance) {
+    set simplify(value: boolean | number | string | PolylineSimplifyOptions) {
+        const config = getSimplifyConfig(value);
+        const isOff = value === false || (isNumberOrNumberString(value) && Number(value) === 0);
+        if (!config && !isOff) {
+            // An invalid value was passed so the current setting is kept
             return;
         }
-        this.#simplifyTolerance = tolerance;
+        this.#simplifyConfig = config;
         // Add to the options object so that it can be used when cloning the polyline
-        this.#options.simplify = tolerance;
-        if (this.#polyline) {
-            this.#polyline.setPath(this.#getGooglePath());
+        if (config) {
+            this.#options.simplify = isObject(value) ? (value as PolylineSimplifyOptions) : config.tolerance;
+        } else {
+            this.#options.simplify = false;
         }
-        // Keep the highlight polyline drawing the same path once it has one
-        if (this.#highlightPolyline && this.#highlightSetup) {
-            this.#highlightPolyline.simplify = tolerance;
-        }
+        // The simplified paths that were kept may be for different tolerances
+        this.#simplifiedPaths = {};
+        this.#updateZoomListener();
+        this.#applySimplify();
     }
 
     /**
@@ -1004,6 +1097,11 @@ export class Polyline extends Layer {
      * @returns {Promise<Polyline>}
      */
     async setMap(value: Map | null, isVisible: boolean = true): Promise<Polyline> {
+        // Use the simplify tolerance for this map's zoom level, before the Google polyline is drawn
+        this.#requestedMap = value instanceof Map ? value : null;
+        this.#updateZoomListener();
+        this.#applySimplify();
+
         // The highlight polyline only follows the map once it's been set up. Until then it gets the map when it's first shown.
         if (this.#highlightPolyline && this.#highlightSetup) {
             this.#highlightPolyline.setMap(value, false);
@@ -1035,7 +1133,7 @@ export class Polyline extends Layer {
     setOptions(options: PolylineOptions): Polyline {
         if (isObject(options)) {
             // Set this before the map and path so that the path is only simplified once
-            if (isDefined<boolean | number>(options.simplify)) {
+            if (isDefined<boolean | number | PolylineSimplifyOptions>(options.simplify)) {
                 this.simplify = options.simplify;
             }
             if (typeof options.clickable === 'boolean') {
@@ -1050,11 +1148,12 @@ export class Polyline extends Layer {
             if (options.icons) {
                 this.icons = options.icons;
             }
-            if (options.map) {
-                this.setMap(options.map);
-            }
+            // Set the path before the map so that the Google polyline is drawn with the whole path at once
             if (options.path) {
                 this.path = options.path;
+            }
+            if (options.map) {
+                this.setMap(options.map);
             }
             if (isStringWithValue(options.strokeColor)) {
                 this.strokeColor = options.strokeColor;
@@ -1096,11 +1195,12 @@ export class Polyline extends Layer {
      * Simplifying gives the map fewer points to draw but keeps the same shape.
      * The path property still holds every point.
      *
-     * @param {boolean|number|string} value How far, in meters, the drawn line can be from the original path.
-     *      true uses 2 meters. false or 0 turns simplifying off.
+     * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
+     *      original path. true uses 2 meters. false or 0 turns simplifying off. Use an object to set a tolerance for
+     *      different zoom levels or to log debug information.
      * @returns {Polyline}
      */
-    setSimplify(value: boolean | number | string): Polyline {
+    setSimplify(value: boolean | number | string | PolylineSimplifyOptions): Polyline {
         this.simplify = value;
         return this;
     }
@@ -1224,13 +1324,128 @@ export class Polyline extends Layer {
      * @returns {google.maps.LatLng[]}
      */
     #getGooglePath(): google.maps.LatLng[] {
+        const start = performance.now();
         const path = this.#options.path ?? [];
-        const points =
-            this.#simplifyTolerance > 0
-                ? simplifyPath(path, this.#simplifyTolerance)
-                : path.map((point) => (point instanceof LatLng ? point : latLng(point)));
-        return points.map((point) => point.toGoogle()).filter((point): point is google.maps.LatLng => point !== null);
+        const tolerance = this.#simplifyTolerance;
+        // When the tolerance changes with the zoom level, keep each simplified path so that it isn't worked out again
+        const useKeptPaths = tolerance > 0 && (this.#simplifyConfig?.zoom.length ?? 0) > 0;
+        let googlePath = useKeptPaths ? this.#simplifiedPaths[tolerance] : undefined;
+        const isKeptPath = typeof googlePath !== 'undefined';
+        if (!googlePath) {
+            const points =
+                tolerance > 0
+                    ? simplifyPath(path, tolerance)
+                    : path.map((point) => (point instanceof LatLng ? point : latLng(point)));
+            googlePath = points
+                .map((point) => point.toGoogle())
+                .filter((point): point is google.maps.LatLng => point !== null);
+            if (useKeptPaths) {
+                this.#simplifiedPaths[tolerance] = googlePath;
+            }
+        }
+
+        // Log how many points are drawn so that developers can see if simplifying helps
+        if (this.#simplifyConfig?.debug && path.length > 0) {
+            const ms = (performance.now() - start).toFixed(1);
+            const zoomText =
+                this.#simplifyConfig.zoom.length > 0 && this.#requestedMap ? ` at zoom ${this.#requestedMap.zoom}` : '';
+            let message = `[Polyline simplify] ${path.length.toLocaleString()} points in the path, `;
+            if (tolerance > 0) {
+                const fewer = (100 - (googlePath.length / path.length) * 100).toFixed(1);
+                message += `${googlePath.length.toLocaleString()} drawn (${fewer}% fewer) with a ${tolerance} m tolerance${zoomText}.`;
+                message += isKeptPath ? ' Used the path that was already simplified.' : ` Took ${ms} ms.`;
+            } else {
+                message += `all drawn (not simplified${zoomText}).`;
+            }
+            // eslint-disable-next-line no-console
+            console.log(message, this);
+        }
+
+        // Give Google a copy of a kept path so that the kept path can't be changed
+        return isKeptPath || useKeptPaths ? googlePath.slice() : googlePath;
     }
+
+    /**
+     * Get the simplify tolerance to use now.
+     *
+     * If there are tolerances for different zoom levels then the one for the map's current zoom level is used.
+     *
+     * @private
+     * @returns {number} 0 if the path shouldn't be simplified
+     */
+    #getCurrentTolerance(): number {
+        const config = this.#simplifyConfig;
+        if (!config) {
+            return 0;
+        }
+        if (config.zoom.length > 0 && this.#requestedMap) {
+            const { zoom } = this.#requestedMap;
+            let tolerance: number | undefined;
+            config.zoom.forEach((z) => {
+                if (zoom >= z.level) {
+                    tolerance = z.tolerance;
+                }
+            });
+            if (typeof tolerance !== 'undefined') {
+                return tolerance;
+            }
+        }
+        return config.tolerance;
+    }
+
+    /**
+     * Update the path drawn on the map if the simplify tolerance to use has changed
+     *
+     * @private
+     */
+    #applySimplify(): void {
+        const tolerance = this.#getCurrentTolerance();
+        if (tolerance === this.#simplifyTolerance) {
+            return;
+        }
+        this.#simplifyTolerance = tolerance;
+        if (this.#polyline) {
+            this.#polyline.setPath(this.#getGooglePath());
+        }
+        // Keep the highlight polyline drawing the same path once it has one
+        if (this.#highlightPolyline && this.#highlightSetup) {
+            this.#highlightPolyline.simplify = tolerance;
+        }
+    }
+
+    /**
+     * Listen for the map to finish moving so that the tolerance can be updated for the zoom level.
+     *
+     * The listener is only needed when there are tolerances for different zoom levels and the polyline is on a map.
+     * It's removed otherwise so that the map doesn't hold on to the polyline.
+     *
+     * @private
+     */
+    #updateZoomListener(): void {
+        const map = this.#simplifyConfig && this.#simplifyConfig.zoom.length > 0 ? this.#requestedMap : null;
+        if (map === this.#zoomListenerMap) {
+            return;
+        }
+        if (this.#zoomListenerMap) {
+            this.#zoomListenerMap.off('idle', this.#handleMapIdle);
+        }
+        if (map) {
+            map.on('idle', this.#handleMapIdle);
+        }
+        this.#zoomListenerMap = map;
+    }
+
+    /**
+     * Update the tolerance after the map finishes moving, in case the zoom level changed.
+     *
+     * This uses the "idle" event instead of "zoom_changed" so that the path isn't simplified
+     * while the map is still zooming.
+     *
+     * @private
+     */
+    #handleMapIdle = (): void => {
+        this.#applySimplify();
+    };
 
     /**
      * Set up the highlight polyline on the map if it hasn't been already.
