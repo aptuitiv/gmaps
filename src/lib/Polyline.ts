@@ -10,7 +10,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Custom data could be anything within an obect */
 
 import { PolylineEvents } from './constants';
-import { EventCallback, EventConfig, EventListenerOptions } from './Evented';
+import { EventCallback, EventConfig, EventListenerData, EventListenerOptions } from './Evented';
 import { latLng, LatLng, LatLngValue } from './LatLng';
 import Layer from './Layer';
 import { loader } from './Loader';
@@ -818,6 +818,19 @@ export class Polyline extends Layer {
             this.#highlightPolyline.off(type, callback, options);
         }
         super.off(type, callback, options);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    removeCalledOnceListeners(type: string, listeners: EventListenerData[]): void {
+        // Remove the listeners from the highlight polyline as well since on() adds them there.
+        if (this.#highlightPolyline && type !== PolylineEvents.READY) {
+            listeners.forEach((listener) => {
+                this.#highlightPolyline?.off(type as PolylineEvent, listener.callback, listener.options);
+            });
+        }
+        super.removeCalledOnceListeners(type, listeners);
     }
 
     /**
