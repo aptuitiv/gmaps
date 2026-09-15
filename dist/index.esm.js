@@ -16031,8 +16031,104 @@ var polylineIcon = (options) => {
   return new PolylineIcon(options);
 };
 
+// src/lib/simplifyPath.ts
+var DEFAULT_SIMPLIFY_TOLERANCE = 2;
+var DEFAULT_SIMPLIFY_ZOOM = Object.freeze({ 0: 10, 14: 5, 16: 2, 18: 1 });
+var EARTH_RADIUS = 6378137;
+var simplifyPath = (path, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
+  const points = [];
+  if (Array.isArray(path)) {
+    path.forEach((value) => {
+      const point2 = value instanceof LatLng ? value : latLng(value);
+      if (point2.isValid()) {
+        points.push(point2);
+      }
+    });
+  }
+  const count = points.length;
+  if (count <= 2 || !isNumber(tolerance) || tolerance <= 0) {
+    return points;
+  }
+  const averageLatitude = points.reduce((sum, point2) => sum + point2.latitude, 0) / count;
+  const metersPerLatDegree = Math.PI / 180 * EARTH_RADIUS;
+  const metersPerLngDegree = metersPerLatDegree * Math.cos(averageLatitude * Math.PI / 180);
+  const xs = new Float64Array(count);
+  const ys = new Float64Array(count);
+  points.forEach((point2, index) => {
+    xs[index] = point2.longitude * metersPerLngDegree;
+    ys[index] = point2.latitude * metersPerLatDegree;
+  });
+  const segmentDistanceSquared = (index, first, last) => {
+    let x = xs[first];
+    let y = ys[first];
+    let dx = xs[last] - x;
+    let dy = ys[last] - y;
+    if (dx !== 0 || dy !== 0) {
+      const t = ((xs[index] - x) * dx + (ys[index] - y) * dy) / (dx * dx + dy * dy);
+      if (t > 1) {
+        x = xs[last];
+        y = ys[last];
+      } else if (t > 0) {
+        x += dx * t;
+        y += dy * t;
+      }
+    }
+    dx = xs[index] - x;
+    dy = ys[index] - y;
+    return dx * dx + dy * dy;
+  };
+  const keep = new Uint8Array(count);
+  keep[0] = 1;
+  keep[count - 1] = 1;
+  const toleranceSquared = tolerance * tolerance;
+  const stack = [0, count - 1];
+  while (stack.length > 0) {
+    const last = stack.pop();
+    const first = stack.pop();
+    let maxDistance = 0;
+    let furthest = -1;
+    for (let i = first + 1; i < last; i += 1) {
+      const distance = segmentDistanceSquared(i, first, last);
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        furthest = i;
+      }
+    }
+    if (furthest !== -1 && maxDistance > toleranceSquared) {
+      keep[furthest] = 1;
+      stack.push(first, furthest, furthest, last);
+    }
+  }
+  return points.filter((point2, index) => keep[index] === 1);
+};
+
 // src/lib/Polyline.ts
-var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _highlightSetup, _hasHighlightListeners, _isHighlighted, _isHighlightReady, _isHovered, _options9, _polyline, _Polyline_instances, setupHighlightPolyline_fn, showHighlightPolyline_fn, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
+var getSimplifyConfig = (value) => {
+  const getZoomTolerances = (zoom) => Object.entries(zoom).map(([level, zoomTolerance]) => ({ level: Number(level), tolerance: Number(zoomTolerance) })).filter((z) => Number.isFinite(z.level) && Number.isFinite(z.tolerance) && z.tolerance >= 0).sort((a, b) => a.level - b.level);
+  if (value === true) {
+    return { debug: false, tolerance: DEFAULT_SIMPLIFY_TOLERANCE, zoom: [] };
+  }
+  if (value === "zoom") {
+    return { debug: false, tolerance: DEFAULT_SIMPLIFY_TOLERANCE, zoom: getZoomTolerances(DEFAULT_SIMPLIFY_ZOOM) };
+  }
+  if (isNumberOrNumberString(value)) {
+    const tolerance = Number(value);
+    return tolerance > 0 ? { debug: false, tolerance, zoom: [] } : void 0;
+  }
+  if (isObject(value)) {
+    const options = value;
+    const tolerance = isNumberOrNumberString(options.tolerance) && Number(options.tolerance) >= 0 ? Number(options.tolerance) : DEFAULT_SIMPLIFY_TOLERANCE;
+    let zoom = [];
+    if (options.zoom === true) {
+      zoom = getZoomTolerances(DEFAULT_SIMPLIFY_ZOOM);
+    } else if (isObject(options.zoom)) {
+      zoom = getZoomTolerances(options.zoom);
+    }
+    return { debug: options.debug === true, tolerance, zoom };
+  }
+  return void 0;
+};
+var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _highlightSetup, _hasHighlightListeners, _isHighlighted, _isHighlightReady, _isHovered, _options9, _simplifyTolerance, _simplifyConfig, _simplifyDebug, _simplifiedPaths, _requestedMap, _zoomListenerMap, _polyline, _Polyline_instances, getGooglePath_fn, isSimplifyDebug_fn, logSimplify_fn, logCurrentSimplify_fn, getCurrentTolerance_fn, applySimplify_fn, updateZoomListener_fn, _handleMapIdle, setupHighlightPolyline_fn, showHighlightPolyline_fn, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -16131,6 +16227,54 @@ var _Polyline = class _Polyline extends Layer_default {
      */
     __privateAdd(this, _options9, {});
     /**
+     * Holds how far, in meters, the line drawn on the map can be from the original path when it's simplified.
+     *
+     * 0 means that the path isn't simplified.
+     *
+     * @private
+     * @type {number}
+     */
+    __privateAdd(this, _simplifyTolerance, 0);
+    /**
+     * Holds the simplify settings. This is undefined if the path isn't simplified.
+     *
+     * @private
+     * @type {SimplifyConfig|undefined}
+     */
+    __privateAdd(this, _simplifyConfig);
+    /**
+     * Holds the simplifyDebug option. If it's set, it's used instead of the "debug" simplify option.
+     *
+     * @private
+     * @type {boolean|undefined}
+     */
+    __privateAdd(this, _simplifyDebug);
+    /**
+     * Holds the simplified Google Maps path for each tolerance when the tolerance changes with the zoom level.
+     * They're kept so that the path doesn't have to be simplified again when zooming back to the same zoom levels.
+     *
+     * @private
+     * @type {object}
+     */
+    __privateAdd(this, _simplifiedPaths, {});
+    /**
+     * Holds the map most recently passed to setMap().
+     *
+     * It's set right away, before the Google polyline is set up, so that the tolerance
+     * for the map's zoom level can be used when the polyline is first drawn.
+     *
+     * @private
+     * @type {Map|null}
+     */
+    __privateAdd(this, _requestedMap, null);
+    /**
+     * Holds the map that has the "idle" event listener to update the tolerance for the zoom level
+     *
+     * @private
+     * @type {Map|null}
+     */
+    __privateAdd(this, _zoomListenerMap, null);
+    /**
      * Holds the Google maps Polyline object
      *
      * This is undefined until the Google Maps library is loaded and the polyline object is created.
@@ -16139,6 +16283,17 @@ var _Polyline = class _Polyline extends Layer_default {
      * @type {google.maps.Polyline|undefined}
      */
     __privateAdd(this, _polyline);
+    /**
+     * Update the tolerance after the map finishes moving, in case the zoom level changed.
+     *
+     * This uses the "idle" event instead of "zoom_changed" so that the path isn't simplified
+     * while the map is still zooming.
+     *
+     * @private
+     */
+    __privateAdd(this, _handleMapIdle, () => {
+      __privateMethod(this, _Polyline_instances, applySimplify_fn).call(this);
+    });
     if (isObject(options)) {
       this.setOptions(options);
     }
@@ -16259,6 +16414,8 @@ var _Polyline = class _Polyline extends Layer_default {
       const options = __spreadValues(__spreadValues({}, __privateGet(this, _options9)), value);
       delete options.map;
       delete options.path;
+      delete options.simplify;
+      delete options.simplifyDebug;
       highlight = new _Polyline(options);
     }
     if (!highlight) {
@@ -16381,13 +16538,79 @@ var _Polyline = class _Polyline extends Layer_default {
         }
       });
       __privateGet(this, _options9).path = paths;
+      __privateSet(this, _simplifiedPaths, {});
       if (__privateGet(this, _polyline)) {
-        __privateGet(this, _polyline).setPath(
-          paths.map((path) => path.toGoogle()).filter((path) => path !== null)
-        );
+        __privateGet(this, _polyline).setPath(__privateMethod(this, _Polyline_instances, getGooglePath_fn).call(this));
       }
       if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
         __privateGet(this, _highlightPolyline).path = paths;
+      }
+    }
+  }
+  /**
+   * Get how far, in meters, the line drawn on the map is allowed to be from the original path.
+   *
+   * If the tolerance changes with the zoom level, this is the tolerance for the current zoom level.
+   *
+   * @returns {number} 0 if the path isn't simplified.
+   */
+  get simplify() {
+    return __privateGet(this, _simplifyTolerance);
+  }
+  /**
+   * Set whether to simplify the path that is drawn on the map.
+   *
+   * Simplifying gives the map fewer points to draw but keeps the same shape.
+   * The path property still holds every point.
+   *
+   * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
+   *      original path. true uses 2 meters. 'zoom' uses the default tolerances for different zoom levels. false or 0
+   *      turns simplifying off. Use an object to set your own tolerances for different zoom levels or to log debug information.
+   */
+  set simplify(value) {
+    const config = getSimplifyConfig(value);
+    const isOff = value === false || isNumberOrNumberString(value) && Number(value) === 0;
+    if (!config && !isOff) {
+      return;
+    }
+    const wasDebug = __privateMethod(this, _Polyline_instances, isSimplifyDebug_fn).call(this);
+    __privateSet(this, _simplifyConfig, config);
+    if (!config) {
+      __privateGet(this, _options9).simplify = false;
+    } else if (value === "zoom") {
+      __privateGet(this, _options9).simplify = "zoom";
+    } else {
+      __privateGet(this, _options9).simplify = isObject(value) ? value : config.tolerance;
+    }
+    __privateSet(this, _simplifiedPaths, {});
+    __privateMethod(this, _Polyline_instances, updateZoomListener_fn).call(this);
+    const hasChanged = __privateMethod(this, _Polyline_instances, applySimplify_fn).call(this);
+    if (!hasChanged && !wasDebug) {
+      __privateMethod(this, _Polyline_instances, logCurrentSimplify_fn).call(this);
+    }
+  }
+  /**
+   * Get whether debug information is logged to the console each time the path is simplified
+   *
+   * @returns {boolean}
+   */
+  get simplifyDebug() {
+    return __privateMethod(this, _Polyline_instances, isSimplifyDebug_fn).call(this);
+  }
+  /**
+   * Set whether to log debug information to the console each time the path is simplified.
+   *
+   * This is the same as the "debug" simplify option. If it's set, it's used instead of the "debug" simplify option.
+   *
+   * @param {boolean} value Whether to log debug information
+   */
+  set simplifyDebug(value) {
+    if (isBoolean(value)) {
+      const wasDebug = __privateMethod(this, _Polyline_instances, isSimplifyDebug_fn).call(this);
+      __privateSet(this, _simplifyDebug, value);
+      __privateGet(this, _options9).simplifyDebug = value;
+      if (!wasDebug) {
+        __privateMethod(this, _Polyline_instances, logCurrentSimplify_fn).call(this);
       }
     }
   }
@@ -16790,6 +17013,9 @@ var _Polyline = class _Polyline extends Layer_default {
   setMap(value, isVisible = true) {
     return __async(this, null, function* () {
       var _a;
+      __privateSet(this, _requestedMap, value instanceof Map ? value : null);
+      __privateMethod(this, _Polyline_instances, updateZoomListener_fn).call(this);
+      __privateMethod(this, _Polyline_instances, applySimplify_fn).call(this);
       if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
         __privateGet(this, _highlightPolyline).setMap(value, false);
       }
@@ -16817,6 +17043,12 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   setOptions(options) {
     if (isObject(options)) {
+      if (isBoolean(options.simplifyDebug)) {
+        this.simplifyDebug = options.simplifyDebug;
+      }
+      if (isDefined(options.simplify)) {
+        this.simplify = options.simplify;
+      }
       if (typeof options.clickable === "boolean") {
         this.clickable = options.clickable;
       }
@@ -16829,11 +17061,11 @@ var _Polyline = class _Polyline extends Layer_default {
       if (options.icons) {
         this.icons = options.icons;
       }
-      if (options.map) {
-        this.setMap(options.map);
-      }
       if (options.path) {
         this.path = options.path;
+      }
+      if (options.map) {
+        this.setMap(options.map);
       }
       if (isStringWithValue(options.strokeColor)) {
         this.strokeColor = options.strokeColor;
@@ -16860,6 +17092,33 @@ var _Polyline = class _Polyline extends Layer_default {
         this.data = options.data;
       }
     }
+    return this;
+  }
+  /**
+   * Set whether to simplify the path that is drawn on the map.
+   *
+   * Simplifying gives the map fewer points to draw but keeps the same shape.
+   * The path property still holds every point.
+   *
+   * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
+   *      original path. true uses 2 meters. 'zoom' uses the default tolerances for different zoom levels. false or 0
+   *      turns simplifying off. Use an object to set your own tolerances for different zoom levels or to log debug information.
+   * @returns {Polyline}
+   */
+  setSimplify(value) {
+    this.simplify = value;
+    return this;
+  }
+  /**
+   * Set whether to log debug information to the console each time the path is simplified.
+   *
+   * This is the same as the "debug" simplify option. If it's set, it's used instead of the "debug" simplify option.
+   *
+   * @param {boolean} value Whether to log debug information
+   * @returns {Polyline}
+   */
+  setSimplifyDebug(value) {
+    this.simplifyDebug = value;
     return this;
   }
   /**
@@ -16974,8 +17233,166 @@ _isHighlighted = new WeakMap();
 _isHighlightReady = new WeakMap();
 _isHovered = new WeakMap();
 _options9 = new WeakMap();
+_simplifyTolerance = new WeakMap();
+_simplifyConfig = new WeakMap();
+_simplifyDebug = new WeakMap();
+_simplifiedPaths = new WeakMap();
+_requestedMap = new WeakMap();
+_zoomListenerMap = new WeakMap();
 _polyline = new WeakMap();
 _Polyline_instances = new WeakSet();
+/**
+ * Get the path to give to the Google Maps polyline.
+ *
+ * The path is simplified if a simplify tolerance is set. Otherwise it has every point.
+ *
+ * @private
+ * @returns {google.maps.LatLng[]}
+ */
+getGooglePath_fn = function() {
+  var _a, _b, _c;
+  const start = performance.now();
+  const path = (_a = __privateGet(this, _options9).path) != null ? _a : [];
+  const tolerance = __privateGet(this, _simplifyTolerance);
+  const useKeptPaths = tolerance > 0 && ((_c = (_b = __privateGet(this, _simplifyConfig)) == null ? void 0 : _b.zoom.length) != null ? _c : 0) > 0;
+  let googlePath = useKeptPaths ? __privateGet(this, _simplifiedPaths)[tolerance] : void 0;
+  const isKeptPath = typeof googlePath !== "undefined";
+  if (!googlePath) {
+    const points = tolerance > 0 ? simplifyPath(path, tolerance) : path.map((point2) => point2 instanceof LatLng ? point2 : latLng(point2));
+    googlePath = points.map((point2) => point2.toGoogle()).filter((point2) => point2 !== null);
+    if (useKeptPaths) {
+      __privateGet(this, _simplifiedPaths)[tolerance] = googlePath;
+    }
+  }
+  if (__privateMethod(this, _Polyline_instances, isSimplifyDebug_fn).call(this)) {
+    let detail = "";
+    if (isKeptPath) {
+      detail = "Used the path that was already simplified.";
+    } else if (tolerance > 0) {
+      detail = `Took ${(performance.now() - start).toFixed(1)} ms.`;
+    }
+    __privateMethod(this, _Polyline_instances, logSimplify_fn).call(this, googlePath.length, detail);
+  }
+  return isKeptPath || useKeptPaths ? googlePath.slice() : googlePath;
+};
+/**
+ * Returns whether debug information about simplifying is logged to the console.
+ *
+ * The simplifyDebug option is used if it's set. Otherwise the "debug" simplify option is used.
+ *
+ * @private
+ * @returns {boolean}
+ */
+isSimplifyDebug_fn = function() {
+  var _a, _b, _c;
+  return (_c = (_b = __privateGet(this, _simplifyDebug)) != null ? _b : (_a = __privateGet(this, _simplifyConfig)) == null ? void 0 : _a.debug) != null ? _c : false;
+};
+/**
+ * Log to the console how many points are drawn, if debug is on.
+ *
+ * @private
+ * @param {number} drawnCount The number of points in the path drawn on the map
+ * @param {string} detail Extra information to add to the end of the message
+ */
+logSimplify_fn = function(drawnCount, detail) {
+  var _a, _b, _c, _d;
+  const pathCount = (_b = (_a = __privateGet(this, _options9).path) == null ? void 0 : _a.length) != null ? _b : 0;
+  if (!__privateMethod(this, _Polyline_instances, isSimplifyDebug_fn).call(this) || pathCount === 0) {
+    return;
+  }
+  const tolerance = __privateGet(this, _simplifyTolerance);
+  const zoomText = ((_d = (_c = __privateGet(this, _simplifyConfig)) == null ? void 0 : _c.zoom.length) != null ? _d : 0) > 0 && __privateGet(this, _requestedMap) ? ` at zoom ${__privateGet(this, _requestedMap).zoom}` : "";
+  let message = `[Polyline simplify] ${pathCount.toLocaleString()} points in the path, `;
+  if (tolerance > 0) {
+    const fewer = (100 - drawnCount / pathCount * 100).toFixed(1);
+    message += `${drawnCount.toLocaleString()} drawn (${fewer}% fewer) with a ${tolerance} m tolerance${zoomText}.`;
+  } else {
+    message += `all drawn (not simplified${zoomText}).`;
+  }
+  if (detail) {
+    message += ` ${detail}`;
+  }
+  console.log(message, this);
+};
+/**
+ * Log what is drawn on the map now, if debug is on and the Google polyline exists.
+ *
+ * @private
+ */
+logCurrentSimplify_fn = function() {
+  if (__privateGet(this, _polyline)) {
+    __privateMethod(this, _Polyline_instances, logSimplify_fn).call(this, __privateGet(this, _polyline).getPath().getLength(), "");
+  }
+};
+/**
+ * Get the simplify tolerance to use now.
+ *
+ * If there are tolerances for different zoom levels then the one for the map's current zoom level is used.
+ *
+ * @private
+ * @returns {number} 0 if the path shouldn't be simplified
+ */
+getCurrentTolerance_fn = function() {
+  const config = __privateGet(this, _simplifyConfig);
+  if (!config) {
+    return 0;
+  }
+  if (config.zoom.length > 0 && __privateGet(this, _requestedMap)) {
+    const { zoom } = __privateGet(this, _requestedMap);
+    let tolerance;
+    config.zoom.forEach((z) => {
+      if (zoom >= z.level) {
+        tolerance = z.tolerance;
+      }
+    });
+    if (typeof tolerance !== "undefined") {
+      return tolerance;
+    }
+  }
+  return config.tolerance;
+};
+/**
+ * Update the path drawn on the map if the simplify tolerance to use has changed
+ *
+ * @private
+ * @returns {boolean} Whether the tolerance changed
+ */
+applySimplify_fn = function() {
+  const tolerance = __privateMethod(this, _Polyline_instances, getCurrentTolerance_fn).call(this);
+  if (tolerance === __privateGet(this, _simplifyTolerance)) {
+    return false;
+  }
+  __privateSet(this, _simplifyTolerance, tolerance);
+  if (__privateGet(this, _polyline)) {
+    __privateGet(this, _polyline).setPath(__privateMethod(this, _Polyline_instances, getGooglePath_fn).call(this));
+  }
+  if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
+    __privateGet(this, _highlightPolyline).simplify = tolerance;
+  }
+  return true;
+};
+/**
+ * Listen for the map to finish moving so that the tolerance can be updated for the zoom level.
+ *
+ * The listener is only needed when there are tolerances for different zoom levels and the polyline is on a map.
+ * It's removed otherwise so that the map doesn't hold on to the polyline.
+ *
+ * @private
+ */
+updateZoomListener_fn = function() {
+  const map2 = __privateGet(this, _simplifyConfig) && __privateGet(this, _simplifyConfig).zoom.length > 0 ? __privateGet(this, _requestedMap) : null;
+  if (map2 === __privateGet(this, _zoomListenerMap)) {
+    return;
+  }
+  if (__privateGet(this, _zoomListenerMap)) {
+    __privateGet(this, _zoomListenerMap).off("idle", __privateGet(this, _handleMapIdle));
+  }
+  if (map2) {
+    map2.on("idle", __privateGet(this, _handleMapIdle));
+  }
+  __privateSet(this, _zoomListenerMap, map2);
+};
+_handleMapIdle = new WeakMap();
 /**
  * Set up the highlight polyline on the map if it hasn't been already.
  *
@@ -16991,6 +17408,7 @@ setupHighlightPolyline_fn = function() {
     return Promise.resolve();
   }
   if (!__privateGet(this, _highlightSetup)) {
+    highlight.simplify = __privateGet(this, _simplifyTolerance);
     if (this.path) {
       highlight.path = this.path;
     }
@@ -17159,9 +17577,7 @@ createPolylineObject_fn = function() {
     if (__privateGet(this, _options9).map) {
       polylineOptions.map = __privateGet(this, _options9).map.toGoogle();
     }
-    if (Array.isArray(__privateGet(this, _options9).path)) {
-      polylineOptions.path = __privateGet(this, _options9).path.map((path) => latLng(path).toGoogle()).filter((path) => path !== null);
-    }
+    polylineOptions.path = __privateMethod(this, _Polyline_instances, getGooglePath_fn).call(this);
     const googlePolyline = new google.maps.Polyline(polylineOptions);
     __privateSet(this, _polyline, googlePolyline);
     __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
@@ -18894,6 +19310,8 @@ export {
   AutocompleteSearchBoxEvents,
   Base_default as Base,
   ControlPosition,
+  DEFAULT_SIMPLIFY_TOLERANCE,
+  DEFAULT_SIMPLIFY_ZOOM,
   DataFeature,
   DataLayer,
   DataLayerEvents,
@@ -19004,6 +19422,7 @@ export {
   renderTemplate,
   rotateControl,
   scaleControl,
+  simplifyPath,
   size,
   streetViewControl,
   svgSymbol,

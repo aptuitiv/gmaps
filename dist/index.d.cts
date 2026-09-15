@@ -8020,6 +8020,13 @@ type PolylineEvent = 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' |
 type CustomData = {
     [key: string]: any;
 };
+type PolylineSimplifyOptions = {
+    debug?: boolean;
+    tolerance?: number;
+    zoom?: boolean | {
+        [zoom: number]: number;
+    };
+};
 type PolylineOptions = {
     clickable?: boolean;
     data?: CustomData;
@@ -8029,6 +8036,8 @@ type PolylineOptions = {
     icons?: PolylineIcon[];
     map?: Map | null;
     path?: LatLngValue[];
+    simplify?: boolean | number | 'zoom' | PolylineSimplifyOptions;
+    simplifyDebug?: boolean;
     strokeColor?: string;
     strokeOpacity?: number;
     strokeWeight?: number;
@@ -8155,6 +8164,39 @@ declare class Polyline extends Layer {
      * @param {LatLngValue[]} value The path of the polyline.
      */
     set path(value: LatLngValue[]);
+    /**
+     * Get how far, in meters, the line drawn on the map is allowed to be from the original path.
+     *
+     * If the tolerance changes with the zoom level, this is the tolerance for the current zoom level.
+     *
+     * @returns {number} 0 if the path isn't simplified.
+     */
+    get simplify(): number;
+    /**
+     * Set whether to simplify the path that is drawn on the map.
+     *
+     * Simplifying gives the map fewer points to draw but keeps the same shape.
+     * The path property still holds every point.
+     *
+     * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
+     *      original path. true uses 2 meters. 'zoom' uses the default tolerances for different zoom levels. false or 0
+     *      turns simplifying off. Use an object to set your own tolerances for different zoom levels or to log debug information.
+     */
+    set simplify(value: boolean | number | string | PolylineSimplifyOptions);
+    /**
+     * Get whether debug information is logged to the console each time the path is simplified
+     *
+     * @returns {boolean}
+     */
+    get simplifyDebug(): boolean;
+    /**
+     * Set whether to log debug information to the console each time the path is simplified.
+     *
+     * This is the same as the "debug" simplify option. If it's set, it's used instead of the "debug" simplify option.
+     *
+     * @param {boolean} value Whether to log debug information
+     */
+    set simplifyDebug(value: boolean);
     /**
      * Get the SVG stroke color
      *
@@ -8370,6 +8412,27 @@ declare class Polyline extends Layer {
      */
     setOptions(options: PolylineOptions): Polyline;
     /**
+     * Set whether to simplify the path that is drawn on the map.
+     *
+     * Simplifying gives the map fewer points to draw but keeps the same shape.
+     * The path property still holds every point.
+     *
+     * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
+     *      original path. true uses 2 meters. 'zoom' uses the default tolerances for different zoom levels. false or 0
+     *      turns simplifying off. Use an object to set your own tolerances for different zoom levels or to log debug information.
+     * @returns {Polyline}
+     */
+    setSimplify(value: boolean | number | string | PolylineSimplifyOptions): Polyline;
+    /**
+     * Set whether to log debug information to the console each time the path is simplified.
+     *
+     * This is the same as the "debug" simplify option. If it's set, it's used instead of the "debug" simplify option.
+     *
+     * @param {boolean} value Whether to log debug information
+     * @returns {Polyline}
+     */
+    setSimplifyDebug(value: boolean): Polyline;
+    /**
      * Se the path of the polyline.
      *
      * @param {LatLngValue[]} path The path of the polyline.
@@ -8561,4 +8624,28 @@ declare class PolylineCollection {
  */
 declare const polylineCollection: () => PolylineCollection;
 
-export { type AttachEventValue, type AttachPopupValue, type AttachTooltipValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DataTooltipCallback, type DataTooltipValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipCallback, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, renderTemplate, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+declare const DEFAULT_SIMPLIFY_TOLERANCE = 2;
+/**
+ * The default tolerances, in meters, for different zoom levels.
+ *
+ * Each key is a zoom level and its value is the tolerance to use at that zoom level and higher.
+ * Below zoom 14, 10 meters is less than half a pixel on the map. Through zoom 17 the drawn line stays
+ * within about 2 pixels of the original path. From zoom 18, 1 meter is smaller than the few meters
+ * that GPS points are usually accurate to.
+ */
+declare const DEFAULT_SIMPLIFY_ZOOM: {
+    readonly [zoom: number]: number;
+};
+/**
+ * Simplify a path of latitude/longitude points so that it has fewer points but keeps the same shape.
+ *
+ * The simplified line stays within the tolerance of the original line. Invalid points are ignored.
+ * If the tolerance isn't a number greater than 0 then all the valid points are returned.
+ *
+ * @param {LatLngValue[]} path The points to simplify
+ * @param {number} [tolerance] How far, in meters, the simplified line can be from the original line. Defaults to 2 meters.
+ * @returns {LatLng[]}
+ */
+declare const simplifyPath: (path: LatLngValue[], tolerance?: number) => LatLng[];
+
+export { type AttachEventValue, type AttachPopupValue, type AttachTooltipValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DataTooltipCallback, type DataTooltipValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineSimplifyOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipCallback, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, renderTemplate, rotateControl, scaleControl, simplifyPath, size, streetViewControl, svgSymbol, tooltip, zoomControl };
