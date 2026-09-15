@@ -69,6 +69,7 @@ import { polyline, Polyline } from './lib/Polyline';
 import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
 import { polylineIcon, PolylineIcon } from './lib/PolylineIcon';
 import { closeAllPopups, popup, Popup } from './lib/Popup';
+import { simplifyPath } from './lib/simplifyPath';
 import { size, Size } from './lib/Size';
 import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
 import { tooltip, Tooltip } from './lib/Tooltip';
@@ -151,6 +152,7 @@ type GlobalObj = {
     READY_EVENT: typeof READY_EVENT;
     scaleControl: typeof scaleControl;
     ScaleControl: typeof ScaleControl;
+    simplifyPath: typeof simplifyPath;
     size: typeof size;
     Size: typeof Size;
     streetViewControl: typeof streetViewControl;
@@ -241,6 +243,7 @@ const G: GlobalObj = {
     READY_EVENT,
     scaleControl,
     ScaleControl,
+    simplifyPath,
     size,
     Size,
     streetViewControl,

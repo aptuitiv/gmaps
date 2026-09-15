@@ -16,6 +16,7 @@ import Layer from './Layer';
 import { loader } from './Loader';
 import { Map } from './Map';
 import { polylineIcon, PolylineIcon, PolylineIconValue } from './PolylineIcon';
+import { DEFAULT_SIMPLIFY_TOLERANCE, simplifyPath } from './simplifyPath';
 import { svgSymbol } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
 import {
@@ -70,6 +71,11 @@ export type PolylineOptions = {
     map?: Map | null;
     // Array of LatLng values defining the path of the polyline.
     path?: LatLngValue[];
+    // Simplify the path that is drawn on the map so that it has fewer points but keeps the same shape.
+    // This is useful for paths with a lot of points, like GPS tracks. Set a number for how far, in meters,
+    // the drawn line can be from the original path, or true to use 2 meters. The path property still holds every point.
+    // Defaults to false.
+    simplify?: boolean | number;
     // The stroke color. All CSS3 colors are supported except for extended named colors.
     strokeColor?: string;
     // The stroke opacity between 0.0 and 1.0.
@@ -186,6 +192,16 @@ export class Polyline extends Layer {
      * @type {PolylineOptions}
      */
     #options: PolylineOptions = {};
+
+    /**
+     * Holds how far, in meters, the line drawn on the map can be from the original path when it's simplified.
+     *
+     * 0 means that the path isn't simplified.
+     *
+     * @private
+     * @type {number}
+     */
+    #simplifyTolerance: number = 0;
 
     /**
      * Holds the Google maps Polyline object
@@ -493,14 +509,54 @@ export class Polyline extends Layer {
             });
             this.#options.path = paths;
             if (this.#polyline) {
-                this.#polyline.setPath(
-                    paths.map((path) => path.toGoogle()).filter((path): path is google.maps.LatLng => path !== null),
-                );
+                this.#polyline.setPath(this.#getGooglePath());
             }
             // Keep the highlight polyline on the same path once it has one
             if (this.#highlightPolyline && this.#highlightSetup) {
                 this.#highlightPolyline.path = paths;
             }
+        }
+    }
+
+    /**
+     * Get how far, in meters, the line drawn on the map can be from the original path when it's simplified.
+     *
+     * @returns {number} 0 if the path isn't simplified.
+     */
+    get simplify(): number {
+        return this.#simplifyTolerance;
+    }
+
+    /**
+     * Set whether to simplify the path that is drawn on the map.
+     *
+     * Simplifying gives the map fewer points to draw but keeps the same shape.
+     * The path property still holds every point.
+     *
+     * @param {boolean|number|string} value How far, in meters, the drawn line can be from the original path.
+     *      true uses 2 meters. false or 0 turns simplifying off.
+     */
+    set simplify(value: boolean | number | string) {
+        let tolerance: number | undefined;
+        if (value === true) {
+            tolerance = DEFAULT_SIMPLIFY_TOLERANCE;
+        } else if (value === false) {
+            tolerance = 0;
+        } else if (isNumberOrNumberString(value) && Number(value) >= 0) {
+            tolerance = Number(value);
+        }
+        if (typeof tolerance === 'undefined' || tolerance === this.#simplifyTolerance) {
+            return;
+        }
+        this.#simplifyTolerance = tolerance;
+        // Add to the options object so that it can be used when cloning the polyline
+        this.#options.simplify = tolerance;
+        if (this.#polyline) {
+            this.#polyline.setPath(this.#getGooglePath());
+        }
+        // Keep the highlight polyline drawing the same path once it has one
+        if (this.#highlightPolyline && this.#highlightSetup) {
+            this.#highlightPolyline.simplify = tolerance;
         }
     }
 
@@ -978,6 +1034,10 @@ export class Polyline extends Layer {
      */
     setOptions(options: PolylineOptions): Polyline {
         if (isObject(options)) {
+            // Set this before the map and path so that the path is only simplified once
+            if (isDefined<boolean | number>(options.simplify)) {
+                this.simplify = options.simplify;
+            }
             if (typeof options.clickable === 'boolean') {
                 this.clickable = options.clickable;
             }
@@ -1027,6 +1087,21 @@ export class Polyline extends Layer {
                 this.data = options.data;
             }
         }
+        return this;
+    }
+
+    /**
+     * Set whether to simplify the path that is drawn on the map.
+     *
+     * Simplifying gives the map fewer points to draw but keeps the same shape.
+     * The path property still holds every point.
+     *
+     * @param {boolean|number|string} value How far, in meters, the drawn line can be from the original path.
+     *      true uses 2 meters. false or 0 turns simplifying off.
+     * @returns {Polyline}
+     */
+    setSimplify(value: boolean | number | string): Polyline {
+        this.simplify = value;
         return this;
     }
 
@@ -1141,6 +1216,23 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Get the path to give to the Google Maps polyline.
+     *
+     * The path is simplified if a simplify tolerance is set. Otherwise it has every point.
+     *
+     * @private
+     * @returns {google.maps.LatLng[]}
+     */
+    #getGooglePath(): google.maps.LatLng[] {
+        const path = this.#options.path ?? [];
+        const points =
+            this.#simplifyTolerance > 0
+                ? simplifyPath(path, this.#simplifyTolerance)
+                : path.map((point) => (point instanceof LatLng ? point : latLng(point)));
+        return points.map((point) => point.toGoogle()).filter((point): point is google.maps.LatLng => point !== null);
+    }
+
+    /**
      * Set up the highlight polyline on the map if it hasn't been already.
      *
      * This gives the highlight polyline this polyline's path and adds it to the map, hidden.
@@ -1155,6 +1247,8 @@ export class Polyline extends Layer {
             return Promise.resolve();
         }
         if (!this.#highlightSetup) {
+            // Draw the same simplified path as this polyline
+            highlight.simplify = this.#simplifyTolerance;
             if (this.path) {
                 highlight.path = this.path;
             }
@@ -1353,12 +1447,8 @@ export class Polyline extends Layer {
                 polylineOptions.map = this.#options.map.toGoogle();
             }
 
-            // Set the path
-            if (Array.isArray(this.#options.path)) {
-                polylineOptions.path = this.#options.path
-                    .map((path) => latLng(path).toGoogle())
-                    .filter((path): path is google.maps.LatLng => path !== null);
-            }
+            // Set the path, simplified if necessary
+            polylineOptions.path = this.#getGooglePath();
 
             // Create the polyine object
             const googlePolyline = new google.maps.Polyline(polylineOptions);

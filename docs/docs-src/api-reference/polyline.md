@@ -102,12 +102,48 @@ Type `PolylineOptions`
 | icons | [PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)\|[PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)[] | | Any icons to show on the polyline. |
 | map | [Map](/api-reference/map) | | The map to add the polyline to. |
 | path | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type)[] | | An array of LatLng values defining the path of the polyline on the map. Invalid values are ignored. |
+| simplify | boolean\|number | false | Simplify the path that is drawn on the map so that it has fewer points but keeps the same shape. Set a number for how far, in meters, the drawn line can be from the original path, or `true` to use 2 meters. The `path` property still holds every point. See [Simplifying the path](#simplifying-the-path). |
 | strokeColor | string | | The polyline stroke color. All CSS3 colors are supported except for extended named colors. |
 | strokeOpacity | number\|string | 1 | The polyline stroke opacity. The value should be between 0 and 1.0. A number string is converted to a number. |
 | strokeWeight | number\|string | 1 | The polyline stroke width in pixels. A number string is converted to a number. |
 | tooltip | [TooltipValue](/api-reference/tooltip#tooltipvalue-type) | | The tooltip for the polyline. This will show when hovering over the polyline. |
 | visible | boolean | true | Whether the polyline is visible. |
 | zIndex | number\|string | | The zIndex compared to other polylines. A number string is converted to a number. |
+
+## Simplifying the path
+
+Paths with a lot of points, like GPS tracks, often have far more points than can be seen on the map. Every point uses memory and has to be processed each time the map is drawn, which can slow down or even crash the map on phones.
+
+The `simplify` option gives the map fewer points to draw but keeps the same shape. Points are only dropped if the line without them stays within the tolerance of the original path. The first and last points and every turn bigger than the tolerance are kept.
+
+```js
+// Keep the drawn line within 2 meters of the original path
+const trail = G.polyline({ path: gpsPoints, simplify: true, map: map });
+
+// Or set the tolerance in meters
+trail.setSimplify(5);
+```
+
+Things to know:
+
+- It's off unless you turn it on.
+- The `path` property always holds every point. Only the line drawn on the map is simplified, and it's worked out again whenever the path or the tolerance changes.
+- The highlight polyline, if there is one, draws the same simplified path.
+- 2 meters can't be seen at most zoom levels. When zoomed in very close, a larger tolerance can make small zigzags look smoother. GPS points are usually only accurate to a few meters anyway.
+- If you measure the length of the line drawn on the map, the simplified line is slightly shorter than the original.
+
+To simplify points yourself, for example before saving them, use `G.simplifyPath()`. It returns an array of [LatLng](/api-reference/utilities/latlng) objects.
+
+`G.simplifyPath(path: LatLngValue[], tolerance?: number): LatLng[]`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| path | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type)[] | Yes | The points to simplify. Invalid values are ignored. |
+| tolerance | number | | How far, in meters, the simplified line can be from the original line. Defaults to 2. If it isn't a number greater than 0 then every valid point is returned. |
+
+```js
+const fewerPoints = G.simplifyPath(gpsPoints, 5);
+```
 
 ## Events
 
@@ -174,7 +210,8 @@ polyline.onReady(() => {
 | highlightPolyline | [PolylineValue](#polyline-value-type) | The polyline to show below the existing one to create a "highlight" effect when the mouse hovers over this polyline. It can be set with a `Polyline` object or with polyline options, but it's always returned as a `Polyline` object. See [Highlighting polylines](/guides/polyline/highlight) for more information. |
 | icons | [PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)\|[PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)[] | Any icons to show on the polyline. The value is always returned as an array of [PolylineIcon](/api-reference/polyline-icon) objects. |
 | map | [Map](/api-reference/map)\|null | The map to add the polyline to. Set to `null` to remove the polyline from the map. |
-| path | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type)[] | An array of LatLng values defining the path of the polyline on the map. |
+| path | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type)[] | An array of LatLng values defining the path of the polyline on the map. This always holds every point, even when the path is simplified. |
+| simplify | number | How far, in meters, the line drawn on the map can be from the original path. It's `0` if the path isn't simplified. It can be set with `true` (2 meters), `false` (off), or a number. Setting it calls [setSimplify()](#setsimplify). |
 | strokeColor | string | The polyline stroke color. All CSS3 colors are supported except for extended named colors. |
 | strokeOpacity | number\|string | The polyline stroke opacity. The value should be between 0 and 1.0. The value is always returned as a number. |
 | strokeWeight | number\|string | The polyline stroke width in pixels. The value is always returned as a number. |
@@ -447,6 +484,20 @@ polyline.setPath([
     {lat: 48.4, lng: 2.1},
     {lat: 48.6, lng: 1.8},
 ]);
+```
+
+### setSimplify
+
+`setSimplify(value: boolean|number): Polyline`
+
+Set whether to simplify the path that is drawn on the map. The `path` property still holds every point. See [Simplifying the path](#simplifying-the-path).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| value | boolean\|number | Yes | How far, in meters, the drawn line can be from the original path. `true` uses 2 meters. `false` or `0` turns simplifying off. |
+
+```js
+polyline.setSimplify(5);
 ```
 
 ### setStrokeColor

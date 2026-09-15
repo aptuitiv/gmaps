@@ -1,0 +1,92 @@
+---
+title: "Polyline Simplify Test Page"
+layout: "base.njk"
+---
+
+<style>
+    .SimplifyMap { aspect-ratio: auto; height: 60vh; min-height: 320px; }
+    .SimplifyControls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; margin-bottom: 16px; }
+    .SimplifyControls label { display: block; font-weight: 600; margin-bottom: 4px; }
+    .SimplifyControls .SimplifyCheckbox { font-weight: normal; }
+    .SimplifyControls button { padding: 6px 14px; }
+    .SimplifyStats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 16px; }
+    .SimplifyStats strong { font-variant-numeric: tabular-nums; }
+    .SimplifyResults { overflow-x: auto; margin-bottom: 20px; }
+    .SimplifyResults table { border-collapse: collapse; font-size: 14px; }
+    .SimplifyResults th, .SimplifyResults td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; white-space: nowrap; }
+    .SimplifyResults th:first-child, .SimplifyResults td:first-child { text-align: left; }
+</style>
+
+<h1>Polyline simplify test</h1>
+
+<p>
+    Draws a GPS-like track with a lot of points so that you can compare the polyline <code>simplify</code> option
+    with different tolerances. The tolerance is how far, in meters, the drawn line can be from the original path.
+</p>
+<ul>
+    <li>"Points drawn" is the number of points that Google actually has for the line. "Points in the path" is always every point.</li>
+    <li>Turn on "Show the original path" to draw every point in blue under the simplified red line. Zoom in close to see where they differ.</li>
+    <li>Run the zoom test with each tolerance and compare the lowest frame rate. Each run is added to the results table.</li>
+    <li>On an iPhone, connect it to a Mac and open Safari's Web Inspector. Watch the console for "Total canvas memory use exceeds the maximum limit".</li>
+</ul>
+
+<form id="controls" class="SimplifyControls">
+    <div>
+        <label for="count">Points in the track</label>
+        <select id="count" name="count">
+            <option value="5000">5,000</option>
+            <option value="20000" selected>20,000</option>
+            <option value="50000">50,000</option>
+        </select>
+    </div>
+    <div>
+        <label for="tolerance">simplify</label>
+        <select id="tolerance" name="tolerance">
+            <option value="0">Off</option>
+            <option value="1">1 meter</option>
+            <option value="2" selected>2 meters (true)</option>
+            <option value="5">5 meters</option>
+            <option value="10">10 meters</option>
+            <option value="25">25 meters</option>
+        </select>
+    </div>
+    <div>
+        <label class="SimplifyCheckbox"><input type="checkbox" name="showOriginal"> Show the original path</label>
+    </div>
+    <div>
+        <button type="submit">New track</button>
+        <button type="button" id="zoomTest">Run zoom test</button>
+    </div>
+</form>
+
+<div class="SimplifyStats">
+    <span>Points in the path: <strong id="statPath">-</strong></span>
+    <span>Points drawn: <strong id="statDrawn">-</strong></span>
+    <span>Fewer points: <strong id="statReduction">-</strong></span>
+    <span>Time to simplify: <strong id="statTime">-</strong></span>
+    <span>Frame rate: <strong id="statFps">-</strong></span>
+    <span>Lowest frame rate while moving: <strong id="statLowestFps">-</strong></span>
+    <span id="statStatus"></span>
+</div>
+
+<div id="map1" class="mapContainer SimplifyMap"></div>
+
+<h2>Results</h2>
+<div class="SimplifyResults">
+    <table>
+        <thead>
+            <tr>
+                <th>simplify</th>
+                <th>Points in the path</th>
+                <th>Points drawn</th>
+                <th>Fewer points</th>
+                <th>Time to simplify (ms)</th>
+                <th>Original shown</th>
+                <th>Zoom test lowest FPS</th>
+            </tr>
+        </thead>
+        <tbody id="results"></tbody>
+    </table>
+</div>
+
+<script src="{{ '/js/polyline-simplify.js'|url|safe}}"></script>
