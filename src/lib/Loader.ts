@@ -1,6 +1,6 @@
 /* ===========================================================================
     Google Maps Loader
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/loader for documentation
+    See https://aptuitiv.github.io/gmaps/api-reference/loader for documentation
 =========================================================================== */
 
 import { Loader as GoogleLoader, Libraries } from '@googlemaps/js-api-loader';

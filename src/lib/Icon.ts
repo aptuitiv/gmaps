@@ -3,7 +3,7 @@
 
     See: https://developers.google.com/maps/documentation/javascript/reference/marker#Icon
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/icon for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/icon for documentation.
 =========================================================================== */
 
 /* global google */

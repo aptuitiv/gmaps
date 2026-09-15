@@ -1,7 +1,7 @@
 /* ===========================================================================
     Display a custom popup on the map
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/popup for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/popup for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement, Text */
@@ -934,8 +934,6 @@ export type PopupCallback = (target?: Map | Layer) => PopupValue;
 
 // The value that can be passed to attachPopup()
 export type AttachPopupValue = PopupValue | PopupCallback;
-
-
 
 /**
  * Helper function to set up the Popup class

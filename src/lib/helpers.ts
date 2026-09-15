@@ -224,7 +224,7 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
             msg = ` The google.maps.${library} class is not available. Did you load the Google Maps Javascript API?`;
         }
         msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
-        msg += ' See https://aptuitiv.github.io/gmaps-docs/guides/load for more information.';
+        msg += ' See https://aptuitiv.github.io/gmaps/guides/load for more information.';
         if (doError) {
             throw new Error(msg);
         }

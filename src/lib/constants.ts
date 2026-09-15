@@ -17,7 +17,7 @@ export const READY_EVENT = 'ready';
 /**
  * Events that can be fired by the Autocomplete search box.
  *
- * https://aptuitiv.github.io/gmaps-docs/api-reference/autocomplete-search-box#events
+ * https://aptuitiv.github.io/gmaps/api-reference/autocomplete-search-box#events
  */
 export const AutocompleteSearchBoxEvents = Object.freeze({
     // Called when the user selects a Place.
@@ -284,7 +284,7 @@ export const LayerEvents = Object.freeze({
 /**
  * Events that can be fired by the Loader.
  *
- * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
+ * https://aptuitiv.github.io/gmaps/api-reference/loader#events
  */
 export const LoaderEvents = Object.freeze({
     // The API library is loaded.
@@ -325,7 +325,7 @@ export const MapEvents = Object.freeze({
     ZOOM_CHANGED: 'zoom_changed',
 
     // Custom events for this library
-    // https://aptuitiv.github.io/gmaps-docs/api-reference/map#events
+    // https://aptuitiv.github.io/gmaps/api-reference/map#events
 
     // There was an error getting the user's location.
     LOCATION_ERROR: 'locationerror',
@@ -440,7 +440,7 @@ export const MarkerEvents = Object.freeze({
     ZINDEX_CHANGED: 'zindex_changed',
 
     // Custom events for this library
-    // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
+    // https://aptuitiv.github.io/gmaps/api-reference/marker#events
 
     // The marker is loaded and ready for use.
     READY: READY_EVENT,

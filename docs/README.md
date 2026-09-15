@@ -2,7 +2,7 @@
 
 This website is built using [Docusaurus](https://docusaurus.io/).
 
-View the documentation at [aptuitiv.github.io/gmaps-docs/](https://aptuitiv.github.io/gmaps-docs/);
+View the documentation at [aptuitiv.github.io/gmaps/](https://aptuitiv.github.io/gmaps/);
 
 ## Local Development
 
@@ -24,4 +24,4 @@ npm run build
 
 This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
-Then use git to push the changes to GitHub and then the [GitHub action](https://github.com/aptuitiv/gmaps-docs/actions) will build the documentation pages.
+Then use git to push the changes to GitHub and then the [GitHub action](https://github.com/aptuitiv/gmaps/actions) will build the documentation pages.

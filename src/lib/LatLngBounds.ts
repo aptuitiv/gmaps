@@ -3,7 +3,7 @@
     including one that crosses the 180 degrees longitudinal meridian.
     https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/latlng-bounds for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/latlng-bounds for documentation.
 =========================================================================== */
 
 /* global google */

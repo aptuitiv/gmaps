@@ -1,7 +1,7 @@
 /* ===========================================================================
     Aids id setting up a tooltip for markers and other elements.
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/tooltip for documentation
+    See https://aptuitiv.github.io/gmaps/api-reference/tooltip for documentation
 =========================================================================== */
 
 /* global google, HTMLElement, Text */

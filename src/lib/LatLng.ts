@@ -1,7 +1,7 @@
 /* ===========================================================================
     LatLng - A class for representing a latitude/longitude pair
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/latlng for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/latlng for documentation.
 =========================================================================== */
 
 /* global google */
@@ -271,7 +271,7 @@ export class LatLng extends Base {
     toGoogle(): google.maps.LatLng | null {
         if (!this.isValid()) {
             throw new Error(
-                `Invalid latitude/longitude pair. One or both values are missing. Latitude: ${this.latitude}, Longitude: ${this.longitude}`
+                `Invalid latitude/longitude pair. One or both values are missing. Latitude: ${this.latitude}, Longitude: ${this.longitude}`,
             );
         }
         if (checkForGoogleMaps('LatLng', 'LatLng')) {

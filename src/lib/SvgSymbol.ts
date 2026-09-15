@@ -9,7 +9,7 @@
     Or create the circle path yourself with
     https://www.smashingmagazine.com/2019/03/svg-circle-decomposition-paths/
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/svgsymbol for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/svgsymbol for documentation.
 =========================================================================== */
 
 /* global google */

@@ -10,7 +10,7 @@
     should be included in the libraries array to properly load.
     https://developers.google.com/maps/documentation/javascript/places
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/map for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/map for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement */

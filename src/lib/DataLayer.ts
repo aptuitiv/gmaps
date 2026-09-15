@@ -12,7 +12,7 @@
     not a map. Because of that data can be loaded into it before there is a map to show it on
     and then the whole layer is attached to the map later with setMap().
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/datalayer for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/datalayer for documentation.
 =========================================================================== */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -493,9 +493,7 @@ export class DataLayer extends Layer {
      * @returns {Promise<DataFeature[]>}
      */
     getFeatures(): Promise<DataFeature[]> {
-        return this.#enqueue((data) =>
-            DataLayer.#googleFeatures(data).map((feature) => this.#featureFor(feature)),
-        );
+        return this.#enqueue((data) => DataLayer.#googleFeatures(data).map((feature) => this.#featureFor(feature)));
     }
 
     /**
@@ -901,11 +899,7 @@ export class DataLayer extends Layer {
      * @param {FeatureOptions} [options] The options for the feature
      * @returns {DataFeature}
      */
-    #addFeature(
-        data: google.maps.Data,
-        geometry: google.maps.Data.Geometry,
-        options?: FeatureOptions,
-    ): DataFeature {
+    #addFeature(data: google.maps.Data, geometry: google.maps.Data.Geometry, options?: FeatureOptions): DataFeature {
         const featureOptions: google.maps.Data.FeatureOptions = { geometry };
         if (isObject(options)) {
             if (isStringOrNumber(options.id)) {
@@ -958,7 +952,9 @@ export class DataLayer extends Layer {
         const style = this.#style;
         if (isFunction(style)) {
             this.#data.setStyle((googleFeature) =>
-                this.#convertStyle((style as (feature: DataFeature) => DataStyleOptions)(this.#featureFor(googleFeature))),
+                this.#convertStyle(
+                    (style as (feature: DataFeature) => DataStyleOptions)(this.#featureFor(googleFeature)),
+                ),
             );
         } else if (isObject(style)) {
             this.#data.setStyle(this.#convertStyle(style as DataStyleOptions));
@@ -1102,9 +1098,8 @@ export class DataLayer extends Layer {
      * @returns {google.maps.Data.GeoJsonOptions}
      */
     #geoJsonOptions(options?: LoadOptions): google.maps.Data.GeoJsonOptions {
-        const idProperty = isObject(options) && isStringWithValue(options.idProperty)
-            ? options.idProperty
-            : this.#options.idProperty;
+        const idProperty =
+            isObject(options) && isStringWithValue(options.idProperty) ? options.idProperty : this.#options.idProperty;
         if (isStringWithValue(idProperty)) {
             return { idPropertyName: idProperty };
         }
@@ -1313,7 +1308,9 @@ export class DataLayer extends Layer {
      * @returns {google.maps.LatLng[]}
      */
     static #toRingPositions(ring: LatLngValue[]): google.maps.LatLng[] {
-        const positions = Array.isArray(ring) ? ring.map((value) => latLng(value)).filter((value) => value.isValid()) : [];
+        const positions = Array.isArray(ring)
+            ? ring.map((value) => latLng(value)).filter((value) => value.isValid())
+            : [];
         if (positions.length > 2 && positions[0].equals(positions[positions.length - 1])) {
             positions.pop();
         }

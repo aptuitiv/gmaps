@@ -6,7 +6,7 @@
 
     https://developers.google.com/maps/documentation/javascript/reference/data#Data.Feature
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/datafeature for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/datafeature for documentation.
 =========================================================================== */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -360,9 +360,7 @@ export class DataFeature extends Layer {
             case GeometryType.MULTI_POINT:
             case GeometryType.LINE_STRING:
             case GeometryType.LINEAR_RING:
-                return [
-                    (geometry as google.maps.Data.LineString).getArray().map((value) => latLngConvert(value)),
-                ];
+                return [(geometry as google.maps.Data.LineString).getArray().map((value) => latLngConvert(value))];
             case GeometryType.POLYGON:
                 return (geometry as google.maps.Data.Polygon)
                     .getArray()
@@ -374,17 +372,11 @@ export class DataFeature extends Layer {
             case GeometryType.MULTI_POLYGON:
                 return (geometry as google.maps.Data.MultiPolygon)
                     .getArray()
-                    .reduce(
-                        (paths: LatLng[][], polygon) => paths.concat(DataFeature.#geometryPaths(polygon)),
-                        [],
-                    );
+                    .reduce((paths: LatLng[][], polygon) => paths.concat(DataFeature.#geometryPaths(polygon)), []);
             case GeometryType.GEOMETRY_COLLECTION:
                 return (geometry as google.maps.Data.GeometryCollection)
                     .getArray()
-                    .reduce(
-                        (paths: LatLng[][], value) => paths.concat(DataFeature.#geometryPaths(value)),
-                        [],
-                    );
+                    .reduce((paths: LatLng[][], value) => paths.concat(DataFeature.#geometryPaths(value)), []);
             default:
                 return [];
         }

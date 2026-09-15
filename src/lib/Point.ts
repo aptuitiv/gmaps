@@ -8,7 +8,7 @@
     also support the point value as an array of [x, y] pairs, or a {x, y} object.
     The following are equivalent:
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/point for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/point for documentation.
 =========================================================================== */
 
 /* global google */

@@ -4,7 +4,7 @@
     https://developers.google.com/maps/documentation/javascript/markers
     https://developers.google.com/maps/documentation/javascript/reference/marker
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/marker for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/marker for documentation.
 =========================================================================== */
 
 /* global google */

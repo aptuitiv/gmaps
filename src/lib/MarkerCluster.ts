@@ -5,7 +5,7 @@
     https://developers.google.com/maps/documentation/javascript/marker-clustering
     https://www.npmjs.com/package/@googlemaps/markerclusterer
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/marker-cluster for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/marker-cluster for documentation.
 =========================================================================== */
 
 import {
@@ -459,5 +459,5 @@ export class MarkerCluster extends Base {
 export const markerCluster = (
     map: Map,
     markers?: MarkerClusterOptions | Marker[],
-    options?: MarkerClusterOptions
+    options?: MarkerClusterOptions,
 ): MarkerCluster => new MarkerCluster(map, markers, options);

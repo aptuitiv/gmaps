@@ -9,7 +9,7 @@
     icon.origin([10, 32]);
     icon.origin({width: 10, height: 32});
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/size for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/size for documentation.
 =========================================================================== */
 
 /* global google */
