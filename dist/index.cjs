@@ -1484,7 +1484,7 @@ var Point = _Point;
 var point = (x, y) => new Point(x, y);
 
 // src/lib/Evented.ts
-var _eventsCalled, _eventListeners, _onlyEventListeners, _googleObject, _isOnLoadEventSet, _pendingLoadEventListeners, _pendingMapObjectEventListeners, _testObject, _testLibrary, _Evented_instances, on_fn, isGoogleObjectSet_fn;
+var _eventsCalled, _eventListeners, _onlyEventListeners, _googleObject, _isOnLoadEventSet, _pendingLoadEventListeners, _pendingMapObjectEventListeners, _testObject, _testLibrary, _Evented_instances, afterListenersRemoved_fn, on_fn, isGoogleObjectSet_fn;
 var Evented = class extends Base_default {
   /**
    * Constructor
@@ -1617,9 +1617,10 @@ var Evented = class extends Base_default {
           listenersToRemove.push(listener);
         }
       });
-      listenersToRemove.forEach((listener) => {
-        this.off(event, listener.callback, listener.options);
-      });
+      if (listenersToRemove.length > 0) {
+        const removeStart = performance.now();
+        this.removeCalledOnceListeners(event, listenersToRemove);
+      }
     }
     return this;
   }
@@ -1674,16 +1675,31 @@ var Evented = class extends Base_default {
         } else {
           __privateGet(this, _eventListeners)[type] = [];
         }
-        const index = __privateGet(this, _onlyEventListeners).indexOf(type);
-        if (index > -1) {
-          __privateGet(this, _onlyEventListeners).splice(index, 1);
-        }
-        if (__privateGet(this, _eventListeners)[type].length === 0 && __privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
-          google.maps.event.clearListeners(__privateGet(this, _googleObject), type);
-        }
+        __privateMethod(this, _Evented_instances, afterListenersRemoved_fn).call(this, type);
       }
     } else {
       this.offAll();
+    }
+  }
+  /**
+   * Remove the "once" event listeners that were just called for an event.
+   *
+   * They're all removed in a single pass. Calling off() for each one would search the whole
+   * list of listeners each time, which gets slow when there are a lot of them. For example,
+   * every marker that is added before the map is ready waits for the map's "ready" event.
+   *
+   * Subclasses can override this to remove the listeners from other objects as well.
+   * This is not intended to be called outside of this library.
+   *
+   * @internal
+   * @param {string} type The event type
+   * @param {EventListenerData[]} listeners The listeners that were called
+   */
+  removeCalledOnceListeners(type, listeners) {
+    if (__privateGet(this, _eventListeners)[type]) {
+      const toRemove = new Set(listeners);
+      __privateGet(this, _eventListeners)[type] = __privateGet(this, _eventListeners)[type].filter((listener) => !toRemove.has(listener));
+      __privateMethod(this, _Evented_instances, afterListenersRemoved_fn).call(this, type);
     }
   }
   /**
@@ -1825,6 +1841,21 @@ _pendingMapObjectEventListeners = new WeakMap();
 _testObject = new WeakMap();
 _testLibrary = new WeakMap();
 _Evented_instances = new WeakSet();
+/**
+ * Clean up after event listeners for an event type have been removed
+ *
+ * @private
+ * @param {string} type The event type
+ */
+afterListenersRemoved_fn = function(type) {
+  const index = __privateGet(this, _onlyEventListeners).indexOf(type);
+  if (index > -1) {
+    __privateGet(this, _onlyEventListeners).splice(index, 1);
+  }
+  if (__privateGet(this, _eventListeners)[type].length === 0 && __privateMethod(this, _Evented_instances, isGoogleObjectSet_fn).call(this)) {
+    google.maps.event.clearListeners(__privateGet(this, _googleObject), type);
+  }
+};
 /**
  * Add an event listener to the object
  *
@@ -16682,6 +16713,18 @@ var _Polyline = class _Polyline extends Layer_default {
       __privateGet(this, _highlightPolyline).off(type, callback, options);
     }
     super.off(type, callback, options);
+  }
+  /**
+   * @inheritdoc
+   */
+  removeCalledOnceListeners(type, listeners) {
+    if (__privateGet(this, _highlightPolyline) && type !== PolylineEvents.READY) {
+      listeners.forEach((listener) => {
+        var _a;
+        (_a = __privateGet(this, _highlightPolyline)) == null ? void 0 : _a.off(type, listener.callback, listener.options);
+      });
+    }
+    super.removeCalledOnceListeners(type, listeners);
   }
   /**
    * @inheritdoc

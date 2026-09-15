@@ -893,6 +893,11 @@ type EventConfig = {
 type EventListenerOptions = {
     once?: boolean;
 };
+type EventListenerData = {
+    callback: EventCallback;
+    context?: object;
+    options: EventListenerOptions;
+};
 /**
  * Evented class to add syntatic sugar to handling events
  */
@@ -942,6 +947,21 @@ declare class Evented extends Base {
      * @param {EventListenerOptions} [options] The options to use when finding the event to remove
      */
     off(type?: string, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * Remove the "once" event listeners that were just called for an event.
+     *
+     * They're all removed in a single pass. Calling off() for each one would search the whole
+     * list of listeners each time, which gets slow when there are a lot of them. For example,
+     * every marker that is added before the map is ready waits for the map's "ready" event.
+     *
+     * Subclasses can override this to remove the listeners from other objects as well.
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @param {string} type The event type
+     * @param {EventListenerData[]} listeners The listeners that were called
+     */
+    removeCalledOnceListeners(type: string, listeners: EventListenerData[]): void;
     /**
      * Removes all event listeners
      */
@@ -8227,6 +8247,10 @@ declare class Polyline extends Layer {
      * @inheritdoc
      */
     off(type?: PolylineEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    removeCalledOnceListeners(type: string, listeners: EventListenerData[]): void;
     /**
      * @inheritdoc
      */
