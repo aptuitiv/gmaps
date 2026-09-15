@@ -253,8 +253,14 @@ export class PlacesSearchBox extends Evented {
             this.#searchBox = searchBox;
             // Add the listener for when the user selects a place
             searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-                // getPlaces() is typed as possibly undefined. Treat that as no places found.
-                const places = searchBox.getPlaces() ?? [];
+                const places = searchBox.getPlaces();
+                if (!Array.isArray(places) || places.length === 0) {
+                    // No places were found. Clear the previous results so that they don't look like they
+                    // belong to this search, and don't dispatch the event because there is nothing to report.
+                    this.#places = [];
+                    this.#placesBounds = undefined;
+                    return;
+                }
                 const bounds = latLngBounds();
                 places.forEach((place) => {
                     // Set up the map bounds based on the place
