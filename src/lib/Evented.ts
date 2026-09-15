@@ -244,7 +244,6 @@ export class Evented extends Base {
 
             // Remove the listeners that are set to be called once
             if (listenersToRemove.length > 0) {
-                const removeStart = performance.now(); // TEMP performance logging
                 this.removeCalledOnceListeners(event, listenersToRemove);
             }
         }
