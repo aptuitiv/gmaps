@@ -67,7 +67,7 @@ export type PolylineOptions = {
     // An array of polyline icons to display on the polyline.
     icons?: PolylineIcon[];
     // The map to add the polyline to.
-    map?: Map;
+    map?: Map | null;
     // Array of LatLng values defining the path of the polyline.
     path?: LatLngValue[];
     // The stroke color. All CSS3 colors are supported except for extended named colors.
@@ -130,9 +130,9 @@ export class Polyline extends Layer {
      * when the mouse hovers over this polyline.
      *
      * @private
-     * @type {Polyline}
+     * @type {Polyline|undefined}
      */
-    #highlightPolyline: Polyline;
+    #highlightPolyline: Polyline | undefined;
 
     /**
      * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
@@ -153,10 +153,12 @@ export class Polyline extends Layer {
     /**
      * Holds the Google maps Polyline object
      *
+     * This is undefined until the Google Maps library is loaded and the polyline object is created.
+     *
      * @private
-     * @type {google.maps.Polyline}
+     * @type {google.maps.Polyline|undefined}
      */
-    #polyline: google.maps.Polyline;
+    #polyline: google.maps.Polyline | undefined;
 
     /**
      * Constructor
@@ -174,9 +176,9 @@ export class Polyline extends Layer {
     /**
      * Get whether the polyline handles click events.
      *
-     * @returns {boolean}
+     * @returns {boolean|undefined}
      */
-    get clickable(): boolean {
+    get clickable(): boolean | undefined {
         return this.#options.clickable;
     }
 
@@ -216,7 +218,7 @@ export class Polyline extends Layer {
         }
         if (this.#polyline) {
             this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-                this.#polyline.setOptions(opts);
+                this.#polyline?.setOptions(opts);
             });
         }
     }
@@ -246,7 +248,7 @@ export class Polyline extends Layer {
 
             if (this.#polyline) {
                 this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-                    this.#polyline.setOptions(opts);
+                    this.#polyline?.setOptions(opts);
                 });
             }
         }
@@ -275,9 +277,9 @@ export class Polyline extends Layer {
     /**
      * Get the highlight polyline
      *
-     * @returns {Polyline}
+     * @returns {Polyline|undefined}
      */
-    get highlightPolyline(): Polyline {
+    get highlightPolyline(): Polyline | undefined {
         return this.#highlightPolyline;
     }
 
@@ -299,54 +301,62 @@ export class Polyline extends Layer {
             this.#highlightPolyline = new Polyline({ ...this.#options, ...value });
         }
 
+        if (!this.#highlightPolyline) {
+            // An invalid value was passed and there isn't an existing highlight polyline to set up.
+            return;
+        }
+
         // Make sure that necessary values are set
         this.#highlightPolyline.clickable = true;
-        this.#highlightPolyline.path = this.path;
+        if (this.path) {
+            this.#highlightPolyline.path = this.path;
+        }
         this.#highlightPolyline.visible = false;
 
         // Initialize the highlight polyline and this polyline so that events
         // can be assigned to them and so that the map can be set.
         this.#highlightPolyline.init().then(() => {
             this.init().then(() => {
-                this.#highlightPolyline.setMap(this.getMap(), false);
+                this.#highlightPolyline?.setMap(this.getMap(), false);
 
                 // Set the hover events on this polyline to show and hide the highlight polyline.
                 // Use super.on instead of "on" so that this isn't added to the highlight polyline.
                 super.on('mouseover', () => {
-                    if (!this.#isHighlighted) {
+                    if (!this.#isHighlighted && this.#highlightPolyline) {
                         this.#highlightPolyline.visible = true;
                     }
                 });
                 super.on('mousemove', () => {
-                    if (!this.#isHighlighted) {
+                    if (!this.#isHighlighted && this.#highlightPolyline) {
                         this.#highlightPolyline.visible = true;
                     }
                 });
                 super.on('mouseout', () => {
-                    if (!this.#isHighlighted) {
+                    if (!this.#isHighlighted && this.#highlightPolyline) {
                         this.#highlightPolyline.visible = false;
                     }
                 });
             });
         });
 
-        // Set the zIndex of the polylines
-        if (this.#highlightPolyline.hasZIndex() && this.hasZIndex()) {
+        // Set the zIndex of the polylines.
+        // The zIndex values are undefined if they are not set. (See hasZIndex())
+        const highlightZIndex = this.#highlightPolyline.zIndex;
+        const thisZIndex = this.zIndex;
+        if (typeof highlightZIndex !== 'undefined' && typeof thisZIndex !== 'undefined') {
             // Both the polyline and the highlight polyline have a zIndex set.
             // Make sure that the highlight one is below the existing one.
-            const highlightZIndex = this.#highlightPolyline.zIndex;
-            const thisZIndex = this.zIndex;
             if (highlightZIndex >= thisZIndex) {
                 this.#highlightPolyline.zIndex = thisZIndex - 1;
             }
-        } else if (this.hasZIndex()) {
+        } else if (typeof thisZIndex !== 'undefined') {
             // Only this polyline has a zIndex set.
             // Set the zIndex of the highlight polyline to be below the existing one.
-            this.#highlightPolyline.zIndex = this.zIndex - 1;
-        } else if (this.#highlightPolyline.hasZIndex()) {
+            this.#highlightPolyline.zIndex = thisZIndex - 1;
+        } else if (typeof highlightZIndex !== 'undefined') {
             // Only the highlight polyline has a zIndex set.
             // Set the zIndex of this polyline to be above the highlight one.
-            this.zIndex = this.#highlightPolyline.zIndex + 1;
+            this.zIndex = highlightZIndex + 1;
         } else {
             // Neither the polyline nor the highlight polyline have a zIndex set.
             // Set the zIndex of the highlight polyline to be below the existing one.
@@ -393,9 +403,9 @@ export class Polyline extends Layer {
     /**
      * Get the map object
      *
-     * @returns {Map}
+     * @returns {Map|null|undefined}
      */
-    get map(): Map {
+    get map(): Map | null | undefined {
         return this.#options.map;
     }
 
@@ -413,9 +423,9 @@ export class Polyline extends Layer {
      *
      * The path is an array of LatLng values defining the path of the polyline.
      *
-     * @returns {LatLngValue[]}
+     * @returns {LatLngValue[]|undefined}
      */
-    get path(): LatLngValue[] {
+    get path(): LatLngValue[] | undefined {
         return this.#options.path;
     }
 
@@ -437,7 +447,9 @@ export class Polyline extends Layer {
             });
             this.#options.path = paths;
             if (this.#polyline) {
-                this.#polyline.setPath(paths.map((path) => path.toGoogle()));
+                this.#polyline.setPath(
+                    paths.map((path) => path.toGoogle()).filter((path): path is google.maps.LatLng => path !== null),
+                );
             }
         }
     }
@@ -445,9 +457,9 @@ export class Polyline extends Layer {
     /**
      * Get the SVG stroke color
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    get strokeColor(): string {
+    get strokeColor(): string | undefined {
         return this.#options.strokeColor;
     }
 
@@ -469,9 +481,9 @@ export class Polyline extends Layer {
      * Get the opacity of the stroke.
      * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get strokeOpacity(): number {
+    get strokeOpacity(): number | undefined {
         return this.#options.strokeOpacity;
     }
 
@@ -491,7 +503,7 @@ export class Polyline extends Layer {
                 if (this.#dashed) {
                     // Change the opacity of the dashes
                     this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-                        this.#polyline.setOptions(opts);
+                        this.#polyline?.setOptions(opts);
                     });
                 } else {
                     // Set the opacity of the stroke
@@ -504,9 +516,9 @@ export class Polyline extends Layer {
     /**
      * Get the weight of the stroke in pixels.
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get strokeWeight(): number {
+    get strokeWeight(): number | undefined {
         return this.#options.strokeWeight;
     }
 
@@ -526,7 +538,7 @@ export class Polyline extends Layer {
                 if (this.#dashed) {
                     // Change the opacity of the dashes
                     this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-                        this.#polyline.setOptions(opts);
+                        this.#polyline?.setOptions(opts);
                     });
                 } else {
                     this.#polyline.setOptions({ strokeWeight: Number(value) });
@@ -538,9 +550,9 @@ export class Polyline extends Layer {
     /**
      * Get whether the polyline is visible on the map.
      *
-     * @returns {boolean}
+     * @returns {boolean|undefined}
      */
-    get visible(): boolean {
+    get visible(): boolean | undefined {
         return this.#options.visible;
     }
 
@@ -562,9 +574,9 @@ export class Polyline extends Layer {
     /**
      * Get the zIndex of the polyline.
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get zIndex(): number {
+    get zIndex(): number | undefined {
         return this.#options.zIndex;
     }
 
@@ -621,7 +633,7 @@ export class Polyline extends Layer {
      * @param {string} [key] The object key to get data for. If not set then all data is returned.
      * @returns {any}
      */
-    getData(key?: string): CustomData {
+    getData(key?: string): any {
         if (isStringWithValue(key)) {
             if (objectHasValue(this.#customData, key)) {
                 return this.#customData[key];
@@ -688,7 +700,7 @@ export class Polyline extends Layer {
                     strokeWeight: this.#highlightPolyline.strokeWeight,
                     zIndex: this.#highlightPolyline.zIndex,
                 };
-                const allowedOptions = [
+                const allowedOptions: (keyof PolylineOptions)[] = [
                     'clickable',
                     'dashed',
                     'dashGap',
@@ -701,7 +713,7 @@ export class Polyline extends Layer {
                 const highlightOptions: PolylineOptions = {};
                 allowedOptions.forEach((option) => {
                     if (isDefined(options[option])) {
-                        highlightOptions[option] = options[option];
+                        (highlightOptions as Record<string, unknown>)[option] = options[option];
                     }
                 });
                 // Set the options on the highlight polyline
@@ -818,7 +830,7 @@ export class Polyline extends Layer {
      */
     setDashed(dashed: boolean, dashGap?: string | number): Polyline {
         this.dashed = dashed;
-        if (dashed) {
+        if (dashed && isDefined<string | number>(dashGap)) {
             this.dashGap = dashGap;
         }
         return this;
@@ -876,13 +888,13 @@ export class Polyline extends Layer {
         if (this.#highlightPolyline) {
             this.#highlightPolyline.setMap(value, false);
         }
-        await this.#setupGooglePolyline(value);
+        const googlePolyline = await this.#setupGooglePolyline(value ?? undefined);
         if (value instanceof Map) {
             this.visible = isVisible;
             // Set the map
             this.#options.map = value;
             super.setMap(value);
-            this.#polyline.setMap(value.toGoogle());
+            googlePolyline.setMap(value.toGoogle());
         } else if (isNullOrUndefined(value)) {
             // Remove the polyline from the map
             this.#options.map = null;
@@ -908,7 +920,7 @@ export class Polyline extends Layer {
             if (isBoolean(options.dashed)) {
                 this.dashed = options.dashed;
             }
-            if (isDefined(options.dashGap)) {
+            if (isDefined<string | number>(options.dashGap)) {
                 this.dashGap = options.dashGap;
             }
             if (options.icons) {
@@ -1039,8 +1051,8 @@ export class Polyline extends Layer {
      */
     toGoogle(): Promise<google.maps.Polyline> {
         return new Promise((resolve) => {
-            this.#setupGooglePolyline().then(() => {
-                resolve(this.#polyline);
+            this.#setupGooglePolyline().then((googlePolyline) => {
+                resolve(googlePolyline);
             });
         });
     }
@@ -1082,10 +1094,10 @@ export class Polyline extends Layer {
                         strokeOpacity: 1,
                         scale: 3,
                     });
-                    if (isDefined(this.#options.strokeOpacity)) {
+                    if (isDefined<number>(this.#options.strokeOpacity)) {
                         lineSymbol.strokeOpacity = this.#options.strokeOpacity;
                     }
-                    if (isDefined(this.#options.strokeWeight)) {
+                    if (isDefined<number>(this.#options.strokeWeight)) {
                         lineSymbol.scale = this.#options.strokeWeight;
                     }
                     options.strokeOpacity = 0;
@@ -1106,10 +1118,12 @@ export class Polyline extends Layer {
                                 const returnIcon = polylineIcon(icn);
                                 // Need to set the strokeOpacity on the PolyIcon icon otherwise it won't be visible;
                                 const iconIcn = returnIcon.icon;
-                                if (isDefined(this.#options.strokeOpacity)) {
-                                    iconIcn.strokeOpacity = this.#options.strokeOpacity;
-                                } else {
-                                    iconIcn.strokeOpacity = 1;
+                                if (iconIcn) {
+                                    if (isDefined<number>(this.#options.strokeOpacity)) {
+                                        iconIcn.strokeOpacity = this.#options.strokeOpacity;
+                                    } else {
+                                        iconIcn.strokeOpacity = 1;
+                                    }
                                 }
                                 return returnIcon.toGoogle();
                             }),
@@ -1136,26 +1150,27 @@ export class Polyline extends Layer {
      *
      * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
      * @private
+     * @returns {Promise<google.maps.Polyline>} The Google maps Polyline object once it's set up
      */
-    #setupGooglePolyline(map?: Map): Promise<void> {
+    #setupGooglePolyline(map?: Map): Promise<google.maps.Polyline> {
         return new Promise((resolve) => {
             if (!isObject(this.#polyline)) {
                 if (checkForGoogleMaps('Polyline', 'Polyline', false)) {
-                    this.#createPolylineObject();
+                    const googlePolyline = this.#createPolylineObject();
                     // Dispatch the event to say that the polyline is ready
                     this.dispatch(PolylineEvents.READY);
-                    resolve();
+                    resolve(googlePolyline);
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the polyline before the Google maps object was available.
                     loader().onMapLoad(() => {
-                        this.#createPolylineObject();
+                        const googlePolyline = this.#createPolylineObject();
                         // Make sure that the map is still set.
                         // It's unlikely, but possible, that the developer could have removed the map
                         // from the polyline before the Google maps object was available.
                         const thisMap = this.getMap();
-                        if (this.#polyline && thisMap) {
-                            this.#polyline.setMap(thisMap.toGoogle());
+                        if (thisMap) {
+                            googlePolyline.setMap(thisMap.toGoogle());
                             // Add the map to the highlight polyline as well if it exists
                             if (this.#highlightPolyline) {
                                 this.#highlightPolyline.setMap(thisMap, false);
@@ -1163,7 +1178,7 @@ export class Polyline extends Layer {
                         }
                         // Dispatch the event to say that the polyline is ready
                         this.dispatch(PolylineEvents.READY);
-                        resolve();
+                        resolve(googlePolyline);
                     });
 
                     // Trigger the map to load if it's set.
@@ -1173,7 +1188,7 @@ export class Polyline extends Layer {
                 }
             } else {
                 // The polyline object is already set up
-                resolve();
+                resolve(this.#polyline);
             }
         });
     }
@@ -1194,18 +1209,18 @@ export class Polyline extends Layer {
     }
 
     /**
-     * Create the polyline object
+     * Create the polyline object if it doesn't already exist
      *
      * @private
+     * @returns {google.maps.Polyline} The Google maps Polyline object
      */
-    #createPolylineObject() {
+    #createPolylineObject(): google.maps.Polyline {
         if (!this.#polyline) {
             const polylineOptions: google.maps.PolylineOptions = {};
 
             // Options that can be set on the Polyline without any modification
-            const optionsToSet = [
+            const optionsToSet: (keyof PolylineOptions & keyof google.maps.PolylineOptions)[] = [
                 'clickable',
-                'map',
                 'strokeColor',
                 'strokeOpacity',
                 'strokeWeight',
@@ -1214,24 +1229,33 @@ export class Polyline extends Layer {
             ];
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
-                    polylineOptions[key] = this.#options[key];
+                    (polylineOptions as Record<string, unknown>)[key] = this.#options[key];
                 }
             });
+            // The map needs to be converted to the Google maps object
+            if (this.#options.map) {
+                polylineOptions.map = this.#options.map.toGoogle();
+            }
 
             // Set the path
             if (Array.isArray(this.#options.path)) {
-                polylineOptions.path = this.#options.path.map((path) => latLng(path).toGoogle());
+                polylineOptions.path = this.#options.path
+                    .map((path) => latLng(path).toGoogle())
+                    .filter((path): path is google.maps.LatLng => path !== null);
             }
 
             // Create the polyine object
-            this.#polyline = new google.maps.Polyline(polylineOptions);
+            const googlePolyline = new google.maps.Polyline(polylineOptions);
+            this.#polyline = googlePolyline;
 
             // Handle dashed polylines if necessary
             this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-                this.#polyline.setOptions(opts);
-                this.setEventGoogleObject(this.#polyline);
+                googlePolyline.setOptions(opts);
+                this.setEventGoogleObject(googlePolyline);
             });
+            return googlePolyline;
         }
+        return this.#polyline;
     }
 }
 

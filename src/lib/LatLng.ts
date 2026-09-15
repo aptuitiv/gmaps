@@ -33,28 +33,34 @@ export type Latitude = number | number[] | string | string[] | LatLngLiteral | L
  */
 export class LatLng extends Base {
     /**
-     * Holds the Google maps LatLng object
+     * Holds the Google maps LatLng object.
+     *
+     * This is created the first time that toGoogle() is called.
      *
      * @private
-     * @type {google.maps.LatLng}
+     * @type {google.maps.LatLng|undefined}
      */
-    #latLngObject: google.maps.LatLng;
+    #latLngObject: google.maps.LatLng | undefined;
 
     /**
-     * Holds the latitude
+     * Holds the latitude.
+     *
+     * This is undefined until a valid latitude value is set.
      *
      * @private
-     * @type {number}
+     * @type {number|undefined}
      */
-    #latitude: number;
+    #latitude: number | undefined;
 
     /**
-     * Holds the longitude
+     * Holds the longitude.
+     *
+     * This is undefined until a valid longitude value is set.
      *
      * @private
-     * @type {number}
+     * @type {number|undefined}
      */
-    #longitude: number;
+    #longitude: number | undefined;
 
     /**
      * Whether the latitude/longitude pair values have changed since the last time they were set
@@ -196,17 +202,18 @@ export class LatLng extends Base {
             this.latitude = lat;
             this.longitude = lng;
         } else if (isObject(latitude)) {
+            const literal = latitude as LatLngLiteral;
             if (isFunction((latitude as google.maps.LatLng).lat)) {
                 this.latitude = (latitude as google.maps.LatLng).lat();
-            } else if (typeof (latitude as LatLngLiteral).lat !== 'undefined') {
-                this.latitude = (latitude as LatLngLiteral).lat;
+            } else if (typeof literal.lat !== 'undefined') {
+                this.latitude = literal.lat;
             } else if (typeof (latitude as LatLngLiteralExpanded).latitude !== 'undefined') {
                 this.latitude = (latitude as LatLngLiteralExpanded).latitude;
             }
             if (isFunction((latitude as google.maps.LatLng).lng)) {
                 this.longitude = (latitude as google.maps.LatLng).lng();
-            } else if (typeof (latitude as LatLngLiteral).lng !== 'undefined') {
-                this.longitude = (latitude as LatLngLiteral).lng;
+            } else if (typeof literal.lng !== 'undefined') {
+                this.longitude = literal.lng;
             } else if (typeof (latitude as LatLngLiteralExpanded).longitude !== 'undefined') {
                 this.longitude = (latitude as LatLngLiteralExpanded).longitude;
             }
@@ -215,7 +222,10 @@ export class LatLng extends Base {
             this.longitude = (latitude as any).getLng();
         } else {
             this.latitude = latitude;
-            this.longitude = longitude;
+            // The longitude setter ignores an undefined value, so only call it when there is a value.
+            if (typeof longitude !== 'undefined') {
+                this.longitude = longitude;
+            }
         }
         /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;
@@ -266,22 +276,23 @@ export class LatLng extends Base {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
      *
-     * @returns {google.maps.LatLng|null}
+     * This throws an error if the latitude/longitude pair is not valid, or if the Google Maps library is not loaded.
+     *
+     * @returns {google.maps.LatLng}
      */
-    toGoogle(): google.maps.LatLng | null {
+    toGoogle(): google.maps.LatLng {
         if (!this.isValid()) {
             throw new Error(
                 `Invalid latitude/longitude pair. One or both values are missing. Latitude: ${this.latitude}, Longitude: ${this.longitude}`,
             );
         }
-        if (checkForGoogleMaps('LatLng', 'LatLng')) {
-            if (!isObject(this.#latLngObject) || this.#valuesChanged) {
-                this.#latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
-                this.#valuesChanged = false;
-            }
-            return this.#latLngObject;
+        // This throws an error if the Google Maps library is not loaded.
+        checkForGoogleMaps('LatLng', 'LatLng');
+        if (!isObject(this.#latLngObject) || this.#valuesChanged) {
+            this.#latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
+            this.#valuesChanged = false;
         }
-        return null;
+        return this.#latLngObject;
     }
 
     /**

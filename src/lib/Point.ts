@@ -32,19 +32,27 @@ type XPoint = number | number[] | string | string[] | PointObject;
  */
 export class Point extends Base {
     /**
-     * Holds the Google maps point object
+     * Holds the Google maps point object.
+     *
+     * This is created the first time that toGoogle() is called.
      */
-    #pointObject: google.maps.Point;
+    #pointObject: google.maps.Point | undefined;
 
     /**
-     * The X value
+     * The X value.
+     *
+     * This is set by the constructor when an x value is passed. It's only undefined for a Point
+     * created without values, which isValid() reports as invalid.
      */
-    #x: number;
+    #x!: number;
 
     /**
-     * The Y value
+     * The Y value.
+     *
+     * This is set by the constructor when a y value is passed. It's only undefined for a Point
+     * created without values, which isValid() reports as invalid.
      */
-    #y: number;
+    #y!: number;
 
     /**
      * Constructor
@@ -283,7 +291,10 @@ export class Point extends Base {
             this.y = (x as any).y;
         } else {
             this.x = x;
-            this.y = y;
+            // The y setter ignores an undefined value, so only call it when there is a value.
+            if (typeof y !== 'undefined') {
+                this.y = y;
+            }
         }
         /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;
@@ -333,16 +344,17 @@ export class Point extends Base {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
      *
+     * This throws an error if the Google Maps library is not loaded.
+     *
      * @returns {google.maps.Point}
      */
     toGoogle(): google.maps.Point {
-        if (checkForGoogleMaps('Point', 'Point')) {
-            if (!isObject(this.#pointObject)) {
-                this.#pointObject = new google.maps.Point(this.x, this.y);
-            }
-            return this.#pointObject;
+        // This throws an error if the Google Maps library is not loaded.
+        checkForGoogleMaps('Point', 'Point');
+        if (!isObject(this.#pointObject)) {
+            this.#pointObject = new google.maps.Point(this.x, this.y);
         }
-        return null;
+        return this.#pointObject;
     }
 
     /**

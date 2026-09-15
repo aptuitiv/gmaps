@@ -58,17 +58,17 @@ export class Tooltip extends Overlay {
      * thing that the tooltip is shown for, so that the previous one can be hidden.
      *
      * @private
-     * @type {Tooltip}
+     * @type {Tooltip|undefined}
      */
-    #activeTooltip: Tooltip;
+    #activeTooltip: Tooltip | undefined;
 
     /**
      * Holds the callback function that works out what to show, if one was given.
      *
      * @private
-     * @type {TooltipCallback}
+     * @type {TooltipCallback|undefined}
      */
-    #callback: TooltipCallback;
+    #callback: TooltipCallback | undefined;
 
     /**
      * Whether to center the tooltip on the element. Useful if the tooltip is on a marker.
@@ -83,9 +83,9 @@ export class Tooltip extends Overlay {
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
      *
      * @private
-     * @type {string|HTMLElement}
+     * @type {string|HTMLElement|Text|undefined}
      */
-    #content: string | HTMLElement | Text;
+    #content: string | HTMLElement | Text | undefined;
 
     /**
      * The event to trigger the tooltip
@@ -128,7 +128,9 @@ export class Tooltip extends Overlay {
             }
         } else {
             // The tooltip contents were passed
-            this.content = options;
+            if (typeof options !== 'undefined') {
+                this.content = options;
+            }
             this.setClassName('tooltip');
         }
     }
@@ -156,9 +158,9 @@ export class Tooltip extends Overlay {
     /**
      * Returns the content for the tooltip
      *
-     * @returns {string|HTMLElement|Text}
+     * @returns {string|HTMLElement|Text|undefined}
      */
-    get content(): string | HTMLElement | Text {
+    get content(): string | HTMLElement | Text | undefined {
         return this.#content;
     }
 
@@ -255,21 +257,30 @@ export class Tooltip extends Overlay {
                         element.on('click', (e) => {
                             const tooltipObject = this.#tooltipFor(element);
                             tooltipObject.setPosition(e.latLng);
-                            tooltipObject.toggle(elementMap());
+                            const map = elementMap();
+                            if (map) {
+                                tooltipObject.toggle(map);
+                            }
                         });
                     } else if (triggerEvent === 'clickon') {
                         // Show the tooltip when clicking on the element
                         element.on('click', (e) => {
                             const tooltipObject = this.#tooltipFor(element);
                             tooltipObject.setPosition(e.latLng);
-                            tooltipObject.show(elementMap());
+                            const map = elementMap();
+                            if (map) {
+                                tooltipObject.show(map);
+                            }
                         });
                     } else {
                         // Default to hover
                         element.on('mouseover', (e) => {
                             const tooltipObject = this.#tooltipFor(element);
                             tooltipObject.setPosition(e.latLng);
-                            tooltipObject.show(elementMap());
+                            const map = elementMap();
+                            if (map) {
+                                tooltipObject.show(map);
+                            }
                         });
                         if (element instanceof Map) {
                             element.on('mousemove', (e) => {
@@ -396,8 +407,9 @@ export class Tooltip extends Overlay {
         // projection could be undefined if this is being displayed on a hover event. Sometimes the initial
         // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
         // up and the tooltip will be displayed.
-        if (this.hasPosition() && typeof projection !== 'undefined') {
-            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle())!;
+        const position = this.getPosition();
+        if (position && typeof projection !== 'undefined') {
+            const divPosition = projection.fromLatLngToDivPixel(position.toGoogle())!;
 
             // Hide the tooltip when it is far out of view.
             const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
@@ -459,9 +471,16 @@ export const tooltip = (options?: TooltipValue): Tooltip => {
 };
 
 export type TooltipConfig = {
-    attachConfig: TooltipValue;
+    attachConfig: AttachTooltipValue;
     attachEvent?: 'click' | 'clickon' | 'hover';
 };
+
+/**
+ * The objects that the tooltip mixin is added to.
+ *
+ * The mixin saves the tooltip configuration on the object so that it can be used when cloning the object.
+ */
+type TooltipMixinHost = (Map | Layer) & { tooltipConfig: TooltipConfig | null };
 
 /**
  * Mixin to add the attachTooltip method to the Marker and Map classes
@@ -474,7 +493,7 @@ const tooltipMixin = {
      *
      * @type {TooltipConfig|null}
      */
-    tooltipConfig: null,
+    tooltipConfig: null as TooltipConfig | null,
 
     /**
      * Attach an Tooltip to the layer
@@ -488,7 +507,11 @@ const tooltipMixin = {
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
      * @returns {Tooltip}
      */
-    attachTooltip(tooltipValue: AttachTooltipValue | TooltipConfig, event?: 'click' | 'clickon' | 'hover'): Tooltip {
+    attachTooltip(
+        this: TooltipMixinHost,
+        tooltipValue: AttachTooltipValue | TooltipConfig,
+        event?: 'click' | 'clickon' | 'hover',
+    ): Tooltip {
         let tooltipVal = tooltipValue;
         let tooltipEvent = event;
         if (
@@ -500,17 +523,17 @@ const tooltipMixin = {
             tooltipVal = (tooltipValue as TooltipConfig).attachConfig;
             tooltipEvent = (tooltipValue as TooltipConfig).attachEvent;
             // Save the tooltip configuration so that it could be used to recreate the tooltip when cloning the object.
-            this.tooltipConfig = tooltipValue;
+            this.tooltipConfig = tooltipValue as TooltipConfig;
         } else {
             // Save the tooltip configuration so that it could be used to recreate the tooltip when cloning the object.
             this.tooltipConfig = {
-                attachConfig: tooltipVal,
+                attachConfig: tooltipVal as AttachTooltipValue,
                 attachEvent: tooltipEvent,
             };
         }
 
         let t: Tooltip;
-        let callback: TooltipCallback;
+        let callback: TooltipCallback | undefined;
         if (isFunction(tooltipVal)) {
             // The tooltip is worked out each time it's shown, so it starts out with no content
             callback = tooltipVal as TooltipCallback;
@@ -574,7 +597,7 @@ const dataLayerTooltipMixin = {
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'.
      * @returns {Tooltip}
      */
-    attachTooltip(tooltipValue: DataTooltipValue, event?: AttachEventValue): Tooltip {
+    attachTooltip(this: DataLayer, tooltipValue: DataTooltipValue, event?: AttachEventValue): Tooltip {
         return attachToDataLayer(this, tooltipValue, event, tooltipAdapter) as Tooltip;
     },
 };
@@ -591,7 +614,7 @@ const dataFeatureTooltipMixin = {
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'.
      * @returns {Tooltip}
      */
-    attachTooltip(tooltipValue: DataTooltipValue, event?: AttachEventValue): Tooltip {
+    attachTooltip(this: DataFeature, tooltipValue: DataTooltipValue, event?: AttachEventValue): Tooltip {
         return attachToDataFeature(this, tooltipValue, event, tooltipAdapter) as Tooltip;
     },
 };

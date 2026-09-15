@@ -100,6 +100,10 @@ const hideFeatureTypes = {
 // The shortcut options to hide features on the map
 type HideFeatureOption = keyof typeof hideFeatureTypes;
 
+// The map options that are held internally. The center, mapTypeId, and zoom options
+// are always set because they have default values.
+type MapOptionsWithDefaults = GMMapOptions & Required<Pick<GMMapOptions, 'center' | 'mapTypeId' | 'zoom'>>;
+
 /**
  * The map class
  */
@@ -108,9 +112,9 @@ export class Map extends Evented {
      * The bounds to fit the map to
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds|undefined}
      */
-    #bounds: LatLngBounds;
+    #bounds: LatLngBounds | undefined;
 
     /**
      * Holds the custom controls that need to be added to the map
@@ -128,9 +132,9 @@ export class Map extends Evented {
      * same object.
      *
      * @private
-     * @type {DataLayer}
+     * @type {DataLayer|undefined}
      */
-    #data: DataLayer;
+    #data: DataLayer | undefined;
 
     /**
      * Holds the HTML element that the map will be rendered in.
@@ -209,12 +213,14 @@ export class Map extends Evented {
     #isReady: boolean = false;
 
     /**
-     * Holds the Google map object
+     * Holds the Google map object.
+     *
+     * This is undefined until the map is set up when it's shown.
      *
      * @private
-     * @type {google.maps.Map}
+     * @type {google.maps.Map|undefined}
      */
-    #map: google.maps.Map;
+    #map: google.maps.Map | undefined;
 
     /**
      * Holds the map type control object
@@ -230,7 +236,7 @@ export class Map extends Evented {
      * @private
      * @type {number|null}
      */
-    #maxFitBoundsZoom: number | null;
+    #maxFitBoundsZoom: number | null = null;
 
     /**
      * Holds the minimum zoom level for the map when fitting to bounds
@@ -238,23 +244,29 @@ export class Map extends Evented {
      * @private
      * @type {number|null}
      */
-    #minFitBoundsZoom: number | null;
+    #minFitBoundsZoom: number | null = null;
 
     /**
      * Holds the map options
      *
+     * The center, mapTypeId, and zoom options are set to their default values.
+     *
      * @private
-     * @type {GMMapOptions}
+     * @type {MapOptionsWithDefaults}
      */
-    #options: GMMapOptions = {};
+    #options: MapOptionsWithDefaults = {
+        center: latLng(0, 0),
+        mapTypeId: MapTypeId.ROADMAP,
+        zoom: 6,
+    };
 
     /**
      * Holds the map restriction object to restrict the map to a certain area
      *
      * @private
-     * @type {MapRestriction}
+     * @type {MapRestriction|undefined}
      */
-    #restriction: MapRestriction;
+    #restriction: MapRestriction | undefined;
 
     /**
      * Holds the rotate control object
@@ -286,15 +298,17 @@ export class Map extends Evented {
      * @private
      * @type {MapStyle[]}
      */
-    #styles?: MapStyle[] = [];
+    #styles: MapStyle[] = [];
 
     /**
      * Holds the watchId for the watchPosition() function
      *
+     * This is undefined until locate() starts watching the user's location.
+     *
      * @private
-     * @type {number}
+     * @type {number|undefined}
      */
-    #watchId: number;
+    #watchId: number | undefined;
 
     /**
      * Holds the zoom control object
@@ -315,9 +329,6 @@ export class Map extends Evented {
         super('map', 'Map');
 
         // Set some default values
-        this.#options.mapTypeId = MapTypeId.ROADMAP;
-        this.#options.center = latLng(0, 0);
-        this.#options.zoom = 6;
         this.#fullscreenControl = fullscreenControl();
         this.#mapTypeControl = mapTypeControl();
         this.#rotateControl = rotateControl();
@@ -344,7 +355,9 @@ export class Map extends Evented {
         let { center } = this.#options;
         if (this.#map) {
             const mapCenter = this.#map.getCenter();
-            center = latLng(mapCenter.lat(), mapCenter.lng());
+            if (mapCenter) {
+                center = latLng(mapCenter.lat(), mapCenter.lng());
+            }
         }
         if (!center.equals(this.#options.center)) {
             this.#options.center = center;
@@ -433,9 +446,10 @@ export class Map extends Evented {
             this.#fullscreenControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#fullscreenControl.toGoogle().then((fullscreenControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     fullscreenControl: this.#fullscreenControl.enabled,
                     fullscreenControlOptions,
                 });
@@ -577,9 +591,10 @@ export class Map extends Evented {
             this.#mapTypeControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#mapTypeControl.toGoogle().then((mapTypeControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     mapTypeControl: this.#mapTypeControl.enabled,
                     mapTypeControlOptions,
                 });
@@ -593,10 +608,7 @@ export class Map extends Evented {
      * @returns {string}
      */
     get mapTypeId(): string {
-        let { mapTypeId } = this.#options;
-        if (this.#map) {
-            mapTypeId = this.#map.getMapTypeId();
-        }
+        const mapTypeId = this.#map ? this.#map.getMapTypeId() : this.#options.mapTypeId;
         if (isStringWithValue(mapTypeId) && mapTypeId !== this.#options.mapTypeId) {
             this.#options.mapTypeId = mapTypeId;
         }
@@ -653,7 +665,8 @@ export class Map extends Evented {
      */
     set maxZoom(value: null | number) {
         if (isNumber(value) || isNull(value)) {
-            this.#options.maxZoom = value;
+            // Null is stored as undefined in the options. Both mean that there is no max zoom.
+            this.#options.maxZoom = value ?? undefined;
             if (this.#map) {
                 this.#map.setOptions({ maxZoom: value });
             }
@@ -696,7 +709,8 @@ export class Map extends Evented {
      */
     set minZoom(value: null | number) {
         if (isNumber(value) || isNull(value)) {
-            this.#options.minZoom = value;
+            // Null is stored as undefined in the options. Both mean that there is no min zoom.
+            this.#options.minZoom = value ?? undefined;
             if (this.#map) {
                 this.#map.setOptions({ minZoom: value });
             }
@@ -719,9 +733,10 @@ export class Map extends Evented {
      */
     set restriction(value: MapRestrictionValue) {
         this.#restriction = mapRestriction(value);
-        if (this.#map && this.#restriction.isValid() && this.#restriction.isEnabled()) {
+        const map = this.#map;
+        if (map && this.#restriction.isValid() && this.#restriction.isEnabled()) {
             this.#restriction.toGoogle().then((restriction) => {
-                this.#map.setOptions({ restriction });
+                map.setOptions({ restriction });
             });
         }
     }
@@ -747,9 +762,10 @@ export class Map extends Evented {
             this.#rotateControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#rotateControl.toGoogle().then((rotateControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     rotateControl: this.#rotateControl.enabled,
                     rotateControlOptions,
                 });
@@ -778,9 +794,10 @@ export class Map extends Evented {
             this.#scaleControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#scaleControl.toGoogle().then((scaleControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     scaleControl: this.#scaleControl.enabled,
                     scaleControlOptions,
                 });
@@ -809,9 +826,10 @@ export class Map extends Evented {
             this.#streetViewControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#streetViewControl.toGoogle().then((streetViewControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     streetViewControl: this.#streetViewControl.enabled,
                     streetViewControlOptions,
                 });
@@ -825,10 +843,7 @@ export class Map extends Evented {
      * @returns {number}
      */
     get zoom(): number {
-        let { zoom } = this.#options;
-        if (this.#map) {
-            zoom = this.#map.getZoom();
-        }
+        const zoom = this.#map ? this.#map.getZoom() : this.#options.zoom;
         if (isNumber(zoom) && zoom !== this.#options.zoom) {
             this.#options.zoom = zoom;
         }
@@ -873,9 +888,10 @@ export class Map extends Evented {
             this.#zoomControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#zoomControl.toGoogle().then((zoomControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     zoomControl: this.#zoomControl.enabled,
                     zoomControlOptions,
                 });
@@ -1015,19 +1031,21 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     #fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<void> {
+        // This is only called after the map has been set up, so the Google map object exists.
+        // The non-null assertions below rely on that.
         return new Promise((resolve) => {
             if (bounds) {
                 latLngBounds(bounds)
                     .toGoogle()
                     .then((googleBounds) => {
                         this.#handleZoomAfterFitBounds(maxZoom, minZoom);
-                        this.#map.fitBounds(googleBounds);
+                        this.#map!.fitBounds(googleBounds);
                         resolve();
                     });
             } else if (this.#bounds) {
                 this.#bounds.toGoogle().then((googleBounds) => {
                     this.#handleZoomAfterFitBounds(maxZoom, minZoom);
-                    this.#map.fitBounds(googleBounds);
+                    this.#map!.fitBounds(googleBounds);
                     resolve();
                 });
             } else {
@@ -1133,30 +1151,33 @@ export class Map extends Evented {
                 'scrollwheel',
                 'tiltInteractionEnabled',
             ];
+            // The option keys below are copied as-is, so index both objects by the key name.
+            const options = this.#options as Record<string, unknown>;
+            const googleOptions = mapOptions as Record<string, unknown>;
             booleanOptions.forEach((key) => {
-                if (isBoolean(this.#options[key])) {
-                    mapOptions[key] = this.#options[key];
+                if (isBoolean(options[key])) {
+                    googleOptions[key] = options[key];
                 }
             });
             // Number options that can be set on the map without any modification
             const numberOptions = ['controlSize', 'heading', 'maxZoom', 'minZoom', 'tilt', 'zoom'];
             numberOptions.forEach((key) => {
-                if (isNumberOrNumberString(this.#options[key])) {
-                    mapOptions[key] = this.#options[key];
+                if (isNumberOrNumberString(options[key])) {
+                    googleOptions[key] = options[key];
                 }
             });
             // String options that can be set on the map without any modification
             const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling', 'mapId'];
             stringOptions.forEach((key) => {
-                if (isStringWithValue(this.#options[key])) {
-                    mapOptions[key] = this.#options[key];
+                if (isStringWithValue(options[key])) {
+                    googleOptions[key] = options[key];
                 }
             });
             // Other options that can be set on the map without any modification
             const optionsToSet = ['renderingType', 'streetView'];
             optionsToSet.forEach((key) => {
-                if (typeof this.#options[key] !== 'undefined') {
-                    mapOptions[key] = this.#options[key];
+                if (typeof options[key] !== 'undefined') {
+                    googleOptions[key] = options[key];
                 }
             });
 
@@ -1268,12 +1289,15 @@ export class Map extends Evented {
      */
     getBounds(): Promise<LatLngBounds | undefined> {
         return new Promise((resolve) => {
-            if (this.#map) {
+            const googleBounds = this.#map?.getBounds();
+            if (googleBounds) {
                 const bounds = new LatLngBounds();
-                bounds.union(this.#map.getBounds()).then(() => {
+                bounds.union(googleBounds).then(() => {
                     resolve(bounds);
                 });
             } else {
+                // The map isn't set up yet, or it doesn't have bounds yet
+                // (Google returns undefined for the bounds until the map has been sized and positioned).
                 resolve(undefined);
             }
         });
@@ -1438,9 +1462,13 @@ export class Map extends Evented {
                     latLng: latLng(latitude, longitude),
                     timestamp: position.timestamp,
                 };
-                Object.keys(position.coords).forEach((key) => {
-                    if (typeof position.coords[key] === 'number') {
-                        data[key] = position.coords[key];
+                // Copy the other coordinate values by name. They are getters on the GeolocationCoordinates
+                // prototype, so Object.keys(position.coords) would not find them.
+                const coordinateKeys = ['accuracy', 'altitude', 'altitudeAccuracy', 'heading', 'speed'] as const;
+                coordinateKeys.forEach((key) => {
+                    const value = position.coords[key];
+                    if (typeof value === 'number') {
+                        data[key] = value;
                     }
                 });
                 this.dispatch('locationfound', data);
@@ -1754,7 +1782,8 @@ export class Map extends Evented {
             this.#map.panBy(x, y);
         } else {
             this.init().then(() => {
-                this.#map.panBy(x, y);
+                // init() resolves after the Google map object is set up
+                this.#map!.panBy(x, y);
             });
         }
     }
@@ -1771,7 +1800,8 @@ export class Map extends Evented {
             this.#map.panTo(latLng(value).toGoogle());
         } else {
             this.init().then(() => {
-                this.#map.panTo(latLng(value).toGoogle());
+                // init() resolves after the Google map object is set up
+                this.#map!.panTo(latLng(value).toGoogle());
             });
         }
     }
@@ -1787,7 +1817,7 @@ export class Map extends Evented {
      * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
      */
     resize = (element?: HTMLElement | string): void => {
-        let el: HTMLElement;
+        let el: HTMLElement | null;
         if (typeof element === 'string') {
             el = document.querySelector(element);
         } else if (element instanceof HTMLElement) {
@@ -2054,33 +2084,37 @@ export class Map extends Evented {
                 'scrollwheel',
                 'tiltInteractionEnabled',
             ];
+            // The option keys below are copied as-is, so index both objects by the key name.
+            const newOptions = options as Record<string, unknown>;
+            const currentOptions = this.#options as Record<string, unknown>;
             booleanOptions.forEach((key) => {
-                if (isBoolean(options[key])) {
-                    this.#options[key] = options[key];
+                if (isBoolean(newOptions[key])) {
+                    currentOptions[key] = newOptions[key];
                 }
             });
             const numberOptions = ['controlSize', 'heading', 'tilt'];
             numberOptions.forEach((key) => {
-                if (isNumberOrNumberString(options[key])) {
-                    this.#options[key] = options[key];
+                if (isNumberOrNumberString(newOptions[key])) {
+                    currentOptions[key] = newOptions[key];
                 }
             });
             const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling'];
             stringOptions.forEach((key) => {
-                if (isStringWithValue(options[key])) {
-                    this.#options[key] = options[key];
+                if (isStringWithValue(newOptions[key])) {
+                    currentOptions[key] = newOptions[key];
                 }
             });
             const otherOptions = ['mapTypeId', 'renderingType', 'streetView'];
             otherOptions.forEach((key) => {
-                if (typeof options[key] !== 'undefined') {
-                    this.#options[key] = options[key];
+                if (typeof newOptions[key] !== 'undefined') {
+                    currentOptions[key] = newOptions[key];
                 }
             });
 
-            if (this.#map) {
+            const map = this.#map;
+            if (map) {
                 this.#getMapOptions().then((mapOptions) => {
-                    this.#map.setOptions(mapOptions);
+                    map.setOptions(mapOptions);
                 });
             }
         }
@@ -2213,13 +2247,14 @@ export class Map extends Evented {
         new Promise((resolve) => {
             // Get the map options
             this.#getMapOptions().then((mapOptions) => {
-                this.#map = new google.maps.Map(element, mapOptions);
-                this.setEventGoogleObject(this.#map);
+                const map = new google.maps.Map(element, mapOptions);
+                this.#map = map;
+                this.setEventGoogleObject(map);
 
                 // Add any custom controls to the map
                 if (this.#customControls.length > 0) {
                     this.#customControls.forEach((control) => {
-                        this.#map.controls[convertControlPosition(control.position)].push(control.element);
+                        map.controls[convertControlPosition(control.position)].push(control.element);
                     });
                 }
                 this.#customControls = [];
@@ -2252,19 +2287,25 @@ export class Map extends Evented {
      * @returns {Map}
      */
     stopLocate(): Map {
-        if (navigator.geolocation) {
+        // There is only a watch to clear if locate() started watching the user's location
+        if (navigator.geolocation && typeof this.#watchId !== 'undefined') {
             navigator.geolocation.clearWatch(this.#watchId);
         }
         return this;
     }
 
     /**
-     * Returns the Google map object
+     * Returns the Google map object.
+     *
+     * The Google map object is set up when the map is shown. Before that this returns undefined.
+     * Use init(), load(), or show() and wait for them to resolve before calling this.
      *
      * @returns {google.maps.Map}
      */
     toGoogle(): google.maps.Map {
-        return this.#map;
+        // The return type is kept as google.maps.Map for backwards compatibility, even though the
+        // value is undefined before the map is set up.
+        return this.#map as google.maps.Map;
     }
 }
 

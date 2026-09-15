@@ -59,9 +59,9 @@ export class ImageOverlay extends Overlay {
      * Holds the bounds where the image should be displayed
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds|undefined}
      */
-    #bounds: LatLngBounds;
+    #bounds: LatLngBounds | undefined;
 
     /**
      * Holds the image element
@@ -75,9 +75,9 @@ export class ImageOverlay extends Overlay {
      * Holds the image URL
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #imageUrl: string;
+    #imageUrl: string | undefined;
 
     /**
      * Whether the overlay is currently being rotated
@@ -117,23 +117,23 @@ export class ImageOverlay extends Overlay {
      * @private
      * @type {Point}
      */
-    #rotationCenter: Point;
+    #rotationCenter!: Point;
 
     /**
      * The rotation container element (wraps the image when rotation is enabled)
      *
      * @private
-     * @type {HTMLElement}
+     * @type {HTMLElement|null}
      */
-    #rotationContainer: HTMLElement;
+    #rotationContainer: HTMLElement | null = null;
 
     /**
      * The rotation handle element
      *
      * @private
-     * @type {HTMLElement}
+     * @type {HTMLElement|null}
      */
-    #rotationHandle: HTMLElement;
+    #rotationHandle: HTMLElement | null = null;
 
     /**
      * Holds the styles for the image element
@@ -143,15 +143,15 @@ export class ImageOverlay extends Overlay {
      * @private
      * @type {object}
      */
-    #styles: object = {};
+    #styles: { [key: string]: string } = {};
 
     /**
      * Constructor
      *
-     * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
+     * @param {ImageOverlayOptions | string} [options] The ImageOverlay options or image URL
      * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
      */
-    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue) {
+    constructor(options?: ImageOverlayOptions | string, bounds?: LatLngBoundsValue) {
         super('imageoverlay', 'ImageOverlay');
 
         // Initialize the image element
@@ -167,7 +167,9 @@ export class ImageOverlay extends Overlay {
             this.setOptions(options);
         } else {
             // The image URL was passed as the first parameter
-            this.imageUrl = options;
+            if (isString(options)) {
+                this.imageUrl = options;
+            }
             if (bounds) {
                 this.bounds = bounds;
             }
@@ -177,9 +179,9 @@ export class ImageOverlay extends Overlay {
     /**
      * Returns the bounds where the image should be displayed
      *
-     * @returns {LatLngBounds}
+     * @returns {LatLngBounds|undefined}
      */
-    get bounds(): LatLngBounds {
+    get bounds(): LatLngBounds | undefined {
         return this.#bounds;
     }
 
@@ -233,9 +235,9 @@ export class ImageOverlay extends Overlay {
     /**
      * Returns the image URL
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    get imageUrl(): string {
+    get imageUrl(): string | undefined {
         return this.#imageUrl;
     }
 
@@ -331,7 +333,7 @@ export class ImageOverlay extends Overlay {
     set styles(styles: object) {
         if (isObject(styles)) {
             Object.keys(styles).forEach((key) => {
-                this.style(key, styles[key]);
+                this.style(key, (styles as { [key: string]: string })[key]);
             });
         }
     }
@@ -400,18 +402,18 @@ export class ImageOverlay extends Overlay {
     /**
      * Get the bounds where the image should be displayed
      *
-     * @returns {LatLngBounds}
+     * @returns {LatLngBounds|undefined}
      */
-    getBounds(): LatLngBounds {
+    getBounds(): LatLngBounds | undefined {
         return this.#bounds;
     }
 
     /**
      * Get the image URL
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    getImageUrl(): string {
+    getImageUrl(): string | undefined {
         return this.#imageUrl;
     }
 
@@ -605,7 +607,8 @@ export class ImageOverlay extends Overlay {
     style(name: string, value: string): Overlay {
         if (isString(name) && isString(value)) {
             this.#styles[name] = value;
-            this.#imageElement.style[name] = value;
+            // Index the style declaration by name so that both camelCase and dashed property names work.
+            (this.#imageElement.style as unknown as { [key: string]: string })[name] = value;
         }
         return this;
     }
@@ -637,7 +640,8 @@ export class ImageOverlay extends Overlay {
 
         // Get the current overlay position in pixels
         const overlayRect = this.getOverlayElement().getBoundingClientRect();
-        const mapDiv = this.getMap().getDiv();
+        const mapDiv = this.getMap()?.getDiv();
+        if (!mapDiv) return;
         const mapRect = mapDiv.getBoundingClientRect();
 
         // Calculate the overlay position relative to the map
@@ -749,8 +753,11 @@ export class ImageOverlay extends Overlay {
 
         // Get the new bounds from the lat/lng positions of the container.
         // Get those positions from the NE and SW pixel coordinates of the container.
+        // The bounds can only be worked out once the overlay is on the map.
+        const mapDiv = this.getMap()?.getDiv();
+        if (!mapDiv) return;
         const newContainerRect = overlayElement.getBoundingClientRect();
-        const mapContainerRect = this.getMap().getDiv().getBoundingClientRect();
+        const mapContainerRect = mapDiv.getBoundingClientRect();
         // Need to get the NE and SW pixel coordinates of the container within the map container.
         const nePos = {
             x: newContainerRect.right - mapContainerRect.left,

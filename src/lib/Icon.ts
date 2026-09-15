@@ -54,8 +54,10 @@ export class Icon extends Base {
             this.#options = {
                 url,
             };
-            this.setOptions(options);
-        } else if (isObject(url)) {
+            if (options) {
+                this.setOptions(options);
+            }
+        } else if (isObject<IconOptions>(url)) {
             this.setOptions(url);
         }
     }
@@ -68,22 +70,25 @@ export class Icon extends Base {
      */
     setOptions(options: IconOptions): Icon {
         if (isObject(options)) {
-            const pointValues = ['anchor', 'labelOrigin', 'origin'];
-            const sizeValues = ['scaledSize', 'size'];
-            const stringValues = ['url'];
+            const pointValues: ('anchor' | 'labelOrigin' | 'origin')[] = ['anchor', 'labelOrigin', 'origin'];
+            const sizeValues: ('scaledSize' | 'size')[] = ['scaledSize', 'size'];
+            const stringValues: 'url'[] = ['url'];
             pointValues.forEach((key) => {
-                if (options[key]) {
-                    this.#options[key] = point(options[key]).toGoogle();
+                const value = options[key];
+                if (value) {
+                    this.#options[key] = point(value).toGoogle();
                 }
             });
             sizeValues.forEach((key) => {
-                if (options[key]) {
-                    this.#options[key] = size(options[key]).toGoogle();
+                const value = options[key];
+                if (value) {
+                    this.#options[key] = size(value).toGoogle();
                 }
             });
             stringValues.forEach((key) => {
-                if (options[key] && isStringWithValue(options[key])) {
-                    this.#options[key] = options[key];
+                const value = options[key];
+                if (value && isStringWithValue(value)) {
+                    this.#options[key] = value;
                 }
             });
         }

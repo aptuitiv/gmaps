@@ -22,6 +22,18 @@ var __spreadValues = (a, b) => {
     }
   return a;
 };
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -716,7 +728,7 @@ var convertSymbolPath = (value) => {
   let returnValue = "";
   Object.entries(SymbolPath).forEach((item) => {
     if (item[1] === value) {
-      returnValue = google.maps.SymbolPath[item[0]];
+      returnValue = String(google.maps.SymbolPath[item[0]]);
     }
   });
   return returnValue;
@@ -765,10 +777,17 @@ var isPromise = (thing) => !!thing && isFunction(thing.then);
 var getPixelsFromLatLng = (map2, position) => {
   const projection = map2.getProjection();
   const bounds = map2.getBounds();
+  const zoom = map2.getZoom();
+  if (!projection || !bounds || typeof zoom === "undefined") {
+    throw new Error("The map must be initialized before getting the pixel location.");
+  }
   const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
   const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-  const scale = __pow(2, map2.getZoom());
   const worldPoint = projection.fromLatLngToPoint(position);
+  if (!topRight || !bottomLeft || !worldPoint) {
+    throw new Error("Unable to get the pixel location from the map projection.");
+  }
+  const scale = __pow(2, zoom);
   return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
 };
 var checkForGoogleMaps = (object, library, throwError) => {
@@ -884,24 +903,30 @@ var _LatLng = class _LatLng extends Base_default {
   constructor(latitude, longitude) {
     super("latlng");
     /**
-     * Holds the Google maps LatLng object
+     * Holds the Google maps LatLng object.
+     *
+     * This is created the first time that toGoogle() is called.
      *
      * @private
-     * @type {google.maps.LatLng}
+     * @type {google.maps.LatLng|undefined}
      */
     __privateAdd(this, _latLngObject);
     /**
-     * Holds the latitude
+     * Holds the latitude.
+     *
+     * This is undefined until a valid latitude value is set.
      *
      * @private
-     * @type {number}
+     * @type {number|undefined}
      */
     __privateAdd(this, _latitude);
     /**
-     * Holds the longitude
+     * Holds the longitude.
+     *
+     * This is undefined until a valid longitude value is set.
      *
      * @private
-     * @type {number}
+     * @type {number|undefined}
      */
     __privateAdd(this, _longitude);
     /**
@@ -1027,17 +1052,18 @@ var _LatLng = class _LatLng extends Base_default {
       this.latitude = lat;
       this.longitude = lng;
     } else if (isObject(latitude)) {
+      const literal = latitude;
       if (isFunction(latitude.lat)) {
         this.latitude = latitude.lat();
-      } else if (typeof latitude.lat !== "undefined") {
-        this.latitude = latitude.lat;
+      } else if (typeof literal.lat !== "undefined") {
+        this.latitude = literal.lat;
       } else if (typeof latitude.latitude !== "undefined") {
         this.latitude = latitude.latitude;
       }
       if (isFunction(latitude.lng)) {
         this.longitude = latitude.lng();
-      } else if (typeof latitude.lng !== "undefined") {
-        this.longitude = latitude.lng;
+      } else if (typeof literal.lng !== "undefined") {
+        this.longitude = literal.lng;
       } else if (typeof latitude.longitude !== "undefined") {
         this.longitude = latitude.longitude;
       }
@@ -1046,7 +1072,9 @@ var _LatLng = class _LatLng extends Base_default {
       this.longitude = latitude.getLng();
     } else {
       this.latitude = latitude;
-      this.longitude = longitude;
+      if (typeof longitude !== "undefined") {
+        this.longitude = longitude;
+      }
     }
     return this;
   }
@@ -1091,7 +1119,9 @@ var _LatLng = class _LatLng extends Base_default {
    *
    * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
    *
-   * @returns {google.maps.LatLng|null}
+   * This throws an error if the latitude/longitude pair is not valid, or if the Google Maps library is not loaded.
+   *
+   * @returns {google.maps.LatLng}
    */
   toGoogle() {
     if (!this.isValid()) {
@@ -1099,14 +1129,12 @@ var _LatLng = class _LatLng extends Base_default {
         `Invalid latitude/longitude pair. One or both values are missing. Latitude: ${this.latitude}, Longitude: ${this.longitude}`
       );
     }
-    if (checkForGoogleMaps("LatLng", "LatLng")) {
-      if (!isObject(__privateGet(this, _latLngObject)) || __privateGet(this, _valuesChanged)) {
-        __privateSet(this, _latLngObject, new google.maps.LatLng(this.latitude, this.longitude));
-        __privateSet(this, _valuesChanged, false);
-      }
-      return __privateGet(this, _latLngObject);
+    checkForGoogleMaps("LatLng", "LatLng");
+    if (!isObject(__privateGet(this, _latLngObject)) || __privateGet(this, _valuesChanged)) {
+      __privateSet(this, _latLngObject, new google.maps.LatLng(this.latitude, this.longitude));
+      __privateSet(this, _valuesChanged, false);
     }
-    return null;
+    return __privateGet(this, _latLngObject);
   }
   /**
    * Returns whether the latitude/longitude pair are valid values
@@ -1148,15 +1176,23 @@ var _Point = class _Point extends Base_default {
   constructor(x, y) {
     super("point");
     /**
-     * Holds the Google maps point object
+     * Holds the Google maps point object.
+     *
+     * This is created the first time that toGoogle() is called.
      */
     __privateAdd(this, _pointObject);
     /**
-     * The X value
+     * The X value.
+     *
+     * This is set by the constructor when an x value is passed. It's only undefined for a Point
+     * created without values, which isValid() reports as invalid.
      */
     __privateAdd(this, _x);
     /**
-     * The Y value
+     * The Y value.
+     *
+     * This is set by the constructor when a y value is passed. It's only undefined for a Point
+     * created without values, which isValid() reports as invalid.
      */
     __privateAdd(this, _y);
     if (typeof x !== "undefined") {
@@ -1370,7 +1406,9 @@ var _Point = class _Point extends Base_default {
       this.y = x.y;
     } else {
       this.x = x;
-      this.y = y;
+      if (typeof y !== "undefined") {
+        this.y = y;
+      }
     }
     return this;
   }
@@ -1415,16 +1453,16 @@ var _Point = class _Point extends Base_default {
    *
    * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
    *
+   * This throws an error if the Google Maps library is not loaded.
+   *
    * @returns {google.maps.Point}
    */
   toGoogle() {
-    if (checkForGoogleMaps("Point", "Point")) {
-      if (!isObject(__privateGet(this, _pointObject))) {
-        __privateSet(this, _pointObject, new google.maps.Point(this.x, this.y));
-      }
-      return __privateGet(this, _pointObject);
+    checkForGoogleMaps("Point", "Point");
+    if (!isObject(__privateGet(this, _pointObject))) {
+      __privateSet(this, _pointObject, new google.maps.Point(this.x, this.y));
     }
-    return null;
+    return __privateGet(this, _pointObject);
   }
   /**
    * Change the x/y values to the integer part of a number by removing any fractional digits.
@@ -1482,6 +1520,7 @@ var Evented = class extends Base_default {
      * @private
      * @type {google.maps.MVCObject| google.maps.marker.AdvancedMarkerElement}
      */
+    // Definitely assigned because it's only used after #isGoogleObjectSet() confirms that it's set.
     __privateAdd(this, _googleObject);
     /**
      * Holds whether the onload event was set on the Loader class to
@@ -1554,11 +1593,12 @@ var Evented = class extends Base_default {
           if (isFunction(googleData.stop)) {
             eventData.stop = googleData.stop;
           }
-          if (typeof googleData.latLng !== "undefined") {
+          if (googleData.latLng) {
             eventData.latLng = latLng(googleData.latLng.lat(), googleData.latLng.lng());
           }
-          if (typeof data.placeId !== "undefined") {
-            eventData.placeId = data.placeId;
+          const { placeId } = data;
+          if (isString(placeId)) {
+            eventData.placeId = placeId;
           }
           if (typeof data.feature !== "undefined") {
             eventData.feature = data.feature;
@@ -1854,7 +1894,7 @@ on_fn = function(type, callback, config) {
             addListener = false;
           }
           if (isFunction(callback)) {
-            callback.call(context || this);
+            callback.call(context || this, { type });
           }
         }
       }
@@ -1897,7 +1937,7 @@ var Loader = class extends EventTarget {
      * Holds the Google Maps API key
      *
      * @private
-     * @type {string}
+     * @type {string | undefined}
      */
     __privateAdd(this, _apiKey);
     /**
@@ -1925,7 +1965,7 @@ var Loader = class extends EventTarget {
      * Holds the Google maps loader object
      *
      * @private
-     * @type {GoogleLoader}
+     * @type {GoogleLoader | undefined}
      */
     __privateAdd(this, _loader);
     /**
@@ -1942,7 +1982,7 @@ var Loader = class extends EventTarget {
   /**
    * Get the Google Maps API key
    *
-   * @returns {string}
+   * @returns {string | undefined}
    */
   get apiKey() {
     return __privateGet(this, _apiKey);
@@ -2111,7 +2151,7 @@ var Loader = class extends EventTarget {
    * load event is only dispatched one time when the Google maps API is loaded.
    *
    * @param {string} type The event type
-   * @param {Function} callback The event listener function
+   * @param {Function} callback The event listener function. An error is thrown if this isn't a function.
    */
   on(type, callback) {
     if (isFunction(callback)) {
@@ -2181,14 +2221,14 @@ var loaderInstance;
 var loader = (config) => {
   if (!loaderInstance) {
     loaderInstance = new Loader(config);
-  } else {
+  } else if (config) {
     loaderInstance.setOptions(config);
   }
   return loaderInstance;
 };
 
 // src/lib/LatLngBounds.ts
-var _bounds, _boundValues, _northEast, _southWest, _LatLngBounds_instances, extendGoogle_fn, extend_fn, setupGoogleLatLngBounds_fn, createLatLngBoundsObject_fn, union_fn;
+var _bounds, _boundValues, _northEast, _southWest, _LatLngBounds_instances, extend_fn, getCorners_fn, setupGoogleLatLngBounds_fn, createLatLngBoundsObject_fn, union_fn;
 var _LatLngBounds = class _LatLngBounds extends Base_default {
   /**
    * Constructor
@@ -2200,7 +2240,9 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     super("latlngbounds");
     __privateAdd(this, _LatLngBounds_instances);
     /**
-     * Holds the Google maps LatLngBounds object
+     * Holds the Google maps LatLngBounds object.
+     *
+     * This is created when the Google Maps library is available and the Google object is needed.
      */
     __privateAdd(this, _bounds);
     /**
@@ -2213,17 +2255,21 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
      */
     __privateAdd(this, _boundValues, []);
     /**
-     * Holds the north-east corner of the LatLngBounds
+     * Holds the north-east corner of the LatLngBounds.
+     *
+     * This is undefined until a point is added to the bounds.
      *
      * @private
-     * @type {LatLng}
+     * @type {LatLng|undefined}
      */
     __privateAdd(this, _northEast);
     /**
-     * Holds the south-west corner of the LatLngBounds
+     * Holds the south-west corner of the LatLngBounds.
+     *
+     * This is undefined until a point is added to the bounds.
      *
      * @private
-     * @type {LatLng}
+     * @type {LatLng|undefined}
      */
     __privateAdd(this, _southWest);
     if (latLngValue) {
@@ -2292,13 +2338,15 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
   equals(other) {
     return new Promise((resolve) => {
       if (other instanceof _LatLngBounds) {
-        if (__privateGet(this, _bounds)) {
+        const bounds = __privateGet(this, _bounds);
+        if (bounds) {
           other.toGoogle().then((googleLatLngBounds) => {
-            resolve(__privateGet(this, _bounds).equals(googleLatLngBounds));
+            resolve(bounds.equals(googleLatLngBounds));
           });
         } else {
+          const { northEast, southWest } = __privateMethod(this, _LatLngBounds_instances, getCorners_fn).call(this);
           resolve(
-            __privateGet(this, _northEast).latitude === other.getNorthEast().latitude && __privateGet(this, _northEast).longitude === other.getNorthEast().longitude && __privateGet(this, _southWest).latitude === other.getSouthWest().latitude && __privateGet(this, _southWest).longitude === other.getSouthWest().longitude
+            northEast.latitude === other.getNorthEast().latitude && northEast.longitude === other.getNorthEast().longitude && southWest.latitude === other.getSouthWest().latitude && southWest.longitude === other.getSouthWest().longitude
           );
         }
       } else {
@@ -2348,7 +2396,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
       const latLngObject = latLng(latLngValue);
       if (latLngObject.isValid()) {
         if (__privateGet(this, _bounds)) {
-          __privateMethod(this, _LatLngBounds_instances, extendGoogle_fn).call(this, latLngObject);
+          __privateGet(this, _bounds).extend(latLngObject.toGoogle());
         } else {
           __privateMethod(this, _LatLngBounds_instances, extend_fn).call(this, latLngObject);
         }
@@ -2369,15 +2417,18 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     if (__privateGet(this, _bounds)) {
       return latLngConvert(__privateGet(this, _bounds).getCenter());
     }
-    const lat = (__privateGet(this, _northEast).latitude + __privateGet(this, _southWest).latitude) / 2;
-    let lng = (__privateGet(this, _northEast).longitude + __privateGet(this, _southWest).longitude) / 2;
-    if (__privateGet(this, _northEast).longitude < __privateGet(this, _southWest).longitude) {
+    const { northEast, southWest } = __privateMethod(this, _LatLngBounds_instances, getCorners_fn).call(this);
+    const lat = (northEast.latitude + southWest.latitude) / 2;
+    let lng = (northEast.longitude + southWest.longitude) / 2;
+    if (northEast.longitude < southWest.longitude) {
       lng = (lng + 180) % 360 - 180;
     }
     return latLng([lat, lng]);
   }
   /**
-   * Get the north-east corner of the LatLngBounds
+   * Get the north-east corner of the LatLngBounds.
+   *
+   * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
    *
    * @returns {LatLng}
    */
@@ -2388,7 +2439,9 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     return __privateGet(this, _northEast);
   }
   /**
-   * Get the south-west corner of the LatLngBounds
+   * Get the south-west corner of the LatLngBounds.
+   *
+   * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
    *
    * @returns {LatLng}
    */
@@ -2422,9 +2475,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
   intersects(other) {
     return new Promise((resolve, reject) => {
       if (other instanceof _LatLngBounds) {
-        if (__privateGet(this, _bounds)) {
+        const bounds = __privateGet(this, _bounds);
+        if (bounds) {
           other.toGoogle().then((googleLatLngBounds) => {
-            resolve(__privateGet(this, _bounds).intersects(googleLatLngBounds));
+            resolve(bounds.intersects(googleLatLngBounds));
           });
         } else {
           const sw = this.getSouthWest();
@@ -2466,8 +2520,8 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      __privateMethod(this, _LatLngBounds_instances, setupGoogleLatLngBounds_fn).call(this).then(() => {
-        resolve(__privateGet(this, _bounds));
+      __privateMethod(this, _LatLngBounds_instances, setupGoogleLatLngBounds_fn).call(this).then((bounds) => {
+        resolve(bounds);
       });
     });
   }
@@ -2480,11 +2534,12 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     if (__privateGet(this, _bounds)) {
       return __privateGet(this, _bounds).toJSON();
     }
+    const { northEast, southWest } = __privateMethod(this, _LatLngBounds_instances, getCorners_fn).call(this);
     return {
-      east: __privateGet(this, _northEast).longitude,
-      north: __privateGet(this, _northEast).latitude,
-      south: __privateGet(this, _southWest).latitude,
-      west: __privateGet(this, _southWest).longitude
+      east: northEast.longitude,
+      north: northEast.latitude,
+      south: southWest.latitude,
+      west: southWest.longitude
     };
   }
   /**
@@ -2496,7 +2551,8 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     if (__privateGet(this, _bounds)) {
       return __privateGet(this, _bounds).toString();
     }
-    return `(${__privateGet(this, _southWest).latitude}, ${__privateGet(this, _southWest).longitude}) (${__privateGet(this, _northEast).latitude}, ${__privateGet(this, _northEast).longitude})`;
+    const { northEast, southWest } = __privateMethod(this, _LatLngBounds_instances, getCorners_fn).call(this);
+    return `(${southWest.latitude}, ${southWest.longitude}) (${northEast.latitude}, ${northEast.longitude})`;
   }
   /**
    * Returns the LatLngBounds object as a string that can be used in a URL
@@ -2512,9 +2568,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
     if (__privateGet(this, _bounds)) {
       return __privateGet(this, _bounds).toUrlValue(prec);
     }
-    return `${__privateGet(this, _southWest).latitude.toFixed(prec)},${__privateGet(this, _southWest).longitude.toFixed(
+    const { northEast, southWest } = __privateMethod(this, _LatLngBounds_instances, getCorners_fn).call(this);
+    return `${southWest.latitude.toFixed(prec)},${southWest.longitude.toFixed(
       prec
-    )},${__privateGet(this, _northEast).latitude.toFixed(prec)},${__privateGet(this, _northEast).longitude.toFixed(prec)}`;
+    )},${northEast.latitude.toFixed(prec)},${northEast.longitude.toFixed(prec)}`;
   }
   /**
    * Extends this bounds to contain the union of this and the given bounds
@@ -2544,17 +2601,6 @@ _northEast = new WeakMap();
 _southWest = new WeakMap();
 _LatLngBounds_instances = new WeakSet();
 /**
- * Extends this bounds using the Google Maps LatLngBounds object
- *
- * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLngBounds.extend
- *
- * @param {LatLng} latLngObject The LatLng object
- * @returns {void}
- */
-extendGoogle_fn = function(latLngObject) {
-  __privateGet(this, _bounds).extend(latLngObject.toGoogle());
-};
-/**
  * Extends this bounds using the internal method
  *
  * Based on the Leaflet library
@@ -2575,59 +2621,78 @@ extend_fn = function(latLngObject) {
   }
 };
 /**
+ * Get the north-east and south-west corners for calculating values manually
+ * when the Google Maps LatLngBounds object isn't set up.
+ *
+ * This throws an error if either corner is not set, which happens if the bounds is empty.
+ *
+ * @private
+ * @returns {{northEast: LatLng, southWest: LatLng}}
+ */
+getCorners_fn = function() {
+  if (!__privateGet(this, _northEast) || !__privateGet(this, _southWest)) {
+    throw new Error("The LatLngBounds object is empty. Add a latitude/longitude value to it first.");
+  }
+  return { northEast: __privateGet(this, _northEast), southWest: __privateGet(this, _southWest) };
+};
+/**
  * Set up the Google maps LatLngBounds object if necessary
  *
  * @private
- * @returns {Promise<void>}
+ * @returns {Promise<google.maps.LatLngBounds>}
  */
 setupGoogleLatLngBounds_fn = function() {
   return new Promise((resolve) => {
     if (!isObject(__privateGet(this, _bounds))) {
       if (checkForGoogleMaps("LatLngBounds", "LatLngBounds", false)) {
-        __privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this);
-        resolve();
+        resolve(__privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this));
       } else {
         loader().onMapLoad(() => {
-          __privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this);
-          resolve();
+          resolve(__privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this));
         });
       }
     } else {
-      resolve();
+      resolve(__privateGet(this, _bounds));
     }
   });
 };
 /**
- * Create the LatLngBounds object
+ * Create the LatLngBounds object if it hasn't been created yet
  *
  * @private
+ * @returns {google.maps.LatLngBounds}
  */
 createLatLngBoundsObject_fn = function() {
   if (!__privateGet(this, _bounds)) {
-    __privateSet(this, _bounds, new google.maps.LatLngBounds());
+    const bounds = new google.maps.LatLngBounds();
+    __privateSet(this, _bounds, bounds);
     if (__privateGet(this, _boundValues)) {
       __privateGet(this, _boundValues).forEach((latLngLiteral) => {
-        __privateGet(this, _bounds).extend(latLngLiteral);
+        bounds.extend(latLngLiteral);
       });
       __privateSet(this, _boundValues, []);
     }
   }
+  return __privateGet(this, _bounds);
 };
 /**
  * Extends this bounds to contain the union of this and the given bounds
+ *
+ * This is only called after the Google Maps LatLngBounds object is set up.
  *
  * @param {LatLngBounds} other The LatLngBounds object to join with
  * @returns {Promise<void>}
  */
 union_fn = function(other) {
   return new Promise((resolve) => {
+    const bounds = __privateMethod(this, _LatLngBounds_instances, createLatLngBoundsObject_fn).call(this);
     if (other instanceof _LatLngBounds) {
       other.toGoogle().then((googleLatLngBounds) => {
-        __privateGet(this, _bounds).union(googleLatLngBounds);
+        bounds.union(googleLatLngBounds);
         resolve();
       });
     } else {
-      __privateGet(this, _bounds).union(other);
+      bounds.union(other);
       resolve();
     }
   });
@@ -3157,14 +3222,14 @@ var GeocodeResult = class extends Base_default {
      * Holds the bounds of the location
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
     __privateAdd(this, _geometryLocationBounds);
     /**
      * Holds the latitude and longitude of the location
      *
      * @private
-     * @type {LatLng}
+     * @type {LatLng | undefined}
      */
     __privateAdd(this, _geometryLocation);
     /**
@@ -3178,7 +3243,7 @@ var GeocodeResult = class extends Base_default {
      * Holds the bounds of the recommended viewport for displaying the returned result
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
     __privateAdd(this, _geometryLocationViewport);
     /**
@@ -3626,7 +3691,7 @@ var Geocode = class extends Base_default {
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode(options, (results, status) => {
           if (status === google.maps.GeocoderStatus.OK) {
-            const resultsObj = new Results_default(results);
+            const resultsObj = new Results_default(results != null ? results : void 0);
             resolve(resultsObj);
           } else {
             reject(status);
@@ -3688,7 +3753,13 @@ var Geocode = class extends Base_default {
   set componentRestrictions(componentRestrictions) {
     if (isObjectWithValues(componentRestrictions)) {
       const restrictions = {};
-      const keys = ["administrativeArea", "country", "locality", "postalCode", "route"];
+      const keys = [
+        "administrativeArea",
+        "country",
+        "locality",
+        "postalCode",
+        "route"
+      ];
       keys.forEach((key) => {
         if (isStringWithValue(componentRestrictions[key])) {
           restrictions[key] = componentRestrictions[key];
@@ -3942,10 +4013,11 @@ var AutocompleteSearchBox = class extends Evented {
   /**
    * Constructor
    *
-   * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} input The input reference or the options
+   * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} [input] The input reference or the options
    * @param {AutocompleteSearchBoxOptions} [options] The places autocomplete search box options if the input is reference to the input element
    */
   constructor(input, options) {
+    var _a;
     super("placesSearchBox", "places");
     /**
      * Holds the bounds to restrict the search to
@@ -3974,28 +4046,28 @@ var AutocompleteSearchBox = class extends Evented {
      * Holds the reference to the input element
      *
      * @private
-     * @type {HTMLInputElement}
+     * @type {HTMLInputElement | undefined}
      */
     __privateAdd(this, _input);
     /**
      * Holds the place that has been found.
      *
      * @private
-     * @type {google.maps.places.PlaceResult}
+     * @type {google.maps.places.PlaceResult | undefined}
      */
     __privateAdd(this, _place);
     /**
      * Holds the map bounds based on the place that has been found
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
     __privateAdd(this, _placeBounds);
     /**
      * Holds the reference to the Google Maps SearchBox object
      *
      * @private
-     * @type {google.maps.places.Autocomplete}
+     * @type {google.maps.places.Autocomplete | undefined}
      */
     __privateAdd(this, _searchBox);
     /**
@@ -4009,7 +4081,7 @@ var AutocompleteSearchBox = class extends Evented {
      * Holds the types of predictions to be returned.
      *
      * @private
-     * @type {string[]}
+     * @type {string[] | undefined}
      */
     __privateAdd(this, _types4);
     /**
@@ -4034,9 +4106,13 @@ var AutocompleteSearchBox = class extends Evented {
         if (__privateGet(this, _types4)) {
           options.types = __privateGet(this, _types4);
         }
-        __privateSet(this, _searchBox, new google.maps.places.Autocomplete(__privateGet(this, _input), options));
-        __privateGet(this, _searchBox).addListener(AutocompleteSearchBoxEvents.PLACE_CHANGED, () => {
-          const place = __privateGet(this, _searchBox).getPlace();
+        if (!__privateGet(this, _input)) {
+          throw new Error("The input element must be set before the autocomplete search box can be initialized.");
+        }
+        const searchBox = new google.maps.places.Autocomplete(__privateGet(this, _input), options);
+        __privateSet(this, _searchBox, searchBox);
+        searchBox.addListener(AutocompleteSearchBoxEvents.PLACE_CHANGED, () => {
+          const place = searchBox.getPlace();
           const bounds = latLngBounds();
           if (place.geometry) {
             if (place.geometry.viewport) {
@@ -4053,13 +4129,17 @@ var AutocompleteSearchBox = class extends Evented {
     }));
     if (input instanceof HTMLInputElement) {
       __privateSet(this, _input, input);
-      this.setOptions(options);
+      if (options) {
+        this.setOptions(options);
+      }
     } else if (isString(input)) {
-      __privateSet(this, _input, document.querySelector(input));
+      __privateSet(this, _input, (_a = document.querySelector(input)) != null ? _a : void 0);
       if (!__privateGet(this, _input)) {
         throw new Error(`The input element with the selector "${input}" was not found.`);
       }
-      this.setOptions(options);
+      if (options) {
+        this.setOptions(options);
+      }
     } else if (isObjectWithValues(input)) {
       this.setOptions(input);
     }
@@ -4083,9 +4163,10 @@ var AutocompleteSearchBox = class extends Evented {
   set bounds(value) {
     const boundsValue = latLngBounds(value);
     __privateSet(this, _bounds3, boundsValue);
-    if (__privateGet(this, _searchBox)) {
+    const searchBox = __privateGet(this, _searchBox);
+    if (searchBox) {
       boundsValue.toGoogle().then((bounds) => {
-        __privateGet(this, _searchBox).setBounds(bounds);
+        searchBox.setBounds(bounds);
       });
     }
   }
@@ -4147,10 +4228,11 @@ var AutocompleteSearchBox = class extends Evented {
    * @param {string | HTMLInputElement} value The input HTMLInputElement or the selector for the input element
    */
   set input(value) {
+    var _a;
     if (value instanceof HTMLInputElement) {
       __privateSet(this, _input, value);
     } else if (isString(value)) {
-      __privateSet(this, _input, document.querySelector(value));
+      __privateSet(this, _input, (_a = document.querySelector(value)) != null ? _a : void 0);
       if (!__privateGet(this, _input)) {
         throw new Error(`The input element with the selector "${value}" was not found.`);
       }
@@ -4421,6 +4503,7 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {AutocompleteSearchBox}
    */
   setOptions(options) {
+    var _a;
     if (isObjectWithValues(options)) {
       if (options.bounds) {
         this.bounds = options.bounds;
@@ -4429,7 +4512,7 @@ var AutocompleteSearchBox = class extends Evented {
         if (options.input instanceof HTMLInputElement) {
           __privateSet(this, _input, options.input);
         } else if (isString(options.input)) {
-          __privateSet(this, _input, document.querySelector(options.input));
+          __privateSet(this, _input, (_a = document.querySelector(options.input)) != null ? _a : void 0);
           if (!__privateGet(this, _input)) {
             throw new Error(`The input element with the selector "${options.input}" was not found.`);
           }
@@ -4579,7 +4662,7 @@ var Layer = class extends Evented {
    * @param {Popup} popup The Popup object to add the layer to
    */
   setPopup(popup2) {
-    __privateSet(this, _popup, popup2);
+    __privateSet(this, _popup, popup2 != null ? popup2 : void 0);
   }
   /**
    * Close the popup for the layer
@@ -4587,7 +4670,7 @@ var Layer = class extends Evented {
    * @returns {void}
    */
   closePopup() {
-    if (this.hasPopup()) {
+    if (__privateGet(this, _popup)) {
       __privateGet(this, _popup).close();
     }
   }
@@ -4621,7 +4704,7 @@ var Layer = class extends Evented {
    * @returns {void}
    */
   openPopup() {
-    if (this.hasPopup()) {
+    if (__privateGet(this, _popup)) {
       __privateGet(this, _popup).show(this);
     }
   }
@@ -4631,7 +4714,7 @@ var Layer = class extends Evented {
    * @returns {void}
    */
   togglePopup() {
-    if (this.hasPopup()) {
+    if (__privateGet(this, _popup)) {
       __privateGet(this, _popup).toggle(this);
     }
   }
@@ -4999,10 +5082,12 @@ var _Size = class _Size extends Base_default {
   constructor(width, height) {
     super("size");
     /**
-     * Holds the Google maps size object
+     * Holds the Google maps size object.
+     *
+     * This is created the first time that toGoogle() is called.
      *
      * @private
-     * @type {google.maps.Size}
+     * @type {google.maps.Size|undefined}
      */
     __privateAdd(this, _sizeObject);
     /**
@@ -5127,7 +5212,9 @@ var _Size = class _Size extends Base_default {
       this.height = width.getHeight();
     } else {
       this.width = width;
-      this.height = height;
+      if (typeof height !== "undefined") {
+        this.height = height;
+      }
     }
     return this;
   }
@@ -5194,7 +5281,9 @@ var Icon = class extends Base_default {
       __privateSet(this, _options, {
         url
       });
-      this.setOptions(options);
+      if (options) {
+        this.setOptions(options);
+      }
     } else if (isObject(url)) {
       this.setOptions(url);
     }
@@ -5211,18 +5300,21 @@ var Icon = class extends Base_default {
       const sizeValues = ["scaledSize", "size"];
       const stringValues = ["url"];
       pointValues.forEach((key) => {
-        if (options[key]) {
-          __privateGet(this, _options)[key] = point(options[key]).toGoogle();
+        const value = options[key];
+        if (value) {
+          __privateGet(this, _options)[key] = point(value).toGoogle();
         }
       });
       sizeValues.forEach((key) => {
-        if (options[key]) {
-          __privateGet(this, _options)[key] = size(options[key]).toGoogle();
+        const value = options[key];
+        if (value) {
+          __privateGet(this, _options)[key] = size(value).toGoogle();
         }
       });
       stringValues.forEach((key) => {
-        if (options[key] && isStringWithValue(options[key])) {
-          __privateGet(this, _options)[key] = options[key];
+        const value = options[key];
+        if (value && isStringWithValue(value)) {
+          __privateGet(this, _options)[key] = value;
         }
       });
     }
@@ -5516,7 +5608,7 @@ var MapRestriction = class {
      * The latitude/longitude bounds that a user is restricted to.
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds|undefined}
      */
     __privateAdd(this, _latLngBounds);
     /**
@@ -5670,7 +5762,11 @@ var MapRestriction = class {
    * @returns {Promise<google.maps.MapRestriction>}
    */
   toGoogle() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      if (!__privateGet(this, _latLngBounds)) {
+        reject(new Error("The MapRestriction latLngBounds value must be set before it can be used."));
+        return;
+      }
       __privateGet(this, _latLngBounds).toGoogle().then((bounds) => {
         resolve({
           latLngBounds: bounds,
@@ -6751,7 +6847,7 @@ var Map = class extends Evented {
      * The bounds to fit the map to
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds|undefined}
      */
     __privateAdd(this, _bounds4);
     /**
@@ -6769,7 +6865,7 @@ var Map = class extends Evented {
      * same object.
      *
      * @private
-     * @type {DataLayer}
+     * @type {DataLayer|undefined}
      */
     __privateAdd(this, _data);
     /**
@@ -6840,10 +6936,12 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _isReady, false);
     /**
-     * Holds the Google map object
+     * Holds the Google map object.
+     *
+     * This is undefined until the map is set up when it's shown.
      *
      * @private
-     * @type {google.maps.Map}
+     * @type {google.maps.Map|undefined}
      */
     __privateAdd(this, _map2);
     /**
@@ -6859,26 +6957,32 @@ var Map = class extends Evented {
      * @private
      * @type {number|null}
      */
-    __privateAdd(this, _maxFitBoundsZoom);
+    __privateAdd(this, _maxFitBoundsZoom, null);
     /**
      * Holds the minimum zoom level for the map when fitting to bounds
      *
      * @private
      * @type {number|null}
      */
-    __privateAdd(this, _minFitBoundsZoom);
+    __privateAdd(this, _minFitBoundsZoom, null);
     /**
      * Holds the map options
      *
+     * The center, mapTypeId, and zoom options are set to their default values.
+     *
      * @private
-     * @type {GMMapOptions}
+     * @type {MapOptionsWithDefaults}
      */
-    __privateAdd(this, _options2, {});
+    __privateAdd(this, _options2, {
+      center: latLng(0, 0),
+      mapTypeId: MapTypeId.ROADMAP,
+      zoom: 6
+    });
     /**
      * Holds the map restriction object to restrict the map to a certain area
      *
      * @private
-     * @type {MapRestriction}
+     * @type {MapRestriction|undefined}
      */
     __privateAdd(this, _restriction);
     /**
@@ -6912,8 +7016,10 @@ var Map = class extends Evented {
     /**
      * Holds the watchId for the watchPosition() function
      *
+     * This is undefined until locate() starts watching the user's location.
+     *
      * @private
-     * @type {number}
+     * @type {number|undefined}
      */
     __privateAdd(this, _watchId);
     /**
@@ -6958,11 +7064,12 @@ var Map = class extends Evented {
      */
     __privateAdd(this, _setupMapObject, (element) => new Promise((resolve) => {
       __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
-        __privateSet(this, _map2, new google.maps.Map(element, mapOptions));
-        this.setEventGoogleObject(__privateGet(this, _map2));
+        const map2 = new google.maps.Map(element, mapOptions);
+        __privateSet(this, _map2, map2);
+        this.setEventGoogleObject(map2);
         if (__privateGet(this, _customControls).length > 0) {
           __privateGet(this, _customControls).forEach((control) => {
-            __privateGet(this, _map2).controls[convertControlPosition(control.position)].push(control.element);
+            map2.controls[convertControlPosition(control.position)].push(control.element);
           });
         }
         __privateSet(this, _customControls, []);
@@ -6978,9 +7085,6 @@ var Map = class extends Evented {
       __privateSet(this, _isInitialized, true);
       __privateSet(this, _isReady, true);
     });
-    __privateGet(this, _options2).mapTypeId = MapTypeId.ROADMAP;
-    __privateGet(this, _options2).center = latLng(0, 0);
-    __privateGet(this, _options2).zoom = 6;
     __privateSet(this, _fullscreenControl, fullscreenControl());
     __privateSet(this, _mapTypeControl, mapTypeControl());
     __privateSet(this, _rotateControl, rotateControl());
@@ -7005,7 +7109,9 @@ var Map = class extends Evented {
     let { center } = __privateGet(this, _options2);
     if (__privateGet(this, _map2)) {
       const mapCenter = __privateGet(this, _map2).getCenter();
-      center = latLng(mapCenter.lat(), mapCenter.lng());
+      if (mapCenter) {
+        center = latLng(mapCenter.lat(), mapCenter.lng());
+      }
     }
     if (!center.equals(__privateGet(this, _options2).center)) {
       __privateGet(this, _options2).center = center;
@@ -7088,9 +7194,10 @@ var Map = class extends Evented {
     } else if (value instanceof FullscreenControl) {
       __privateSet(this, _fullscreenControl, value);
     }
-    if (__privateGet(this, _map2)) {
+    const map2 = __privateGet(this, _map2);
+    if (map2) {
       __privateGet(this, _fullscreenControl).toGoogle().then((fullscreenControlOptions) => {
-        __privateGet(this, _map2).setOptions({
+        map2.setOptions({
           fullscreenControl: __privateGet(this, _fullscreenControl).enabled,
           fullscreenControlOptions
         });
@@ -7219,9 +7326,10 @@ var Map = class extends Evented {
     } else if (value instanceof MapTypeControl) {
       __privateSet(this, _mapTypeControl, value);
     }
-    if (__privateGet(this, _map2)) {
+    const map2 = __privateGet(this, _map2);
+    if (map2) {
       __privateGet(this, _mapTypeControl).toGoogle().then((mapTypeControlOptions) => {
-        __privateGet(this, _map2).setOptions({
+        map2.setOptions({
           mapTypeControl: __privateGet(this, _mapTypeControl).enabled,
           mapTypeControlOptions
         });
@@ -7234,10 +7342,7 @@ var Map = class extends Evented {
    * @returns {string}
    */
   get mapTypeId() {
-    let { mapTypeId } = __privateGet(this, _options2);
-    if (__privateGet(this, _map2)) {
-      mapTypeId = __privateGet(this, _map2).getMapTypeId();
-    }
+    const mapTypeId = __privateGet(this, _map2) ? __privateGet(this, _map2).getMapTypeId() : __privateGet(this, _options2).mapTypeId;
     if (isStringWithValue(mapTypeId) && mapTypeId !== __privateGet(this, _options2).mapTypeId) {
       __privateGet(this, _options2).mapTypeId = mapTypeId;
     }
@@ -7291,7 +7396,7 @@ var Map = class extends Evented {
    */
   set maxZoom(value) {
     if (isNumber(value) || isNull(value)) {
-      __privateGet(this, _options2).maxZoom = value;
+      __privateGet(this, _options2).maxZoom = value != null ? value : void 0;
       if (__privateGet(this, _map2)) {
         __privateGet(this, _map2).setOptions({ maxZoom: value });
       }
@@ -7332,7 +7437,7 @@ var Map = class extends Evented {
    */
   set minZoom(value) {
     if (isNumber(value) || isNull(value)) {
-      __privateGet(this, _options2).minZoom = value;
+      __privateGet(this, _options2).minZoom = value != null ? value : void 0;
       if (__privateGet(this, _map2)) {
         __privateGet(this, _map2).setOptions({ minZoom: value });
       }
@@ -7353,9 +7458,10 @@ var Map = class extends Evented {
    */
   set restriction(value) {
     __privateSet(this, _restriction, mapRestriction(value));
-    if (__privateGet(this, _map2) && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
+    const map2 = __privateGet(this, _map2);
+    if (map2 && __privateGet(this, _restriction).isValid() && __privateGet(this, _restriction).isEnabled()) {
       __privateGet(this, _restriction).toGoogle().then((restriction) => {
-        __privateGet(this, _map2).setOptions({ restriction });
+        map2.setOptions({ restriction });
       });
     }
   }
@@ -7378,9 +7484,10 @@ var Map = class extends Evented {
     } else if (value instanceof RotateControl) {
       __privateSet(this, _rotateControl, value);
     }
-    if (__privateGet(this, _map2)) {
+    const map2 = __privateGet(this, _map2);
+    if (map2) {
       __privateGet(this, _rotateControl).toGoogle().then((rotateControlOptions) => {
-        __privateGet(this, _map2).setOptions({
+        map2.setOptions({
           rotateControl: __privateGet(this, _rotateControl).enabled,
           rotateControlOptions
         });
@@ -7406,9 +7513,10 @@ var Map = class extends Evented {
     } else if (value instanceof ScaleControl) {
       __privateSet(this, _scaleControl, value);
     }
-    if (__privateGet(this, _map2)) {
+    const map2 = __privateGet(this, _map2);
+    if (map2) {
       __privateGet(this, _scaleControl).toGoogle().then((scaleControlOptions) => {
-        __privateGet(this, _map2).setOptions({
+        map2.setOptions({
           scaleControl: __privateGet(this, _scaleControl).enabled,
           scaleControlOptions
         });
@@ -7434,9 +7542,10 @@ var Map = class extends Evented {
     } else if (value instanceof StreetViewControl) {
       __privateSet(this, _streetViewControl, value);
     }
-    if (__privateGet(this, _map2)) {
+    const map2 = __privateGet(this, _map2);
+    if (map2) {
       __privateGet(this, _streetViewControl).toGoogle().then((streetViewControlOptions) => {
-        __privateGet(this, _map2).setOptions({
+        map2.setOptions({
           streetViewControl: __privateGet(this, _streetViewControl).enabled,
           streetViewControlOptions
         });
@@ -7449,10 +7558,7 @@ var Map = class extends Evented {
    * @returns {number}
    */
   get zoom() {
-    let { zoom } = __privateGet(this, _options2);
-    if (__privateGet(this, _map2)) {
-      zoom = __privateGet(this, _map2).getZoom();
-    }
+    const zoom = __privateGet(this, _map2) ? __privateGet(this, _map2).getZoom() : __privateGet(this, _options2).zoom;
     if (isNumber(zoom) && zoom !== __privateGet(this, _options2).zoom) {
       __privateGet(this, _options2).zoom = zoom;
     }
@@ -7492,9 +7598,10 @@ var Map = class extends Evented {
     } else if (value instanceof ZoomControl) {
       __privateSet(this, _zoomControl, value);
     }
-    if (__privateGet(this, _map2)) {
+    const map2 = __privateGet(this, _map2);
+    if (map2) {
       __privateGet(this, _zoomControl).toGoogle().then((zoomControlOptions) => {
-        __privateGet(this, _map2).setOptions({
+        map2.setOptions({
           zoomControl: __privateGet(this, _zoomControl).enabled,
           zoomControlOptions
         });
@@ -7669,9 +7776,11 @@ var Map = class extends Evented {
    */
   getBounds() {
     return new Promise((resolve) => {
-      if (__privateGet(this, _map2)) {
+      var _a;
+      const googleBounds = (_a = __privateGet(this, _map2)) == null ? void 0 : _a.getBounds();
+      if (googleBounds) {
         const bounds = new LatLngBounds();
-        bounds.union(__privateGet(this, _map2).getBounds()).then(() => {
+        bounds.union(googleBounds).then(() => {
           resolve(bounds);
         });
       } else {
@@ -7808,9 +7917,11 @@ var Map = class extends Evented {
           latLng: latLng(latitude, longitude),
           timestamp: position.timestamp
         };
-        Object.keys(position.coords).forEach((key) => {
-          if (typeof position.coords[key] === "number") {
-            data[key] = position.coords[key];
+        const coordinateKeys = ["accuracy", "altitude", "altitudeAccuracy", "heading", "speed"];
+        coordinateKeys.forEach((key) => {
+          const value = position.coords[key];
+          if (typeof value === "number") {
+            data[key] = value;
           }
         });
         this.dispatch("locationfound", data);
@@ -8329,32 +8440,35 @@ var Map = class extends Evented {
         "scrollwheel",
         "tiltInteractionEnabled"
       ];
+      const newOptions = options;
+      const currentOptions = __privateGet(this, _options2);
       booleanOptions.forEach((key) => {
-        if (isBoolean(options[key])) {
-          __privateGet(this, _options2)[key] = options[key];
+        if (isBoolean(newOptions[key])) {
+          currentOptions[key] = newOptions[key];
         }
       });
       const numberOptions = ["controlSize", "heading", "tilt"];
       numberOptions.forEach((key) => {
-        if (isNumberOrNumberString(options[key])) {
-          __privateGet(this, _options2)[key] = options[key];
+        if (isNumberOrNumberString(newOptions[key])) {
+          currentOptions[key] = newOptions[key];
         }
       });
       const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor", "gestureHandling"];
       stringOptions.forEach((key) => {
-        if (isStringWithValue(options[key])) {
-          __privateGet(this, _options2)[key] = options[key];
+        if (isStringWithValue(newOptions[key])) {
+          currentOptions[key] = newOptions[key];
         }
       });
       const otherOptions = ["mapTypeId", "renderingType", "streetView"];
       otherOptions.forEach((key) => {
-        if (typeof options[key] !== "undefined") {
-          __privateGet(this, _options2)[key] = options[key];
+        if (typeof newOptions[key] !== "undefined") {
+          currentOptions[key] = newOptions[key];
         }
       });
-      if (__privateGet(this, _map2)) {
+      const map2 = __privateGet(this, _map2);
+      if (map2) {
         __privateMethod(this, _Map_instances, getMapOptions_fn).call(this).then((mapOptions) => {
-          __privateGet(this, _map2).setOptions(mapOptions);
+          map2.setOptions(mapOptions);
         });
       }
     }
@@ -8404,13 +8518,16 @@ var Map = class extends Evented {
    * @returns {Map}
    */
   stopLocate() {
-    if (navigator.geolocation) {
+    if (navigator.geolocation && typeof __privateGet(this, _watchId) !== "undefined") {
       navigator.geolocation.clearWatch(__privateGet(this, _watchId));
     }
     return this;
   }
   /**
-   * Returns the Google map object
+   * Returns the Google map object.
+   *
+   * The Google map object is set up when the map is shown. Before that this returns undefined.
+   * Use init(), load(), or show() and wait for them to resolve before calling this.
    *
    * @returns {google.maps.Map}
    */
@@ -8517,27 +8634,29 @@ getMapOptions_fn = function() {
       "scrollwheel",
       "tiltInteractionEnabled"
     ];
+    const options = __privateGet(this, _options2);
+    const googleOptions = mapOptions;
     booleanOptions.forEach((key) => {
-      if (isBoolean(__privateGet(this, _options2)[key])) {
-        mapOptions[key] = __privateGet(this, _options2)[key];
+      if (isBoolean(options[key])) {
+        googleOptions[key] = options[key];
       }
     });
     const numberOptions = ["controlSize", "heading", "maxZoom", "minZoom", "tilt", "zoom"];
     numberOptions.forEach((key) => {
-      if (isNumberOrNumberString(__privateGet(this, _options2)[key])) {
-        mapOptions[key] = __privateGet(this, _options2)[key];
+      if (isNumberOrNumberString(options[key])) {
+        googleOptions[key] = options[key];
       }
     });
     const stringOptions = ["backgroundColor", "draggableCursor", "draggingCursor", "gestureHandling", "mapId"];
     stringOptions.forEach((key) => {
-      if (isStringWithValue(__privateGet(this, _options2)[key])) {
-        mapOptions[key] = __privateGet(this, _options2)[key];
+      if (isStringWithValue(options[key])) {
+        googleOptions[key] = options[key];
       }
     });
     const optionsToSet = ["renderingType", "streetView"];
     optionsToSet.forEach((key) => {
-      if (typeof __privateGet(this, _options2)[key] !== "undefined") {
-        mapOptions[key] = __privateGet(this, _options2)[key];
+      if (typeof options[key] !== "undefined") {
+        googleOptions[key] = options[key];
       }
     });
     if (isStringWithValue(__privateGet(this, _options2).mapTypeId)) {
@@ -8711,7 +8830,7 @@ var SvgSymbol = class extends Base_default {
      * Holds the icon options
      *
      * @private
-     * @type {google.maps.Symbol}
+     * @type {SymbolOptions}
      */
     __privateAdd(this, _options3);
     __privateSet(this, _options3, {
@@ -8719,7 +8838,9 @@ var SvgSymbol = class extends Base_default {
     });
     if (typeof path === "string") {
       __privateGet(this, _options3).path = path;
-      this.setOptions(options);
+      if (options) {
+        this.setOptions(options);
+      }
     } else if (isObject(path)) {
       this.setOptions(path);
     }
@@ -8730,7 +8851,8 @@ var SvgSymbol = class extends Base_default {
    * @returns {PointValue}
    */
   get anchor() {
-    return point(__privateGet(this, _options3).anchor);
+    var _a;
+    return point((_a = __privateGet(this, _options3).anchor) != null ? _a : void 0);
   }
   /**
    * Set the position at which to anchor an image in correspondence to the location of the marker on the map.
@@ -8743,7 +8865,7 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the SVG fill color
    *
-   * @returns {string}
+   * @returns {string|null|undefined}
    */
   get fillColor() {
     return __privateGet(this, _options3).fillColor;
@@ -8761,7 +8883,7 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the opacity for the fill
    *
-   * @returns {number}
+   * @returns {number|null|undefined}
    */
   get fillOpacity() {
     return __privateGet(this, _options3).fillOpacity;
@@ -8781,7 +8903,7 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
    *
-   * @returns {PointValue}
+   * @returns {PointValue|null|undefined}
    */
   get labelOrigin() {
     return __privateGet(this, _options3).labelOrigin;
@@ -8815,7 +8937,7 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the rotation of the icon in degrees clockwise about the anchor point.
    *
-   * @returns {number}
+   * @returns {number|null|undefined}
    */
   get rotation() {
     return __privateGet(this, _options3).rotation;
@@ -8835,7 +8957,7 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the amount by which the icon is scaled.
    *
-   * @returns {number}
+   * @returns {number|null|undefined}
    */
   get scale() {
     return __privateGet(this, _options3).scale;
@@ -8855,7 +8977,7 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the SVG stroke color
    *
-   * @returns {string}
+   * @returns {string|null|undefined}
    */
   get strokeColor() {
     return __privateGet(this, _options3).strokeColor;
@@ -8874,7 +8996,7 @@ var SvgSymbol = class extends Base_default {
    * Get the opacity of the stroke.
    * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
    *
-   * @returns {number}
+   * @returns {number|null|undefined}
    */
   get strokeOpacity() {
     return __privateGet(this, _options3).strokeOpacity;
@@ -8894,7 +9016,7 @@ var SvgSymbol = class extends Base_default {
   /**
    * Get the weight of the stroke in pixels.
    *
-   * @returns {number}
+   * @returns {number|null|undefined}
    */
   get strokeWeight() {
     return __privateGet(this, _options3).strokeWeight;
@@ -8919,7 +9041,13 @@ var SvgSymbol = class extends Base_default {
    */
   setOptions(options) {
     if (isObject(options)) {
-      const numberValues = ["fillOpacity", "rotation", "scale", "strokeOpacity", "strokeWeight"];
+      const numberValues = [
+        "fillOpacity",
+        "rotation",
+        "scale",
+        "strokeOpacity",
+        "strokeWeight"
+      ];
       const pointValues = ["anchor", "labelOrigin"];
       const stringValues = ["fillColor", "path", "strokeColor"];
       numberValues.forEach((key) => {
@@ -9065,12 +9193,13 @@ var SvgSymbol = class extends Base_default {
   toGoogle() {
     return new Promise((resolve) => {
       loader().onLoad(() => {
-        const options = __spreadValues({}, __privateGet(this, _options3));
-        if (options.anchor instanceof Point) {
-          options.anchor = options.anchor.toGoogle();
+        const _a = __privateGet(this, _options3), { anchor, labelOrigin } = _a, rest = __objRest(_a, ["anchor", "labelOrigin"]);
+        const options = __spreadValues({}, rest);
+        if (typeof anchor !== "undefined") {
+          options.anchor = anchor instanceof Point ? anchor.toGoogle() : anchor;
         }
-        if (options.labelOrigin instanceof Point) {
-          options.labelOrigin = options.labelOrigin.toGoogle();
+        if (typeof labelOrigin !== "undefined") {
+          options.labelOrigin = labelOrigin instanceof Point ? labelOrigin.toGoogle() : labelOrigin;
         }
         if (isStringWithValue(options.path) && Object.keys(SymbolPath).includes(options.path)) {
           options.path = convertSymbolPath(options.path);
@@ -9106,7 +9235,7 @@ var _DataLayer = class _DataLayer extends Layer_default {
      * Holds the Google maps Data object
      *
      * @private
-     * @type {google.maps.Data}
+     * @type {google.maps.Data | undefined}
      */
     __privateAdd(this, _data2);
     /**
@@ -9117,7 +9246,7 @@ var _DataLayer = class _DataLayer extends Layer_default {
      * shown again after hide() sets the map to null.
      *
      * @private
-     * @type {Map}
+     * @type {Map | undefined}
      */
     __privateAdd(this, _defaultLayerMap);
     /**
@@ -9153,14 +9282,14 @@ var _DataLayer = class _DataLayer extends Layer_default {
      * This is memoized so that the Data object is only ever created once.
      *
      * @private
-     * @type {Promise<google.maps.Data>}
+     * @type {Promise<google.maps.Data> | undefined}
      */
     __privateAdd(this, _setupPromise);
     /**
      * Holds the style for the layer
      *
      * @private
-     * @type {DataStyleValue}
+     * @type {DataStyleValue | undefined}
      */
     __privateAdd(this, _style2);
     /**
@@ -9201,7 +9330,7 @@ var _DataLayer = class _DataLayer extends Layer_default {
   /**
    * Get the style for the layer
    *
-   * @returns {DataStyleValue}
+   * @returns {DataStyleValue | undefined}
    */
   get style() {
     return __privateGet(this, _style2);
@@ -9348,7 +9477,9 @@ var _DataLayer = class _DataLayer extends Layer_default {
   dispatch(event, data) {
     if (isObject(data) && !isNullOrUndefined(data.feature)) {
       const googleEvent = data;
-      const eventData = { feature: __privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, googleEvent.feature) };
+      const eventData = {
+        feature: googleEvent.feature ? __privateMethod(this, _DataLayer_instances, featureFor_fn).call(this, googleEvent.feature) : void 0
+      };
       if (typeof googleEvent.domEvent !== "undefined") {
         eventData.domEvent = googleEvent.domEvent;
         eventData.latLng = googleEvent.latLng;
@@ -9671,7 +9802,7 @@ var _DataLayer = class _DataLayer extends Layer_default {
         }));
       } else if (isNullOrUndefined(value)) {
         __superGet(_DataLayer.prototype, this, "setMap").call(this, null);
-        __privateGet(this, _options4).map = null;
+        __privateGet(this, _options4).map = void 0;
         yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => {
           data.setMap(null);
         });
@@ -9900,13 +10031,15 @@ convertStyle_fn = function(style) {
     return styleOptions;
   }
   ["cursor", "fillColor", "strokeColor", "title"].forEach((key) => {
-    if (isStringWithValue(style[key])) {
-      styleOptions[key] = style[key];
+    const value = style[key];
+    if (isStringWithValue(value)) {
+      styleOptions[key] = value;
     }
   });
   ["clickable", "draggable", "editable", "visible"].forEach((key) => {
-    if (isBoolean(style[key])) {
-      styleOptions[key] = style[key];
+    const value = style[key];
+    if (isBoolean(value)) {
+      styleOptions[key] = value;
     }
   });
   ["fillOpacity", "strokeOpacity", "strokeWeight", "zIndex"].forEach((key) => {
@@ -9945,14 +10078,13 @@ enqueue_fn = function(callback) {
  *
  * The same Google feature always gets the same DataFeature object back.
  *
+ * Callers must pass a Google feature. The one caller that can receive an empty value, dispatch(), checks for it first.
+ *
  * @private
  * @param {google.maps.Data.Feature} googleFeature The Google maps feature
  * @returns {DataFeature}
  */
 featureFor_fn = function(googleFeature) {
-  if (!googleFeature) {
-    return void 0;
-  }
   let feature = __privateGet(this, _features).get(googleFeature);
   if (!feature) {
     feature = new DataFeature(googleFeature, this);
@@ -9984,7 +10116,7 @@ fitBounds_fn2 = function(data) {
  *
  * @private
  * @param {LoadOptions} [options] The load options
- * @returns {google.maps.Data.GeoJsonOptions}
+ * @returns {google.maps.Data.GeoJsonOptions | null}
  */
 geoJsonOptions_fn = function(options) {
   const idProperty = isObject(options) && isStringWithValue(options.idProperty) ? options.idProperty : __privateGet(this, _options4).idProperty;
@@ -10007,18 +10139,22 @@ geoJsonOptions_fn = function(options) {
 getGoogleData_fn = function() {
   if (!__privateGet(this, _setupPromise)) {
     __privateSet(this, _setupPromise, new Promise((resolve) => {
-      if (__privateGet(this, _defaultLayerMap) instanceof Map) {
-        __privateGet(this, _defaultLayerMap).init().then(() => {
-          __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, __privateGet(this, _defaultLayerMap).toGoogle().data);
-          resolve(__privateGet(this, _data2));
+      const defaultLayerMap = __privateGet(this, _defaultLayerMap);
+      if (defaultLayerMap instanceof Map) {
+        defaultLayerMap.init().then(() => {
+          const { data } = defaultLayerMap.toGoogle();
+          __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, data);
+          resolve(data);
         });
       } else if (checkForGoogleMaps("DataLayer", "Data", false)) {
-        __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, new google.maps.Data());
-        resolve(__privateGet(this, _data2));
+        const data = new google.maps.Data();
+        __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, data);
+        resolve(data);
       } else {
         loader().onLoad(() => {
-          __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, new google.maps.Data());
-          resolve(__privateGet(this, _data2));
+          const data = new google.maps.Data();
+          __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, data);
+          resolve(data);
         });
       }
     }));
@@ -10208,11 +10344,12 @@ var _Marker = class _Marker extends Layer_default {
     /**
      * Holds the marker options
      *
+     * The position always has a value. It defaults to 0,0 and is only replaced with a valid position.
+     *
      * @private
-     * @type {GMMarkerOptions}
+     * @type {GMMarkerOptions & { position: LatLng }}
      */
-    __privateAdd(this, _options5, {});
-    __privateGet(this, _options5).position = latLng([0, 0]);
+    __privateAdd(this, _options5, { position: latLng([0, 0]) });
     if (position instanceof LatLng || Array.isArray(position)) {
       this.setPosition(position);
       if (isObject(options)) {
@@ -10225,7 +10362,7 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Get the anchor point for the marker
    *
-   * @returns {Point}
+   * @returns {Point | undefined}
    */
   get anchorPoint() {
     return __privateGet(this, _options5).anchorPoint;
@@ -10241,7 +10378,7 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Get the cursor type to show on hover
    *
-   * @returns {string}
+   * @returns {string | undefined}
    */
   get cursor() {
     return __privateGet(this, _options5).cursor;
@@ -10297,7 +10434,7 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Get the icon for the marker
    *
-   * @returns {Icon | SvgSymbol | string}
+   * @returns {Icon | SvgSymbol | string | undefined}
    */
   get icon() {
     return __privateGet(this, _options5).icon;
@@ -10313,7 +10450,7 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Get the label for the marker
    *
-   * @returns {string | number | MarkerLabel}
+   * @returns {string | number | MarkerLabel | undefined}
    */
   get label() {
     return __privateGet(this, _options5).label;
@@ -10329,7 +10466,7 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Get the map object
    *
-   * @returns {Map}
+   * @returns {Map | null | undefined}
    */
   get map() {
     return __privateGet(this, _options5).map;
@@ -10348,9 +10485,10 @@ var _Marker = class _Marker extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
+    var _a;
     let returnValue = __privateGet(this, _options5).position;
     if (__privateGet(this, _marker)) {
-      returnValue = latLng(__privateGet(this, _marker).getPosition());
+      returnValue = latLng((_a = __privateGet(this, _marker).getPosition()) != null ? _a : void 0);
     }
     if (isNullOrUndefined(returnValue)) {
       returnValue = latLng([0, 0]);
@@ -10368,7 +10506,7 @@ var _Marker = class _Marker extends Layer_default {
   /**
    * Get the title for the marker
    *
-   * @returns {string}
+   * @returns {string | undefined}
    */
   get title() {
     return __privateGet(this, _options5).title;
@@ -10835,7 +10973,7 @@ var _Marker = class _Marker extends Layer_default {
    */
   setMap(map2) {
     return __async(this, null, function* () {
-      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this, map2);
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this, map2 != null ? map2 : void 0);
       __privateMethod(this, _Marker_instances, setMap_fn).call(this, map2);
       return this;
     });
@@ -11058,13 +11196,14 @@ _Marker_instances = new WeakSet();
  * @param {PointValue} value The anchor point for the marker
  */
 setAnchorPoint_fn = function(value) {
+  var _a;
   const anchor = point(value);
   if (anchor.isValid()) {
     __privateGet(this, _options5).anchorPoint = anchor;
   } else {
     __privateGet(this, _options5).anchorPoint = void 0;
   }
-  __privateGet(this, _marker).setOptions({ anchorPoint: __privateGet(this, _options5).anchorPoint.toGoogle() });
+  __privateGet(this, _marker).setOptions({ anchorPoint: (_a = __privateGet(this, _options5).anchorPoint) == null ? void 0 : _a.toGoogle() });
 };
 /**
  * Set the cursor for the marker
@@ -11108,8 +11247,10 @@ setIcon_fn = function(value) {
       __privateGet(this, _options5).icon.toGoogle().then((markerIcon) => {
         __privateGet(this, _marker).setIcon(markerIcon);
       });
-    } else {
+    } else if (__privateGet(this, _options5).icon instanceof Icon) {
       __privateGet(this, _marker).setIcon(__privateGet(this, _options5).icon.toGoogle());
+    } else {
+      __privateGet(this, _marker).setIcon(null);
     }
   }
 };
@@ -11397,8 +11538,10 @@ var InfoWindow = class extends Layer_default {
     /**
      * Holds the Google maps InfoWindow object
      *
+     * This is only set once the Google Maps library is loaded.
+     *
      * @private
-     * @type {google.maps.InfoWindow}
+     * @type {google.maps.InfoWindow|undefined}
      */
     __privateAdd(this, _infoWindow);
     __privateGet(this, _options6).pixelOffset = size(0, -4);
@@ -11408,14 +11551,14 @@ var InfoWindow = class extends Layer_default {
       } else {
         this.setOptions(options);
       }
-    } else {
+    } else if (typeof options !== "undefined") {
       this.content = options;
     }
   }
   /**
    * Get the aria label for the InfoWindow
    *
-   * @returns {string}
+   * @returns {string|undefined}
    */
   get ariaLabel() {
     return __privateGet(this, _options6).ariaLabel;
@@ -11437,7 +11580,7 @@ var InfoWindow = class extends Layer_default {
   /**
    * Get the content for the InfoWindow
    *
-   * @returns {string|HTMLElement|Text}
+   * @returns {string|HTMLElement|Text|undefined}
    */
   get content() {
     return __privateGet(this, _options6).content;
@@ -11501,7 +11644,7 @@ var InfoWindow = class extends Layer_default {
   /**
    * Get the maxWidth option for the InfoWindow
    *
-   * @returns {number}
+   * @returns {number|undefined}
    */
   get maxWidth() {
     return __privateGet(this, _options6).maxWidth;
@@ -11527,7 +11670,7 @@ var InfoWindow = class extends Layer_default {
   /**
    * Get the minWidth option for the InfoWindow
    *
-   * @returns {number}
+   * @returns {number|undefined}
    */
   get minWidth() {
     return __privateGet(this, _options6).minWidth;
@@ -11576,7 +11719,7 @@ var InfoWindow = class extends Layer_default {
   /**
    * Get the position option for the InfoWindow
    *
-   * @returns {LatLng}
+   * @returns {LatLng|undefined}
    */
   get position() {
     return __privateGet(this, _options6).position;
@@ -11599,7 +11742,7 @@ var InfoWindow = class extends Layer_default {
   /**
    * Get the zIndex option for the InfoWindow
    *
-   * @returns {number}
+   * @returns {number|undefined}
    */
   get zIndex() {
     return __privateGet(this, _options6).zIndex;
@@ -11646,12 +11789,16 @@ var InfoWindow = class extends Layer_default {
             }
             if (triggerEvent === "hover") {
               element.on("mouseover", (e) => {
-                this.position = e.latLng;
+                if (e.latLng) {
+                  this.position = e.latLng;
+                }
                 this.show(element);
               });
               if (element instanceof Map) {
                 element.on("mousemove", (e) => {
-                  this.position = e.latLng;
+                  if (e.latLng) {
+                    this.position = e.latLng;
+                  }
                   this.show(element);
                 });
               }
@@ -11660,14 +11807,14 @@ var InfoWindow = class extends Layer_default {
               });
             } else if (triggerEvent === "clickon") {
               element.on("click", (e) => {
-                if (element instanceof Map) {
+                if (element instanceof Map && e.latLng) {
                   this.position = e.latLng;
                 }
                 this.show(element);
               });
             } else {
               element.on("click", (e) => {
-                if (element instanceof Map) {
+                if (element instanceof Map && e.latLng) {
                   this.position = e.latLng;
                 }
                 this.show(element);
@@ -11876,8 +12023,13 @@ var InfoWindow = class extends Layer_default {
    * @returns {Promise<InfoWindow>}
    */
   show(element) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
+      const googleInfoWindow = __privateGet(this, _infoWindow);
+      if (!googleInfoWindow) {
+        reject(new Error("The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded."));
+        return;
+      }
       const collection = InfoWindowCollection.getInstance();
       if (collection.has(this) && __privateGet(this, _isOpen)) {
         if (__privateGet(this, _toggleDisplay)) {
@@ -11892,7 +12044,7 @@ var InfoWindow = class extends Layer_default {
         __privateSet(this, _isOpen, true);
         collection.add(this);
         if (element instanceof Map) {
-          __privateGet(this, _infoWindow).open({
+          googleInfoWindow.open({
             map: element.toGoogle(),
             shouldFocus: __privateGet(this, _focus)
           });
@@ -11901,7 +12053,7 @@ var InfoWindow = class extends Layer_default {
           resolve(this);
         } else if (element instanceof Marker) {
           element.toGoogle().then((marker2) => {
-            __privateGet(this, _infoWindow).open({
+            googleInfoWindow.open({
               anchor: marker2,
               shouldFocus: __privateGet(this, _focus)
             });
@@ -11931,7 +12083,7 @@ var InfoWindow = class extends Layer_default {
    *
    * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
    *
-   * @returns {google.maps.InfoWindow}
+   * @returns {google.maps.InfoWindow|undefined} The Google maps InfoWindow object, or undefined if the Google Maps library isn't loaded.
    */
   toGoogle() {
     __privateMethod(this, _InfoWindow_instances, setupGoogleInfoWindow_fn).call(this);
@@ -11956,24 +12108,38 @@ setupGoogleInfoWindow_fn = function() {
   if (!isObject(__privateGet(this, _infoWindow))) {
     if (checkForGoogleMaps("InfoWindow", "InfoWindow", false)) {
       const infoWindowOptions = {};
-      const optionsToSet = ["ariaLabel", "content", "disableAutoPan", "maxWidth", "minWidth", "zIndex"];
-      optionsToSet.forEach((key) => {
-        if (typeof __privateGet(this, _options6)[key] !== "undefined") {
-          infoWindowOptions[key] = __privateGet(this, _options6)[key];
-        }
-      });
+      const { ariaLabel, content, disableAutoPan, maxWidth, minWidth, zIndex } = __privateGet(this, _options6);
+      if (typeof ariaLabel !== "undefined") {
+        infoWindowOptions.ariaLabel = ariaLabel;
+      }
+      if (typeof content !== "undefined") {
+        infoWindowOptions.content = content;
+      }
+      if (typeof disableAutoPan !== "undefined") {
+        infoWindowOptions.disableAutoPan = disableAutoPan;
+      }
+      if (typeof maxWidth !== "undefined") {
+        infoWindowOptions.maxWidth = maxWidth;
+      }
+      if (typeof minWidth !== "undefined") {
+        infoWindowOptions.minWidth = minWidth;
+      }
+      if (typeof zIndex !== "undefined") {
+        infoWindowOptions.zIndex = zIndex;
+      }
       if (__privateGet(this, _options6).pixelOffset) {
         infoWindowOptions.pixelOffset = __privateGet(this, _options6).pixelOffset.toGoogle();
       }
       if (__privateGet(this, _options6).position) {
         infoWindowOptions.position = __privateGet(this, _options6).position.toGoogle();
       }
-      __privateSet(this, _infoWindow, new google.maps.InfoWindow(infoWindowOptions));
-      __privateGet(this, _infoWindow).addListener("closeclick", () => {
+      const googleInfoWindow = new google.maps.InfoWindow(infoWindowOptions);
+      __privateSet(this, _infoWindow, googleInfoWindow);
+      googleInfoWindow.addListener("closeclick", () => {
         InfoWindowCollection.getInstance().remove(this);
       });
-      __privateGet(this, _infoWindow).addListener("map_changed", () => {
-        if (__privateGet(this, _infoWindow).get("map") === null) {
+      googleInfoWindow.addListener("map_changed", () => {
+        if (googleInfoWindow.get("map") === null) {
           __privateSet(this, _isOpen, false);
           InfoWindowCollection.getInstance().remove(this);
         }
@@ -11991,12 +12157,13 @@ var infoWindowMixin = {
   /**
    * Holds the InfoWindow object
    *
-   * @type {InfoWindow}
+   * @type {InfoWindow|null}
    */
   layerInfoWindow: null,
   /**
    * Attach an InfoWindow to the layer
    *
+   * @param {Map | Layer} this The object that the mixin is added to
    * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
    * @returns {InfoWindow}
@@ -12319,8 +12486,8 @@ getColor_fn = function(count, mean) {
   let color = __privateGet(this, _colorRangeBottom);
   if (Object.keys(__privateGet(this, _colors)).length > 0) {
     for (let i = 0; i < keys.length; i += 1) {
-      const k = keys[i];
-      if (count >= parseInt(k, 10)) {
+      const k = parseInt(keys[i], 10);
+      if (count >= k) {
         color = __privateGet(this, _colors)[k];
       } else {
         break;
@@ -12329,7 +12496,7 @@ getColor_fn = function(count, mean) {
   } else {
     color = count > mean ? __privateGet(this, _colorRangeTop) : __privateGet(this, _colorRangeBottom);
   }
-  let bgColor;
+  let bgColor = "";
   let textColor = "#ffffff";
   if (typeof color === "string") {
     bgColor = color;
@@ -12363,21 +12530,21 @@ var ImageRenderer = class {
      * A CSS class name to be added to the label element
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
     __privateAdd(this, _labelClassName);
     /**
      * The color of the label text. Default color is black.
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
     __privateAdd(this, _labelColor);
     /**
      * Holds the font family for the cluster marker label.
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
     __privateAdd(this, _labelFontFamily2);
     /**
@@ -12391,14 +12558,14 @@ var ImageRenderer = class {
      * The font weight of the label text (equivalent to the CSS font-weight property).
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
     __privateAdd(this, _labelFontWeight);
     /**
      * The map object
      *
      * @private
-     * @type {Map}
+     * @type {Map|undefined}
      */
     __privateAdd(this, _map3);
     /**
@@ -12502,14 +12669,14 @@ var ImageRenderer = class {
    * Get the image for the cluster.
    *
    * @param {number} count The number of markers in the cluster.
-   * @returns {ClusterImage}
+   * @returns {ClusterImageValue}
    */
   getImage(count) {
-    const keys = Object.keys(__privateGet(this, _images));
+    const keys = Object.keys(__privateGet(this, _images)).map((k) => parseInt(k, 10));
     let image = __privateGet(this, _images)[keys[0]];
     for (let i = 0; i < keys.length; i += 1) {
       const k = keys[i];
-      if (count >= parseInt(k, 10)) {
+      if (count >= k) {
         image = __privateGet(this, _images)[k];
       } else {
         break;
@@ -12525,8 +12692,9 @@ var ImageRenderer = class {
    */
   render(cluster) {
     const { count, position } = cluster;
-    const image = this.getImage(count);
-    const markerImage = icon(typeof image === "string" ? image : image.url);
+    const imageValue = this.getImage(count);
+    const image = typeof imageValue === "string" ? { url: imageValue } : imageValue;
+    const markerImage = icon(image.url);
     if (image.width && image.height) {
       markerImage.setSize([image.width, image.height]);
     } else if (image.size) {
@@ -12566,7 +12734,9 @@ var ImageRenderer = class {
     const clusterMarker = marker();
     clusterMarker.setPositionSync({ lat: position.lat(), lng: position.lng() });
     clusterMarker.setIconSync(markerImage);
-    clusterMarker.setLabelSync(__privateGet(this, _showNumber2) ? label : void 0);
+    if (__privateGet(this, _showNumber2)) {
+      clusterMarker.setLabelSync(label);
+    }
     return clusterMarker.toGoogleSync();
   }
 };
@@ -12595,8 +12765,10 @@ var MarkerCluster = class extends Base_default {
     /**
      * The MarkerClusterer object
      *
+     * This is undefined until the cluster is set up, which may be delayed until the map is loaded.
+     *
      * @private
-     * @type {MarkerClusterer}
+     * @type {MarkerClusterer|undefined}
      */
     __privateAdd(this, _clusterer);
     /**
@@ -12628,7 +12800,8 @@ var MarkerCluster = class extends Base_default {
   addMarker(marker2, draw = true) {
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
       marker2.toGoogle().then((m) => {
-        __privateGet(this, _clusterer).addMarker(m, !draw);
+        var _a;
+        (_a = __privateGet(this, _clusterer)) == null ? void 0 : _a.addMarker(m, !draw);
       });
     } else {
       __privateGet(this, _pendingMarkers).push(marker2);
@@ -12656,7 +12829,8 @@ var MarkerCluster = class extends Base_default {
         }
       });
       Promise.all(markerPromises).then((googleMarkerObjects) => {
-        __privateGet(this, _clusterer).addMarkers(googleMarkerObjects, !drw);
+        var _a;
+        (_a = __privateGet(this, _clusterer)) == null ? void 0 : _a.addMarkers(googleMarkerObjects, !drw);
       });
     };
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
@@ -12680,7 +12854,8 @@ var MarkerCluster = class extends Base_default {
    * @returns {MarkerCluster}
    */
   clearMarkers(draw = true) {
-    __privateGet(this, _clusterer).clearMarkers(!draw);
+    var _a;
+    (_a = __privateGet(this, _clusterer)) == null ? void 0 : _a.clearMarkers(!draw);
     return this;
   }
   /**
@@ -12692,7 +12867,8 @@ var MarkerCluster = class extends Base_default {
    * @returns {MarkerCluster}
    */
   removeMarker(marker2, draw = false) {
-    __privateGet(this, _clusterer).removeMarker(marker2.toGoogleSync(), !draw);
+    var _a;
+    (_a = __privateGet(this, _clusterer)) == null ? void 0 : _a.removeMarker(marker2.toGoogleSync(), !draw);
     return this;
   }
   /**
@@ -12701,7 +12877,8 @@ var MarkerCluster = class extends Base_default {
    * @returns {MarkerCluster}
    */
   render() {
-    __privateGet(this, _clusterer).render();
+    var _a;
+    (_a = __privateGet(this, _clusterer)) == null ? void 0 : _a.render();
     return this;
   }
 };
@@ -12831,11 +13008,12 @@ setupCluster_fn = function(map2, markers, options) {
   } else {
     clusterOptions.renderer = new DefaultRenderer();
   }
-  __privateSet(this, _clusterer, new import_markerclusterer2.MarkerClusterer(clusterOptions));
+  const clusterer = new import_markerclusterer2.MarkerClusterer(clusterOptions);
+  __privateSet(this, _clusterer, clusterer);
   if (Array.isArray(markers)) {
     markers.forEach((marker2) => {
       if (marker2 instanceof Marker) {
-        __privateGet(this, _clusterer).addMarker(marker2.toGoogleSync(), true);
+        clusterer.addMarker(marker2.toGoogleSync(), true);
       }
     });
   }
@@ -13110,14 +13288,14 @@ var Overlay = class extends Layer_default {
      * Holds the overlay view class instance
      *
      * @private
-     * @type {google.maps.OverlayView}
+     * @type {google.maps.OverlayView|undefined}
      */
     __privateAdd(this, _overlayView);
     /**
      * Holds the position of the overlay
      *
      * @private
-     * @type {LatLng}
+     * @type {LatLng|undefined}
      */
     __privateAdd(this, _position6);
     /**
@@ -13222,15 +13400,17 @@ var Overlay = class extends Layer_default {
      * @param {string} corner The corner being resized
      */
     __privateAdd(this, _handleResizeStart, (e, corner) => {
+      var _a;
       if (!__privateGet(this, _resize) || __privateGet(this, _isDragging)) return;
       e.preventDefault();
       e.stopPropagation();
+      const mapContainer = (_a = this.getMap()) == null ? void 0 : _a.getDiv();
+      const currentBounds = this.getBounds();
+      if (!mapContainer || !currentBounds) return;
       __privateSet(this, _isResizing, true);
       this.resizeCorner = corner;
-      const mapContainer = this.getMap().getDiv();
       const containerRect = mapContainer.getBoundingClientRect();
       const currentSize = __privateGet(this, _overlay).getBoundingClientRect();
-      const currentBounds = this.getBounds();
       this.resizeStart = {
         // Northeast lat/lng
         neBounds: currentBounds.getNorthEast(),
@@ -13264,24 +13444,27 @@ var Overlay = class extends Layer_default {
      * @param {MouseEvent | TouchEvent} e The event
      */
     __privateAdd(this, _handleResize, (e) => {
+      var _a;
       if (!__privateGet(this, _isResizing)) return;
       e.preventDefault();
       const projection = this.getProjection();
-      if (projection) {
-        const mapContainer = this.getMap().getDiv();
+      const mapContainer = (_a = this.getMap()) == null ? void 0 : _a.getDiv();
+      if (projection && mapContainer) {
         const containerRect = mapContainer.getBoundingClientRect();
         const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
         const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
         const mouseX = eventX - containerRect.left;
         const mouseY = eventY - containerRect.top;
-        const topRight = projection.fromLatLngToContainerPixel(this.resizeStart.neBounds.toGoogle());
-        const bottomLeft = projection.fromLatLngToContainerPixel(this.resizeStart.swBounds.toGoogle());
+        const neGoogle = this.resizeStart.neBounds.toGoogle();
+        const topRight = neGoogle ? projection.fromLatLngToContainerPixel(neGoogle) : null;
+        const swGoogle = this.resizeStart.swBounds.toGoogle();
+        const bottomLeft = swGoogle ? projection.fromLatLngToContainerPixel(swGoogle) : null;
         let newWidth;
         let newHeight;
         let newLeft;
         let newTop;
         if (this.resizeCorner === "nw") {
-          if (mouseY > bottomLeft.y || mouseX > topRight.x) {
+          if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX > topRight.x) {
             return;
           }
           const diffX = this.resizeStart.nwPos.x - mouseX;
@@ -13291,7 +13474,7 @@ var Overlay = class extends Layer_default {
           newLeft = this.resizeStart.left - diffX;
           newTop = this.resizeStart.top - diffY;
         } else if (this.resizeCorner === "ne") {
-          if (mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
+          if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
             return;
           }
           const diffX = topRight.x - mouseX;
@@ -13301,7 +13484,7 @@ var Overlay = class extends Layer_default {
           newLeft = this.resizeStart.left;
           newTop = this.resizeStart.top - diffY;
         } else if (this.resizeCorner === "sw") {
-          if (mouseY < this.resizeStart.top || mouseX > topRight.x) {
+          if (!bottomLeft || !topRight || mouseY < this.resizeStart.top || mouseX > topRight.x) {
             return;
           }
           const diffX = bottomLeft.x - mouseX;
@@ -13320,6 +13503,8 @@ var Overlay = class extends Layer_default {
           newHeight = this.resizeStart.height - diffY;
           newLeft = this.resizeStart.left;
           newTop = this.resizeStart.top;
+        } else {
+          return;
         }
         const constrained = calculateDimensions(__privateGet(this, _resizeAspectRatio), newWidth, newHeight);
         __privateGet(this, _overlay).style.width = `${constrained.width}px`;
@@ -13328,7 +13513,7 @@ var Overlay = class extends Layer_default {
         __privateGet(this, _overlay).style.top = `${newTop}px`;
         if (__privateGet(this, _resizeAspectRatio) > 0) {
           const newContainerRect = __privateGet(this, _overlay).getBoundingClientRect();
-          const mapContainerRect = this.getMap().getDiv().getBoundingClientRect();
+          const mapContainerRect = mapContainer.getBoundingClientRect();
           const nePos = {
             x: newContainerRect.right - mapContainerRect.left,
             y: newContainerRect.top - mapContainerRect.top
@@ -13438,7 +13623,7 @@ var Overlay = class extends Layer_default {
   /**
    * Returns the position of the overlay
    *
-   * @returns {LatLng}
+   * @returns {LatLng|undefined}
    */
   get position() {
     return __privateGet(this, _position6);
@@ -13446,7 +13631,7 @@ var Overlay = class extends Layer_default {
   /**
    * Set the position of the overlay
    *
-   * @param {LatLngValue} value The position of the overlay
+   * @param {LatLngValue|undefined} value The position of the overlay. Pass undefined to clear the position.
    */
   set position(value) {
     const position = latLng(value);
@@ -13553,7 +13738,7 @@ var Overlay = class extends Layer_default {
    *
    * This method should be overridden by subclasses and not called directly.
    *
-   * @returns {LatLngBounds}
+   * @returns {LatLngBounds|undefined}
    */
   // eslint-disable-next-line class-methods-use-this
   getBounds() {
@@ -13573,11 +13758,12 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   getContainerLatLngFromPixel(x, y) {
+    var _a;
     const gp = new google.maps.Point(x, y);
     const pixel = point(gp);
     const projection = this.getProjection();
     if (projection) {
-      return latLng(projection.fromContainerPixelToLatLng(pixel.toGoogle()));
+      return latLng((_a = projection.fromContainerPixelToLatLng(pixel.toGoogle())) != null ? _a : void 0);
     }
     return latLng();
   }
@@ -13592,11 +13778,12 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   getDivLatLngFromPixel(x, y) {
+    var _a;
     const gp = new google.maps.Point(x, y);
     const pixel = point(gp);
     const projection = this.getProjection();
     if (projection) {
-      return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()));
+      return latLng((_a = projection.fromDivPixelToLatLng(pixel.toGoogle())) != null ? _a : void 0);
     }
     return latLng();
   }
@@ -13619,7 +13806,7 @@ var Overlay = class extends Layer_default {
   /**
    * Get the position of the overlay
    *
-   * @returns {LatLng}
+   * @returns {LatLng|undefined}
    */
   getPosition() {
     return this.position;
@@ -13628,13 +13815,15 @@ var Overlay = class extends Layer_default {
    * Returns the MapCanvasProjection object associated with this OverlayView.
    *
    * The projection is not initialized until onAdd is called by the API.
+   * This returns undefined if the Google maps overlay view hasn't been set up yet.
    *
    * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
    *
-   * @returns {google.maps.MapCanvasProjection}
+   * @returns {google.maps.MapCanvasProjection|undefined}
    */
   getProjection() {
-    return __privateGet(this, _overlayView).getProjection();
+    var _a;
+    return (_a = __privateGet(this, _overlayView)) == null ? void 0 : _a.getProjection();
   }
   /**
    * Get the current aspect ratio for resizing
@@ -13679,15 +13868,16 @@ var Overlay = class extends Layer_default {
    * If the overlay is not visible, it will be shown.
    * If it's already visible on the map, it will be moved to the new position.
    *
-   * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+   * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show
    * @param {Map} [map] The Map object
    * @returns {Promise<Overlay>}
    */
   move(position, map2) {
     return new Promise((resolve, reject) => {
+      var _a;
       let mapObject = map2;
       if (typeof mapObject === "undefined") {
-        mapObject = this.getMap();
+        mapObject = (_a = this.getMap()) != null ? _a : void 0;
       }
       this.position = position;
       if (mapObject instanceof Map) {
@@ -13824,7 +14014,8 @@ var Overlay = class extends Layer_default {
   /**
    * Set the position of the overlay
    *
-   * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+   * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show.
+   *    Pass undefined to clear the position.
    * @returns {Overlay}
    */
   setPosition(position) {
@@ -14314,7 +14505,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
   /**
    * Constructor
    *
-   * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
+   * @param {ImageOverlayOptions | string} [options] The ImageOverlay options or image URL
    * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
    */
   constructor(options, bounds) {
@@ -14324,7 +14515,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      * Holds the bounds where the image should be displayed
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds|undefined}
      */
     __privateAdd(this, _bounds5);
     /**
@@ -14338,7 +14529,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      * Holds the image URL
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
     __privateAdd(this, _imageUrl);
     /**
@@ -14380,16 +14571,16 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
      * The rotation container element (wraps the image when rotation is enabled)
      *
      * @private
-     * @type {HTMLElement}
+     * @type {HTMLElement|null}
      */
-    __privateAdd(this, _rotationContainer);
+    __privateAdd(this, _rotationContainer, null);
     /**
      * The rotation handle element
      *
      * @private
-     * @type {HTMLElement}
+     * @type {HTMLElement|null}
      */
-    __privateAdd(this, _rotationHandle);
+    __privateAdd(this, _rotationHandle, null);
     /**
      * Holds the styles for the image element
      *
@@ -14465,7 +14656,9 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
     if (isObject(options)) {
       this.setOptions(options);
     } else {
-      this.imageUrl = options;
+      if (isString(options)) {
+        this.imageUrl = options;
+      }
       if (bounds) {
         this.bounds = bounds;
       }
@@ -14474,7 +14667,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
   /**
    * Returns the bounds where the image should be displayed
    *
-   * @returns {LatLngBounds}
+   * @returns {LatLngBounds|undefined}
    */
   get bounds() {
     return __privateGet(this, _bounds5);
@@ -14526,7 +14719,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
   /**
    * Returns the image URL
    *
-   * @returns {string}
+   * @returns {string|undefined}
    */
   get imageUrl() {
     return __privateGet(this, _imageUrl);
@@ -14677,7 +14870,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
   /**
    * Get the bounds where the image should be displayed
    *
-   * @returns {LatLngBounds}
+   * @returns {LatLngBounds|undefined}
    */
   getBounds() {
     return __privateGet(this, _bounds5);
@@ -14685,7 +14878,7 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
   /**
    * Get the image URL
    *
-   * @returns {string}
+   * @returns {string|undefined}
    */
   getImageUrl() {
     return __privateGet(this, _imageUrl);
@@ -14887,11 +15080,13 @@ var _ImageOverlay = class _ImageOverlay extends Overlay {
    * @protected
    */
   updateBoundsFromPosition() {
+    var _a;
     if (!__privateGet(this, _bounds5)) return;
     const projection = this.getProjection();
     if (!projection) return;
     const overlayRect = this.getOverlayElement().getBoundingClientRect();
-    const mapDiv = this.getMap().getDiv();
+    const mapDiv = (_a = this.getMap()) == null ? void 0 : _a.getDiv();
+    if (!mapDiv) return;
     const mapRect = mapDiv.getBoundingClientRect();
     const overlayLeft = overlayRect.left - mapRect.left;
     const overlayTop = overlayRect.top - mapRect.top;
@@ -15010,6 +15205,7 @@ _ImageOverlay_instances = new WeakSet();
  * @private
  */
 performFitToImage_fn = function() {
+  var _a;
   const imageWidth = __privateGet(this, _imageElement).naturalWidth;
   const imageHeight = __privateGet(this, _imageElement).naturalHeight;
   if (imageWidth === 0 || imageHeight === 0) {
@@ -15033,8 +15229,10 @@ performFitToImage_fn = function() {
   __superGet(_ImageOverlay.prototype, this, "style").call(this, "left", `${currentLeft + leftDelta}px`);
   __superGet(_ImageOverlay.prototype, this, "style").call(this, "top", `${currentTop + topDelta}px`);
   this.setResizeAspectRatio(aspectRatio);
+  const mapDiv = (_a = this.getMap()) == null ? void 0 : _a.getDiv();
+  if (!mapDiv) return;
   const newContainerRect = overlayElement.getBoundingClientRect();
-  const mapContainerRect = this.getMap().getDiv().getBoundingClientRect();
+  const mapContainerRect = mapDiv.getBoundingClientRect();
   const nePos = {
     x: newContainerRect.right - mapContainerRect.left,
     y: newContainerRect.top - mapContainerRect.top
@@ -15191,16 +15389,17 @@ var PlacesSearchBox = class extends Evented {
   /**
    * Constructor
    *
-   * @param {string | HTMLInputElement | PlacesSearchBoxOptions} input The input reference or the options
+   * @param {string | HTMLInputElement | PlacesSearchBoxOptions} [input] The input reference or the options
    * @param {PlacesSearchBoxOptions} [options] The places search box options if the input is reference to the input element
    */
   constructor(input, options) {
+    var _a;
     super("placesSearchBox", "places");
     /**
      * Holds the reference to the input element
      *
      * @private
-     * @type {HTMLInputElement}
+     * @type {HTMLInputElement | undefined}
      */
     __privateAdd(this, _input2);
     /**
@@ -15216,14 +15415,14 @@ var PlacesSearchBox = class extends Evented {
      * Holds the map bounds based on the places that have been found
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
     __privateAdd(this, _placesBounds);
     /**
      * Holds the reference to the Google Maps SearchBox object
      *
      * @private
-     * @type {google.maps.places.SearchBox}
+     * @type {google.maps.places.SearchBox | undefined}
      */
     __privateAdd(this, _searchBox2);
     /**
@@ -15244,9 +15443,14 @@ var PlacesSearchBox = class extends Evented {
         if (__privateGet(this, _options7).bounds) {
           options.bounds = yield __privateGet(this, _options7).bounds.toGoogle();
         }
-        __privateSet(this, _searchBox2, new google.maps.places.SearchBox(__privateGet(this, _input2), options));
-        __privateGet(this, _searchBox2).addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-          const places = __privateGet(this, _searchBox2).getPlaces();
+        if (!__privateGet(this, _input2)) {
+          throw new Error("The input element must be set before the places search box can be initialized.");
+        }
+        const searchBox = new google.maps.places.SearchBox(__privateGet(this, _input2), options);
+        __privateSet(this, _searchBox2, searchBox);
+        searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
+          var _a;
+          const places = (_a = searchBox.getPlaces()) != null ? _a : [];
           const bounds = latLngBounds();
           places.forEach((place) => {
             if (place.geometry) {
@@ -15265,13 +15469,17 @@ var PlacesSearchBox = class extends Evented {
     }));
     if (input instanceof HTMLInputElement) {
       __privateSet(this, _input2, input);
-      this.setOptions(options);
+      if (options) {
+        this.setOptions(options);
+      }
     } else if (isString(input)) {
-      __privateSet(this, _input2, document.querySelector(input));
+      __privateSet(this, _input2, (_a = document.querySelector(input)) != null ? _a : void 0);
       if (!__privateGet(this, _input2)) {
         throw new Error(`The input element with the selector "${input}" was not found.`);
       }
-      this.setOptions(options);
+      if (options) {
+        this.setOptions(options);
+      }
     } else if (isObjectWithValues(input)) {
       this.setOptions(input);
     }
@@ -15295,9 +15503,10 @@ var PlacesSearchBox = class extends Evented {
   set bounds(value) {
     const boundsValue = latLngBounds(value);
     __privateGet(this, _options7).bounds = boundsValue;
-    if (__privateGet(this, _searchBox2)) {
+    const searchBox = __privateGet(this, _searchBox2);
+    if (searchBox) {
       boundsValue.toGoogle().then((bounds) => {
-        __privateGet(this, _searchBox2).setBounds(bounds);
+        searchBox.setBounds(bounds);
       });
     }
   }
@@ -15315,10 +15524,11 @@ var PlacesSearchBox = class extends Evented {
    * @param {string | HTMLInputElement} value The input HTMLInputElement or the selector for the input element
    */
   set input(value) {
+    var _a;
     if (value instanceof HTMLInputElement) {
       __privateSet(this, _input2, value);
     } else if (isString(value)) {
-      __privateSet(this, _input2, document.querySelector(value));
+      __privateSet(this, _input2, (_a = document.querySelector(value)) != null ? _a : void 0);
       if (!__privateGet(this, _input2)) {
         throw new Error(`The input element with the selector "${value}" was not found.`);
       }
@@ -15489,6 +15699,7 @@ var PlacesSearchBox = class extends Evented {
    * @returns {PlacesSearchBox}
    */
   setOptions(options) {
+    var _a;
     if (isObjectWithValues(options)) {
       if (options.bounds) {
         this.bounds = options.bounds;
@@ -15497,7 +15708,7 @@ var PlacesSearchBox = class extends Evented {
         if (options.input instanceof HTMLInputElement) {
           __privateSet(this, _input2, options.input);
         } else if (isString(options.input)) {
-          __privateSet(this, _input2, document.querySelector(options.input));
+          __privateSet(this, _input2, (_a = document.querySelector(options.input)) != null ? _a : void 0);
           if (!__privateGet(this, _input2)) {
             throw new Error(`The input element with the selector "${options.input}" was not found.`);
           }
@@ -15773,7 +15984,7 @@ var _Polyline = class _Polyline extends Layer_default {
      * when the mouse hovers over this polyline.
      *
      * @private
-     * @type {Polyline}
+     * @type {Polyline|undefined}
      */
     __privateAdd(this, _highlightPolyline);
     /**
@@ -15793,8 +16004,10 @@ var _Polyline = class _Polyline extends Layer_default {
     /**
      * Holds the Google maps Polyline object
      *
+     * This is undefined until the Google Maps library is loaded and the polyline object is created.
+     *
      * @private
-     * @type {google.maps.Polyline}
+     * @type {google.maps.Polyline|undefined}
      */
     __privateAdd(this, _polyline);
     if (isObject(options)) {
@@ -15804,7 +16017,7 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Get whether the polyline handles click events.
    *
-   * @returns {boolean}
+   * @returns {boolean|undefined}
    */
   get clickable() {
     return __privateGet(this, _options9).clickable;
@@ -15842,7 +16055,8 @@ var _Polyline = class _Polyline extends Layer_default {
     }
     if (__privateGet(this, _polyline)) {
       __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
-        __privateGet(this, _polyline).setOptions(opts);
+        var _a;
+        (_a = __privateGet(this, _polyline)) == null ? void 0 : _a.setOptions(opts);
       });
     }
   }
@@ -15868,7 +16082,8 @@ var _Polyline = class _Polyline extends Layer_default {
       __privateGet(this, _options9).dashGap = gap;
       if (__privateGet(this, _polyline)) {
         __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
-          __privateGet(this, _polyline).setOptions(opts);
+          var _a;
+          (_a = __privateGet(this, _polyline)) == null ? void 0 : _a.setOptions(opts);
         });
       }
     }
@@ -15894,7 +16109,7 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Get the highlight polyline
    *
-   * @returns {Polyline}
+   * @returns {Polyline|undefined}
    */
   get highlightPolyline() {
     return __privateGet(this, _highlightPolyline);
@@ -15913,39 +16128,45 @@ var _Polyline = class _Polyline extends Layer_default {
     } else if (isObject(value)) {
       __privateSet(this, _highlightPolyline, new _Polyline(__spreadValues(__spreadValues({}, __privateGet(this, _options9)), value)));
     }
+    if (!__privateGet(this, _highlightPolyline)) {
+      return;
+    }
     __privateGet(this, _highlightPolyline).clickable = true;
-    __privateGet(this, _highlightPolyline).path = this.path;
+    if (this.path) {
+      __privateGet(this, _highlightPolyline).path = this.path;
+    }
     __privateGet(this, _highlightPolyline).visible = false;
     __privateGet(this, _highlightPolyline).init().then(() => {
       this.init().then(() => {
-        __privateGet(this, _highlightPolyline).setMap(this.getMap(), false);
+        var _a;
+        (_a = __privateGet(this, _highlightPolyline)) == null ? void 0 : _a.setMap(this.getMap(), false);
         super.on("mouseover", () => {
-          if (!__privateGet(this, _isHighlighted)) {
+          if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline)) {
             __privateGet(this, _highlightPolyline).visible = true;
           }
         });
         super.on("mousemove", () => {
-          if (!__privateGet(this, _isHighlighted)) {
+          if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline)) {
             __privateGet(this, _highlightPolyline).visible = true;
           }
         });
         super.on("mouseout", () => {
-          if (!__privateGet(this, _isHighlighted)) {
+          if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline)) {
             __privateGet(this, _highlightPolyline).visible = false;
           }
         });
       });
     });
-    if (__privateGet(this, _highlightPolyline).hasZIndex() && this.hasZIndex()) {
-      const highlightZIndex = __privateGet(this, _highlightPolyline).zIndex;
-      const thisZIndex = this.zIndex;
+    const highlightZIndex = __privateGet(this, _highlightPolyline).zIndex;
+    const thisZIndex = this.zIndex;
+    if (typeof highlightZIndex !== "undefined" && typeof thisZIndex !== "undefined") {
       if (highlightZIndex >= thisZIndex) {
         __privateGet(this, _highlightPolyline).zIndex = thisZIndex - 1;
       }
-    } else if (this.hasZIndex()) {
-      __privateGet(this, _highlightPolyline).zIndex = this.zIndex - 1;
-    } else if (__privateGet(this, _highlightPolyline).hasZIndex()) {
-      this.zIndex = __privateGet(this, _highlightPolyline).zIndex + 1;
+    } else if (typeof thisZIndex !== "undefined") {
+      __privateGet(this, _highlightPolyline).zIndex = thisZIndex - 1;
+    } else if (typeof highlightZIndex !== "undefined") {
+      this.zIndex = highlightZIndex + 1;
     } else {
       __privateGet(this, _highlightPolyline).zIndex = 1;
       this.zIndex = 2;
@@ -15986,7 +16207,7 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Get the map object
    *
-   * @returns {Map}
+   * @returns {Map|null|undefined}
    */
   get map() {
     return __privateGet(this, _options9).map;
@@ -16004,7 +16225,7 @@ var _Polyline = class _Polyline extends Layer_default {
    *
    * The path is an array of LatLng values defining the path of the polyline.
    *
-   * @returns {LatLngValue[]}
+   * @returns {LatLngValue[]|undefined}
    */
   get path() {
     return __privateGet(this, _options9).path;
@@ -16027,14 +16248,16 @@ var _Polyline = class _Polyline extends Layer_default {
       });
       __privateGet(this, _options9).path = paths;
       if (__privateGet(this, _polyline)) {
-        __privateGet(this, _polyline).setPath(paths.map((path) => path.toGoogle()));
+        __privateGet(this, _polyline).setPath(
+          paths.map((path) => path.toGoogle()).filter((path) => path !== null)
+        );
       }
     }
   }
   /**
    * Get the SVG stroke color
    *
-   * @returns {string}
+   * @returns {string|undefined}
    */
   get strokeColor() {
     return __privateGet(this, _options9).strokeColor;
@@ -16056,7 +16279,7 @@ var _Polyline = class _Polyline extends Layer_default {
    * Get the opacity of the stroke.
    * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
    *
-   * @returns {number}
+   * @returns {number|undefined}
    */
   get strokeOpacity() {
     return __privateGet(this, _options9).strokeOpacity;
@@ -16076,7 +16299,8 @@ var _Polyline = class _Polyline extends Layer_default {
       if (__privateGet(this, _polyline)) {
         if (__privateGet(this, _dashed)) {
           __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
-            __privateGet(this, _polyline).setOptions(opts);
+            var _a;
+            (_a = __privateGet(this, _polyline)) == null ? void 0 : _a.setOptions(opts);
           });
         } else {
           __privateGet(this, _polyline).setOptions({ strokeOpacity: __privateGet(this, _options9).strokeOpacity });
@@ -16087,7 +16311,7 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Get the weight of the stroke in pixels.
    *
-   * @returns {number}
+   * @returns {number|undefined}
    */
   get strokeWeight() {
     return __privateGet(this, _options9).strokeWeight;
@@ -16107,7 +16331,8 @@ var _Polyline = class _Polyline extends Layer_default {
       if (__privateGet(this, _polyline)) {
         if (__privateGet(this, _dashed)) {
           __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
-            __privateGet(this, _polyline).setOptions(opts);
+            var _a;
+            (_a = __privateGet(this, _polyline)) == null ? void 0 : _a.setOptions(opts);
           });
         } else {
           __privateGet(this, _polyline).setOptions({ strokeWeight: Number(value) });
@@ -16118,7 +16343,7 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Get whether the polyline is visible on the map.
    *
-   * @returns {boolean}
+   * @returns {boolean|undefined}
    */
   get visible() {
     return __privateGet(this, _options9).visible;
@@ -16140,7 +16365,7 @@ var _Polyline = class _Polyline extends Layer_default {
   /**
    * Get the zIndex of the polyline.
    *
-   * @returns {number}
+   * @returns {number|undefined}
    */
   get zIndex() {
     return __privateGet(this, _options9).zIndex;
@@ -16363,7 +16588,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   setDashed(dashed, dashGap) {
     this.dashed = dashed;
-    if (dashed) {
+    if (dashed && isDefined(dashGap)) {
       this.dashGap = dashGap;
     }
     return this;
@@ -16418,12 +16643,12 @@ var _Polyline = class _Polyline extends Layer_default {
       if (__privateGet(this, _highlightPolyline)) {
         __privateGet(this, _highlightPolyline).setMap(value, false);
       }
-      yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value);
+      const googlePolyline = yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value != null ? value : void 0);
       if (value instanceof Map) {
         this.visible = isVisible;
         __privateGet(this, _options9).map = value;
         __superGet(_Polyline.prototype, this, "setMap").call(this, value);
-        __privateGet(this, _polyline).setMap(value.toGoogle());
+        googlePolyline.setMap(value.toGoogle());
       } else if (isNullOrUndefined(value)) {
         __privateGet(this, _options9).map = null;
         __superGet(_Polyline.prototype, this, "setMap").call(this, null);
@@ -16566,8 +16791,8 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   toGoogle() {
     return new Promise((resolve) => {
-      __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this).then(() => {
-        resolve(__privateGet(this, _polyline));
+      __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this).then((googlePolyline) => {
+        resolve(googlePolyline);
       });
     });
   }
@@ -16632,10 +16857,12 @@ setupIconsAndDashedPolylineOptions_fn = function() {
             __privateGet(this, _options9).icons.map((icn) => {
               const returnIcon = polylineIcon(icn);
               const iconIcn = returnIcon.icon;
-              if (isDefined(__privateGet(this, _options9).strokeOpacity)) {
-                iconIcn.strokeOpacity = __privateGet(this, _options9).strokeOpacity;
-              } else {
-                iconIcn.strokeOpacity = 1;
+              if (iconIcn) {
+                if (isDefined(__privateGet(this, _options9).strokeOpacity)) {
+                  iconIcn.strokeOpacity = __privateGet(this, _options9).strokeOpacity;
+                } else {
+                  iconIcn.strokeOpacity = 1;
+                }
               }
               return returnIcon.toGoogle();
             })
@@ -16658,33 +16885,34 @@ setupIconsAndDashedPolylineOptions_fn = function() {
  *
  * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
  * @private
+ * @returns {Promise<google.maps.Polyline>} The Google maps Polyline object once it's set up
  */
 setupGooglePolyline_fn = function(map2) {
   return new Promise((resolve) => {
     if (!isObject(__privateGet(this, _polyline))) {
       if (checkForGoogleMaps("Polyline", "Polyline", false)) {
-        __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
+        const googlePolyline = __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
         this.dispatch(PolylineEvents.READY);
-        resolve();
+        resolve(googlePolyline);
       } else {
         loader().onMapLoad(() => {
-          __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
+          const googlePolyline = __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
           const thisMap = this.getMap();
-          if (__privateGet(this, _polyline) && thisMap) {
-            __privateGet(this, _polyline).setMap(thisMap.toGoogle());
+          if (thisMap) {
+            googlePolyline.setMap(thisMap.toGoogle());
             if (__privateGet(this, _highlightPolyline)) {
               __privateGet(this, _highlightPolyline).setMap(thisMap, false);
             }
           }
           this.dispatch(PolylineEvents.READY);
-          resolve();
+          resolve(googlePolyline);
         });
         if (map2 instanceof Map) {
           map2.init();
         }
       }
     } else {
-      resolve();
+      resolve(__privateGet(this, _polyline));
     }
   });
 };
@@ -16703,16 +16931,16 @@ setupGooglePolylineSync_fn = function() {
   }
 };
 /**
- * Create the polyline object
+ * Create the polyline object if it doesn't already exist
  *
  * @private
+ * @returns {google.maps.Polyline} The Google maps Polyline object
  */
 createPolylineObject_fn = function() {
   if (!__privateGet(this, _polyline)) {
     const polylineOptions = {};
     const optionsToSet = [
       "clickable",
-      "map",
       "strokeColor",
       "strokeOpacity",
       "strokeWeight",
@@ -16724,15 +16952,21 @@ createPolylineObject_fn = function() {
         polylineOptions[key] = __privateGet(this, _options9)[key];
       }
     });
-    if (Array.isArray(__privateGet(this, _options9).path)) {
-      polylineOptions.path = __privateGet(this, _options9).path.map((path) => latLng(path).toGoogle());
+    if (__privateGet(this, _options9).map) {
+      polylineOptions.map = __privateGet(this, _options9).map.toGoogle();
     }
-    __privateSet(this, _polyline, new google.maps.Polyline(polylineOptions));
+    if (Array.isArray(__privateGet(this, _options9).path)) {
+      polylineOptions.path = __privateGet(this, _options9).path.map((path) => latLng(path).toGoogle()).filter((path) => path !== null);
+    }
+    const googlePolyline = new google.maps.Polyline(polylineOptions);
+    __privateSet(this, _polyline, googlePolyline);
     __privateMethod(this, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn).call(this).then((opts) => {
-      __privateGet(this, _polyline).setOptions(opts);
-      this.setEventGoogleObject(__privateGet(this, _polyline));
+      googlePolyline.setOptions(opts);
+      this.setEventGoogleObject(googlePolyline);
     });
+    return googlePolyline;
   }
+  return __privateGet(this, _polyline);
 };
 var Polyline = _Polyline;
 var polyline = (options) => {
@@ -17110,7 +17344,7 @@ var Popup = class extends Overlay {
      * The element to close the popup. This can be a CSS selector or an HTMLElement.
      *
      * @private
-     * @type {HTMLElement|string}
+     * @type {HTMLElement|string|undefined}
      */
     __privateAdd(this, _closeElement);
     /**
@@ -17118,7 +17352,7 @@ var Popup = class extends Overlay {
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
      *
      * @private
-     * @type {string|HTMLElement}
+     * @type {string|HTMLElement|Text|undefined}
      */
     __privateAdd(this, _content);
     /**
@@ -17153,14 +17387,14 @@ var Popup = class extends Overlay {
      * thing that the popup is shown for, so that the previous one can be hidden.
      *
      * @private
-     * @type {Popup}
+     * @type {Popup|undefined}
      */
     __privateAdd(this, _activePopup);
     /**
      * Holds the callback function that works out what to show, if one was given.
      *
      * @private
-     * @type {PopupCallback}
+     * @type {PopupCallback|undefined}
      */
     __privateAdd(this, _callback);
     /**
@@ -17224,7 +17458,7 @@ var Popup = class extends Overlay {
       } else {
         this.setOptions(options);
       }
-    } else {
+    } else if (typeof options !== "undefined") {
       this.content = options;
     }
   }
@@ -17285,7 +17519,7 @@ var Popup = class extends Overlay {
   /**
    * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
    *
-   * @returns {HTMLElement|string}
+   * @returns {HTMLElement|string|undefined}
    */
   get closeElement() {
     return __privateGet(this, _closeElement);
@@ -17303,7 +17537,7 @@ var Popup = class extends Overlay {
   /**
    * Returns the content for the popup
    *
-   * @returns {string|HTMLElement|Text}
+   * @returns {string|HTMLElement|Text|undefined}
    */
   get content() {
     return __privateGet(this, _content);
@@ -17319,10 +17553,11 @@ var Popup = class extends Overlay {
       this.getOverlayElement().innerHTML = content;
     } else if (content instanceof HTMLElement || content instanceof Text) {
       __privateSet(this, _content, content);
-      while (this.getOverlayElement().firstChild) {
-        this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
+      const overlayElement = this.getOverlayElement();
+      while (overlayElement.firstChild) {
+        overlayElement.removeChild(overlayElement.firstChild);
       }
-      this.getOverlayElement().appendChild(content);
+      overlayElement.appendChild(content);
     }
   }
   /**
@@ -17414,7 +17649,11 @@ var Popup = class extends Overlay {
             const elementMap = () => element instanceof Map ? element : element.getMap();
             if (triggerEvent === "hover") {
               element.on("mouseover", (e) => {
-                __privateMethod(this, _Popup_instances, popupFor_fn).call(this, element).move(e.latLng, elementMap());
+                const popupObject = __privateMethod(this, _Popup_instances, popupFor_fn).call(this, element);
+                const map2 = elementMap();
+                if (map2) {
+                  popupObject.move(e.latLng, map2);
+                }
               });
               if (element instanceof Map) {
                 element.on("mousemove", (e) => {
@@ -17435,7 +17674,10 @@ var Popup = class extends Overlay {
                 if (__privateGet(popupObject, _autoClose2)) {
                   collection.hideOthers(popupObject);
                 }
-                popupObject.move(e.latLng, elementMap());
+                const map2 = elementMap();
+                if (map2) {
+                  popupObject.move(e.latLng, map2);
+                }
               });
             } else {
               element.on("click", (e) => {
@@ -17615,17 +17857,27 @@ var Popup = class extends Overlay {
               } else {
                 __privateSet(this, _popupOffset, this.getOffset().clone());
               }
-              super.show(element.getMap()).then(() => {
+              const map2 = element.getMap();
+              if (map2) {
+                super.show(map2).then(() => {
+                  resolve(this);
+                });
+              } else {
                 resolve(this);
-              });
+              }
             };
             tryGetAnchorPoint();
           });
         } else {
           __privateSet(this, _popupOffset, this.getOffset().clone());
-          super.show(element.getMap()).then(() => {
+          const map2 = element.getMap();
+          if (map2) {
+            super.show(map2).then(() => {
+              resolve(this);
+            });
+          } else {
             resolve(this);
-          });
+          }
         }
       }
     });
@@ -17659,7 +17911,14 @@ var Popup = class extends Overlay {
    */
   draw(projection) {
     if (typeof projection !== "undefined") {
-      const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle());
+      const position = this.getPosition();
+      if (!position) {
+        return;
+      }
+      const divPosition = projection.fromLatLngToDivPixel(position.toGoogle());
+      if (!divPosition) {
+        return;
+      }
       const display = Math.abs(divPosition.x) < 4e3 && Math.abs(divPosition.y) < 4e3 ? "block" : "none";
       if (display === "block") {
         this.style("left", `${divPosition.x + __privateGet(this, _popupOffset).getX()}px`);
@@ -17725,9 +17984,13 @@ _Popup_instances = new WeakSet();
 fitPopup_fn = function() {
   if (__privateGet(this, _fit) && this.event !== "hover") {
     const map2 = this.getMap();
+    const mapDiv = map2 == null ? void 0 : map2.getDiv();
+    if (!map2 || !mapDiv) {
+      return;
+    }
     let offsetY = 0;
     let offsetX = 0;
-    const mapPosition = map2.getDiv().getBoundingClientRect();
+    const mapPosition = mapDiv.getBoundingClientRect();
     const popupPosition = this.getOverlayElement().getBoundingClientRect();
     if (popupPosition.height < mapPosition.height) {
       if (mapPosition.top > popupPosition.top || mapPosition.top > popupPosition.top - __privateGet(this, _clearance).height) {
@@ -17965,14 +18228,14 @@ var Tooltip = class extends Overlay {
      * thing that the tooltip is shown for, so that the previous one can be hidden.
      *
      * @private
-     * @type {Tooltip}
+     * @type {Tooltip|undefined}
      */
     __privateAdd(this, _activeTooltip);
     /**
      * Holds the callback function that works out what to show, if one was given.
      *
      * @private
-     * @type {TooltipCallback}
+     * @type {TooltipCallback|undefined}
      */
     __privateAdd(this, _callback2);
     /**
@@ -17987,7 +18250,7 @@ var Tooltip = class extends Overlay {
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
      *
      * @private
-     * @type {string|HTMLElement}
+     * @type {string|HTMLElement|Text|undefined}
      */
     __privateAdd(this, _content2);
     /**
@@ -18019,7 +18282,9 @@ var Tooltip = class extends Overlay {
         this.setOptions(options);
       }
     } else {
-      this.content = options;
+      if (typeof options !== "undefined") {
+        this.content = options;
+      }
       this.setClassName("tooltip");
     }
   }
@@ -18044,7 +18309,7 @@ var Tooltip = class extends Overlay {
   /**
    * Returns the content for the tooltip
    *
-   * @returns {string|HTMLElement|Text}
+   * @returns {string|HTMLElement|Text|undefined}
    */
   get content() {
     return __privateGet(this, _content2);
@@ -18130,19 +18395,28 @@ var Tooltip = class extends Overlay {
               element.on("click", (e) => {
                 const tooltipObject = __privateMethod(this, _Tooltip_instances, tooltipFor_fn).call(this, element);
                 tooltipObject.setPosition(e.latLng);
-                tooltipObject.toggle(elementMap());
+                const map2 = elementMap();
+                if (map2) {
+                  tooltipObject.toggle(map2);
+                }
               });
             } else if (triggerEvent === "clickon") {
               element.on("click", (e) => {
                 const tooltipObject = __privateMethod(this, _Tooltip_instances, tooltipFor_fn).call(this, element);
                 tooltipObject.setPosition(e.latLng);
-                tooltipObject.show(elementMap());
+                const map2 = elementMap();
+                if (map2) {
+                  tooltipObject.show(map2);
+                }
               });
             } else {
               element.on("mouseover", (e) => {
                 const tooltipObject = __privateMethod(this, _Tooltip_instances, tooltipFor_fn).call(this, element);
                 tooltipObject.setPosition(e.latLng);
-                tooltipObject.show(elementMap());
+                const map2 = elementMap();
+                if (map2) {
+                  tooltipObject.show(map2);
+                }
               });
               if (element instanceof Map) {
                 element.on("mousemove", (e) => {
@@ -18232,8 +18506,9 @@ var Tooltip = class extends Overlay {
    * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
    */
   draw(projection) {
-    if (this.hasPosition() && typeof projection !== "undefined") {
-      const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle());
+    const position = this.getPosition();
+    if (position && typeof projection !== "undefined") {
+      const divPosition = projection.fromLatLngToDivPixel(position.toGoogle());
       const display = Math.abs(divPosition.x) < 4e3 && Math.abs(divPosition.y) < 4e3 ? "block" : "none";
       if (display === "block") {
         const offset = this.getOffset();

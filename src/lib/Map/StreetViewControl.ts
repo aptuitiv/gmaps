@@ -54,7 +54,7 @@ export class StreetViewControl {
      * @private
      * @type {StreetViewSourceValue[]}
      */
-    #sources?: StreetViewSourceValue[] = [StreetViewSource.DEFAULT];
+    #sources: StreetViewSourceValue[] = [StreetViewSource.DEFAULT];
 
     /**
      * Class constructor

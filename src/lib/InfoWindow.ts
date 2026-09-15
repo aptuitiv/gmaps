@@ -134,10 +134,12 @@ export class InfoWindow extends Layer {
     /**
      * Holds the Google maps InfoWindow object
      *
+     * This is only set once the Google Maps library is loaded.
+     *
      * @private
-     * @type {google.maps.InfoWindow}
+     * @type {google.maps.InfoWindow|undefined}
      */
-    #infoWindow: google.maps.InfoWindow;
+    #infoWindow: google.maps.InfoWindow | undefined;
 
     /**
      * Constructor
@@ -157,7 +159,7 @@ export class InfoWindow extends Layer {
             } else {
                 this.setOptions(options);
             }
-        } else {
+        } else if (typeof options !== 'undefined') {
             // The popup contents were passed
             this.content = options;
         }
@@ -166,9 +168,9 @@ export class InfoWindow extends Layer {
     /**
      * Get the aria label for the InfoWindow
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    get ariaLabel(): string {
+    get ariaLabel(): string | undefined {
         return this.#options.ariaLabel;
     }
 
@@ -190,9 +192,9 @@ export class InfoWindow extends Layer {
     /**
      * Get the content for the InfoWindow
      *
-     * @returns {string|HTMLElement|Text}
+     * @returns {string|HTMLElement|Text|undefined}
      */
-    get content(): string | HTMLElement | Text {
+    get content(): string | HTMLElement | Text | undefined {
         return this.#options.content;
     }
 
@@ -260,9 +262,9 @@ export class InfoWindow extends Layer {
     /**
      * Get the maxWidth option for the InfoWindow
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get maxWidth(): number {
+    get maxWidth(): number | undefined {
         return this.#options.maxWidth;
     }
 
@@ -288,9 +290,9 @@ export class InfoWindow extends Layer {
     /**
      * Get the minWidth option for the InfoWindow
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get minWidth(): number {
+    get minWidth(): number | undefined {
         return this.#options.minWidth;
     }
 
@@ -319,7 +321,8 @@ export class InfoWindow extends Layer {
      * @returns {Size}
      */
     get pixelOffset(): Size {
-        return this.#options.pixelOffset;
+        // This is always set. It gets a default value in the constructor and the setter only replaces it with a valid Size.
+        return this.#options.pixelOffset!;
     }
 
     /**
@@ -341,9 +344,9 @@ export class InfoWindow extends Layer {
     /**
      * Get the position option for the InfoWindow
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    get position(): LatLng {
+    get position(): LatLng | undefined {
         return this.#options.position;
     }
 
@@ -366,9 +369,9 @@ export class InfoWindow extends Layer {
     /**
      * Get the zIndex option for the InfoWindow
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get zIndex(): number {
+    get zIndex(): number | undefined {
         return this.#options.zIndex;
     }
 
@@ -420,12 +423,16 @@ export class InfoWindow extends Layer {
                     // Show the InfoWindow when hovering over the element
                     if (triggerEvent === 'hover') {
                         element.on('mouseover', (e) => {
-                            this.position = e.latLng;
+                            if (e.latLng) {
+                                this.position = e.latLng;
+                            }
                             this.show(element);
                         });
                         if (element instanceof Map) {
                             element.on('mousemove', (e) => {
-                                this.position = e.latLng;
+                                if (e.latLng) {
+                                    this.position = e.latLng;
+                                }
                                 this.show(element);
                             });
                         }
@@ -435,7 +442,7 @@ export class InfoWindow extends Layer {
                     } else if (triggerEvent === 'clickon') {
                         // Show the InfoWindow when clicking on the element
                         element.on('click', (e) => {
-                            if (element instanceof Map) {
+                            if (element instanceof Map && e.latLng) {
                                 this.position = e.latLng;
                             }
                             this.show(element);
@@ -443,7 +450,7 @@ export class InfoWindow extends Layer {
                     } else {
                         // Show the InfoWindow when clicking on the element
                         element.on('click', (e) => {
-                            if (element instanceof Map) {
+                            if (element instanceof Map && e.latLng) {
                                 this.position = e.latLng;
                             }
                             this.show(element);
@@ -679,8 +686,14 @@ export class InfoWindow extends Layer {
      * @returns {Promise<InfoWindow>}
      */
     show(element: Map | Layer): Promise<InfoWindow> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGoogleInfoWindow();
+            const googleInfoWindow = this.#infoWindow;
+            if (!googleInfoWindow) {
+                // The Google Maps library isn't loaded so the InfoWindow can't be shown.
+                reject(new Error('The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded.'));
+                return;
+            }
             const collection = InfoWindowCollection.getInstance();
             if (collection.has(this) && this.#isOpen) {
                 if (this.#toggleDisplay) {
@@ -699,7 +712,7 @@ export class InfoWindow extends Layer {
                 collection.add(this);
 
                 if (element instanceof Map) {
-                    this.#infoWindow.open({
+                    googleInfoWindow.open({
                         map: element.toGoogle(),
                         shouldFocus: this.#focus,
                     });
@@ -709,7 +722,7 @@ export class InfoWindow extends Layer {
                     resolve(this);
                 } else if (element instanceof Marker) {
                     element.toGoogle().then((marker) => {
-                        this.#infoWindow.open({
+                        googleInfoWindow.open({
                             anchor: marker,
                             shouldFocus: this.#focus,
                         });
@@ -744,9 +757,9 @@ export class InfoWindow extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
      *
-     * @returns {google.maps.InfoWindow}
+     * @returns {google.maps.InfoWindow|undefined} The Google maps InfoWindow object, or undefined if the Google Maps library isn't loaded.
      */
-    toGoogle(): google.maps.InfoWindow {
+    toGoogle(): google.maps.InfoWindow | undefined {
         this.#setupGoogleInfoWindow();
         return this.#infoWindow;
     }
@@ -761,12 +774,25 @@ export class InfoWindow extends Layer {
             if (checkForGoogleMaps('InfoWindow', 'InfoWindow', false)) {
                 const infoWindowOptions: google.maps.InfoWindowOptions = {};
                 // Options that can be set on the InfoWindow without any modification
-                const optionsToSet = ['ariaLabel', 'content', 'disableAutoPan', 'maxWidth', 'minWidth', 'zIndex'];
-                optionsToSet.forEach((key) => {
-                    if (typeof this.#options[key] !== 'undefined') {
-                        infoWindowOptions[key] = this.#options[key];
-                    }
-                });
+                const { ariaLabel, content, disableAutoPan, maxWidth, minWidth, zIndex } = this.#options;
+                if (typeof ariaLabel !== 'undefined') {
+                    infoWindowOptions.ariaLabel = ariaLabel;
+                }
+                if (typeof content !== 'undefined') {
+                    infoWindowOptions.content = content;
+                }
+                if (typeof disableAutoPan !== 'undefined') {
+                    infoWindowOptions.disableAutoPan = disableAutoPan;
+                }
+                if (typeof maxWidth !== 'undefined') {
+                    infoWindowOptions.maxWidth = maxWidth;
+                }
+                if (typeof minWidth !== 'undefined') {
+                    infoWindowOptions.minWidth = minWidth;
+                }
+                if (typeof zIndex !== 'undefined') {
+                    infoWindowOptions.zIndex = zIndex;
+                }
 
                 // Options that have to be converted to Google maps objects
                 if (this.#options.pixelOffset) {
@@ -776,10 +802,11 @@ export class InfoWindow extends Layer {
                     infoWindowOptions.position = this.#options.position.toGoogle();
                 }
 
-                this.#infoWindow = new google.maps.InfoWindow(infoWindowOptions);
+                const googleInfoWindow = new google.maps.InfoWindow(infoWindowOptions);
+                this.#infoWindow = googleInfoWindow;
 
                 // Handle when the close button is clicked
-                this.#infoWindow.addListener('closeclick', () => {
+                googleInfoWindow.addListener('closeclick', () => {
                     InfoWindowCollection.getInstance().remove(this);
                 });
                 // Handle when the map changes.
@@ -787,10 +814,10 @@ export class InfoWindow extends Layer {
                 // Google InfoWindow. This can happen if one of our windows is open and then the
                 // user clicks on a map location ang Google shows their own info window.
                 // Without doing this, we can't track that our window was closed.
-                this.#infoWindow.addListener('map_changed', () => {
+                googleInfoWindow.addListener('map_changed', () => {
                     // The getMap() function technically works, but it's not part of the public API
                     // so we don't use it. get('map') seems to work the same.
-                    if (this.#infoWindow.get('map') === null) {
+                    if (googleInfoWindow.get('map') === null) {
                         this.#isOpen = false;
                         InfoWindowCollection.getInstance().remove(this);
                     }
@@ -819,18 +846,23 @@ const infoWindowMixin = {
     /**
      * Holds the InfoWindow object
      *
-     * @type {InfoWindow}
+     * @type {InfoWindow|null}
      */
-    layerInfoWindow: null,
+    layerInfoWindow: null as InfoWindow | null,
 
     /**
      * Attach an InfoWindow to the layer
      *
+     * @param {Map | Layer} this The object that the mixin is added to
      * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow options object, or the InfoWindow object
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      * @returns {InfoWindow}
      */
-    attachInfoWindow(infoWindowValue: InfoWindowValue, event?: 'click' | 'clickon' | 'hover'): InfoWindow {
+    attachInfoWindow(
+        this: Map | Layer,
+        infoWindowValue: InfoWindowValue,
+        event?: 'click' | 'clickon' | 'hover',
+    ): InfoWindow {
         const i = infoWindow(infoWindowValue);
         i.attachTo(this, event);
         return i;

@@ -59,7 +59,7 @@ export class Overlay extends Layer {
      * @private
      * @type {Point}
      */
-    #dragStart: Point;
+    #dragStart!: Point;
 
     /**
      * Whether the overlay is currently being dragged
@@ -83,7 +83,7 @@ export class Overlay extends Layer {
      * @private
      * @type {Point}
      */
-    #offset: Point;
+    #offset!: Point;
 
     /**
      * Holds the overlay HTML element. This is the container element that the
@@ -102,23 +102,23 @@ export class Overlay extends Layer {
      * @private
      * @type {Point}
      */
-    #overlayStart: Point;
+    #overlayStart!: Point;
 
     /**
      * Holds the overlay view class instance
      *
      * @private
-     * @type {google.maps.OverlayView}
+     * @type {google.maps.OverlayView|undefined}
      */
-    #overlayView: google.maps.OverlayView;
+    #overlayView: google.maps.OverlayView | undefined;
 
     /**
      * Holds the position of the overlay
      *
      * @private
-     * @type {LatLng}
+     * @type {LatLng|undefined}
      */
-    #position: LatLng;
+    #position: LatLng | undefined;
 
     /**
      * Whether resizing is enabled for this overlay
@@ -158,7 +158,7 @@ export class Overlay extends Layer {
      * @protected
      * @type {object}
      */
-    resizeStart: ResizeStart;
+    resizeStart!: ResizeStart;
 
     /**
      * Holds the styles for the overlay.
@@ -166,7 +166,7 @@ export class Overlay extends Layer {
      * @private
      * @type {object}
      */
-    #styles: object = {};
+    #styles: { [key: string]: string } = {};
 
     /**
      * Constructor
@@ -263,18 +263,18 @@ export class Overlay extends Layer {
     /**
      * Returns the position of the overlay
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    get position(): LatLng {
+    get position(): LatLng | undefined {
         return this.#position;
     }
 
     /**
      * Set the position of the overlay
      *
-     * @param {LatLngValue} value The position of the overlay
+     * @param {LatLngValue|undefined} value The position of the overlay. Pass undefined to clear the position.
      */
-    set position(value: LatLngValue) {
+    set position(value: LatLngValue | undefined) {
         const position = latLng(value);
         if (position.isValid()) {
             this.#position = position;
@@ -321,7 +321,7 @@ export class Overlay extends Layer {
     set styles(styles: object) {
         if (isObject(styles)) {
             Object.keys(styles).forEach((key) => {
-                this.style(key, styles[key]);
+                this.style(key, (styles as { [key: string]: string })[key]);
             });
         }
     }
@@ -389,10 +389,10 @@ export class Overlay extends Layer {
      *
      * This method should be overridden by subclasses and not called directly.
      *
-     * @returns {LatLngBounds}
+     * @returns {LatLngBounds|undefined}
      */
     // eslint-disable-next-line class-methods-use-this
-    getBounds(): LatLngBounds {
+    getBounds(): LatLngBounds | undefined {
         return new LatLngBounds({
             ne: latLng(),
             sw: latLng(),
@@ -411,11 +411,11 @@ export class Overlay extends Layer {
      */
     getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng {
         // const pixel = point(x, y);
-        const gp = new google.maps.Point(x as number, y);
+        const gp = new google.maps.Point(x as number, y as number);
         const pixel = point(gp);
         const projection = this.getProjection();
         if (projection) {
-            return latLng(projection.fromContainerPixelToLatLng(pixel.toGoogle()));
+            return latLng(projection.fromContainerPixelToLatLng(pixel.toGoogle()) ?? undefined);
         }
         return latLng();
     }
@@ -432,11 +432,11 @@ export class Overlay extends Layer {
      */
     getDivLatLngFromPixel(x: PointValue, y?: number): LatLng {
         // const pixel = point(x, y);
-        const gp = new google.maps.Point(x as number, y);
+        const gp = new google.maps.Point(x as number, y as number);
         const pixel = point(gp);
         const projection = this.getProjection();
         if (projection) {
-            return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()));
+            return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()) ?? undefined);
         }
         return latLng();
     }
@@ -462,9 +462,9 @@ export class Overlay extends Layer {
     /**
      * Get the position of the overlay
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    getPosition(): LatLng {
+    getPosition(): LatLng | undefined {
         return this.position;
     }
 
@@ -472,13 +472,14 @@ export class Overlay extends Layer {
      * Returns the MapCanvasProjection object associated with this OverlayView.
      *
      * The projection is not initialized until onAdd is called by the API.
+     * This returns undefined if the Google maps overlay view hasn't been set up yet.
      *
      * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
      *
-     * @returns {google.maps.MapCanvasProjection}
+     * @returns {google.maps.MapCanvasProjection|undefined}
      */
-    getProjection(): google.maps.MapCanvasProjection {
-        return this.#overlayView.getProjection();
+    getProjection(): google.maps.MapCanvasProjection | undefined {
+        return this.#overlayView?.getProjection();
     }
 
     /**
@@ -528,15 +529,15 @@ export class Overlay extends Layer {
      * If the overlay is not visible, it will be shown.
      * If it's already visible on the map, it will be moved to the new position.
      *
-     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show
      * @param {Map} [map] The Map object
      * @returns {Promise<Overlay>}
      */
-    move(position: LatLngValue, map?: Map): Promise<Overlay> {
+    move(position: LatLngValue | undefined, map?: Map): Promise<Overlay> {
         return new Promise((resolve, reject) => {
             let mapObject = map;
             if (typeof mapObject === 'undefined') {
-                mapObject = this.getMap();
+                mapObject = this.getMap() ?? undefined;
             }
             this.position = position;
             if (mapObject instanceof Map) {
@@ -687,10 +688,11 @@ export class Overlay extends Layer {
     /**
      * Set the position of the overlay
      *
-     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show.
+     *    Pass undefined to clear the position.
      * @returns {Overlay}
      */
-    setPosition(position: LatLngValue): Overlay {
+    setPosition(position: LatLngValue | undefined): Overlay {
         this.position = position;
         return this;
     }
@@ -767,7 +769,8 @@ export class Overlay extends Layer {
     style(name: string, value: string): Overlay {
         if (isString(name) && isString(value)) {
             this.#styles[name] = value;
-            this.#overlay.style[name] = value;
+            // Index the style declaration by name so that both camelCase and dashed property names work.
+            (this.#overlay.style as unknown as { [key: string]: string })[name] = value;
         }
         return this;
     }
@@ -835,7 +838,7 @@ export class Overlay extends Layer {
         this.#overlay.style.border = '2px solid #007bff';
 
         const corners = ['nw', 'ne', 'sw', 'se'];
-        const cursors = {
+        const cursors: { [key: string]: string } = {
             nw: 'nwse-resize',
             ne: 'nesw-resize',
             sw: 'nesw-resize',
@@ -998,14 +1001,16 @@ export class Overlay extends Layer {
         e.preventDefault();
         e.stopPropagation();
 
+        // Resizing needs the map container and the current bounds of the overlay.
+        const mapContainer = this.getMap()?.getDiv();
+        const currentBounds = this.getBounds();
+        if (!mapContainer || !currentBounds) return;
+
         this.#isResizing = true;
         this.resizeCorner = corner;
 
-        const mapContainer = this.getMap().getDiv();
         const containerRect = mapContainer.getBoundingClientRect();
         const currentSize = this.#overlay.getBoundingClientRect();
-
-        const currentBounds = this.getBounds();
 
         // Get the current bounds, position, and size of the overlay before resizing.
         // These values will be used to calculate the new bounds, position, and size of the overlay after resizing.
@@ -1051,9 +1056,10 @@ export class Overlay extends Layer {
 
         const projection = this.getProjection();
 
-        if (projection) {
-            // Get the map container and its bounding client rectangle to get the mouse position relative to the map
-            const mapContainer = this.getMap().getDiv();
+        // Get the map container and its bounding client rectangle to get the mouse position relative to the map
+        const mapContainer = this.getMap()?.getDiv();
+
+        if (projection && mapContainer) {
             const containerRect = mapContainer.getBoundingClientRect();
             const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
             const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
@@ -1061,9 +1067,11 @@ export class Overlay extends Layer {
             const mouseY = eventY - containerRect.top;
 
             // Get the top right x/y coordinates
-            const topRight = projection.fromLatLngToContainerPixel(this.resizeStart.neBounds.toGoogle());
+            const neGoogle = this.resizeStart.neBounds.toGoogle();
+            const topRight = neGoogle ? projection.fromLatLngToContainerPixel(neGoogle) : null;
             // Get the bottom left x/y coordinates
-            const bottomLeft = projection.fromLatLngToContainerPixel(this.resizeStart.swBounds.toGoogle());
+            const swGoogle = this.resizeStart.swBounds.toGoogle();
+            const bottomLeft = swGoogle ? projection.fromLatLngToContainerPixel(swGoogle) : null;
 
             let newWidth: number;
             let newHeight: number;
@@ -1073,7 +1081,7 @@ export class Overlay extends Layer {
             if (this.resizeCorner === 'nw') {
                 // If the current position is below the bottom left corner or to the right of the top right corner,
                 // then do not continue with the resize
-                if (mouseY > bottomLeft.y || mouseX > topRight.x) {
+                if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX > topRight.x) {
                     return;
                 }
                 // Calculate the difference between the current position and the top right
@@ -1087,7 +1095,7 @@ export class Overlay extends Layer {
             } else if (this.resizeCorner === 'ne') {
                 // If the current position is below the bottom left corner or to the left of the bottom left corner,
                 // then do not continue with the resize
-                if (mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
+                if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
                     return;
                 }
                 // Calculate the difference between the current position and the top right
@@ -1101,7 +1109,7 @@ export class Overlay extends Layer {
             } else if (this.resizeCorner === 'sw') {
                 // If the current position is above the top left corner or to the right of the top right corner,
                 // then do not continue with the resize
-                if (mouseY < this.resizeStart.top || mouseX > topRight.x) {
+                if (!bottomLeft || !topRight || mouseY < this.resizeStart.top || mouseX > topRight.x) {
                     return;
                 }
 
@@ -1130,6 +1138,9 @@ export class Overlay extends Layer {
                 newHeight = this.resizeStart.height - diffY;
                 newLeft = this.resizeStart.left;
                 newTop = this.resizeStart.top;
+            } else {
+                // Not a known corner so there is nothing to resize
+                return;
             }
 
             // Apply aspect ratio constraint if set
@@ -1144,7 +1155,7 @@ export class Overlay extends Layer {
             if (this.#resizeAspectRatio > 0) {
                 // If the aspect ratio is set, then we need to calculate the new lat/lng position based on the new dimensions.
                 const newContainerRect = this.#overlay.getBoundingClientRect();
-                const mapContainerRect = this.getMap().getDiv().getBoundingClientRect();
+                const mapContainerRect = mapContainer.getBoundingClientRect();
                 // Need to get the NE and SW pixel coordinates of the container within the map container.
                 const nePos = {
                     x: newContainerRect.right - mapContainerRect.left,

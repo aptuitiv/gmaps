@@ -43,7 +43,7 @@ export class Geocode extends Base {
      * @type {string}
      * @private
      */
-    #address: string;
+    #address?: string;
 
     /**
      * The bounds within which to bias geocode results more prominently
@@ -100,7 +100,7 @@ export class Geocode extends Base {
      *
      * @param {GeocodeOptions} [options] The Geocode options
      */
-    constructor(options: GeocodeOptions) {
+    constructor(options?: GeocodeOptions) {
         super('geocode');
 
         if (isObject(options)) {
@@ -163,7 +163,13 @@ export class Geocode extends Base {
     set componentRestrictions(componentRestrictions: GeocodeComponentRestrictions) {
         if (isObjectWithValues(componentRestrictions)) {
             const restrictions: GeocodeComponentRestrictions = {};
-            const keys = ['administrativeArea', 'country', 'locality', 'postalCode', 'route'];
+            const keys: (keyof GeocodeComponentRestrictions)[] = [
+                'administrativeArea',
+                'country',
+                'locality',
+                'postalCode',
+                'route',
+            ];
             keys.forEach((key) => {
                 if (isStringWithValue(componentRestrictions[key])) {
                     restrictions[key] = componentRestrictions[key];
@@ -346,7 +352,7 @@ export class Geocode extends Base {
             const geocoder = new google.maps.Geocoder();
             geocoder.geocode(options, (results, status) => {
                 if (status === google.maps.GeocoderStatus.OK) {
-                    const resultsObj = new GeocodeResults(results);
+                    const resultsObj = new GeocodeResults(results ?? undefined);
                     resolve(resultsObj);
                 } else {
                     reject(status);

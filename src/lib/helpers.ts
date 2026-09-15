@@ -193,10 +193,17 @@ export const isPromise = <T = any>(thing: any): thing is Promise<T> => !!thing &
 export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.LatLng): google.maps.Point => {
     const projection = map.getProjection();
     const bounds = map.getBounds();
+    const zoom = map.getZoom();
+    if (!projection || !bounds || typeof zoom === 'undefined') {
+        throw new Error('The map must be initialized before getting the pixel location.');
+    }
     const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
     const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-    const scale = 2 ** map.getZoom();
     const worldPoint = projection.fromLatLngToPoint(position);
+    if (!topRight || !bottomLeft || !worldPoint) {
+        throw new Error('Unable to get the pixel location from the map projection.');
+    }
+    const scale = 2 ** zoom;
     return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
 };
 
@@ -213,7 +220,7 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
     const doError = typeof throwError === 'boolean' ? throwError : true;
     if (typeof google !== 'undefined' && isObject(google) && isObject(google.maps)) {
         if (library) {
-            passed = typeof google.maps[library] !== 'undefined';
+            passed = typeof (google.maps as Record<string, unknown>)[library] !== 'undefined';
         } else {
             passed = true;
         }

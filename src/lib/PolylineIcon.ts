@@ -191,16 +191,16 @@ export class PolylineIcon extends Base {
      */
     setOptions(options: PolylineIconOptions): PolylineIcon {
         if (isObject(options)) {
-            if (isDefined(options.fixedRotation)) {
+            if (isDefined<boolean>(options.fixedRotation)) {
                 this.fixedRotation = options.fixedRotation;
             }
-            if (isDefined(options.icon)) {
+            if (isDefined<SvgSymbolValue>(options.icon)) {
                 this.icon = options.icon;
             }
-            if (isDefined(options.offset)) {
+            if (isDefined<string>(options.offset)) {
                 this.offset = options.offset;
             }
-            if (isDefined(options.repeat)) {
+            if (isDefined<string>(options.repeat)) {
                 this.repeat = options.repeat;
             }
         }

@@ -104,25 +104,25 @@ export class ImageRenderer implements Renderer {
      * A CSS class name to be added to the label element
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelClassName: string;
+    #labelClassName: string | undefined;
 
     /**
      * The color of the label text. Default color is black.
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelColor: string;
+    #labelColor: string | undefined;
 
     /**
      * Holds the font family for the cluster marker label.
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelFontFamily: string;
+    #labelFontFamily: string | undefined;
 
     /**
      * Holds the font size for the cluster marker
@@ -136,17 +136,17 @@ export class ImageRenderer implements Renderer {
      * The font weight of the label text (equivalent to the CSS font-weight property).
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelFontWeight: string;
+    #labelFontWeight: string | undefined;
 
     /**
      * The map object
      *
      * @private
-     * @type {Map}
+     * @type {Map|undefined}
      */
-    #map: Map;
+    #map: Map | undefined;
 
     /**
      * Holds if the number of markers in the cluster should be displayed
@@ -183,7 +183,7 @@ export class ImageRenderer implements Renderer {
                             (isObject(images[k]) && typeof (images[k] as ClusterImage).url === 'string'))
                 )
                 .sort((a, b) => a - b)
-                .reduce((acc, k) => {
+                .reduce<ClusterImages>((acc, k) => {
                     acc[k] = images[k];
                     return acc;
                 }, {});
@@ -267,15 +267,15 @@ export class ImageRenderer implements Renderer {
      * Get the image for the cluster.
      *
      * @param {number} count The number of markers in the cluster.
-     * @returns {ClusterImage}
+     * @returns {ClusterImageValue}
      */
-    getImage(count: number): ClusterImage {
-        const keys = Object.keys(this.#images);
+    getImage(count: number): ClusterImageValue {
+        const keys = Object.keys(this.#images).map((k) => parseInt(k, 10));
         let image = this.#images[keys[0]];
 
         for (let i = 0; i < keys.length; i += 1) {
             const k = keys[i];
-            if (count >= parseInt(k, 10)) {
+            if (count >= k) {
                 image = this.#images[k];
             } else {
                 break;
@@ -294,10 +294,12 @@ export class ImageRenderer implements Renderer {
     public render(cluster: Cluster): google.maps.Marker {
         const { count, position } = cluster;
         // Get the image based on the number of markers in the cluster
-        const image = this.getImage(count);
+        const imageValue = this.getImage(count);
+        // A string value is just the image URL
+        const image: ClusterImage = typeof imageValue === 'string' ? { url: imageValue } : imageValue;
 
         // Set the marker image
-        const markerImage = icon(typeof image === 'string' ? image : image.url);
+        const markerImage = icon(image.url);
         if (image.width && image.height) {
             markerImage.setSize([image.width, image.height]);
         } else if (image.size) {
@@ -341,7 +343,10 @@ export class ImageRenderer implements Renderer {
         const clusterMarker = marker();
         clusterMarker.setPositionSync({ lat: position.lat(), lng: position.lng() });
         clusterMarker.setIconSync(markerImage);
-        clusterMarker.setLabelSync(this.#showNumber ? label : undefined);
+        // The new marker doesn't have a label, so only set it if the number should be shown
+        if (this.#showNumber) {
+            clusterMarker.setLabelSync(label);
+        }
         return clusterMarker.toGoogleSync();
     }
 }

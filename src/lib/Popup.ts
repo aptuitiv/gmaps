@@ -93,18 +93,18 @@ export class Popup extends Overlay {
      * The element to close the popup. This can be a CSS selector or an HTMLElement.
      *
      * @private
-     * @type {HTMLElement|string}
+     * @type {HTMLElement|string|undefined}
      */
-    #closeElement: HTMLElement | string;
+    #closeElement: HTMLElement | string | undefined;
 
     /**
      * Holds the popup content.
      * This can be a simple string of text, string of HTML code, or an HTMLElement.
      *
      * @private
-     * @type {string|HTMLElement}
+     * @type {string|HTMLElement|Text|undefined}
      */
-    #content: string | HTMLElement | Text;
+    #content: string | HTMLElement | Text | undefined;
 
     /**
      * The event to trigger the popup
@@ -141,17 +141,17 @@ export class Popup extends Overlay {
      * thing that the popup is shown for, so that the previous one can be hidden.
      *
      * @private
-     * @type {Popup}
+     * @type {Popup|undefined}
      */
-    #activePopup: Popup;
+    #activePopup: Popup | undefined;
 
     /**
      * Holds the callback function that works out what to show, if one was given.
      *
      * @private
-     * @type {PopupCallback}
+     * @type {PopupCallback|undefined}
      */
-    #callback: PopupCallback;
+    #callback: PopupCallback | undefined;
 
     /**
      * Whether the popup is attached to an element
@@ -199,7 +199,7 @@ export class Popup extends Overlay {
      *
      * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
      */
-    constructor(options: PopupOptions | string | HTMLElement | Text) {
+    constructor(options?: PopupOptions | string | HTMLElement | Text) {
         super('popup', 'Popup');
 
         this.#clearance = size(0, 0);
@@ -212,7 +212,7 @@ export class Popup extends Overlay {
             } else {
                 this.setOptions(options);
             }
-        } else {
+        } else if (typeof options !== 'undefined') {
             // The popup contents were passed
             this.content = options;
         }
@@ -281,9 +281,9 @@ export class Popup extends Overlay {
     /**
      * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
      *
-     * @returns {HTMLElement|string}
+     * @returns {HTMLElement|string|undefined}
      */
-    get closeElement(): HTMLElement | string {
+    get closeElement(): HTMLElement | string | undefined {
         return this.#closeElement;
     }
 
@@ -301,9 +301,9 @@ export class Popup extends Overlay {
     /**
      * Returns the content for the popup
      *
-     * @returns {string|HTMLElement|Text}
+     * @returns {string|HTMLElement|Text|undefined}
      */
-    get content(): string | HTMLElement | Text {
+    get content(): string | HTMLElement | Text | undefined {
         return this.#content;
     }
 
@@ -318,12 +318,13 @@ export class Popup extends Overlay {
             this.getOverlayElement().innerHTML = content;
         } else if (content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
+            const overlayElement = this.getOverlayElement();
             // First clear all existing children and their events
-            while (this.getOverlayElement().firstChild) {
-                this.getOverlayElement().removeChild(this.getOverlayElement().firstChild);
+            while (overlayElement.firstChild) {
+                overlayElement.removeChild(overlayElement.firstChild);
             }
             // Append the content as the first child
-            this.getOverlayElement().appendChild(content);
+            overlayElement.appendChild(content);
         }
     }
 
@@ -437,7 +438,11 @@ export class Popup extends Overlay {
                     // Show the popup when hovering over the element
                     if (triggerEvent === 'hover') {
                         element.on('mouseover', (e) => {
-                            this.#popupFor(element).move(e.latLng, elementMap());
+                            const popupObject = this.#popupFor(element);
+                            const map = elementMap();
+                            if (map) {
+                                popupObject.move(e.latLng, map);
+                            }
                         });
                         if (element instanceof Map) {
                             element.on('mousemove', (e) => {
@@ -467,7 +472,10 @@ export class Popup extends Overlay {
                                 collection.hideOthers(popupObject);
                             }
 
-                            popupObject.move(e.latLng, elementMap());
+                            const map = elementMap();
+                            if (map) {
+                                popupObject.move(e.latLng, map);
+                            }
                         });
                     } else {
                         // Show the popup when clicking on the element
@@ -685,9 +693,15 @@ export class Popup extends Overlay {
                             }
 
                             // Set the element value to display the popup and call the add() and draw() functions.
-                            super.show(element.getMap()).then(() => {
+                            const map = element.getMap();
+                            if (map) {
+                                super.show(map).then(() => {
+                                    resolve(this);
+                                });
+                            } else {
+                                // The marker isn't on a map so there is nowhere to show the popup
                                 resolve(this);
-                            });
+                            }
                         };
 
                         // Start the retry mechanism
@@ -697,9 +711,15 @@ export class Popup extends Overlay {
                     // If the anchor is a Layer then the position should be set on the Popup.
                     // This is useful for Polylines and Polygons.
                     this.#popupOffset = this.getOffset().clone();
-                    super.show(element.getMap()).then(() => {
+                    const map = element.getMap();
+                    if (map) {
+                        super.show(map).then(() => {
+                            resolve(this);
+                        });
+                    } else {
+                        // The layer isn't on a map so there is nowhere to show the popup
                         resolve(this);
-                    });
+                    }
                 }
             }
         });
@@ -739,7 +759,16 @@ export class Popup extends Overlay {
         // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
         // up and the popup will be displayed.
         if (typeof projection !== 'undefined') {
-            const divPosition = projection.fromLatLngToDivPixel(this.position.toGoogle());
+            const position = this.getPosition();
+            if (!position) {
+                // The popup doesn't have a position yet so it can't be placed.
+                return;
+            }
+            const divPosition = projection.fromLatLngToDivPixel(position.toGoogle());
+            if (!divPosition) {
+                // The position couldn't be converted to pixel coordinates so the popup can't be placed.
+                return;
+            }
 
             // Hide the popup when it is far out of view.
             const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
@@ -804,11 +833,16 @@ export class Popup extends Overlay {
         // would then cause the element to no longer be hovered over, which would close the popup.
         if (this.#fit && this.event !== 'hover') {
             const map = this.getMap();
+            const mapDiv = map?.getDiv();
+            if (!map || !mapDiv) {
+                // The popup isn't on a map so there is nothing to fit it within
+                return;
+            }
 
             let offsetY = 0;
             let offsetX = 0;
             // Get the map div position data
-            const mapPosition = map.getDiv().getBoundingClientRect();
+            const mapPosition = mapDiv.getBoundingClientRect();
             // Get the popup element position data
             const popupPosition = this.getOverlayElement().getBoundingClientRect();
 
@@ -974,9 +1008,9 @@ const popupMixin = {
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'hover'. See Popup.attachTo() for more information.
      * @returns {Popup}
      */
-    attachPopup(popupValue: AttachPopupValue, event?: 'click' | 'clickon' | 'hover'): Popup {
+    attachPopup(this: Map | Layer, popupValue: AttachPopupValue, event?: 'click' | 'clickon' | 'hover'): Popup {
         let p: Popup;
-        let callback: PopupCallback;
+        let callback: PopupCallback | undefined;
         if (isFunction(popupValue)) {
             // The popup is worked out each time it's shown, so it starts out with no content
             callback = popupValue as PopupCallback;
@@ -1040,7 +1074,7 @@ const dataLayerPopupMixin = {
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
      * @returns {Popup}
      */
-    attachPopup(popupValue: DataPopupValue, event?: AttachEventValue): Popup {
+    attachPopup(this: DataLayer, popupValue: DataPopupValue, event?: AttachEventValue): Popup {
         return attachToDataLayer(this, popupValue, event, popupAdapter) as Popup;
     },
 };
@@ -1057,7 +1091,7 @@ const dataFeaturePopupMixin = {
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup. Defaults to 'click'.
      * @returns {Popup}
      */
-    attachPopup(popupValue: DataPopupValue, event?: AttachEventValue): Popup {
+    attachPopup(this: DataFeature, popupValue: DataPopupValue, event?: AttachEventValue): Popup {
         return attachToDataFeature(this, popupValue, event, popupAdapter) as Popup;
     },
 };

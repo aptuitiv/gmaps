@@ -154,10 +154,12 @@ export class MarkerCluster extends Base {
     /**
      * The MarkerClusterer object
      *
+     * This is undefined until the cluster is set up, which may be delayed until the map is loaded.
+     *
      * @private
-     * @type {MarkerClusterer}
+     * @type {MarkerClusterer|undefined}
      */
-    #clusterer: MarkerClusterer;
+    #clusterer: MarkerClusterer | undefined;
 
     /**
      * Holds any markers to add to the cluster once the map is loaded
@@ -201,7 +203,7 @@ export class MarkerCluster extends Base {
         };
 
         // Set the options
-        let optionsToUse: MarkerClusterOptions = options;
+        let optionsToUse: MarkerClusterOptions | undefined = options;
         if (isObject(markers) && typeof options === 'undefined') {
             // The markers were not passed in, but the options were
             optionsToUse = markers as MarkerClusterOptions;
@@ -330,13 +332,14 @@ export class MarkerCluster extends Base {
         }
 
         // Set the marker cluster object
-        this.#clusterer = new MarkerClusterer(clusterOptions);
+        const clusterer = new MarkerClusterer(clusterOptions);
+        this.#clusterer = clusterer;
 
         // Set the markers if they were passed in
         if (Array.isArray(markers)) {
             markers.forEach((marker) => {
                 if (marker instanceof Marker) {
-                    this.#clusterer.addMarker(marker.toGoogleSync(), true);
+                    clusterer.addMarker(marker.toGoogleSync(), true);
                 }
             });
         }
@@ -356,7 +359,7 @@ export class MarkerCluster extends Base {
         if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
             // const mkr = marker.toGoogleSync();
             marker.toGoogle().then((m) => {
-                this.#clusterer.addMarker(m, !draw);
+                this.#clusterer?.addMarker(m, !draw);
             });
         } else {
             this.#pendingMarkers.push(marker);
@@ -380,7 +383,7 @@ export class MarkerCluster extends Base {
         // Inline function to add the markers
         const add = (mks: Marker[], drw: boolean = true) => {
             // const markersToAdd: MarkerClustererMarker[] = [];
-            const markerPromises = [];
+            const markerPromises: Promise<google.maps.Marker>[] = [];
             mks.forEach((marker) => {
                 if (marker instanceof Marker) {
                     markerPromises.push(marker.toGoogle());
@@ -390,7 +393,7 @@ export class MarkerCluster extends Base {
                 }
             });
             Promise.all(markerPromises).then((googleMarkerObjects) => {
-                this.#clusterer.addMarkers(googleMarkerObjects, !drw);
+                this.#clusterer?.addMarkers(googleMarkerObjects, !drw);
             });
             // this.#clusterer.addMarkers(markersToAdd, !drw);
         };
@@ -419,7 +422,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     clearMarkers(draw: boolean = true): MarkerCluster {
-        this.#clusterer.clearMarkers(!draw);
+        this.#clusterer?.clearMarkers(!draw);
         return this;
     }
 
@@ -432,7 +435,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     removeMarker(marker: Marker, draw: boolean = false): MarkerCluster {
-        this.#clusterer.removeMarker(marker.toGoogleSync(), !draw);
+        this.#clusterer?.removeMarker(marker.toGoogleSync(), !draw);
         return this;
     }
 
@@ -442,7 +445,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     render(): MarkerCluster {
-        this.#clusterer.render();
+        this.#clusterer?.render();
         return this;
     }
 }

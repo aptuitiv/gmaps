@@ -30,9 +30,9 @@ export class Loader extends EventTarget {
      * Holds the Google Maps API key
      *
      * @private
-     * @type {string}
+     * @type {string | undefined}
      */
-    #apiKey: string;
+    #apiKey: string | undefined;
 
     /**
      * Holds the loading state
@@ -62,9 +62,9 @@ export class Loader extends EventTarget {
      * Holds the Google maps loader object
      *
      * @private
-     * @type {GoogleLoader}
+     * @type {GoogleLoader | undefined}
      */
-    #loader: GoogleLoader;
+    #loader: GoogleLoader | undefined;
 
     /**
      * Holds the version of the Google Maps API to load
@@ -89,9 +89,9 @@ export class Loader extends EventTarget {
     /**
      * Get the Google Maps API key
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get apiKey(): string {
+    get apiKey(): string | undefined {
         return this.#apiKey;
     }
 
@@ -280,9 +280,9 @@ export class Loader extends EventTarget {
      * load event is only dispatched one time when the Google maps API is loaded.
      *
      * @param {string} type The event type
-     * @param {Function} callback The event listener function
+     * @param {Function} callback The event listener function. An error is thrown if this isn't a function.
      */
-    on(type: string, callback: EventListenerOrEventListenerObject): void {
+    on(type: string, callback: EventListenerOrEventListenerObject | null): void {
         if (isFunction(callback)) {
             this.addEventListener(type, callback, { once: true });
             if (this.#isLoaded) {
@@ -365,7 +365,7 @@ let loaderInstance: Loader;
 export const loader = (config?: LoaderOptions): Loader => {
     if (!loaderInstance) {
         loaderInstance = new Loader(config);
-    } else {
+    } else if (config) {
         loaderInstance.setOptions(config);
     }
     return loaderInstance;

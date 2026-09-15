@@ -35,9 +35,9 @@ export class MapRestriction {
      * The latitude/longitude bounds that a user is restricted to.
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds|undefined}
      */
-    #latLngBounds: LatLngBounds;
+    #latLngBounds: LatLngBounds | undefined;
 
     /**
      * If true, anything outside of the latLngBounds will be hidden when zooming. This can restrict how much the user can zoom out.
@@ -107,7 +107,7 @@ export class MapRestriction {
      *
      * @returns {LatLngBounds | undefined}
      */
-    get latLngBounds(): LatLngBounds {
+    get latLngBounds(): LatLngBounds | undefined {
         return this.#latLngBounds;
     }
 
@@ -218,7 +218,11 @@ export class MapRestriction {
      * @returns {Promise<google.maps.MapRestriction>}
      */
     toGoogle(): Promise<google.maps.MapRestriction> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
+            if (!this.#latLngBounds) {
+                reject(new Error('The MapRestriction latLngBounds value must be set before it can be used.'));
+                return;
+            }
             this.#latLngBounds.toGoogle().then((bounds) => {
                 resolve({
                     latLngBounds: bounds,

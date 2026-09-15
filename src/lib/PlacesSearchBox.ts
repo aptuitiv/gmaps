@@ -7,7 +7,7 @@
 /* global google, HTMLInputElement */
 
 import { PlacesSearchBoxEvents } from './constants';
-import { Evented, EventConfig, EventListenerOptions } from './Evented';
+import { Event, Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { checkForGoogleMaps, isObject, isObjectWithValues, isString } from './helpers';
 import { latLng } from './LatLng';
 import { latLngBounds, LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
@@ -32,7 +32,10 @@ type PlacesSearchBoxEventObject = Event & {
     places: google.maps.places.PlaceResult[];
     bounds: LatLngBounds;
 };
-// The callback function for the PlacesSearchBox class events
+// The callback function for the PlacesSearchBox class events.
+// The base Evented class types callbacks with the generic Event object, so the event listener methods
+// below cast this callback to EventCallback when passing it on. That's safe because this class
+// dispatches the places_changed event with the places and bounds values added to the event object.
 type PlacesSearchBoxEventCallback = (event: PlacesSearchBoxEventObject) => void;
 
 /**
@@ -43,9 +46,9 @@ export class PlacesSearchBox extends Evented {
      * Holds the reference to the input element
      *
      * @private
-     * @type {HTMLInputElement}
+     * @type {HTMLInputElement | undefined}
      */
-    #input: HTMLInputElement;
+    #input: HTMLInputElement | undefined;
 
     /**
      * Holds the array of places that have been found.
@@ -61,17 +64,17 @@ export class PlacesSearchBox extends Evented {
      * Holds the map bounds based on the places that have been found
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
-    #placesBounds: LatLngBounds;
+    #placesBounds: LatLngBounds | undefined;
 
     /**
      * Holds the reference to the Google Maps SearchBox object
      *
      * @private
-     * @type {google.maps.places.SearchBox}
+     * @type {google.maps.places.SearchBox | undefined}
      */
-    #searchBox: google.maps.places.SearchBox;
+    #searchBox: google.maps.places.SearchBox | undefined;
 
     /**
      * Holds the options for the places search box
@@ -84,23 +87,27 @@ export class PlacesSearchBox extends Evented {
     /**
      * Constructor
      *
-     * @param {string | HTMLInputElement | PlacesSearchBoxOptions} input The input reference or the options
+     * @param {string | HTMLInputElement | PlacesSearchBoxOptions} [input] The input reference or the options
      * @param {PlacesSearchBoxOptions} [options] The places search box options if the input is reference to the input element
      */
-    constructor(input: string | HTMLInputElement | PlacesSearchBoxOptions, options?: PlacesSearchBoxOptions) {
+    constructor(input?: string | HTMLInputElement | PlacesSearchBoxOptions, options?: PlacesSearchBoxOptions) {
         super('placesSearchBox', 'places');
 
         if (input instanceof HTMLInputElement) {
             // An HTMLInputElement was passed
             this.#input = input;
-            this.setOptions(options);
+            if (options) {
+                this.setOptions(options);
+            }
         } else if (isString(input)) {
             // A string selector for the HTMLInputElement was passed
-            this.#input = document.querySelector(input);
+            this.#input = document.querySelector<HTMLInputElement>(input) ?? undefined;
             if (!this.#input) {
                 throw new Error(`The input element with the selector "${input}" was not found.`);
             }
-            this.setOptions(options);
+            if (options) {
+                this.setOptions(options);
+            }
         } else if (isObjectWithValues(input)) {
             // An object of options was passed.
             this.setOptions(input);
@@ -126,9 +133,10 @@ export class PlacesSearchBox extends Evented {
     set bounds(value: LatLngBoundsValue) {
         const boundsValue = latLngBounds(value);
         this.#options.bounds = boundsValue;
-        if (this.#searchBox) {
+        const searchBox = this.#searchBox;
+        if (searchBox) {
             boundsValue.toGoogle().then((bounds) => {
-                this.#searchBox.setBounds(bounds);
+                searchBox.setBounds(bounds);
             });
         }
     }
@@ -151,7 +159,7 @@ export class PlacesSearchBox extends Evented {
         if (value instanceof HTMLInputElement) {
             this.#input = value;
         } else if (isString(value)) {
-            this.#input = document.querySelector(value);
+            this.#input = document.querySelector<HTMLInputElement>(value) ?? undefined;
             if (!this.#input) {
                 throw new Error(`The input element with the selector "${value}" was not found.`);
             }
@@ -238,10 +246,15 @@ export class PlacesSearchBox extends Evented {
             if (this.#options.bounds) {
                 options.bounds = await this.#options.bounds.toGoogle();
             }
-            this.#searchBox = new google.maps.places.SearchBox(this.#input, options);
+            if (!this.#input) {
+                throw new Error('The input element must be set before the places search box can be initialized.');
+            }
+            const searchBox = new google.maps.places.SearchBox(this.#input, options);
+            this.#searchBox = searchBox;
             // Add the listener for when the user selects a place
-            this.#searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-                const places = this.#searchBox.getPlaces();
+            searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
+                // getPlaces() is typed as possibly undefined. Treat that as no places found.
+                const places = searchBox.getPlaces() ?? [];
                 const bounds = latLngBounds();
                 places.forEach((place) => {
                     // Set up the map bounds based on the place
@@ -276,28 +289,28 @@ export class PlacesSearchBox extends Evented {
      * @inheritdoc
      */
     hasListener(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback): boolean {
-        return super.hasListener(type, callback);
+        return super.hasListener(type, callback as EventCallback | undefined);
     }
 
     /**
      * @inheritdoc
      */
     off(type?: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, options?: EventListenerOptions): void {
-        super.off(type, callback, options);
+        super.off(type, callback as EventCallback | undefined, options);
     }
 
     /**
      * @inheritdoc
      */
     on(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.on(type, callback, config);
+        super.on(type, callback as EventCallback, config);
     }
 
     /**
      * @inheritdoc
      */
     onImmediate(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.onImmediate(type, callback, config);
+        super.onImmediate(type, callback as EventCallback, config);
     }
 
     /**
@@ -321,28 +334,28 @@ export class PlacesSearchBox extends Evented {
      * @inheritdoc
      */
     once(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.once(type, callback, config);
+        super.once(type, callback as EventCallback | undefined, config);
     }
 
     /**
      * @inheritdoc
      */
     onceImmediate(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.onceImmediate(type, callback, config);
+        super.onceImmediate(type, callback as EventCallback | undefined, config);
     }
 
     /**
      * @inheritdoc
      */
     only(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.only(type, callback, config);
+        super.only(type, callback as EventCallback, config);
     }
 
     /**
      * @inheritdoc
      */
     onlyOnce(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.onlyOnce(type, callback, config);
+        super.onlyOnce(type, callback as EventCallback, config);
     }
 
     /**
@@ -384,7 +397,7 @@ export class PlacesSearchBox extends Evented {
                 if (options.input instanceof HTMLInputElement) {
                     this.#input = options.input;
                 } else if (isString(options.input)) {
-                    this.#input = document.querySelector(options.input);
+                    this.#input = document.querySelector<HTMLInputElement>(options.input) ?? undefined;
                     if (!this.#input) {
                         throw new Error(`The input element with the selector "${options.input}" was not found.`);
                     }

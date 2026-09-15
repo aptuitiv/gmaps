@@ -151,9 +151,9 @@ export class DataLayer extends Layer {
      * Holds the Google maps Data object
      *
      * @private
-     * @type {google.maps.Data}
+     * @type {google.maps.Data | undefined}
      */
-    #data: google.maps.Data;
+    #data: google.maps.Data | undefined;
 
     /**
      * Holds the map that this layer is the default data layer for.
@@ -163,9 +163,9 @@ export class DataLayer extends Layer {
      * shown again after hide() sets the map to null.
      *
      * @private
-     * @type {Map}
+     * @type {Map | undefined}
      */
-    #defaultLayerMap: Map;
+    #defaultLayerMap: Map | undefined;
 
     /**
      * Holds the DataFeature object for each Google maps feature.
@@ -203,17 +203,17 @@ export class DataLayer extends Layer {
      * This is memoized so that the Data object is only ever created once.
      *
      * @private
-     * @type {Promise<google.maps.Data>}
+     * @type {Promise<google.maps.Data> | undefined}
      */
-    #setupPromise: Promise<google.maps.Data>;
+    #setupPromise: Promise<google.maps.Data> | undefined;
 
     /**
      * Holds the style for the layer
      *
      * @private
-     * @type {DataStyleValue}
+     * @type {DataStyleValue | undefined}
      */
-    #style: DataStyleValue;
+    #style: DataStyleValue | undefined;
 
     /**
      * Holds the Google symbol for each SvgSymbol used in a style.
@@ -268,9 +268,9 @@ export class DataLayer extends Layer {
     /**
      * Get the style for the layer
      *
-     * @returns {DataStyleValue}
+     * @returns {DataStyleValue | undefined}
      */
-    get style(): DataStyleValue {
+    get style(): DataStyleValue | undefined {
         return this.#style;
     }
 
@@ -421,7 +421,9 @@ export class DataLayer extends Layer {
         // never handed to an event callback.
         if (isObject(data) && !isNullOrUndefined((data as google.maps.Data.MouseEvent).feature)) {
             const googleEvent = data as google.maps.Data.MouseEvent;
-            const eventData: any = { feature: this.#featureFor(googleEvent.feature) };
+            const eventData: any = {
+                feature: googleEvent.feature ? this.#featureFor(googleEvent.feature) : undefined,
+            };
             if (typeof googleEvent.domEvent !== 'undefined') {
                 eventData.domEvent = googleEvent.domEvent;
                 eventData.latLng = googleEvent.latLng;
@@ -768,7 +770,7 @@ export class DataLayer extends Layer {
             });
         } else if (isNullOrUndefined(value)) {
             super.setMap(null);
-            this.#options.map = null;
+            this.#options.map = undefined;
             await this.#enqueue((data) => {
                 data.setMap(null);
             });
@@ -1007,17 +1009,19 @@ export class DataLayer extends Layer {
         if (!isObject(style)) {
             return styleOptions;
         }
-        ['cursor', 'fillColor', 'strokeColor', 'title'].forEach((key) => {
-            if (isStringWithValue(style[key])) {
-                styleOptions[key] = style[key];
+        (['cursor', 'fillColor', 'strokeColor', 'title'] as const).forEach((key) => {
+            const value = style[key];
+            if (isStringWithValue(value)) {
+                styleOptions[key] = value;
             }
         });
-        ['clickable', 'draggable', 'editable', 'visible'].forEach((key) => {
-            if (isBoolean(style[key])) {
-                styleOptions[key] = style[key];
+        (['clickable', 'draggable', 'editable', 'visible'] as const).forEach((key) => {
+            const value = style[key];
+            if (isBoolean(value)) {
+                styleOptions[key] = value;
             }
         });
-        ['fillOpacity', 'strokeOpacity', 'strokeWeight', 'zIndex'].forEach((key) => {
+        (['fillOpacity', 'strokeOpacity', 'strokeWeight', 'zIndex'] as const).forEach((key) => {
             if (isNumberOrNumberString(style[key])) {
                 styleOptions[key] = Number(style[key]);
             }
@@ -1055,14 +1059,13 @@ export class DataLayer extends Layer {
      *
      * The same Google feature always gets the same DataFeature object back.
      *
+     * Callers must pass a Google feature. The one caller that can receive an empty value, dispatch(), checks for it first.
+     *
      * @private
      * @param {google.maps.Data.Feature} googleFeature The Google maps feature
      * @returns {DataFeature}
      */
     #featureFor(googleFeature: google.maps.Data.Feature): DataFeature {
-        if (!googleFeature) {
-            return undefined;
-        }
         let feature = this.#features.get(googleFeature);
         if (!feature) {
             feature = new DataFeature(googleFeature, this);
@@ -1095,9 +1098,9 @@ export class DataLayer extends Layer {
      *
      * @private
      * @param {LoadOptions} [options] The load options
-     * @returns {google.maps.Data.GeoJsonOptions}
+     * @returns {google.maps.Data.GeoJsonOptions | null}
      */
-    #geoJsonOptions(options?: LoadOptions): google.maps.Data.GeoJsonOptions {
+    #geoJsonOptions(options?: LoadOptions): google.maps.Data.GeoJsonOptions | null {
         const idProperty =
             isObject(options) && isStringWithValue(options.idProperty) ? options.idProperty : this.#options.idProperty;
         if (isStringWithValue(idProperty)) {
@@ -1120,22 +1123,26 @@ export class DataLayer extends Layer {
     #getGoogleData(): Promise<google.maps.Data> {
         if (!this.#setupPromise) {
             this.#setupPromise = new Promise((resolve) => {
-                if (this.#defaultLayerMap instanceof Map) {
+                const defaultLayerMap = this.#defaultLayerMap;
+                if (defaultLayerMap instanceof Map) {
                     // This is the map's own data layer so wait for the map to be ready
-                    this.#defaultLayerMap.init().then(() => {
-                        this.#setDataObject(this.#defaultLayerMap.toGoogle().data);
-                        resolve(this.#data);
+                    defaultLayerMap.init().then(() => {
+                        const { data } = defaultLayerMap.toGoogle();
+                        this.#setDataObject(data);
+                        resolve(data);
                     });
                 } else if (checkForGoogleMaps('DataLayer', 'Data', false)) {
-                    this.#setDataObject(new google.maps.Data());
-                    resolve(this.#data);
+                    const data = new google.maps.Data();
+                    this.#setDataObject(data);
+                    resolve(data);
                 } else {
                     // The Google maps library hasn't loaded yet. Wait for it.
                     // Only the library is needed to create the Data object. Attaching it to a
                     // map is left to setMap() and show(), which wait for the map to be ready.
                     loader().onLoad(() => {
-                        this.#setDataObject(new google.maps.Data());
-                        resolve(this.#data);
+                        const data = new google.maps.Data();
+                        this.#setDataObject(data);
+                        resolve(data);
                     });
                 }
             });

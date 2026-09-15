@@ -32,12 +32,14 @@ type WidthSize = number | number[] | string | string[] | SizeObject;
  */
 export class Size extends Base {
     /**
-     * Holds the Google maps size object
+     * Holds the Google maps size object.
+     *
+     * This is created the first time that toGoogle() is called.
      *
      * @private
-     * @type {google.maps.Size}
+     * @type {google.maps.Size|undefined}
      */
-    #sizeObject: google.maps.Size;
+    #sizeObject: google.maps.Size | undefined;
 
     /**
      * The width value
@@ -181,7 +183,10 @@ export class Size extends Base {
             this.height = (width as any).getHeight();
         } else {
             this.width = width;
-            this.height = height;
+            // The height setter ignores an undefined value, so only call it when there is a value.
+            if (typeof height !== 'undefined') {
+                this.height = height;
+            }
         }
         /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;

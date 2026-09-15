@@ -157,7 +157,7 @@ export const convertControlPosition = (value: string): google.maps.ControlPositi
     let returnValue = google.maps.ControlPosition.BLOCK_START_INLINE_START;
     Object.entries(ControlPosition).forEach((item) => {
         if (item[1] === value) {
-            returnValue = google.maps.ControlPosition[item[0]];
+            returnValue = google.maps.ControlPosition[item[0] as keyof typeof google.maps.ControlPosition];
         }
     });
     return returnValue;
@@ -373,7 +373,7 @@ export const convertMapTypeControlStyle = (value: string): google.maps.MapTypeCo
     let returnValue = google.maps.MapTypeControlStyle.DEFAULT;
     Object.entries(MapTypeControlStyle).forEach((item) => {
         if (item[1] === value) {
-            returnValue = google.maps.MapTypeControlStyle[item[0]];
+            returnValue = google.maps.MapTypeControlStyle[item[0] as keyof typeof google.maps.MapTypeControlStyle];
         }
     });
     return returnValue;
@@ -573,7 +573,7 @@ export const convertSymbolPath = (value: string): string => {
     let returnValue = '';
     Object.entries(SymbolPath).forEach((item) => {
         if (item[1] === value) {
-            returnValue = google.maps.SymbolPath[item[0]];
+            returnValue = String(google.maps.SymbolPath[item[0] as keyof typeof google.maps.SymbolPath]);
         }
     });
     return returnValue;

@@ -54,8 +54,8 @@ type GMMarkerOptions = {
     icon?: Icon | SvgSymbol | string;
     // The label value for the marker
     label?: string | MarkerLabel;
-    // The map to add the marker to.
-    map?: Map;
+    // The map to add the marker to. This is null if the marker was removed from the map.
+    map?: Map | null;
     // The position for the marker.
     position?: LatLng;
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
@@ -108,15 +108,17 @@ export class AdvancedMarker extends Layer {
      * @private
      * @type {google.maps.marker.AdvancedMarkerElement}
      */
-    #marker: google.maps.marker.AdvancedMarkerElement;
+    #marker!: google.maps.marker.AdvancedMarkerElement;
 
     /**
      * Holds the marker options
      *
+     * The position always has a value. It defaults to 0,0 and is only replaced with a valid position.
+     *
      * @private
-     * @type {GMMarkerOptions}
+     * @type {GMMarkerOptions & { position: LatLng }}
      */
-    #options: GMMarkerOptions = {};
+    #options: GMMarkerOptions & { position: LatLng } = { position: latLng([0, 0]) };
 
     /**
      * Constructor
@@ -126,9 +128,6 @@ export class AdvancedMarker extends Layer {
      */
     constructor(position?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
         super('marker', 'AdvancedMarker', 'marker');
-
-        // Set a default position
-        this.#options.position = latLng([0, 0]);
 
         // Set the marker latitude and longitude value
         if (position instanceof LatLng || Array.isArray(position)) {
@@ -147,9 +146,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the anchor point for the marker
      *
-     * @returns {Point}
+     * @returns {Point | undefined}
      */
-    get anchorPoint(): Point {
+    get anchorPoint(): Point | undefined {
         return this.#options.anchorPoint;
     }
 
@@ -165,9 +164,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the cursor type to show on hover
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get cursor(): string {
+    get cursor(): string | undefined {
         return this.#options.cursor;
     }
 
@@ -183,9 +182,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the icon for the marker
      *
-     * @returns {Icon | SvgSymbol | string}
+     * @returns {Icon | SvgSymbol | string | undefined}
      */
-    get icon(): Icon | SvgSymbol | string {
+    get icon(): Icon | SvgSymbol | string | undefined {
         return this.#options.icon;
     }
 
@@ -201,9 +200,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the label for the marker
      *
-     * @returns {string | number | MarkerLabel}
+     * @returns {string | number | MarkerLabel | undefined}
      */
-    get label(): string | number | MarkerLabel {
+    get label(): string | number | MarkerLabel | undefined {
         return this.#options.label;
     }
 
@@ -219,9 +218,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the map object
      *
-     * @returns {Map}
+     * @returns {Map | null | undefined}
      */
-    get map(): Map {
+    get map(): Map | null | undefined {
         return this.#options.map;
     }
 
@@ -255,9 +254,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the title for the marker
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get title(): string {
+    get title(): string | undefined {
         return this.#options.title;
     }
 
@@ -346,7 +345,7 @@ export class AdvancedMarker extends Layer {
             this.#marker.addListener('mouseover', () => {
                 console.log('mouseover');
             });
-            this.#marker.content.addEventListener('mouseover', () => {
+            this.#marker.content?.addEventListener('mouseover', () => {
                 console.log('content mouseover');
             });
         } else {
@@ -686,7 +685,7 @@ export class AdvancedMarker extends Layer {
         }
 
         // Set simple options
-        const stringOptions = ['cursor'];
+        const stringOptions: 'cursor'[] = ['cursor'];
         stringOptions.forEach((key) => {
             if (options[key] && isStringWithValue(options[key])) {
                 this.#options[key] = options[key];
@@ -783,7 +782,7 @@ export class AdvancedMarker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.title = undefined;
         }
-        this.#marker.title = this.#options.title;
+        this.#marker.title = this.#options.title ?? '';
     }
 
     /**
@@ -894,11 +893,13 @@ export class AdvancedMarker extends Layer {
     #createMarkerObject() {
         if (!this.#marker) {
             const markerOptions: AdvancedMarkerOptions = {};
-            // Options that can be set on the marker without any modification
-            const optionsToSet = ['cursor', 'title'];
+            // Options that can be set on the marker without any modification.
+            // "cursor" isn't part of the AdvancedMarkerElementOptions type, so index both objects generically.
+            const optionsToSet: ('cursor' | 'title')[] = ['cursor', 'title'];
+            const markerOptionsRecord = markerOptions as Record<string, unknown>;
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
-                    markerOptions[key] = this.#options[key];
+                    markerOptionsRecord[key] = this.#options[key];
                 }
             });
 

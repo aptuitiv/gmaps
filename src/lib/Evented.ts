@@ -87,7 +87,7 @@ export class Evented extends Base {
     /**
      * Holds the events that have been called
      */
-    #eventsCalled: object = {};
+    #eventsCalled: { [key: string]: boolean } = {};
 
     /**
      * Holds the event listeners
@@ -111,7 +111,8 @@ export class Evented extends Base {
      * @private
      * @type {google.maps.MVCObject| google.maps.marker.AdvancedMarkerElement}
      */
-    #googleObject: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement;
+    // Definitely assigned because it's only used after #isGoogleObjectSet() confirms that it's set.
+    #googleObject!: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement;
 
     /**
      * Holds whether the onload event was set on the Loader class to
@@ -205,11 +206,12 @@ export class Evented extends Base {
                     if (isFunction(googleData.stop)) {
                         eventData.stop = googleData.stop;
                     }
-                    if (typeof googleData.latLng !== 'undefined') {
+                    if (googleData.latLng) {
                         eventData.latLng = latLng(googleData.latLng.lat(), googleData.latLng.lng());
                     }
-                    if (typeof (data as google.maps.IconMouseEvent).placeId !== 'undefined') {
-                        eventData.placeId = (data as google.maps.IconMouseEvent).placeId;
+                    const { placeId } = data as google.maps.IconMouseEvent;
+                    if (isString(placeId)) {
+                        eventData.placeId = placeId;
                     }
                     // The data layer sets the feature that the event occurred on.
                     // The DataLayer class replaces the Google feature with a DataFeature object before dispatching.
@@ -366,7 +368,8 @@ export class Evented extends Base {
     once(type: string, callback?: EventCallback, config?: EventConfig): void {
         const eventConfig = isObject(config) ? config : {};
         eventConfig.once = true;
-        this.on(type, callback, eventConfig);
+        // #on() throws an error if the callback isn't a function
+        this.on(type, callback as EventCallback, eventConfig);
     }
 
     /**
@@ -380,7 +383,8 @@ export class Evented extends Base {
         const eventConfig = isObject(config) ? config : {};
         eventConfig.once = true;
         eventConfig.callImmediate = true;
-        this.on(type, callback, eventConfig);
+        // #on() throws an error if the callback isn't a function
+        this.on(type, callback as EventCallback, eventConfig);
     }
 
     /**
@@ -481,7 +485,7 @@ export class Evented extends Base {
             // Options for the event listener
             const listenerOptions: EventListenerOptions = {};
             // The context to bind the callback function to
-            let context: object;
+            let context: object | undefined;
 
             // If the event type is already in the list of onlyEventListeners then don't add the listener
             if (this.#onlyEventListeners.includes(type)) {
@@ -521,7 +525,7 @@ export class Evented extends Base {
                             addListener = false;
                         }
                         if (isFunction(callback)) {
-                            callback.call(context || this);
+                            callback.call(context || this, { type });
                         }
                     }
                 }

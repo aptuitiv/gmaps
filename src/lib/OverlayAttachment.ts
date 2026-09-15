@@ -132,8 +132,8 @@ export const overlayFromCallback = (base: Overlay, value: any, adapter: OverlayA
  * @returns {AttachmentConfig}
  */
 const buildConfig = (value: any, event: AttachEventValue, adapter: OverlayAttachmentAdapter): AttachmentConfig => {
-    let callback: (feature: DataFeature) => any;
-    let template: string;
+    let callback: ((feature: DataFeature) => any) | undefined;
+    let template: string | undefined;
     let overlay: Overlay;
     if (isFunction(value)) {
         // The overlay is worked out for each feature so it starts out with no content
@@ -184,7 +184,7 @@ const getOverlay = (
  *
  * @param {AttachmentConfig} config The configuration
  * @param {DataFeature} feature The feature to show the overlay for
- * @param {LatLng} position The position to show the overlay at
+ * @param {LatLng|undefined} position The position to show the overlay at. Nothing is shown if there isn't one.
  * @param {OverlayAttachmentAdapter} adapter The adapter for the kind of overlay
  * @param {Overlay} [openOverlay] The overlay that is currently open, if there is one
  * @returns {Overlay|undefined} The overlay that was shown
@@ -192,7 +192,7 @@ const getOverlay = (
 const showOverlay = (
     config: AttachmentConfig,
     feature: DataFeature,
-    position: LatLng,
+    position: LatLng | undefined,
     adapter: OverlayAttachmentAdapter,
     openOverlay?: Overlay,
 ): Overlay | undefined => {
@@ -312,7 +312,7 @@ const setupListeners = (layer: DataLayer, event: AttachEventValue, adapter: Over
 export const attachToDataLayer = (
     layer: DataLayer,
     value: any,
-    event: AttachEventValue,
+    event: AttachEventValue | undefined,
     adapter: OverlayAttachmentAdapter,
 ): Overlay => {
     const triggerEvent = event || adapter.defaultEvent;
@@ -334,7 +334,7 @@ export const attachToDataLayer = (
 export const attachToDataFeature = (
     feature: DataFeature,
     value: any,
-    event: AttachEventValue,
+    event: AttachEventValue | undefined,
     adapter: OverlayAttachmentAdapter,
 ): Overlay => {
     const triggerEvent = event || adapter.defaultEvent;

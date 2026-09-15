@@ -113,7 +113,7 @@ class Layer extends Evented {
      * @param {Popup} popup The Popup object to add the layer to
      */
     setPopup(popup: Popup | null): void {
-        this.#popup = popup;
+        this.#popup = popup ?? undefined;
     }
 
     /**
@@ -122,7 +122,7 @@ class Layer extends Evented {
      * @returns {void}
      */
     closePopup(): void {
-        if (this.hasPopup()) {
+        if (this.#popup) {
             this.#popup.close();
         }
     }
@@ -160,7 +160,7 @@ class Layer extends Evented {
      * @returns {void}
      */
     openPopup(): void {
-        if (this.hasPopup()) {
+        if (this.#popup) {
             this.#popup.show(this);
         }
     }
@@ -171,7 +171,7 @@ class Layer extends Evented {
      * @returns {void}
      */
     togglePopup(): void {
-        if (this.hasPopup()) {
+        if (this.#popup) {
             this.#popup.toggle(this);
         }
     }

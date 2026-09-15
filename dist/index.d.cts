@@ -660,9 +660,11 @@ declare class LatLng extends Base {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#LatLng
      *
-     * @returns {google.maps.LatLng|null}
+     * This throws an error if the latitude/longitude pair is not valid, or if the Google Maps library is not loaded.
+     *
+     * @returns {google.maps.LatLng}
      */
-    toGoogle(): google.maps.LatLng | null;
+    toGoogle(): google.maps.LatLng;
     /**
      * Returns whether the latitude/longitude pair are valid values
      *
@@ -848,6 +850,8 @@ declare class Point extends Base {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/coordinates#Point
      *
+     * This throws an error if the Google Maps library is not loaded.
+     *
      * @returns {google.maps.Point}
      */
     toGoogle(): google.maps.Point;
@@ -870,8 +874,8 @@ type PointValue = Point | number | number[] | string | string[] | PointObject;
  */
 declare const point: (x?: PointValue, y?: number | string) => Point;
 
-type Event$1 = {
-    domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event$1;
+type Event = {
+    domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event;
     feature?: any;
     latLng?: LatLng;
     placeId?: string;
@@ -879,7 +883,7 @@ type Event$1 = {
     stop?: () => void;
     type: string;
 };
-type EventCallback = (event: Event$1) => void;
+type EventCallback = (event: Event) => void;
 type EventConfig = {
     callImmediate?: boolean;
     context?: object;
@@ -1103,13 +1107,17 @@ declare class LatLngBounds extends Base {
      */
     getCenter(): LatLng;
     /**
-     * Get the north-east corner of the LatLngBounds
+     * Get the north-east corner of the LatLngBounds.
+     *
+     * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
      *
      * @returns {LatLng}
      */
     getNorthEast(): LatLng;
     /**
-     * Get the south-west corner of the LatLngBounds
+     * Get the south-west corner of the LatLngBounds.
+     *
+     * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
      *
      * @returns {LatLng}
      */
@@ -1580,7 +1588,7 @@ declare class GeocodeResult extends Base {
      *
      * @returns {number|undefined}
      */
-    getLatitude(): number;
+    getLatitude(): number | undefined;
     /**
      * Gets the LatLng object for the result
      *
@@ -1600,7 +1608,7 @@ declare class GeocodeResult extends Base {
      *
      * @returns {number|undefined}
      */
-    getLongitude(): number;
+    getLongitude(): number | undefined;
     /**
      * Get the place id for the location.
      *
@@ -1737,7 +1745,7 @@ declare class Geocode extends Base {
      *
      * @param {GeocodeOptions} [options] The Geocode options
      */
-    constructor(options: GeocodeOptions);
+    constructor(options?: GeocodeOptions);
     /**
      * Returns the address
      *
@@ -2140,10 +2148,10 @@ declare class AutocompleteSearchBox extends Evented {
     /**
      * Constructor
      *
-     * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} input The input reference or the options
+     * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} [input] The input reference or the options
      * @param {AutocompleteSearchBoxOptions} [options] The places autocomplete search box options if the input is reference to the input element
      */
-    constructor(input: string | HTMLInputElement | AutocompleteSearchBoxOptions, options?: AutocompleteSearchBoxOptions);
+    constructor(input?: string | HTMLInputElement | AutocompleteSearchBoxOptions, options?: AutocompleteSearchBoxOptions);
     /**
      * Get the bounds to which query predictions are biased.
      *
@@ -2759,7 +2767,7 @@ declare class MapRestriction {
      *
      * @returns {LatLngBounds | undefined}
      */
-    get latLngBounds(): LatLngBounds;
+    get latLngBounds(): LatLngBounds | undefined;
     /**
      * Set the latitude/longitude bounds
      *
@@ -4232,7 +4240,10 @@ declare class Map extends Evented {
      */
     stopLocate(): Map;
     /**
-     * Returns the Google map object
+     * Returns the Google map object.
+     *
+     * The Google map object is set up when the map is shown. Before that this returns undefined.
+     * Use init(), load(), or show() and wait for them to resolve before calling this.
      *
      * @returns {google.maps.Map}
      */
@@ -4338,15 +4349,15 @@ declare class Overlay extends Layer {
     /**
      * Returns the position of the overlay
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    get position(): LatLng;
+    get position(): LatLng | undefined;
     /**
      * Set the position of the overlay
      *
-     * @param {LatLngValue} value The position of the overlay
+     * @param {LatLngValue|undefined} value The position of the overlay. Pass undefined to clear the position.
      */
-    set position(value: LatLngValue);
+    set position(value: LatLngValue | undefined);
     /**
      * Returns whether resizing is enabled
      *
@@ -4409,9 +4420,9 @@ declare class Overlay extends Layer {
      *
      * This method should be overridden by subclasses and not called directly.
      *
-     * @returns {LatLngBounds}
+     * @returns {LatLngBounds|undefined}
      */
-    getBounds(): LatLngBounds;
+    getBounds(): LatLngBounds | undefined;
     /**
      * Computes the geographical coordinates from pixel coordinates in the map's container.
      *
@@ -4449,19 +4460,20 @@ declare class Overlay extends Layer {
     /**
      * Get the position of the overlay
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    getPosition(): LatLng;
+    getPosition(): LatLng | undefined;
     /**
      * Returns the MapCanvasProjection object associated with this OverlayView.
      *
      * The projection is not initialized until onAdd is called by the API.
+     * This returns undefined if the Google maps overlay view hasn't been set up yet.
      *
      * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
      *
-     * @returns {google.maps.MapCanvasProjection}
+     * @returns {google.maps.MapCanvasProjection|undefined}
      */
-    getProjection(): google.maps.MapCanvasProjection;
+    getProjection(): google.maps.MapCanvasProjection | undefined;
     /**
      * Get the current aspect ratio for resizing
      *
@@ -4492,11 +4504,11 @@ declare class Overlay extends Layer {
      * If the overlay is not visible, it will be shown.
      * If it's already visible on the map, it will be moved to the new position.
      *
-     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show
      * @param {Map} [map] The Map object
      * @returns {Promise<Overlay>}
      */
-    move(position: LatLngValue, map?: Map): Promise<Overlay>;
+    move(position: LatLngValue | undefined, map?: Map): Promise<Overlay>;
     /**
      * Add an event listener for when dragging ends
      *
@@ -4583,10 +4595,11 @@ declare class Overlay extends Layer {
     /**
      * Set the position of the overlay
      *
-     * @param {LatLngValue} position The latitude/longitude position of where the overlay should show
+     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show.
+     *    Pass undefined to clear the position.
      * @returns {Overlay}
      */
-    setPosition(position: LatLngValue): Overlay;
+    setPosition(position: LatLngValue | undefined): Overlay;
     /**
      * Set the aspect ratio to maintain during resizing
      *
@@ -4704,7 +4717,7 @@ declare class Popup extends Overlay {
      *
      * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
      */
-    constructor(options: PopupOptions | string | HTMLElement | Text);
+    constructor(options?: PopupOptions | string | HTMLElement | Text);
     /**
      * Get the autoClose value
      *
@@ -4746,9 +4759,9 @@ declare class Popup extends Overlay {
     /**
      * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
      *
-     * @returns {HTMLElement|string}
+     * @returns {HTMLElement|string|undefined}
      */
-    get closeElement(): HTMLElement | string;
+    get closeElement(): HTMLElement | string | undefined;
     /**
      * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
      *
@@ -4758,9 +4771,9 @@ declare class Popup extends Overlay {
     /**
      * Returns the content for the popup
      *
-     * @returns {string|HTMLElement|Text}
+     * @returns {string|HTMLElement|Text|undefined}
      */
-    get content(): string | HTMLElement | Text;
+    get content(): string | HTMLElement | Text | undefined;
     /**
      * Set the content for the popup
      *
@@ -5098,9 +5111,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the SVG fill color
      *
-     * @returns {string}
+     * @returns {string|null|undefined}
      */
-    get fillColor(): string;
+    get fillColor(): string | null | undefined;
     /**
      * Set the SVG fill color.
      *
@@ -5110,9 +5123,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the opacity for the fill
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get fillOpacity(): number;
+    get fillOpacity(): number | null | undefined;
     /**
      * Set the opacity for the fill
      *
@@ -5122,9 +5135,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
      *
-     * @returns {PointValue}
+     * @returns {PointValue|null|undefined}
      */
-    get labelOrigin(): PointValue;
+    get labelOrigin(): PointValue | null | undefined;
     /**
      * Set the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
      *
@@ -5146,9 +5159,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the rotation of the icon in degrees clockwise about the anchor point.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get rotation(): number;
+    get rotation(): number | null | undefined;
     /**
      * Set the rotation of the icon in degrees clockwise about the anchor point.
      *
@@ -5158,9 +5171,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the amount by which the icon is scaled.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get scale(): number;
+    get scale(): number | null | undefined;
     /**
      * Set the amount by which the icon is scaled.
      *
@@ -5170,9 +5183,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the SVG stroke color
      *
-     * @returns {string}
+     * @returns {string|null|undefined}
      */
-    get strokeColor(): string;
+    get strokeColor(): string | null | undefined;
     /**
      * Set the SVG stroke color.
      *
@@ -5183,9 +5196,9 @@ declare class SvgSymbol extends Base {
      * Get the opacity of the stroke.
      * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get strokeOpacity(): number;
+    get strokeOpacity(): number | null | undefined;
     /**
      * Set the opacity of the stroke.
      *
@@ -5195,9 +5208,9 @@ declare class SvgSymbol extends Base {
     /**
      * Get the weight of the stroke in pixels.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get strokeWeight(): number;
+    get strokeWeight(): number | null | undefined;
     /**
      * Set the weight of the stroke.
      *
@@ -5312,7 +5325,7 @@ type SvgSymbolValue = SvgSymbol | string | SvgSymbolOptions;
 declare const svgSymbol: (path?: SvgSymbolValue, options?: SvgSymbolOptions) => SvgSymbol;
 
 type DataLayerEvent = 'addfeature' | 'click' | 'contextmenu' | 'dblclick' | 'load' | 'mousedown' | 'mouseout' | 'mouseover' | 'mouseup' | 'ready' | 'removefeature' | 'removeproperty' | 'rightclick' | 'setgeometry' | 'setproperty';
-type DataLayerEventObject = Event$1 & {
+type DataLayerEventObject = Event & {
     feature?: DataFeature;
 };
 type DataLayerEventCallback = (event: DataLayerEventObject) => void;
@@ -5385,9 +5398,9 @@ declare class DataLayer extends Layer {
     /**
      * Get the style for the layer
      *
-     * @returns {DataStyleValue}
+     * @returns {DataStyleValue | undefined}
      */
-    get style(): DataStyleValue;
+    get style(): DataStyleValue | undefined;
     /**
      * Set the style for the layer
      *
@@ -5954,9 +5967,9 @@ declare class InfoWindow extends Layer {
     /**
      * Get the aria label for the InfoWindow
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    get ariaLabel(): string;
+    get ariaLabel(): string | undefined;
     /**
      * Set the aria label for the InfoWindow
      *
@@ -5966,9 +5979,9 @@ declare class InfoWindow extends Layer {
     /**
      * Get the content for the InfoWindow
      *
-     * @returns {string|HTMLElement|Text}
+     * @returns {string|HTMLElement|Text|undefined}
      */
-    get content(): string | HTMLElement | Text;
+    get content(): string | HTMLElement | Text | undefined;
     /**
      * Set the content for the InfoWindow
      *
@@ -6002,9 +6015,9 @@ declare class InfoWindow extends Layer {
     /**
      * Get the maxWidth option for the InfoWindow
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get maxWidth(): number;
+    get maxWidth(): number | undefined;
     /**
      * Set the maxWidth option for the InfoWindow
      *
@@ -6014,9 +6027,9 @@ declare class InfoWindow extends Layer {
     /**
      * Get the minWidth option for the InfoWindow
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get minWidth(): number;
+    get minWidth(): number | undefined;
     /**
      * Set the minWidth option for the InfoWindow
      *
@@ -6038,9 +6051,9 @@ declare class InfoWindow extends Layer {
     /**
      * Get the position option for the InfoWindow
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    get position(): LatLng;
+    get position(): LatLng | undefined;
     /**
      * Set the position option for the InfoWindow
      *
@@ -6050,9 +6063,9 @@ declare class InfoWindow extends Layer {
     /**
      * Get the zIndex option for the InfoWindow
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get zIndex(): number;
+    get zIndex(): number | undefined;
     /**
      * Set the zIndex option for the InfoWindow
      *
@@ -6201,9 +6214,9 @@ declare class InfoWindow extends Layer {
      *
      * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
      *
-     * @returns {google.maps.InfoWindow}
+     * @returns {google.maps.InfoWindow|undefined} The Google maps InfoWindow object, or undefined if the Google Maps library isn't loaded.
      */
-    toGoogle(): google.maps.InfoWindow;
+    toGoogle(): google.maps.InfoWindow | undefined;
 }
 type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
 /**
@@ -6235,9 +6248,9 @@ declare class Loader extends EventTarget {
     /**
      * Get the Google Maps API key
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get apiKey(): string;
+    get apiKey(): string | undefined;
     /**
      * Set the Google Maps API key
      *
@@ -6322,9 +6335,9 @@ declare class Loader extends EventTarget {
      * load event is only dispatched one time when the Google maps API is loaded.
      *
      * @param {string} type The event type
-     * @param {Function} callback The event listener function
+     * @param {Function} callback The event listener function. An error is thrown if this isn't a function.
      */
-    on(type: string, callback: EventListenerOrEventListenerObject): void;
+    on(type: string, callback: EventListenerOrEventListenerObject | null): void;
     /**
      * Sets up an event listener for the "load" event.
      *
@@ -6412,9 +6425,9 @@ declare class Tooltip extends Overlay {
     /**
      * Returns the content for the tooltip
      *
-     * @returns {string|HTMLElement|Text}
+     * @returns {string|HTMLElement|Text|undefined}
      */
-    get content(): string | HTMLElement | Text;
+    get content(): string | HTMLElement | Text | undefined;
     /**
      * Set the content for the tooltip
      *
@@ -6533,7 +6546,7 @@ type GMMarkerOptions = {
     draggable?: boolean;
     icon?: Icon | SvgSymbol | string;
     label?: string | MarkerLabel;
-    map?: Map;
+    map?: Map | null;
     position?: LatLng;
     title?: string;
 };
@@ -6566,9 +6579,9 @@ declare class Marker extends Layer {
     /**
      * Get the anchor point for the marker
      *
-     * @returns {Point}
+     * @returns {Point | undefined}
      */
-    get anchorPoint(): Point;
+    get anchorPoint(): Point | undefined;
     /**
      * Set the anchor point for the marker
      *
@@ -6578,9 +6591,9 @@ declare class Marker extends Layer {
     /**
      * Get the cursor type to show on hover
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get cursor(): string;
+    get cursor(): string | undefined;
     /**
      * Set the cursor type to show on hover
      *
@@ -6614,9 +6627,9 @@ declare class Marker extends Layer {
     /**
      * Get the icon for the marker
      *
-     * @returns {Icon | SvgSymbol | string}
+     * @returns {Icon | SvgSymbol | string | undefined}
      */
-    get icon(): Icon | SvgSymbol | string;
+    get icon(): Icon | SvgSymbol | string | undefined;
     /**
      * Set the icon for the marker
      *
@@ -6626,9 +6639,9 @@ declare class Marker extends Layer {
     /**
      * Get the label for the marker
      *
-     * @returns {string | number | MarkerLabel}
+     * @returns {string | number | MarkerLabel | undefined}
      */
-    get label(): string | number | MarkerLabel;
+    get label(): string | number | MarkerLabel | undefined;
     /**
      * Set the label for the marker
      *
@@ -6638,9 +6651,9 @@ declare class Marker extends Layer {
     /**
      * Get the map object
      *
-     * @returns {Map}
+     * @returns {Map | null | undefined}
      */
-    get map(): Map;
+    get map(): Map | null | undefined;
     /**
      * Set the map object
      *
@@ -6662,9 +6675,9 @@ declare class Marker extends Layer {
     /**
      * Get the title for the marker
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get title(): string;
+    get title(): string | undefined;
     /**
      * Set the title for the marker
      *
@@ -6700,7 +6713,7 @@ declare class Marker extends Layer {
      * @param {string} [key] The object key to get data for. If not set then all data is returned.
      * @returns {any}
      */
-    getData(key?: string): CustomData$1;
+    getData(key?: string): any;
     /**
      * Get the marker position (i.e. the LatLng object)
      *
@@ -7369,16 +7382,16 @@ declare class ImageOverlay extends Overlay {
     /**
      * Constructor
      *
-     * @param {ImageOverlayOptions | string} options The ImageOverlay options or image URL
+     * @param {ImageOverlayOptions | string} [options] The ImageOverlay options or image URL
      * @param {LatLngBoundsValue} [bounds] The bounds where the image should be displayed (if options is a string)
      */
-    constructor(options: ImageOverlayOptions | string, bounds?: LatLngBoundsValue);
+    constructor(options?: ImageOverlayOptions | string, bounds?: LatLngBoundsValue);
     /**
      * Returns the bounds where the image should be displayed
      *
-     * @returns {LatLngBounds}
+     * @returns {LatLngBounds|undefined}
      */
-    get bounds(): LatLngBounds;
+    get bounds(): LatLngBounds | undefined;
     /**
      * Set the bounds where the image should be displayed
      *
@@ -7407,9 +7420,9 @@ declare class ImageOverlay extends Overlay {
     /**
      * Returns the image URL
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    get imageUrl(): string;
+    get imageUrl(): string | undefined;
     /**
      * Set the image URL
      *
@@ -7500,15 +7513,15 @@ declare class ImageOverlay extends Overlay {
     /**
      * Get the bounds where the image should be displayed
      *
-     * @returns {LatLngBounds}
+     * @returns {LatLngBounds|undefined}
      */
-    getBounds(): LatLngBounds;
+    getBounds(): LatLngBounds | undefined;
     /**
      * Get the image URL
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    getImageUrl(): string;
+    getImageUrl(): string | undefined;
     /**
      * Get the opacity of the image
      *
@@ -7671,10 +7684,10 @@ declare class PlacesSearchBox extends Evented {
     /**
      * Constructor
      *
-     * @param {string | HTMLInputElement | PlacesSearchBoxOptions} input The input reference or the options
+     * @param {string | HTMLInputElement | PlacesSearchBoxOptions} [input] The input reference or the options
      * @param {PlacesSearchBoxOptions} [options] The places search box options if the input is reference to the input element
      */
-    constructor(input: string | HTMLInputElement | PlacesSearchBoxOptions, options?: PlacesSearchBoxOptions);
+    constructor(input?: string | HTMLInputElement | PlacesSearchBoxOptions, options?: PlacesSearchBoxOptions);
     /**
      * Get the bounds to which query predictions are biased.
      *
@@ -7958,7 +7971,7 @@ type PolylineOptions = {
     dashGap?: string | number;
     highlightPolyline?: PolylineOptions | Polyline;
     icons?: PolylineIcon[];
-    map?: Map;
+    map?: Map | null;
     path?: LatLngValue[];
     strokeColor?: string;
     strokeOpacity?: number;
@@ -7981,9 +7994,9 @@ declare class Polyline extends Layer {
     /**
      * Get whether the polyline handles click events.
      *
-     * @returns {boolean}
+     * @returns {boolean|undefined}
      */
-    get clickable(): boolean;
+    get clickable(): boolean | undefined;
     /**
      * Set whether the polyline handles click events.
      *
@@ -8031,9 +8044,9 @@ declare class Polyline extends Layer {
     /**
      * Get the highlight polyline
      *
-     * @returns {Polyline}
+     * @returns {Polyline|undefined}
      */
-    get highlightPolyline(): Polyline;
+    get highlightPolyline(): Polyline | undefined;
     /**
      * Set the highlight polyline
      *
@@ -8061,9 +8074,9 @@ declare class Polyline extends Layer {
     /**
      * Get the map object
      *
-     * @returns {Map}
+     * @returns {Map|null|undefined}
      */
-    get map(): Map;
+    get map(): Map | null | undefined;
     /**
      * Set the map object
      *
@@ -8075,9 +8088,9 @@ declare class Polyline extends Layer {
      *
      * The path is an array of LatLng values defining the path of the polyline.
      *
-     * @returns {LatLngValue[]}
+     * @returns {LatLngValue[]|undefined}
      */
-    get path(): LatLngValue[];
+    get path(): LatLngValue[] | undefined;
     /**
      * Set the path of the polyline.
      * The path is an array of LatLng values defining the path of the polyline.
@@ -8089,9 +8102,9 @@ declare class Polyline extends Layer {
     /**
      * Get the SVG stroke color
      *
-     * @returns {string}
+     * @returns {string|undefined}
      */
-    get strokeColor(): string;
+    get strokeColor(): string | undefined;
     /**
      * Set the SVG stroke color.
      *
@@ -8102,9 +8115,9 @@ declare class Polyline extends Layer {
      * Get the opacity of the stroke.
      * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get strokeOpacity(): number;
+    get strokeOpacity(): number | undefined;
     /**
      * Set the opacity of the stroke.
      *
@@ -8114,9 +8127,9 @@ declare class Polyline extends Layer {
     /**
      * Get the weight of the stroke in pixels.
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get strokeWeight(): number;
+    get strokeWeight(): number | undefined;
     /**
      * Set the weight of the stroke.
      *
@@ -8126,9 +8139,9 @@ declare class Polyline extends Layer {
     /**
      * Get whether the polyline is visible on the map.
      *
-     * @returns {boolean}
+     * @returns {boolean|undefined}
      */
-    get visible(): boolean;
+    get visible(): boolean | undefined;
     /**
      * Set whether the polyline is visible on the map.
      *
@@ -8138,9 +8151,9 @@ declare class Polyline extends Layer {
     /**
      * Get the zIndex of the polyline.
      *
-     * @returns {number}
+     * @returns {number|undefined}
      */
-    get zIndex(): number;
+    get zIndex(): number | undefined;
     /**
      * Set the zIndex of the polyline.
      *
@@ -8161,7 +8174,7 @@ declare class Polyline extends Layer {
      * @param {string} [key] The object key to get data for. If not set then all data is returned.
      * @returns {any}
      */
-    getData(key?: string): CustomData;
+    getData(key?: string): any;
     /**
      * Returns whether the polyline has a zIndex set.
      *
@@ -8488,4 +8501,4 @@ declare class PolylineCollection {
  */
 declare const polylineCollection: () => PolylineCollection;
 
-export { type AttachEventValue, type AttachPopupValue, type AttachTooltipValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DataTooltipCallback, type DataTooltipValue, type DefaultRenderOptions, type Event$1 as Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipCallback, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, renderTemplate, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { type AttachEventValue, type AttachPopupValue, type AttachTooltipValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DataTooltipCallback, type DataTooltipValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipCallback, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, renderTemplate, rotateControl, scaleControl, size, streetViewControl, svgSymbol, tooltip, zoomControl };

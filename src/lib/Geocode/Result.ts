@@ -43,17 +43,17 @@ class GeocodeResult extends Base {
      * Holds the bounds of the location
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
-    #geometryLocationBounds: LatLngBounds;
+    #geometryLocationBounds: LatLngBounds | undefined;
 
     /**
      * Holds the latitude and longitude of the location
      *
      * @private
-     * @type {LatLng}
+     * @type {LatLng | undefined}
      */
-    #geometryLocation: LatLng;
+    #geometryLocation: LatLng | undefined;
 
     /**
      * Holds the type of location
@@ -67,9 +67,9 @@ class GeocodeResult extends Base {
      * Holds the bounds of the recommended viewport for displaying the returned result
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
-    #geometryLocationViewport: LatLngBounds;
+    #geometryLocationViewport: LatLngBounds | undefined;
 
     /**
      * Holds whether the geocode result is a partial match
@@ -239,8 +239,8 @@ class GeocodeResult extends Base {
      *
      * @returns {number|undefined}
      */
-    getLatitude(): number {
-        let returnValue: number;
+    getLatitude(): number | undefined {
+        let returnValue: number | undefined;
         if (typeof this.#geometryLocation !== 'undefined' && this.#geometryLocation.isValid()) {
             returnValue = this.#geometryLocation.lat;
         }
@@ -272,8 +272,8 @@ class GeocodeResult extends Base {
      *
      * @returns {number|undefined}
      */
-    getLongitude(): number {
-        let returnValue: number;
+    getLongitude(): number | undefined {
+        let returnValue: number | undefined;
         if (typeof this.#geometryLocation !== 'undefined' && this.#geometryLocation.isValid()) {
             returnValue = this.#geometryLocation.lng;
         }
