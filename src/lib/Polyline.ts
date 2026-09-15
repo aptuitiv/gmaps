@@ -289,6 +289,16 @@ export class Polyline extends Layer {
     #simplifyDebug: boolean | undefined;
 
     /**
+     * Holds whether the simplify tolerance changed while the polyline was hidden.
+     *
+     * Hidden polylines don't update the path drawn on the map until they're shown again.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isSimplifyOutOfDate: boolean = false;
+
+    /**
      * Holds the simplified Google Maps path for each tolerance when the tolerance changes with the zoom level.
      * They're kept so that the path doesn't have to be simplified again when zooming back to the same zoom levels.
      *
@@ -824,6 +834,10 @@ export class Polyline extends Layer {
         if (typeof value === 'boolean') {
             this.#options.visible = value;
             this.isVisible = value;
+            // If the simplify tolerance changed while the polyline was hidden, update the path before it's shown
+            if (value && this.#isSimplifyOutOfDate) {
+                this.#applySimplify();
+            }
             if (this.#polyline) {
                 this.#polyline.setVisible(value);
             }
@@ -1518,16 +1532,27 @@ export class Polyline extends Layer {
     }
 
     /**
-     * Update the path drawn on the map if the simplify tolerance to use has changed
+     * Update the path drawn on the map if the simplify tolerance to use has changed.
+     *
+     * If the polyline is hidden then the path isn't updated until the polyline is shown again.
+     * This saves simplifying the paths of hidden polylines, for example ones hidden with PolylineCollection.hide(),
+     * each time the zoom level changes.
      *
      * @private
-     * @returns {boolean} Whether the tolerance changed
+     * @returns {boolean} Whether the path drawn on the map was updated
      */
     #applySimplify(): boolean {
         const tolerance = this.#getCurrentTolerance();
         if (tolerance === this.#simplifyTolerance) {
+            this.#isSimplifyOutOfDate = false;
             return false;
         }
+        if (this.#polyline && this.#options.visible === false) {
+            // Wait until the polyline is shown. See the visible setter.
+            this.#isSimplifyOutOfDate = true;
+            return false;
+        }
+        this.#isSimplifyOutOfDate = false;
         this.#simplifyTolerance = tolerance;
         if (this.#polyline) {
             this.#polyline.setPath(this.#getGooglePath());
