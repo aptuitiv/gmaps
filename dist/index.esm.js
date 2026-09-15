@@ -415,7 +415,7 @@ var MapEvents = Object.freeze({
   TILT_CHANGED: "tilt_changed",
   ZOOM_CHANGED: "zoom_changed",
   // Custom events for this library
-  // https://aptuitiv.github.io/gmaps-docs/api-reference/map#events
+  // https://aptuitiv.github.io/gmaps/api-reference/map#events
   // There was an error getting the user's location.
   LOCATION_ERROR: "locationerror",
   // The user's location has been found.
@@ -493,7 +493,7 @@ var MarkerEvents = Object.freeze({
   VISIBLE_CHANGED: "visible_changed",
   ZINDEX_CHANGED: "zindex_changed",
   // Custom events for this library
-  // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
+  // https://aptuitiv.github.io/gmaps/api-reference/marker#events
   // The marker is loaded and ready for use.
   READY: READY_EVENT
 });
@@ -647,7 +647,7 @@ var checkForGoogleMaps = (object, library, throwError) => {
       msg = ` The google.maps.${library} class is not available. Did you load the Google Maps Javascript API?`;
     }
     msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
-    msg += " See https://aptuitiv.github.io/gmaps-docs/guides/load for more information.";
+    msg += " See https://aptuitiv.github.io/gmaps/guides/load for more information.";
     if (doError) {
       throw new Error(msg);
     }
@@ -4825,29 +4825,21 @@ geometryPaths_fn = function(geometry) {
     case GeometryType.MULTI_POINT:
     case GeometryType.LINE_STRING:
     case GeometryType.LINEAR_RING:
-      return [
-        geometry.getArray().map((value) => latLngConvert(value))
-      ];
+      return [geometry.getArray().map((value) => latLngConvert(value))];
     case GeometryType.POLYGON:
       return geometry.getArray().map((ring) => ring.getArray().map((value) => latLngConvert(value)));
     case GeometryType.MULTI_LINE_STRING:
       return geometry.getArray().map((line) => line.getArray().map((value) => latLngConvert(value)));
     case GeometryType.MULTI_POLYGON:
-      return geometry.getArray().reduce(
-        (paths, polygon) => {
-          var _a;
-          return paths.concat(__privateMethod(_a = _DataFeature, _DataFeature_static, geometryPaths_fn).call(_a, polygon));
-        },
-        []
-      );
+      return geometry.getArray().reduce((paths, polygon) => {
+        var _a;
+        return paths.concat(__privateMethod(_a = _DataFeature, _DataFeature_static, geometryPaths_fn).call(_a, polygon));
+      }, []);
     case GeometryType.GEOMETRY_COLLECTION:
-      return geometry.getArray().reduce(
-        (paths, value) => {
-          var _a;
-          return paths.concat(__privateMethod(_a = _DataFeature, _DataFeature_static, geometryPaths_fn).call(_a, value));
-        },
-        []
-      );
+      return geometry.getArray().reduce((paths, value) => {
+        var _a;
+        return paths.concat(__privateMethod(_a = _DataFeature, _DataFeature_static, geometryPaths_fn).call(_a, value));
+      }, []);
     default:
       return [];
   }

@@ -105,7 +105,7 @@ declare const READY_EVENT = "ready";
 /**
  * Events that can be fired by the Autocomplete search box.
  *
- * https://aptuitiv.github.io/gmaps-docs/api-reference/autocomplete-search-box#events
+ * https://aptuitiv.github.io/gmaps/api-reference/autocomplete-search-box#events
  */
 declare const AutocompleteSearchBoxEvents: Readonly<{
     PLACE_CHANGED: "place_changed";
@@ -330,7 +330,7 @@ declare const LayerEvents: Readonly<{
 /**
  * Events that can be fired by the Loader.
  *
- * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
+ * https://aptuitiv.github.io/gmaps/api-reference/loader#events
  */
 declare const LoaderEvents: Readonly<{
     LOAD: "load";
