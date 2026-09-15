@@ -91,6 +91,18 @@ export class LatLngBounds extends Base {
     #southWest: LatLng | undefined;
 
     /**
+     * Holds the corners that the bounds was created with, if it was created from corner values.
+     *
+     * The Google Maps LatLngBounds object is created from these corners. Extending from the two
+     * corner points instead would lose a bounds that crosses the 180 degree meridian or is more
+     * than 180 degrees wide, because extend() always picks the smaller box.
+     *
+     * @private
+     * @type {{ne: google.maps.LatLngLiteral, sw: google.maps.LatLngLiteral}|undefined}
+     */
+    #initialCorners: { ne: google.maps.LatLngLiteral; sw: google.maps.LatLngLiteral } | undefined;
+
+    /**
      * Constructor
      *
      * @param {LatLngValue | LatLngValue[]} [latLngValue] The latitude/longitude value(s). If not set then add points with the extend method.
@@ -104,34 +116,20 @@ export class LatLngBounds extends Base {
                     typeof (latLngValue as LatLngBoundsEdges).ne !== 'undefined' &&
                     typeof (latLngValue as LatLngBoundsEdges).sw !== 'undefined'
                 ) {
-                    const ne = latLng((latLngValue as LatLngBoundsEdges).ne);
-                    if (ne.isValid()) {
-                        this.#northEast = ne;
-                    }
-                    const sw = latLng((latLngValue as LatLngBoundsEdges).sw);
-                    if (sw.isValid()) {
-                        this.#southWest = sw;
-                    }
+                    this.#setCorners(
+                        latLng((latLngValue as LatLngBoundsEdges).ne),
+                        latLng((latLngValue as LatLngBoundsEdges).sw),
+                    );
                 } else if (
                     typeof (latLngValue as LatLngBoundsLiteral).north !== 'undefined' &&
                     typeof (latLngValue as LatLngBoundsLiteral).south !== 'undefined' &&
                     typeof (latLngValue as LatLngBoundsLiteral).east !== 'undefined' &&
                     typeof (latLngValue as LatLngBoundsLiteral).west !== 'undefined'
                 ) {
-                    const ne = latLng([
-                        (latLngValue as LatLngBoundsLiteral).north,
-                        (latLngValue as LatLngBoundsLiteral).east,
-                    ]);
-                    const sw = latLng([
-                        (latLngValue as LatLngBoundsLiteral).south,
-                        (latLngValue as LatLngBoundsLiteral).west,
-                    ]);
-                    if (ne.isValid()) {
-                        this.#northEast = ne;
-                    }
-                    if (sw.isValid()) {
-                        this.#southWest = sw;
-                    }
+                    this.#setCorners(
+                        latLng([(latLngValue as LatLngBoundsLiteral).north, (latLngValue as LatLngBoundsLiteral).east]),
+                        latLng([(latLngValue as LatLngBoundsLiteral).south, (latLngValue as LatLngBoundsLiteral).west]),
+                    );
                 } else {
                     this.extend(latLngValue as LatLngValue);
                 }
@@ -164,8 +162,7 @@ export class LatLngBounds extends Base {
             return (
                 latLngObject.latitude >= this.#southWest.latitude &&
                 latLngObject.latitude <= this.#northEast.latitude &&
-                latLngObject.longitude >= this.#southWest.longitude &&
-                latLngObject.longitude <= this.#northEast.longitude
+                this.#containsLongitude(latLngObject.longitude, this.#southWest, this.#northEast)
             );
         }
         return false;
@@ -284,19 +281,69 @@ export class LatLngBounds extends Base {
         this.#boundValues.push({ lat: latLngObject.latitude, lng: latLngObject.longitude });
 
         if (this.#northEast && this.#southWest) {
-            // Set the north-east corner to the most north-east point
-            this.#northEast.latitude = Math.max(latLngObject.latitude, this.#northEast.latitude);
-            this.#northEast.longitude = Math.max(latLngObject.longitude, this.#northEast.longitude);
+            const { latitude, longitude } = latLngObject;
+            this.#northEast.latitude = Math.max(latitude, this.#northEast.latitude);
+            this.#southWest.latitude = Math.min(latitude, this.#southWest.latitude);
 
-            // Set the south-west corner to the most south-west point
-            this.#southWest.latitude = Math.min(latLngObject.latitude, this.#southWest.latitude);
-            this.#southWest.longitude = Math.min(latLngObject.longitude, this.#southWest.longitude);
+            if (!this.#containsLongitude(longitude, this.#southWest, this.#northEast)) {
+                // Move whichever side needs the smaller change to include the longitude.
+                // This is what Google Maps does, and it keeps the bounds correct when it
+                // crosses the 180 degree meridian.
+                const westDistance = (this.#southWest.longitude - longitude + 360) % 360;
+                const eastDistance = (longitude - this.#northEast.longitude + 360) % 360;
+                if (westDistance < eastDistance) {
+                    this.#southWest.longitude = longitude;
+                } else {
+                    this.#northEast.longitude = longitude;
+                }
+            }
         } else {
             // Set the north-east and south-west corners to the first point
             // We clone the LatLng object so that it's not associated with the original object.
             // We were getting some odd errors where the original object was being modified.
             this.#northEast = latLngObject.clone();
             this.#southWest = latLngObject.clone();
+        }
+    }
+
+    /**
+     * Returns whether the longitude is within the longitude span of the corners.
+     *
+     * If the west longitude is greater than the east longitude then the bounds crosses the
+     * 180 degree meridian, and the span wraps around it.
+     *
+     * @private
+     * @param {number} longitude The longitude to test
+     * @param {LatLng} southWest The south-west corner
+     * @param {LatLng} northEast The north-east corner
+     * @returns {boolean}
+     */
+    // eslint-disable-next-line class-methods-use-this -- Kept with the other bounds calculations
+    #containsLongitude(longitude: number, southWest: LatLng, northEast: LatLng): boolean {
+        if (southWest.longitude <= northEast.longitude) {
+            return longitude >= southWest.longitude && longitude <= northEast.longitude;
+        }
+        return longitude >= southWest.longitude || longitude <= northEast.longitude;
+    }
+
+    /**
+     * Set the bounds from its north-east and south-west corners.
+     *
+     * Nothing is set unless both corners are valid.
+     *
+     * @private
+     * @param {LatLng} northEast The north-east corner
+     * @param {LatLng} southWest The south-west corner
+     */
+    #setCorners(northEast: LatLng, southWest: LatLng): void {
+        if (northEast.isValid() && southWest.isValid()) {
+            // Clone the corners so that changes made by extend() don't modify the values that were passed in.
+            this.#northEast = northEast.clone();
+            this.#southWest = southWest.clone();
+            this.#initialCorners = {
+                ne: { lat: northEast.latitude, lng: northEast.longitude },
+                sw: { lat: southWest.latitude, lng: southWest.longitude },
+            };
         }
     }
 
@@ -486,8 +533,13 @@ export class LatLngBounds extends Base {
      */
     #createLatLngBoundsObject(): google.maps.LatLngBounds {
         if (!this.#bounds) {
-            const bounds = new google.maps.LatLngBounds();
+            // Start from the corners if the bounds was created with them. Any values added
+            // with extend() after that are in #boundValues.
+            const bounds = this.#initialCorners
+                ? new google.maps.LatLngBounds(this.#initialCorners.sw, this.#initialCorners.ne)
+                : new google.maps.LatLngBounds();
             this.#bounds = bounds;
+            this.#initialCorners = undefined;
             if (this.#boundValues) {
                 this.#boundValues.forEach((latLngLiteral) => {
                     bounds.extend(latLngLiteral);
