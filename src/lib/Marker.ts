@@ -54,6 +54,10 @@ type GMMarkerOptions = {
     label?: string | MarkerLabel;
     // The map to add the marker to. This is null if the marker was removed from the map.
     map?: Map | null;
+    // Whether to optimize the rendering of the marker. Optimization renders many markers as a single static element,
+    // which helps when there are a large number of markers. If not set then Google decides.
+    // Optimization has no effect on vector maps.
+    optimized?: boolean;
     // The position for the marker.
     position?: LatLng;
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
@@ -313,6 +317,24 @@ export class Marker extends Layer {
      */
     set map(value: Map | null) {
         this.setMap(value);
+    }
+
+    /**
+     * Get whether the marker rendering is optimized
+     *
+     * @returns {boolean | undefined} Undefined if it's not set, in which case Google decides.
+     */
+    get optimized(): boolean | undefined {
+        return this.#options.optimized;
+    }
+
+    /**
+     * Set whether the marker rendering is optimized
+     *
+     * @param {boolean} value Whether the marker rendering is optimized
+     */
+    set optimized(value: boolean) {
+        this.setOptimized(value);
     }
 
     /**
@@ -1009,6 +1031,53 @@ export class Marker extends Layer {
     }
 
     /**
+     * Set whether the marker rendering is optimized
+     *
+     * Optimization renders many markers as a single static element, which helps when there are a large
+     * number of markers. If it's not set then Google decides. Optimization has no effect on vector maps.
+     *
+     * It's best to set this in the marker options so that it's used when the marker is created.
+     *
+     * @param {boolean} value Whether the marker rendering is optimized. Pass undefined to let Google decide.
+     * @returns {Promise<Marker>}
+     */
+    async setOptimized(value: boolean): Promise<Marker> {
+        await this.#setupGoogleMarker();
+        this.#setOptimized(value);
+        return this;
+    }
+
+    /**
+     * Set whether the marker rendering is optimized syncronously.
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setOptimized() instead or pass the
+     * optimized value to the constructor or setOptions().
+     *
+     * @param {boolean} value Whether the marker rendering is optimized. Pass undefined to let Google decide.
+     * @returns {Marker}
+     */
+    setOptimizedSync(value: boolean): Marker {
+        this.#setupGoogleMarkerSync();
+        this.#setOptimized(value);
+        return this;
+    }
+
+    /**
+     * Set whether the marker rendering is optimized
+     *
+     * @param {boolean} value Whether the marker rendering is optimized
+     */
+    #setOptimized(value: boolean) {
+        if (isBoolean(value)) {
+            this.#options.optimized = value;
+        } else if (isNullOrUndefined(value)) {
+            this.#options.optimized = undefined;
+        }
+        this.#marker.setOptions({ optimized: this.#options.optimized });
+    }
+
+    /**
      * Set the marker options
      *
      * This intentionally does not set up the Google Maps marker object. This is so that when the
@@ -1033,6 +1102,15 @@ export class Marker extends Layer {
             if (this.#marker) {
                 // The Google Maps marker is set up. Fully set the drag.
                 this.drag = options.drag;
+            }
+        }
+
+        // Set whether the marker rendering is optimized
+        if (isBoolean(options.optimized)) {
+            this.#options.optimized = options.optimized;
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the optimized value.
+                this.optimized = options.optimized;
             }
         }
 
@@ -1364,6 +1442,9 @@ export class Marker extends Layer {
                     }
                     if (this.#drag) {
                         markerOptions.draggable = true;
+                    }
+                    if (isBoolean(this.#options.optimized)) {
+                        markerOptions.optimized = this.#options.optimized;
                     }
                     if (this.#options.icon) {
                         if (isString(this.#options.icon)) {

@@ -130,6 +130,7 @@ Type `MarkerOptions`
 | lng | number or string | |  The longitude for the marker. This is an alternate option to `position` and `longitude`. You should set this if you are setting `latitude` or `lat`. |
 | longitude | number or string | |  The longitude for the marker. This is an alternate option to `position` and `lng`. You should set this if you are setting `latitude` or `lat`. |
 | map | [Map](/api-reference/map) | | The map that the marker should show on. |
+| optimized | boolean | | Whether to optimize the rendering of the marker. Optimization renders many markers as a single static element, which helps when there are a large number of markers. If not set then Google decides. Optimization has no effect on vector maps. |
 | position | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type) | | The Marker position |
 | svgIcon | string or [SvgSymbolOptions](/api-reference/utilities/svgsymbol#svgsymbol-options) or [SvgSymbol](/api-reference/utilities/svgsymbol) | | An SVG icon for the marker. A string is the full SVG markup (the whole `<svg>` element, not just the path code). An object is passed to [G.svgSymbol()](/api-reference/utilities/svgsymbol). This is ignored if `icon` is set. See [SVG icons](#svg-icons). |
 | title | string | | The title for the marker. If a custom [tooltip](/api-reference/tooltip) is not used, this will show as a default tooltip on the marker. |
@@ -254,6 +255,7 @@ marker.onReady(() => {
 | icon | [Icon](/api-reference/utilities/icon), [SvgSymbol](/api-reference/utilities/svgsymbol), or string | The icon value for the marker. A string is an image URL. If the `svgIcon` option was set with SVG markup, this is the `data:image/svg+xml` URL. Setting it calls [setIcon()](#seticon). |
 | label | string, number, or [MarkerLabel](#markerlabel-type) | The label for the marker. |
 | map | [Map](/api-reference/map) | The map that the marker should show on. Set it to `null` to remove the marker from the map. |
+| optimized | boolean or undefined | Whether the marker rendering is optimized. It's `undefined` if it hasn't been set, in which case Google decides. Setting it calls [setOptimized()](#setoptimized). |
 | position | [LatLng](/api-reference/utilities/latlng) | The Marker position. If the marker was dragged, this is its current position. It can be set with a [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type). |
 | title | string | The title for the marker. If a custom [tooltip](/api-reference/tooltip) is not used, this will show as a default tooltip on the marker. |
 
@@ -1063,6 +1065,38 @@ Only use this if you know that the Google Maps library is already loaded and you
 
 ```js
 marker.setMapSync(map);
+```
+
+### setOptimized
+
+`setOptimized(value: boolean): Promise<Marker>`
+
+Set whether the marker rendering is optimized. Optimization renders many markers as a single static element, which helps when there are a large number of markers. If it's not set then Google decides. Optimization has no effect on vector maps.
+
+It's best to set this with the `optimized` option so that it's used when the marker is created.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| value | boolean | Yes | Whether the marker rendering is optimized. Pass `undefined` to let Google decide. |
+
+```js
+marker.setOptimized(true);
+```
+
+### setOptimizedSync
+
+`setOptimizedSync(value: boolean): Marker`
+
+Syncronously set whether the marker rendering is optimized.
+
+Only use this if you know that the Google Maps library is already loaded and you have to set up the marker syncronously. If you don't have to set up the marker syncronously, then use [setOptimized()](#setoptimized) instead or pass the `optimized` option to the constructor or [setOptions()](#setoptions).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| value | boolean | Yes | Whether the marker rendering is optimized. Pass `undefined` to let Google decide. |
+
+```js
+marker.setOptimizedSync(true);
 ```
 
 ### setOptions
