@@ -1,0 +1,95 @@
+---
+title: "Marker Optimized Test Page"
+layout: "base.njk"
+---
+
+<style>
+    .OptimizedMap { aspect-ratio: auto; height: 60vh; min-height: 320px; }
+    .OptimizedControls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; margin-bottom: 16px; }
+    .OptimizedControls label { display: block; font-weight: 600; margin-bottom: 4px; }
+    .OptimizedControls fieldset { border: none; padding: 0; }
+    .OptimizedControls legend { font-weight: 600; margin-bottom: 4px; }
+    .OptimizedControls button { padding: 6px 14px; }
+    .OptimizedStats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 16px; }
+    .OptimizedStats strong { font-variant-numeric: tabular-nums; }
+    .OptimizedResults { overflow-x: auto; margin-bottom: 20px; }
+    .OptimizedResults table { border-collapse: collapse; font-size: 14px; }
+    .OptimizedResults th, .OptimizedResults td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; white-space: nowrap; }
+    .OptimizedResults th:first-child, .OptimizedResults td:first-child { text-align: left; }
+</style>
+
+<h1>Marker optimized test</h1>
+
+<p>
+    Adds a large number of markers so that you can compare how Google draws them with the marker
+    <code>optimized</code> option set to <code>true</code>, <code>false</code>, or not set (Google decides).
+</p>
+<ul>
+    <li>Optimized markers are drawn together as a single static element, so the number of elements in the map stays low.</li>
+    <li>Unoptimized markers each become their own element in the page, so the element count goes up with the number of markers.</li>
+    <li>Run the zoom test with each setting and compare the lowest frame rate. Each run is added to the results table.</li>
+    <li>On an iPhone, connect it to a Mac and open Safari's Web Inspector. Watch the console for "Total canvas memory use exceeds the maximum limit".</li>
+</ul>
+
+<form id="controls" class="OptimizedControls">
+    <div>
+        <label for="count">Markers</label>
+        <select id="count" name="count">
+            <option value="500">500</option>
+            <option value="1000" selected>1,000</option>
+            <option value="2000">2,000</option>
+            <option value="5000">5,000</option>
+        </select>
+    </div>
+    <fieldset>
+        <legend>optimized</legend>
+        <label><input type="radio" name="optimized" value="unset" checked> Not set (Google decides)</label>
+        <label><input type="radio" name="optimized" value="true"> true</label>
+        <label><input type="radio" name="optimized" value="false"> false</label>
+    </fieldset>
+    <div>
+        <label for="icon">Icon</label>
+        <select id="icon" name="icon">
+            <option value="default">Default Google pin</option>
+            <option value="svg">SVG icon (svgIcon option)</option>
+        </select>
+    </div>
+    <div>
+        <button type="submit">Build markers</button>
+        <button type="button" id="zoomTest">Run zoom test</button>
+    </div>
+</form>
+
+<div class="OptimizedStats">
+    <span>Markers on the map: <strong id="statMarkers">0</strong></span>
+    <span>Time to create: <strong id="statCreate">-</strong></span>
+    <span>Elements in the map: <strong id="statElements">-</strong></span>
+    <span>Canvas elements: <strong id="statCanvases">-</strong></span>
+    <span>Image elements: <strong id="statImages">-</strong></span>
+    <span>Frame rate: <strong id="statFps">-</strong></span>
+    <span>Lowest frame rate while moving: <strong id="statLowestFps">-</strong></span>
+    <span id="statStatus"></span>
+</div>
+
+<div id="map1" class="mapContainer OptimizedMap"></div>
+
+<h2>Results</h2>
+<div class="OptimizedResults">
+    <table>
+        <thead>
+            <tr>
+                <th>optimized</th>
+                <th>Icon</th>
+                <th>Markers</th>
+                <th>Create (ms)</th>
+                <th>Elements</th>
+                <th>Canvases</th>
+                <th>Images</th>
+                <th>Zoom test lowest FPS</th>
+            </tr>
+        </thead>
+        <tbody id="results"></tbody>
+    </table>
+</div>
+
+<script src="{{ '/js/marker-optimized.js'|url|safe}}"></script>
