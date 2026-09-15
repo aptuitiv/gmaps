@@ -2228,7 +2228,7 @@ var loader = (config) => {
 };
 
 // src/lib/LatLngBounds.ts
-var _bounds, _boundValues, _northEast, _southWest, _LatLngBounds_instances, extend_fn, getCorners_fn, setupGoogleLatLngBounds_fn, createLatLngBoundsObject_fn, union_fn;
+var _bounds, _boundValues, _northEast, _southWest, _initialCorners, _LatLngBounds_instances, extend_fn, containsLongitude_fn, setCorners_fn, getCorners_fn, setupGoogleLatLngBounds_fn, createLatLngBoundsObject_fn, union_fn;
 var _LatLngBounds = class _LatLngBounds extends Base_default {
   /**
    * Constructor
@@ -2272,32 +2272,23 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
      * @type {LatLng|undefined}
      */
     __privateAdd(this, _southWest);
+    /**
+     * Holds the corners that the bounds was created with, if it was created from corner values.
+     *
+     * The Google Maps LatLngBounds object is created from these corners. Extending from the two
+     * corner points instead would lose a bounds that crosses the 180 degree meridian or is more
+     * than 180 degrees wide, because extend() always picks the smaller box.
+     *
+     * @private
+     * @type {{ne: google.maps.LatLngLiteral, sw: google.maps.LatLngLiteral}|undefined}
+     */
+    __privateAdd(this, _initialCorners);
     if (latLngValue) {
       if (isObjectWithValues(latLngValue)) {
         if (typeof latLngValue.ne !== "undefined" && typeof latLngValue.sw !== "undefined") {
-          const ne = latLng(latLngValue.ne);
-          if (ne.isValid()) {
-            __privateSet(this, _northEast, ne);
-          }
-          const sw = latLng(latLngValue.sw);
-          if (sw.isValid()) {
-            __privateSet(this, _southWest, sw);
-          }
+          __privateMethod(this, _LatLngBounds_instances, setCorners_fn).call(this, latLng(latLngValue.ne), latLng(latLngValue.sw));
         } else if (typeof latLngValue.north !== "undefined" && typeof latLngValue.south !== "undefined" && typeof latLngValue.east !== "undefined" && typeof latLngValue.west !== "undefined") {
-          const ne = latLng([
-            latLngValue.north,
-            latLngValue.east
-          ]);
-          const sw = latLng([
-            latLngValue.south,
-            latLngValue.west
-          ]);
-          if (ne.isValid()) {
-            __privateSet(this, _northEast, ne);
-          }
-          if (sw.isValid()) {
-            __privateSet(this, _southWest, sw);
-          }
+          __privateMethod(this, _LatLngBounds_instances, setCorners_fn).call(this, latLng([latLngValue.north, latLngValue.east]), latLng([latLngValue.south, latLngValue.west]));
         } else {
           this.extend(latLngValue);
         }
@@ -2325,7 +2316,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
       return __privateGet(this, _bounds).contains(latLngObject.toGoogle());
     }
     if (__privateGet(this, _southWest) && __privateGet(this, _northEast)) {
-      return latLngObject.latitude >= __privateGet(this, _southWest).latitude && latLngObject.latitude <= __privateGet(this, _northEast).latitude && latLngObject.longitude >= __privateGet(this, _southWest).longitude && latLngObject.longitude <= __privateGet(this, _northEast).longitude;
+      return latLngObject.latitude >= __privateGet(this, _southWest).latitude && latLngObject.latitude <= __privateGet(this, _northEast).latitude && __privateMethod(this, _LatLngBounds_instances, containsLongitude_fn).call(this, latLngObject.longitude, __privateGet(this, _southWest), __privateGet(this, _northEast));
     }
     return false;
   }
@@ -2345,8 +2336,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
           });
         } else {
           const { northEast, southWest } = __privateMethod(this, _LatLngBounds_instances, getCorners_fn).call(this);
+          const otherNorthEast = other.getNorthEast();
+          const otherSouthWest = other.getSouthWest();
           resolve(
-            northEast.latitude === other.getNorthEast().latitude && northEast.longitude === other.getNorthEast().longitude && southWest.latitude === other.getSouthWest().latitude && southWest.longitude === other.getSouthWest().longitude
+            typeof otherNorthEast !== "undefined" && typeof otherSouthWest !== "undefined" && northEast.latitude === otherNorthEast.latitude && northEast.longitude === otherNorthEast.longitude && southWest.latitude === otherSouthWest.latitude && southWest.longitude === otherSouthWest.longitude
           );
         }
       } else {
@@ -2430,7 +2423,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    *
    * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
    *
-   * @returns {LatLng}
+   * @returns {LatLng|undefined}
    */
   getNorthEast() {
     if (__privateGet(this, _bounds)) {
@@ -2443,7 +2436,7 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
    *
    * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
    *
-   * @returns {LatLng}
+   * @returns {LatLng|undefined}
    */
   getSouthWest() {
     if (__privateGet(this, _bounds)) {
@@ -2485,6 +2478,10 @@ var _LatLngBounds = class _LatLngBounds extends Base_default {
           const ne = this.getNorthEast();
           const otherSw = other.getSouthWest();
           const otherNe = other.getNorthEast();
+          if (!sw || !ne || !otherSw || !otherNe) {
+            resolve(false);
+            return;
+          }
           resolve(
             sw.latitude <= otherNe.latitude && ne.latitude >= otherSw.latitude && sw.longitude <= otherNe.longitude && ne.longitude >= otherSw.longitude
           );
@@ -2599,6 +2596,7 @@ _bounds = new WeakMap();
 _boundValues = new WeakMap();
 _northEast = new WeakMap();
 _southWest = new WeakMap();
+_initialCorners = new WeakMap();
 _LatLngBounds_instances = new WeakSet();
 /**
  * Extends this bounds using the internal method
@@ -2611,13 +2609,59 @@ _LatLngBounds_instances = new WeakSet();
 extend_fn = function(latLngObject) {
   __privateGet(this, _boundValues).push({ lat: latLngObject.latitude, lng: latLngObject.longitude });
   if (__privateGet(this, _northEast) && __privateGet(this, _southWest)) {
-    __privateGet(this, _northEast).latitude = Math.max(latLngObject.latitude, __privateGet(this, _northEast).latitude);
-    __privateGet(this, _northEast).longitude = Math.max(latLngObject.longitude, __privateGet(this, _northEast).longitude);
-    __privateGet(this, _southWest).latitude = Math.min(latLngObject.latitude, __privateGet(this, _southWest).latitude);
-    __privateGet(this, _southWest).longitude = Math.min(latLngObject.longitude, __privateGet(this, _southWest).longitude);
+    const { latitude, longitude } = latLngObject;
+    __privateGet(this, _northEast).latitude = Math.max(latitude, __privateGet(this, _northEast).latitude);
+    __privateGet(this, _southWest).latitude = Math.min(latitude, __privateGet(this, _southWest).latitude);
+    if (!__privateMethod(this, _LatLngBounds_instances, containsLongitude_fn).call(this, longitude, __privateGet(this, _southWest), __privateGet(this, _northEast))) {
+      const westDistance = (__privateGet(this, _southWest).longitude - longitude + 360) % 360;
+      const eastDistance = (longitude - __privateGet(this, _northEast).longitude + 360) % 360;
+      if (westDistance < eastDistance) {
+        __privateGet(this, _southWest).longitude = longitude;
+      } else {
+        __privateGet(this, _northEast).longitude = longitude;
+      }
+    }
   } else {
     __privateSet(this, _northEast, latLngObject.clone());
     __privateSet(this, _southWest, latLngObject.clone());
+  }
+};
+/**
+ * Returns whether the longitude is within the longitude span of the corners.
+ *
+ * If the west longitude is greater than the east longitude then the bounds crosses the
+ * 180 degree meridian, and the span wraps around it.
+ *
+ * @private
+ * @param {number} longitude The longitude to test
+ * @param {LatLng} southWest The south-west corner
+ * @param {LatLng} northEast The north-east corner
+ * @returns {boolean}
+ */
+// eslint-disable-next-line class-methods-use-this -- Kept with the other bounds calculations
+containsLongitude_fn = function(longitude, southWest, northEast) {
+  if (southWest.longitude <= northEast.longitude) {
+    return longitude >= southWest.longitude && longitude <= northEast.longitude;
+  }
+  return longitude >= southWest.longitude || longitude <= northEast.longitude;
+};
+/**
+ * Set the bounds from its north-east and south-west corners.
+ *
+ * Nothing is set unless both corners are valid.
+ *
+ * @private
+ * @param {LatLng} northEast The north-east corner
+ * @param {LatLng} southWest The south-west corner
+ */
+setCorners_fn = function(northEast, southWest) {
+  if (northEast.isValid() && southWest.isValid()) {
+    __privateSet(this, _northEast, northEast.clone());
+    __privateSet(this, _southWest, southWest.clone());
+    __privateSet(this, _initialCorners, {
+      ne: { lat: northEast.latitude, lng: northEast.longitude },
+      sw: { lat: southWest.latitude, lng: southWest.longitude }
+    });
   }
 };
 /**
@@ -2664,8 +2708,9 @@ setupGoogleLatLngBounds_fn = function() {
  */
 createLatLngBoundsObject_fn = function() {
   if (!__privateGet(this, _bounds)) {
-    const bounds = new google.maps.LatLngBounds();
+    const bounds = __privateGet(this, _initialCorners) ? new google.maps.LatLngBounds(__privateGet(this, _initialCorners).sw, __privateGet(this, _initialCorners).ne) : new google.maps.LatLngBounds();
     __privateSet(this, _bounds, bounds);
+    __privateSet(this, _initialCorners, void 0);
     if (__privateGet(this, _boundValues)) {
       __privateGet(this, _boundValues).forEach((latLngLiteral) => {
         bounds.extend(latLngLiteral);
@@ -8529,7 +8574,7 @@ var Map = class extends Evented {
    * The Google map object is set up when the map is shown. Before that this returns undefined.
    * Use init(), load(), or show() and wait for them to resolve before calling this.
    *
-   * @returns {google.maps.Map}
+   * @returns {google.maps.Map|undefined}
    */
   toGoogle() {
     return __privateGet(this, _map2);
@@ -9797,8 +9842,9 @@ var _DataLayer = class _DataLayer extends Layer_default {
         __privateGet(this, _options4).map = value;
         value.init();
         yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => __async(this, null, function* () {
+          var _a;
           yield value.init();
-          data.setMap(value.toGoogle());
+          data.setMap((_a = value.toGoogle()) != null ? _a : null);
         }));
       } else if (isNullOrUndefined(value)) {
         __superGet(_DataLayer.prototype, this, "setMap").call(this, null);
@@ -9882,9 +9928,10 @@ var _DataLayer = class _DataLayer extends Layer_default {
       }
       const mapObject = __privateMethod(this, _DataLayer_instances, mapObject_fn).call(this);
       yield __privateMethod(this, _DataLayer_instances, enqueue_fn).call(this, (data) => __async(this, null, function* () {
+        var _a;
         if (mapObject) {
           yield mapObject.init();
-          data.setMap(mapObject.toGoogle());
+          data.setMap((_a = mapObject.toGoogle()) != null ? _a : null);
         }
       }));
       return this;
@@ -10138,11 +10185,16 @@ geoJsonOptions_fn = function(options) {
  */
 getGoogleData_fn = function() {
   if (!__privateGet(this, _setupPromise)) {
-    __privateSet(this, _setupPromise, new Promise((resolve) => {
+    __privateSet(this, _setupPromise, new Promise((resolve, reject) => {
       const defaultLayerMap = __privateGet(this, _defaultLayerMap);
       if (defaultLayerMap instanceof Map) {
         defaultLayerMap.init().then(() => {
-          const { data } = defaultLayerMap.toGoogle();
+          const googleMap = defaultLayerMap.toGoogle();
+          if (!googleMap) {
+            reject(new Error("The map must be set up before its data layer can be used."));
+            return;
+          }
+          const { data } = googleMap;
           __privateMethod(this, _DataLayer_instances, setDataObject_fn).call(this, data);
           resolve(data);
         });
@@ -11297,15 +11349,17 @@ setLabel_fn = function(value) {
  * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
  */
 setMap_fn = function(value) {
+  var _a;
   if (value instanceof Map) {
     __privateGet(this, _options5).map = value;
     __superGet(_Marker.prototype, this, "setMap").call(this, value);
     if (value.getIsReady()) {
-      __privateGet(this, _marker).setMap(value.toGoogle());
+      __privateGet(this, _marker).setMap((_a = value.toGoogle()) != null ? _a : null);
     } else {
       value.onReady(() => {
+        var _a2;
         if (__privateGet(this, _options5).map === value && __privateGet(this, _marker)) {
-          __privateGet(this, _marker).setMap(value.toGoogle());
+          __privateGet(this, _marker).setMap((_a2 = value.toGoogle()) != null ? _a2 : null);
         }
       });
     }
@@ -11369,11 +11423,12 @@ setupGoogleMarker_fn = function(map2) {
         }
         loader().onMapLoad(() => {
           __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this).then(() => {
+            var _a, _b;
             const thisMap = this.getMap();
             if (__privateGet(this, _marker) && thisMap) {
-              __privateGet(this, _marker).setMap(thisMap.toGoogle());
+              __privateGet(this, _marker).setMap((_a = thisMap.toGoogle()) != null ? _a : null);
             } else if (__privateGet(this, _marker) && map2) {
-              __privateGet(this, _marker).setMap(map2.toGoogle());
+              __privateGet(this, _marker).setMap((_b = map2.toGoogle()) != null ? _b : null);
             }
             this.dispatch(MarkerEvents.READY);
             resolve();
@@ -12516,9 +12571,19 @@ getColor_fn = function(count, mean) {
 };
 
 // src/lib/MarkerCluster/ImageRenderer.ts
-var _images, _labelClassName, _labelColor, _labelFontFamily2, _labelFontSize2, _labelFontWeight, _map3, _showNumber2;
+var _fallbackRenderer, _images, _labelClassName, _labelColor, _labelFontFamily2, _labelFontSize2, _labelFontWeight, _map3, _showNumber2, _ImageRenderer_instances, getFallbackRenderer_fn;
 var ImageRenderer = class {
   constructor() {
+    __privateAdd(this, _ImageRenderer_instances);
+    /**
+     * Holds the renderer that's used if no valid images were set.
+     *
+     * This is created the first time that a cluster is rendered without an image.
+     *
+     * @private
+     * @type {DefaultRenderer|undefined}
+     */
+    __privateAdd(this, _fallbackRenderer);
     /**
      * Holds the images that can be used for the marker cluster icons
      *
@@ -12668,8 +12733,10 @@ var ImageRenderer = class {
   /**
    * Get the image for the cluster.
    *
+   * This returns undefined if no valid images were set.
+   *
    * @param {number} count The number of markers in the cluster.
-   * @returns {ClusterImageValue}
+   * @returns {ClusterImageValue|undefined}
    */
   getImage(count) {
     const keys = Object.keys(__privateGet(this, _images)).map((k) => parseInt(k, 10));
@@ -12687,12 +12754,19 @@ var ImageRenderer = class {
   /**
    * Renders the cluster marker
    *
+   * If no valid images were set then the cluster is rendered with the default renderer instead.
+   *
    * @param {Cluster} cluster The cluster information
-   * @returns {google.maps.Marker}
+   * @param {ClusterStats} stats The stats for all of the clusters
+   * @param {google.maps.Map} map The map object
+   * @returns {google.maps.Marker | google.maps.marker.AdvancedMarkerElement}
    */
-  render(cluster) {
+  render(cluster, stats, map2) {
     const { count, position } = cluster;
     const imageValue = this.getImage(count);
+    if (!imageValue) {
+      return __privateMethod(this, _ImageRenderer_instances, getFallbackRenderer_fn).call(this).render(cluster, stats, map2);
+    }
     const image = typeof imageValue === "string" ? { url: imageValue } : imageValue;
     const markerImage = icon(image.url);
     if (image.width && image.height) {
@@ -12740,6 +12814,7 @@ var ImageRenderer = class {
     return clusterMarker.toGoogleSync();
   }
 };
+_fallbackRenderer = new WeakMap();
 _images = new WeakMap();
 _labelClassName = new WeakMap();
 _labelColor = new WeakMap();
@@ -12748,6 +12823,30 @@ _labelFontSize2 = new WeakMap();
 _labelFontWeight = new WeakMap();
 _map3 = new WeakMap();
 _showNumber2 = new WeakMap();
+_ImageRenderer_instances = new WeakSet();
+/**
+ * Get the renderer to use when no valid images were set.
+ *
+ * The label settings that apply to both renderers are passed on to it.
+ *
+ * @private
+ * @returns {DefaultRenderer}
+ */
+getFallbackRenderer_fn = function() {
+  if (!__privateGet(this, _fallbackRenderer)) {
+    console.warn(
+      "No valid images were set for the marker cluster image renderer. The default cluster marker is being used instead."
+    );
+    const renderer = new DefaultRenderer();
+    renderer.setShowNumber(__privateGet(this, _showNumber2));
+    if (__privateGet(this, _labelFontFamily2)) {
+      renderer.setFontFamily(__privateGet(this, _labelFontFamily2));
+    }
+    renderer.setFontSize(__privateGet(this, _labelFontSize2));
+    __privateSet(this, _fallbackRenderer, renderer);
+  }
+  return __privateGet(this, _fallbackRenderer);
+};
 
 // src/lib/MarkerCluster.ts
 var _clusterer, _pendingMarkers, _MarkerCluster_instances, setupCluster_fn;
@@ -13406,19 +13505,21 @@ var Overlay = class extends Layer_default {
       e.stopPropagation();
       const mapContainer = (_a = this.getMap()) == null ? void 0 : _a.getDiv();
       const currentBounds = this.getBounds();
-      if (!mapContainer || !currentBounds) return;
+      const neBounds = currentBounds == null ? void 0 : currentBounds.getNorthEast();
+      const swBounds = currentBounds == null ? void 0 : currentBounds.getSouthWest();
+      if (!mapContainer || !neBounds || !swBounds) return;
       __privateSet(this, _isResizing, true);
       this.resizeCorner = corner;
       const containerRect = mapContainer.getBoundingClientRect();
       const currentSize = __privateGet(this, _overlay).getBoundingClientRect();
       this.resizeStart = {
         // Northeast lat/lng
-        neBounds: currentBounds.getNorthEast(),
+        neBounds,
         // Current top left position of the overlay within the map container.
         // This is used to calculate the new position of the overlay after resizing from the top left.
         nwPos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
         // Southwest lat/lng
-        swBounds: currentBounds.getSouthWest(),
+        swBounds,
         // Current bottom right position of the overlay within the map container.
         // This is used to calculate the new position of the overlay after resizing from the bottom right.
         sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
@@ -13874,7 +13975,7 @@ var Overlay = class extends Layer_default {
    */
   move(position, map2) {
     return new Promise((resolve, reject) => {
-      var _a;
+      var _a, _b;
       let mapObject = map2;
       if (typeof mapObject === "undefined") {
         mapObject = (_a = this.getMap()) != null ? _a : void 0;
@@ -13882,7 +13983,7 @@ var Overlay = class extends Layer_default {
       this.position = position;
       if (mapObject instanceof Map) {
         if (__privateGet(this, _overlayView)) {
-          __privateGet(this, _overlayView).setMap(mapObject.toGoogle());
+          __privateGet(this, _overlayView).setMap((_b = mapObject.toGoogle()) != null ? _b : null);
           this.isVisible = true;
           super.setMap(mapObject);
           this.dispatch(OverlayEvents.OPEN);
@@ -14054,19 +14155,21 @@ var Overlay = class extends Layer_default {
    */
   show(map2) {
     return new Promise((resolve) => {
+      var _a;
       if (map2 instanceof Map) {
         __privateMethod(this, _Overlay_instances, setupGoogleOverlay_fn).call(this);
         if (__privateGet(this, _overlayView)) {
-          __privateGet(this, _overlayView).setMap(map2.toGoogle());
+          __privateGet(this, _overlayView).setMap((_a = map2.toGoogle()) != null ? _a : null);
           this.isVisible = true;
           super.setMap(map2);
           this.dispatch(OverlayEvents.OPEN);
           resolve(this);
         } else {
           loader().onMapLoad(() => {
+            var _a2;
             __privateMethod(this, _Overlay_instances, setupGoogleOverlay_fn).call(this);
             if (__privateGet(this, _overlayView)) {
-              __privateGet(this, _overlayView).setMap(map2.toGoogle());
+              __privateGet(this, _overlayView).setMap((_a2 = map2.toGoogle()) != null ? _a2 : null);
               this.isVisible = true;
             }
             super.setMap(map2);
@@ -15449,8 +15552,12 @@ var PlacesSearchBox = class extends Evented {
         const searchBox = new google.maps.places.SearchBox(__privateGet(this, _input2), options);
         __privateSet(this, _searchBox2, searchBox);
         searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-          var _a;
-          const places = (_a = searchBox.getPlaces()) != null ? _a : [];
+          const places = searchBox.getPlaces();
+          if (!Array.isArray(places) || places.length === 0) {
+            __privateSet(this, _places, []);
+            __privateSet(this, _placesBounds, void 0);
+            return;
+          }
           const bounds = latLngBounds();
           places.forEach((place) => {
             if (place.geometry) {
@@ -16640,6 +16747,7 @@ var _Polyline = class _Polyline extends Layer_default {
    */
   setMap(value, isVisible = true) {
     return __async(this, null, function* () {
+      var _a;
       if (__privateGet(this, _highlightPolyline)) {
         __privateGet(this, _highlightPolyline).setMap(value, false);
       }
@@ -16648,7 +16756,7 @@ var _Polyline = class _Polyline extends Layer_default {
         this.visible = isVisible;
         __privateGet(this, _options9).map = value;
         __superGet(_Polyline.prototype, this, "setMap").call(this, value);
-        googlePolyline.setMap(value.toGoogle());
+        googlePolyline.setMap((_a = value.toGoogle()) != null ? _a : null);
       } else if (isNullOrUndefined(value)) {
         __privateGet(this, _options9).map = null;
         __superGet(_Polyline.prototype, this, "setMap").call(this, null);
@@ -16896,10 +17004,11 @@ setupGooglePolyline_fn = function(map2) {
         resolve(googlePolyline);
       } else {
         loader().onMapLoad(() => {
+          var _a;
           const googlePolyline = __privateMethod(this, _Polyline_instances, createPolylineObject_fn).call(this);
           const thisMap = this.getMap();
           if (thisMap) {
-            googlePolyline.setMap(thisMap.toGoogle());
+            googlePolyline.setMap((_a = thisMap.toGoogle()) != null ? _a : null);
             if (__privateGet(this, _highlightPolyline)) {
               __privateGet(this, _highlightPolyline).setMap(thisMap, false);
             }

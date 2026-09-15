@@ -185,11 +185,16 @@ export class LatLngBounds extends Base {
                 } else {
                     // Calculate the equality manually
                     const { northEast, southWest } = this.#getCorners();
+                    const otherNorthEast = other.getNorthEast();
+                    const otherSouthWest = other.getSouthWest();
+                    // An empty bounds doesn't equal a bounds with values
                     resolve(
-                        northEast.latitude === other.getNorthEast().latitude &&
-                            northEast.longitude === other.getNorthEast().longitude &&
-                            southWest.latitude === other.getSouthWest().latitude &&
-                            southWest.longitude === other.getSouthWest().longitude,
+                        typeof otherNorthEast !== 'undefined' &&
+                            typeof otherSouthWest !== 'undefined' &&
+                            northEast.latitude === otherNorthEast.latitude &&
+                            northEast.longitude === otherNorthEast.longitude &&
+                            southWest.latitude === otherSouthWest.latitude &&
+                            southWest.longitude === otherSouthWest.longitude,
                     );
                 }
             } else {
@@ -376,15 +381,13 @@ export class LatLngBounds extends Base {
      *
      * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    getNorthEast(): LatLng {
+    getNorthEast(): LatLng | undefined {
         if (this.#bounds) {
             return latLngConvert(this.#bounds.getNorthEast());
         }
-        // The return type is kept as LatLng for backwards compatibility, even though the value
-        // is undefined for an empty bounds.
-        return this.#northEast as LatLng;
+        return this.#northEast;
     }
 
     /**
@@ -392,15 +395,13 @@ export class LatLngBounds extends Base {
      *
      * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    getSouthWest(): LatLng {
+    getSouthWest(): LatLng | undefined {
         if (this.#bounds) {
             return latLngConvert(this.#bounds.getSouthWest());
         }
-        // The return type is kept as LatLng for backwards compatibility, even though the value
-        // is undefined for an empty bounds.
-        return this.#southWest as LatLng;
+        return this.#southWest;
     }
 
     /**
@@ -455,6 +456,11 @@ export class LatLngBounds extends Base {
                     const ne = this.getNorthEast();
                     const otherSw = other.getSouthWest();
                     const otherNe = other.getNorthEast();
+                    if (!sw || !ne || !otherSw || !otherNe) {
+                        // An empty bounds doesn't intersect anything
+                        resolve(false);
+                        return;
+                    }
                     resolve(
                         sw.latitude <= otherNe.latitude &&
                             ne.latitude >= otherSw.latitude &&

@@ -2300,12 +2300,10 @@ export class Map extends Evented {
      * The Google map object is set up when the map is shown. Before that this returns undefined.
      * Use init(), load(), or show() and wait for them to resolve before calling this.
      *
-     * @returns {google.maps.Map}
+     * @returns {google.maps.Map|undefined}
      */
-    toGoogle(): google.maps.Map {
-        // The return type is kept as google.maps.Map for backwards compatibility, even though the
-        // value is undefined before the map is set up.
-        return this.#map as google.maps.Map;
+    toGoogle(): google.maps.Map | undefined {
+        return this.#map;
     }
 }
 

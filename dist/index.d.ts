@@ -1111,17 +1111,17 @@ declare class LatLngBounds extends Base {
      *
      * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    getNorthEast(): LatLng;
+    getNorthEast(): LatLng | undefined;
     /**
      * Get the south-west corner of the LatLngBounds.
      *
      * If the bounds is empty then this returns undefined. Use isEmpty() to check first.
      *
-     * @returns {LatLng}
+     * @returns {LatLng|undefined}
      */
-    getSouthWest(): LatLng;
+    getSouthWest(): LatLng | undefined;
     /**
      * Initialize the lat/lng bounds object so that the Google maps library is available
      *
@@ -4245,9 +4245,9 @@ declare class Map extends Evented {
      * The Google map object is set up when the map is shown. Before that this returns undefined.
      * Use init(), load(), or show() and wait for them to resolve before calling this.
      *
-     * @returns {google.maps.Map}
+     * @returns {google.maps.Map|undefined}
      */
-    toGoogle(): google.maps.Map;
+    toGoogle(): google.maps.Map | undefined;
 }
 /**
  * Helper function to set up the map object

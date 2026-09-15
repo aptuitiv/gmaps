@@ -988,13 +988,13 @@ export class Marker extends Layer {
             this.#options.map = value;
             super.setMap(value);
             if (value.getIsReady()) {
-                this.#marker.setMap(value.toGoogle());
+                this.#marker.setMap(value.toGoogle() ?? null);
             } else {
                 // The map hasn't been rendered yet, for example because its element is hidden.
                 // Add the marker once the map is ready, as long as the marker wasn't moved to another map in the meantime.
                 value.onReady(() => {
                     if (this.#options.map === value && this.#marker) {
-                        this.#marker.setMap(value.toGoogle());
+                        this.#marker.setMap(value.toGoogle() ?? null);
                     }
                 });
             }
@@ -1303,9 +1303,9 @@ export class Marker extends Layer {
                             // from the marker before the Google maps object was available.
                             const thisMap = this.getMap();
                             if (this.#marker && thisMap) {
-                                this.#marker.setMap(thisMap.toGoogle());
+                                this.#marker.setMap(thisMap.toGoogle() ?? null);
                             } else if (this.#marker && map) {
-                                this.#marker.setMap(map.toGoogle());
+                                this.#marker.setMap(map.toGoogle() ?? null);
                             }
                             // Dispatch the event to say that the marker is ready
                             this.dispatch(MarkerEvents.READY);

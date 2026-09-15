@@ -543,7 +543,7 @@ export class Overlay extends Layer {
             if (mapObject instanceof Map) {
                 if (this.#overlayView) {
                     // Setting the map will trigger the redraw
-                    this.#overlayView.setMap(mapObject.toGoogle());
+                    this.#overlayView.setMap(mapObject.toGoogle() ?? null);
                     this.isVisible = true;
                     super.setMap(mapObject);
                     this.dispatch(OverlayEvents.OPEN);
@@ -734,7 +734,7 @@ export class Overlay extends Layer {
             if (map instanceof Map) {
                 this.#setupGoogleOverlay();
                 if (this.#overlayView) {
-                    this.#overlayView.setMap(map.toGoogle());
+                    this.#overlayView.setMap(map.toGoogle() ?? null);
                     this.isVisible = true;
                     super.setMap(map);
                     this.dispatch(OverlayEvents.OPEN);
@@ -744,7 +744,7 @@ export class Overlay extends Layer {
                     loader().onMapLoad(() => {
                         this.#setupGoogleOverlay();
                         if (this.#overlayView) {
-                            this.#overlayView.setMap(map.toGoogle());
+                            this.#overlayView.setMap(map.toGoogle() ?? null);
                             this.isVisible = true;
                         }
                         super.setMap(map);
@@ -1001,10 +1001,12 @@ export class Overlay extends Layer {
         e.preventDefault();
         e.stopPropagation();
 
-        // Resizing needs the map container and the current bounds of the overlay.
+        // Resizing needs the map container and the corners of the overlay's current bounds.
         const mapContainer = this.getMap()?.getDiv();
         const currentBounds = this.getBounds();
-        if (!mapContainer || !currentBounds) return;
+        const neBounds = currentBounds?.getNorthEast();
+        const swBounds = currentBounds?.getSouthWest();
+        if (!mapContainer || !neBounds || !swBounds) return;
 
         this.#isResizing = true;
         this.resizeCorner = corner;
@@ -1016,12 +1018,12 @@ export class Overlay extends Layer {
         // These values will be used to calculate the new bounds, position, and size of the overlay after resizing.
         this.resizeStart = {
             // Northeast lat/lng
-            neBounds: currentBounds.getNorthEast(),
+            neBounds,
             // Current top left position of the overlay within the map container.
             // This is used to calculate the new position of the overlay after resizing from the top left.
             nwPos: { x: currentSize.left - containerRect.left, y: currentSize.top - containerRect.top },
             // Southwest lat/lng
-            swBounds: currentBounds.getSouthWest(),
+            swBounds,
             // Current bottom right position of the overlay within the map container.
             // This is used to calculate the new position of the overlay after resizing from the bottom right.
             sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },

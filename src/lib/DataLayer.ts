@@ -766,7 +766,7 @@ export class DataLayer extends Layer {
                 // object is created, so toGoogle() is not set yet when the library finishes
                 // loading. Attaching the layer to it then would attach it to nothing.
                 await value.init();
-                data.setMap(value.toGoogle());
+                data.setMap(value.toGoogle() ?? null);
             });
         } else if (isNullOrUndefined(value)) {
             super.setMap(null);
@@ -854,7 +854,7 @@ export class DataLayer extends Layer {
             if (mapObject) {
                 // Wait for the map to be ready so that the Google map object exists
                 await mapObject.init();
-                data.setMap(mapObject.toGoogle());
+                data.setMap(mapObject.toGoogle() ?? null);
             }
         });
         return this;
@@ -1122,12 +1122,17 @@ export class DataLayer extends Layer {
      */
     #getGoogleData(): Promise<google.maps.Data> {
         if (!this.#setupPromise) {
-            this.#setupPromise = new Promise((resolve) => {
+            this.#setupPromise = new Promise((resolve, reject) => {
                 const defaultLayerMap = this.#defaultLayerMap;
                 if (defaultLayerMap instanceof Map) {
                     // This is the map's own data layer so wait for the map to be ready
                     defaultLayerMap.init().then(() => {
-                        const { data } = defaultLayerMap.toGoogle();
+                        const googleMap = defaultLayerMap.toGoogle();
+                        if (!googleMap) {
+                            reject(new Error('The map must be set up before its data layer can be used.'));
+                            return;
+                        }
+                        const { data } = googleMap;
                         this.#setDataObject(data);
                         resolve(data);
                     });

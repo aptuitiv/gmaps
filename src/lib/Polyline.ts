@@ -894,7 +894,7 @@ export class Polyline extends Layer {
             // Set the map
             this.#options.map = value;
             super.setMap(value);
-            googlePolyline.setMap(value.toGoogle());
+            googlePolyline.setMap(value.toGoogle() ?? null);
         } else if (isNullOrUndefined(value)) {
             // Remove the polyline from the map
             this.#options.map = null;
@@ -1170,7 +1170,7 @@ export class Polyline extends Layer {
                         // from the polyline before the Google maps object was available.
                         const thisMap = this.getMap();
                         if (thisMap) {
-                            googlePolyline.setMap(thisMap.toGoogle());
+                            googlePolyline.setMap(thisMap.toGoogle() ?? null);
                             // Add the map to the highlight polyline as well if it exists
                             if (this.#highlightPolyline) {
                                 this.#highlightPolyline.setMap(thisMap, false);
