@@ -12,7 +12,7 @@ const config: Config = {
     url: 'https://aptuitiv.github.io/',
     // Set the /<baseUrl>/ pathname under which your site is served
     // For GitHub pages deployment, it is often '/<projectName>/'
-    baseUrl: '/gmaps-docs/',
+    baseUrl: '/gmaps/',
     trailingSlash: false, // Set to true if you want to use /<page-name>/ instead of /<page-name>.html
 
     // GitHub pages deployment config.
