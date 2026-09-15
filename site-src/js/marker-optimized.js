@@ -3,6 +3,9 @@
 
     Adds a large number of markers so that the marker "optimized" option can be
     compared when it's set to true, false, or not set (Google decides).
+
+    Each marker can also have a tooltip and a popup with its own content, either
+    as separate objects for each marker or as one shared tooltip and popup.
 =========================================================================== */
 
 /* global G */
@@ -15,11 +18,17 @@ const resultsBody = document.getElementById('results');
 const stat = (id) => document.getElementById(id);
 
 // A simple SVG icon to compare against the default Google pin
-const svgIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">'
-    + '<circle cx="10" cy="10" r="8" fill="#d62828" stroke="#fff" stroke-width="2"/></svg>';
+const svgIcon =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">' +
+    '<circle cx="10" cy="10" r="8" fill="#d62828" stroke="#fff" stroke-width="2"/></svg>';
 
 // The markers that are on the map
 let markers = [];
+
+// The one tooltip and popup used for every marker with the "shared" option.
+// They're created the first time they're needed.
+let sharedTooltip = null;
+let sharedPopup = null;
 
 // The current test run. Each time the markers are built a new run is added to the results table.
 let currentRun = null;
@@ -42,6 +51,57 @@ const randomPosition = () => ({
 });
 
 /**
+ * Get the used JS memory in MB. This is only available in Chrome.
+ *
+ * @returns {string}
+ */
+const heapMb = () => (performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(1) : 'n/a');
+
+/**
+ * The tooltip content for a marker
+ *
+ * @param {number} number The marker number
+ * @returns {string}
+ */
+const tooltipContent = (number) => `Marker ${number}`;
+
+/**
+ * The popup content for a marker
+ *
+ * @param {number} number The marker number
+ * @param {object} position The marker position
+ * @returns {string}
+ */
+const popupContent = (number, position) =>
+    `<strong>Marker ${number}</strong><br>` + `${position.latitude.toFixed(4)}, ${position.longitude.toFixed(4)}`;
+
+/**
+ * Give a marker the shared tooltip and popup, with this marker's content
+ *
+ * @param {Marker} m The marker
+ * @param {number} number The marker number
+ * @param {object} position The marker position
+ */
+const useSharedOverlays = (m, number, position) => {
+    if (!sharedTooltip) {
+        sharedTooltip = G.tooltip({ content: ' ' });
+        sharedPopup = G.popup({ content: ' ' });
+    }
+    m.on('mouseover', () => {
+        sharedTooltip.setContent(tooltipContent(number));
+        sharedTooltip.setPosition(m.getPosition());
+        sharedTooltip.show(map);
+    });
+    m.on('mouseout', () => {
+        sharedTooltip.hide();
+    });
+    m.on('click', () => {
+        sharedPopup.setContent(popupContent(number, position));
+        sharedPopup.show(m);
+    });
+};
+
+/**
  * Show the results table
  */
 const renderResults = () => {
@@ -51,11 +111,13 @@ const renderResults = () => {
     const cells = [
         currentRun.optimized,
         currentRun.icon,
+        currentRun.overlays,
         currentRun.count.toLocaleString(),
         currentRun.createMs,
         currentRun.elements ?? '-',
         currentRun.canvases ?? '-',
         currentRun.images ?? '-',
+        currentRun.heap ?? '-',
         currentRun.zoomTestFps ?? '-',
     ];
     currentRun.row.innerHTML = cells.map((value) => `<td>${value}</td>`).join('');
@@ -72,13 +134,16 @@ const updateElementCounts = () => {
     const elements = div.querySelectorAll('*').length;
     const canvases = div.querySelectorAll('canvas').length;
     const images = div.querySelectorAll('img').length;
+    const heap = heapMb();
     stat('statElements').textContent = elements.toLocaleString();
     stat('statCanvases').textContent = canvases.toLocaleString();
     stat('statImages').textContent = images.toLocaleString();
+    stat('statHeap').textContent = heap === 'n/a' ? heap : `${heap} MB`;
     if (currentRun) {
         currentRun.elements = elements.toLocaleString();
         currentRun.canvases = canvases.toLocaleString();
         currentRun.images = images.toLocaleString();
+        currentRun.heap = heap;
         renderResults();
     }
 };
@@ -87,16 +152,24 @@ const updateElementCounts = () => {
  * Remove the existing markers and add new ones with the selected options
  */
 const buildMarkers = () => {
+    // Close anything that's open from the previous markers
+    G.closeAllPopups();
+    if (sharedTooltip) {
+        sharedTooltip.hide();
+    }
     markers.forEach((m) => m.setMapSync(null));
     markers = [];
 
     const count = Number(form.count.value);
     const optimized = form.optimized.value;
     const iconType = form.icon.value;
+    const overlays = form.overlays.value;
 
     const start = performance.now();
     for (let i = 0; i < count; i += 1) {
-        const options = { position: randomPosition() };
+        const number = i + 1;
+        const position = randomPosition();
+        const options = { position };
         // Only pass the option when it's set so that Google decides otherwise
         if (optimized !== 'unset') {
             options.optimized = optimized === 'true';
@@ -106,11 +179,27 @@ const buildMarkers = () => {
         }
         const m = G.marker(options);
         m.setMapSync(map);
+
+        if (overlays === 'each') {
+            // A separate tooltip and popup object for each marker
+            m.attachTooltip(tooltipContent(number));
+            m.attachPopup(popupContent(number, position));
+        } else if (overlays === 'shared') {
+            useSharedOverlays(m, number, position);
+        }
         markers.push(m);
     }
     const createMs = Math.round(performance.now() - start);
 
+    let overlayCount = 0;
+    if (overlays === 'each') {
+        overlayCount = count * 2;
+    } else if (overlays === 'shared') {
+        overlayCount = 2;
+    }
+
     stat('statMarkers').textContent = count.toLocaleString();
+    stat('statOverlays').textContent = overlayCount.toLocaleString();
     stat('statCreate').textContent = `${createMs}ms`;
     lowestFps = null;
     stat('statLowestFps').textContent = '-';
@@ -118,9 +207,11 @@ const buildMarkers = () => {
     // Start a new row in the results table
     const row = document.createElement('tr');
     resultsBody.prepend(row);
+    const overlayLabels = { none: 'None', each: 'Separate per marker', shared: 'Shared' };
     currentRun = {
         optimized: optimized === 'unset' ? 'not set' : optimized,
         icon: iconType === 'svg' ? 'SVG' : 'Default pin',
+        overlays: overlayLabels[overlays],
         count,
         createMs,
         row,
