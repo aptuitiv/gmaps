@@ -48,9 +48,6 @@ type PolylineEvent =
     | 'mouseup'
     | 'ready';
 
-// TEMP performance logging to show when highlight polylines are added to the map. Remove before release.
-const highlightStats = { configured: 0, onMap: 0 };
-
 // Custom data to attach to the polyline object
 type CustomData = {
     [key: string]: any;
@@ -356,10 +353,7 @@ export class Polyline extends Layer {
             // Take the old highlight polyline off the map if it was added to it
             if (this.#highlightPolyline && this.#highlightSetup) {
                 this.#highlightPolyline.setMap(null);
-                highlightStats.onMap -= 1; // TEMP performance logging
             }
-            // TEMP performance logging
-            highlightStats.configured += 1;
             this.#highlightPolyline = highlight;
             this.#highlightSetup = undefined;
             this.#isHighlightReady = false;
@@ -1165,10 +1159,6 @@ export class Polyline extends Layer {
                 highlight.path = this.path;
             }
             const map = this.getMap();
-            // TEMP performance logging
-            if (map) {
-                highlightStats.onMap += 1;
-            }
             const setup: Promise<unknown> = map ? highlight.setMap(map, false) : Promise.resolve();
             this.#highlightSetup = setup.then(() => {
                 // The highlight polyline may have been replaced while this one was being set up
