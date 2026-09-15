@@ -6,7 +6,7 @@
 =========================================================================== */
 
 /* global google */
- 
+
 /* eslint-disable @typescript-eslint/no-explicit-any -- Custom data could be anything within an obect */
 
 import { PolylineEvents } from './constants';
@@ -47,6 +47,9 @@ type PolylineEvent =
     | 'mouseover'
     | 'mouseup'
     | 'ready';
+
+// TEMP performance logging to show when highlight polylines are added to the map. Remove before release.
+const highlightStats = { configured: 0, onMap: 0 };
 
 // Custom data to attach to the polyline object
 type CustomData = {
@@ -135,12 +138,49 @@ export class Polyline extends Layer {
     #highlightPolyline: Polyline | undefined;
 
     /**
+     * Holds the promise for setting up the highlight polyline on the map.
+     *
+     * The highlight polyline isn't given the path or added to the map until it's first shown.
+     * On a touch screen there is no hover, so most polylines are never highlighted and this
+     * saves holding a second copy of every path on the map.
+     * This is undefined until the highlight polyline is first shown.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #highlightSetup: Promise<void> | undefined;
+
+    /**
+     * Holds whether the hover events that show and hide the highlight polyline have been set up
+     *
+     * @private
+     * @type {boolean}
+     */
+    #hasHighlightListeners: boolean = false;
+
+    /**
      * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
      *
      * @private
      * @type {boolean}
      */
     #isHighlighted: boolean = false;
+
+    /**
+     * Holds whether the highlight polyline has finished being set up on the map
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isHighlightReady: boolean = false;
+
+    /**
+     * Holds whether the mouse is over the polyline
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isHovered: boolean = false;
 
     /**
      * Holds the Polyline options
@@ -292,67 +332,79 @@ export class Polyline extends Layer {
      * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
      */
     set highlightPolyline(value: PolylineOptions | Polyline) {
+        let highlight: Polyline | undefined;
         if (value instanceof Polyline) {
-            this.#highlightPolyline = value;
+            highlight = value;
         } else if (isObject(value)) {
             // Create the highlight polyline by merging the options with the existing options.
             // This allows the developer to only set the options that are different from the existing polyline,
             // which is typically the stroke color, opacity, and weight.
-            this.#highlightPolyline = new Polyline({ ...this.#options, ...value });
+            // The map and path are left out. They're set when the highlight polyline is first shown.
+            // See #setupHighlightPolyline().
+            const options: PolylineOptions = { ...this.#options, ...value };
+            delete options.map;
+            delete options.path;
+            highlight = new Polyline(options);
         }
 
-        if (!this.#highlightPolyline) {
-            // An invalid value was passed and there isn't an existing highlight polyline to set up.
+        if (!highlight) {
+            // An invalid value was passed. Any existing highlight polyline is left as it is.
             return;
         }
 
-        // Make sure that necessary values are set
-        this.#highlightPolyline.clickable = true;
-        if (this.path) {
-            this.#highlightPolyline.path = this.path;
+        if (highlight !== this.#highlightPolyline) {
+            // Take the old highlight polyline off the map if it was added to it
+            if (this.#highlightPolyline && this.#highlightSetup) {
+                this.#highlightPolyline.setMap(null);
+                highlightStats.onMap -= 1; // TEMP performance logging
+            }
+            // TEMP performance logging
+            highlightStats.configured += 1;
+            this.#highlightPolyline = highlight;
+            this.#highlightSetup = undefined;
+            this.#isHighlightReady = false;
         }
-        this.#highlightPolyline.visible = false;
 
-        // Initialize the highlight polyline and this polyline so that events
-        // can be assigned to them and so that the map can be set.
-        this.#highlightPolyline.init().then(() => {
-            this.init().then(() => {
-                this.#highlightPolyline?.setMap(this.getMap(), false);
+        // Make sure that necessary values are set
+        highlight.clickable = true;
+        highlight.visible = false;
 
-                // Set the hover events on this polyline to show and hide the highlight polyline.
-                // Use super.on instead of "on" so that this isn't added to the highlight polyline.
-                super.on('mouseover', () => {
-                    if (!this.#isHighlighted && this.#highlightPolyline) {
-                        this.#highlightPolyline.visible = true;
-                    }
-                });
-                super.on('mousemove', () => {
-                    if (!this.#isHighlighted && this.#highlightPolyline) {
-                        this.#highlightPolyline.visible = true;
-                    }
-                });
-                super.on('mouseout', () => {
-                    if (!this.#isHighlighted && this.#highlightPolyline) {
-                        this.#highlightPolyline.visible = false;
-                    }
-                });
+        // Set the hover events on this polyline to show and hide the highlight polyline.
+        // They're only set up once because they always use the current highlight polyline.
+        // Use super.on instead of "on" so that this isn't added to the highlight polyline.
+        if (!this.#hasHighlightListeners) {
+            this.#hasHighlightListeners = true;
+            const showOnHover = () => {
+                this.#isHovered = true;
+                if (!this.#isHighlighted && this.#highlightPolyline && !this.#highlightPolyline.visible) {
+                    // The mouse may leave the polyline while the highlight polyline is being set up
+                    this.#showHighlightPolyline(() => this.#isHovered && !this.#isHighlighted);
+                }
+            };
+            super.on('mouseover', showOnHover);
+            super.on('mousemove', showOnHover);
+            super.on('mouseout', () => {
+                this.#isHovered = false;
+                if (!this.#isHighlighted && this.#highlightPolyline) {
+                    this.#highlightPolyline.visible = false;
+                }
             });
-        });
+        }
 
         // Set the zIndex of the polylines.
         // The zIndex values are undefined if they are not set. (See hasZIndex())
-        const highlightZIndex = this.#highlightPolyline.zIndex;
+        const highlightZIndex = highlight.zIndex;
         const thisZIndex = this.zIndex;
         if (typeof highlightZIndex !== 'undefined' && typeof thisZIndex !== 'undefined') {
             // Both the polyline and the highlight polyline have a zIndex set.
             // Make sure that the highlight one is below the existing one.
             if (highlightZIndex >= thisZIndex) {
-                this.#highlightPolyline.zIndex = thisZIndex - 1;
+                highlight.zIndex = thisZIndex - 1;
             }
         } else if (typeof thisZIndex !== 'undefined') {
             // Only this polyline has a zIndex set.
             // Set the zIndex of the highlight polyline to be below the existing one.
-            this.#highlightPolyline.zIndex = thisZIndex - 1;
+            highlight.zIndex = thisZIndex - 1;
         } else if (typeof highlightZIndex !== 'undefined') {
             // Only the highlight polyline has a zIndex set.
             // Set the zIndex of this polyline to be above the highlight one.
@@ -360,7 +412,7 @@ export class Polyline extends Layer {
         } else {
             // Neither the polyline nor the highlight polyline have a zIndex set.
             // Set the zIndex of the highlight polyline to be below the existing one.
-            this.#highlightPolyline.zIndex = 1;
+            highlight.zIndex = 1;
             this.zIndex = 2;
         }
     }
@@ -450,6 +502,10 @@ export class Polyline extends Layer {
                 this.#polyline.setPath(
                     paths.map((path) => path.toGoogle()).filter((path): path is google.maps.LatLng => path !== null),
                 );
+            }
+            // Keep the highlight polyline on the same path once it has one
+            if (this.#highlightPolyline && this.#highlightSetup) {
+                this.#highlightPolyline.path = paths;
             }
         }
     }
@@ -605,8 +661,7 @@ export class Polyline extends Layer {
      */
     clone(): Polyline {
         const clone = new Polyline();
-        // Set the highlight polyline first so that any options that if the map object
-        // is set with the setOptions() method then it'll be set on the highlight polyline.
+        // Set the highlight polyline first. It gets the clone's map and path when it's first shown.
         if (this.#highlightPolyline) {
             clone.setHighlightPolyline(this.#highlightPolyline.clone());
         }
@@ -722,7 +777,8 @@ export class Polyline extends Layer {
                 }
             }
             this.#isHighlighted = true;
-            this.#highlightPolyline.visible = true;
+            // The polyline may be unhighlighted while the highlight polyline is being set up
+            this.#showHighlightPolyline(() => this.#isHighlighted);
         }
         return this;
     }
@@ -885,7 +941,8 @@ export class Polyline extends Layer {
      * @returns {Promise<Polyline>}
      */
     async setMap(value: Map | null, isVisible: boolean = true): Promise<Polyline> {
-        if (this.#highlightPolyline) {
+        // The highlight polyline only follows the map once it's been set up. Until then it gets the map when it's first shown.
+        if (this.#highlightPolyline && this.#highlightSetup) {
             this.#highlightPolyline.setMap(value, false);
         }
         const googlePolyline = await this.#setupGooglePolyline(value ?? undefined);
@@ -1077,6 +1134,62 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Set up the highlight polyline on the map if it hasn't been already.
+     *
+     * This gives the highlight polyline this polyline's path and adds it to the map, hidden.
+     * It's done the first time the highlight polyline is shown rather than when it's set.
+     *
+     * @private
+     * @returns {Promise<void>}
+     */
+    #setupHighlightPolyline(): Promise<void> {
+        const highlight = this.#highlightPolyline;
+        if (!highlight) {
+            return Promise.resolve();
+        }
+        if (!this.#highlightSetup) {
+            if (this.path) {
+                highlight.path = this.path;
+            }
+            const map = this.getMap();
+            // TEMP performance logging
+            if (map) {
+                highlightStats.onMap += 1;
+            }
+            const setup: Promise<unknown> = map ? highlight.setMap(map, false) : Promise.resolve();
+            this.#highlightSetup = setup.then(() => {
+                // The highlight polyline may have been replaced while this one was being set up
+                if (this.#highlightPolyline === highlight) {
+                    this.#isHighlightReady = true;
+                }
+            });
+        }
+        return this.#highlightSetup;
+    }
+
+    /**
+     * Show the highlight polyline, setting it up first if necessary.
+     *
+     * The highlight polyline is shown right away if it's already set up. Otherwise it's shown
+     * once it's set up, as long as it should still be shown.
+     *
+     * @private
+     * @param {() => boolean} shouldShow Returns whether the highlight polyline should still be shown
+     */
+    #showHighlightPolyline(shouldShow: () => boolean): void {
+        const show = () => {
+            if (this.#highlightPolyline && shouldShow()) {
+                this.#highlightPolyline.visible = true;
+            }
+        };
+        if (this.#isHighlightReady) {
+            show();
+        } else {
+            this.#setupHighlightPolyline().then(show);
+        }
+    }
+
+    /**
      * Set up the options for a dashed polyline and icons
      *
      * See https://developers.google.com/maps/documentation/javascript/examples/overlay-symbol-dashed for details
@@ -1171,8 +1284,8 @@ export class Polyline extends Layer {
                         const thisMap = this.getMap();
                         if (thisMap) {
                             googlePolyline.setMap(thisMap.toGoogle() ?? null);
-                            // Add the map to the highlight polyline as well if it exists
-                            if (this.#highlightPolyline) {
+                            // Add the map to the highlight polyline as well if it's been set up
+                            if (this.#highlightPolyline && this.#highlightSetup) {
                                 this.#highlightPolyline.setMap(thisMap, false);
                             }
                         }

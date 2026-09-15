@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added support for the `stylers` property in `MapStyle` options as an alias of `styles`. This matches the Google Maps `MapTypeStyle` format so Google's style JSON can be used as is.
 - Added `PolylineCollection.isEmpty()`. It replaces the misspelled `isEmtpy()` method.
 
+## Changed
+
+- Improved the performance of rendering polylines with hover polylines. Nothing is built until the highlight is first needed.
 
 ### Fixed
 
