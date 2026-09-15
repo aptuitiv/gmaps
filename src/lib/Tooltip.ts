@@ -104,6 +104,14 @@ export class Tooltip extends Overlay {
     #isAttached: boolean = false;
 
     /**
+     * Whether the default theme styles have been set on the tooltip element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isThemeApplied: boolean = false;
+
+    /**
      * The theme to use for the tooltip.
      *
      * @private
@@ -218,6 +226,8 @@ export class Tooltip extends Overlay {
      */
     set theme(theme: string) {
         this.#theme = theme;
+        // Apply the theme styles again the next time the tooltip is drawn
+        this.#isThemeApplied = false;
     }
 
     /**
@@ -328,6 +338,30 @@ export class Tooltip extends Overlay {
     }
 
     /**
+     * Set the default theme styles on the tooltip element.
+     *
+     * Any style that has already been set on the tooltip is kept so that custom styles win over the theme.
+     *
+     * @private
+     */
+    #applyTheme(): void {
+        const themeStyles: { [key: string]: string } = {
+            backgroundColor: '#fff',
+            color: '#333',
+            padding: '3px 6px',
+            borderRadius: '4px',
+            boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+        };
+        const styles = this.styles as { [key: string]: string };
+        Object.keys(themeStyles).forEach((key) => {
+            if (typeof styles[key] === 'undefined') {
+                this.style(key, themeStyles[key]);
+            }
+        });
+        this.#isThemeApplied = true;
+    }
+
+    /**
      * Returns whether the tooltip already has content
      *
      * @returns {boolean}
@@ -415,23 +449,17 @@ export class Tooltip extends Overlay {
             const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
 
             if (display === 'block') {
+                // Only the position changes from one draw to the next. draw() is called on every
+                // frame while the map is zoomed or panned, so the other styles are only set when needed.
                 const offset = this.getOffset();
                 this.style('left', `${divPosition.x + offset.getX()}px`);
                 this.style('top', `${divPosition.y + offset.getY()}px`);
-                if (this.center) {
+                if (this.center && this.getOverlayElement().style.transform !== 'translate(-50%, 0)') {
                     // Center the tooltip horizontally on the element
                     this.style('transform', 'translate(-50%, 0)');
                 }
-                if (this.#theme === 'default') {
-                    const styles = this.styles || {};
-                    const themeStyles = {
-                        backgroundColor: '#fff',
-                        color: '#333',
-                        padding: '3px 6px',
-                        borderRadius: '4px',
-                        boxShadow: '0 0 5px rgba(0,0,0,0.3)',
-                    };
-                    this.styles = { ...themeStyles, ...styles };
+                if (this.#theme === 'default' && !this.#isThemeApplied) {
+                    this.#applyTheme();
                 }
             }
 
