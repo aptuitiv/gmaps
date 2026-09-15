@@ -15908,7 +15908,8 @@ var polylineIcon = (options) => {
 };
 
 // src/lib/Polyline.ts
-var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _isHighlighted, _options9, _polyline, _Polyline_instances, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
+var highlightStats = { configured: 0, onMap: 0 };
+var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _highlightSetup, _hasHighlightListeners, _isHighlighted, _isHighlightReady, _isHovered, _options9, _polyline, _Polyline_instances, setupHighlightPolyline_fn, showHighlightPolyline_fn, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
    * Constructor
@@ -15960,12 +15961,45 @@ var _Polyline = class _Polyline extends Layer_default {
      */
     __privateAdd(this, _highlightPolyline);
     /**
+     * Holds the promise for setting up the highlight polyline on the map.
+     *
+     * The highlight polyline isn't given the path or added to the map until it's first shown.
+     * On a touch screen there is no hover, so most polylines are never highlighted and this
+     * saves holding a second copy of every path on the map.
+     * This is undefined until the highlight polyline is first shown.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    __privateAdd(this, _highlightSetup);
+    /**
+     * Holds whether the hover events that show and hide the highlight polyline have been set up
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _hasHighlightListeners, false);
+    /**
      * Holds whether the polyline is manually highlighted (i.e. if the highlightPolyline is displayed)
      *
      * @private
      * @type {boolean}
      */
     __privateAdd(this, _isHighlighted, false);
+    /**
+     * Holds whether the highlight polyline has finished being set up on the map
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isHighlightReady, false);
+    /**
+     * Holds whether the mouse is over the polyline
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isHovered, false);
     /**
      * Holds the Polyline options
      *
@@ -16095,52 +16129,59 @@ var _Polyline = class _Polyline extends Layer_default {
    * @param {PolylineOptions|Polyline} value The highlight polyline options or the highlight polyline class.
    */
   set highlightPolyline(value) {
+    let highlight;
     if (value instanceof _Polyline) {
-      __privateSet(this, _highlightPolyline, value);
+      highlight = value;
     } else if (isObject(value)) {
-      __privateSet(this, _highlightPolyline, new _Polyline(__spreadValues(__spreadValues({}, __privateGet(this, _options9)), value)));
+      const options = __spreadValues(__spreadValues({}, __privateGet(this, _options9)), value);
+      delete options.map;
+      delete options.path;
+      highlight = new _Polyline(options);
     }
-    if (!__privateGet(this, _highlightPolyline)) {
+    if (!highlight) {
       return;
     }
-    __privateGet(this, _highlightPolyline).clickable = true;
-    if (this.path) {
-      __privateGet(this, _highlightPolyline).path = this.path;
+    if (highlight !== __privateGet(this, _highlightPolyline)) {
+      if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
+        __privateGet(this, _highlightPolyline).setMap(null);
+        highlightStats.onMap -= 1;
+      }
+      highlightStats.configured += 1;
+      __privateSet(this, _highlightPolyline, highlight);
+      __privateSet(this, _highlightSetup, void 0);
+      __privateSet(this, _isHighlightReady, false);
     }
-    __privateGet(this, _highlightPolyline).visible = false;
-    __privateGet(this, _highlightPolyline).init().then(() => {
-      this.init().then(() => {
-        var _a;
-        (_a = __privateGet(this, _highlightPolyline)) == null ? void 0 : _a.setMap(this.getMap(), false);
-        super.on("mouseover", () => {
-          if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline)) {
-            __privateGet(this, _highlightPolyline).visible = true;
-          }
-        });
-        super.on("mousemove", () => {
-          if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline)) {
-            __privateGet(this, _highlightPolyline).visible = true;
-          }
-        });
-        super.on("mouseout", () => {
-          if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline)) {
-            __privateGet(this, _highlightPolyline).visible = false;
-          }
-        });
+    highlight.clickable = true;
+    highlight.visible = false;
+    if (!__privateGet(this, _hasHighlightListeners)) {
+      __privateSet(this, _hasHighlightListeners, true);
+      const showOnHover = () => {
+        __privateSet(this, _isHovered, true);
+        if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline) && !__privateGet(this, _highlightPolyline).visible) {
+          __privateMethod(this, _Polyline_instances, showHighlightPolyline_fn).call(this, () => __privateGet(this, _isHovered) && !__privateGet(this, _isHighlighted));
+        }
+      };
+      super.on("mouseover", showOnHover);
+      super.on("mousemove", showOnHover);
+      super.on("mouseout", () => {
+        __privateSet(this, _isHovered, false);
+        if (!__privateGet(this, _isHighlighted) && __privateGet(this, _highlightPolyline)) {
+          __privateGet(this, _highlightPolyline).visible = false;
+        }
       });
-    });
-    const highlightZIndex = __privateGet(this, _highlightPolyline).zIndex;
+    }
+    const highlightZIndex = highlight.zIndex;
     const thisZIndex = this.zIndex;
     if (typeof highlightZIndex !== "undefined" && typeof thisZIndex !== "undefined") {
       if (highlightZIndex >= thisZIndex) {
-        __privateGet(this, _highlightPolyline).zIndex = thisZIndex - 1;
+        highlight.zIndex = thisZIndex - 1;
       }
     } else if (typeof thisZIndex !== "undefined") {
-      __privateGet(this, _highlightPolyline).zIndex = thisZIndex - 1;
+      highlight.zIndex = thisZIndex - 1;
     } else if (typeof highlightZIndex !== "undefined") {
       this.zIndex = highlightZIndex + 1;
     } else {
-      __privateGet(this, _highlightPolyline).zIndex = 1;
+      highlight.zIndex = 1;
       this.zIndex = 2;
     }
   }
@@ -16223,6 +16264,9 @@ var _Polyline = class _Polyline extends Layer_default {
         __privateGet(this, _polyline).setPath(
           paths.map((path) => path.toGoogle()).filter((path) => path !== null)
         );
+      }
+      if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
+        __privateGet(this, _highlightPolyline).path = paths;
       }
     }
   }
@@ -16467,7 +16511,7 @@ var _Polyline = class _Polyline extends Layer_default {
         }
       }
       __privateSet(this, _isHighlighted, true);
-      __privateGet(this, _highlightPolyline).visible = true;
+      __privateMethod(this, _Polyline_instances, showHighlightPolyline_fn).call(this, () => __privateGet(this, _isHighlighted));
     }
     return this;
   }
@@ -16613,7 +16657,7 @@ var _Polyline = class _Polyline extends Layer_default {
   setMap(value, isVisible = true) {
     return __async(this, null, function* () {
       var _a;
-      if (__privateGet(this, _highlightPolyline)) {
+      if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
         __privateGet(this, _highlightPolyline).setMap(value, false);
       }
       const googlePolyline = yield __privateMethod(this, _Polyline_instances, setupGooglePolyline_fn).call(this, value != null ? value : void 0);
@@ -16791,10 +16835,66 @@ _dashed = new WeakMap();
 _dashGap = new WeakMap();
 _highlightOriginalOptions = new WeakMap();
 _highlightPolyline = new WeakMap();
+_highlightSetup = new WeakMap();
+_hasHighlightListeners = new WeakMap();
 _isHighlighted = new WeakMap();
+_isHighlightReady = new WeakMap();
+_isHovered = new WeakMap();
 _options9 = new WeakMap();
 _polyline = new WeakMap();
 _Polyline_instances = new WeakSet();
+/**
+ * Set up the highlight polyline on the map if it hasn't been already.
+ *
+ * This gives the highlight polyline this polyline's path and adds it to the map, hidden.
+ * It's done the first time the highlight polyline is shown rather than when it's set.
+ *
+ * @private
+ * @returns {Promise<void>}
+ */
+setupHighlightPolyline_fn = function() {
+  const highlight = __privateGet(this, _highlightPolyline);
+  if (!highlight) {
+    return Promise.resolve();
+  }
+  if (!__privateGet(this, _highlightSetup)) {
+    if (this.path) {
+      highlight.path = this.path;
+    }
+    const map2 = this.getMap();
+    if (map2) {
+      highlightStats.onMap += 1;
+    }
+    const setup = map2 ? highlight.setMap(map2, false) : Promise.resolve();
+    __privateSet(this, _highlightSetup, setup.then(() => {
+      if (__privateGet(this, _highlightPolyline) === highlight) {
+        __privateSet(this, _isHighlightReady, true);
+      }
+    }));
+  }
+  return __privateGet(this, _highlightSetup);
+};
+/**
+ * Show the highlight polyline, setting it up first if necessary.
+ *
+ * The highlight polyline is shown right away if it's already set up. Otherwise it's shown
+ * once it's set up, as long as it should still be shown.
+ *
+ * @private
+ * @param {() => boolean} shouldShow Returns whether the highlight polyline should still be shown
+ */
+showHighlightPolyline_fn = function(shouldShow) {
+  const show = () => {
+    if (__privateGet(this, _highlightPolyline) && shouldShow()) {
+      __privateGet(this, _highlightPolyline).visible = true;
+    }
+  };
+  if (__privateGet(this, _isHighlightReady)) {
+    show();
+  } else {
+    __privateMethod(this, _Polyline_instances, setupHighlightPolyline_fn).call(this).then(show);
+  }
+};
 /**
  * Set up the options for a dashed polyline and icons
  *
@@ -16874,7 +16974,7 @@ setupGooglePolyline_fn = function(map2) {
           const thisMap = this.getMap();
           if (thisMap) {
             googlePolyline.setMap((_a = thisMap.toGoogle()) != null ? _a : null);
-            if (__privateGet(this, _highlightPolyline)) {
+            if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
               __privateGet(this, _highlightPolyline).setMap(thisMap, false);
             }
           }
