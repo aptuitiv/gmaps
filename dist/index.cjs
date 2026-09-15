@@ -1618,7 +1618,6 @@ var Evented = class extends Base_default {
         }
       });
       if (listenersToRemove.length > 0) {
-        const removeStart = performance.now();
         this.removeCalledOnceListeners(event, listenersToRemove);
       }
     }
@@ -10385,7 +10384,7 @@ var dataLayer = (options) => {
 };
 
 // src/lib/Marker.ts
-var _customData, _drag, _isSettingUp, _marker, _options5, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, createMarkerObject_fn;
+var _customData, _drag, _isSettingUp, _isReady2, _marker, _options5, _Marker_instances, setAnchorPoint_fn, setCursor_fn, setDraggable_fn, setIcon_fn, setLabel_fn, setMap_fn, setOptimized_fn, setPosition_fn, setGoogleMarkerPosition_fn, setTitle_fn, setupGoogleMarker_fn, setupGoogleMarkerSync_fn, dispatchReady_fn, createMarkerObject_fn;
 var _Marker = class _Marker extends Layer_default {
   /**
    * Constructor
@@ -10417,6 +10416,13 @@ var _Marker = class _Marker extends Layer_default {
      * @type {boolean}
      */
     __privateAdd(this, _isSettingUp, false);
+    /**
+     * Holds if the "ready" event has been dispatched
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isReady2, false);
     /**
      * Holds the Google maps marker object
      *
@@ -10561,6 +10567,22 @@ var _Marker = class _Marker extends Layer_default {
    */
   set map(value) {
     this.setMap(value);
+  }
+  /**
+   * Get whether the marker rendering is optimized
+   *
+   * @returns {boolean | undefined} Undefined if it's not set, in which case Google decides.
+   */
+  get optimized() {
+    return __privateGet(this, _options5).optimized;
+  }
+  /**
+   * Set whether the marker rendering is optimized
+   *
+   * @param {boolean} value Whether the marker rendering is optimized
+   */
+  set optimized(value) {
+    this.setOptimized(value);
   }
   /**
    * Get the marker position
@@ -11077,6 +11099,39 @@ var _Marker = class _Marker extends Layer_default {
     return this;
   }
   /**
+   * Set whether the marker rendering is optimized
+   *
+   * Optimization renders many markers as a single static element, which helps when there are a large
+   * number of markers. If it's not set then Google decides. Optimization has no effect on vector maps.
+   *
+   * It's best to set this in the marker options so that it's used when the marker is created.
+   *
+   * @param {boolean} value Whether the marker rendering is optimized. Pass undefined to let Google decide.
+   * @returns {Promise<Marker>}
+   */
+  setOptimized(value) {
+    return __async(this, null, function* () {
+      yield __privateMethod(this, _Marker_instances, setupGoogleMarker_fn).call(this);
+      __privateMethod(this, _Marker_instances, setOptimized_fn).call(this, value);
+      return this;
+    });
+  }
+  /**
+   * Set whether the marker rendering is optimized syncronously.
+   *
+   * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+   * syncronously. If you don't have to set up the marker syncronously, then use setOptimized() instead or pass the
+   * optimized value to the constructor or setOptions().
+   *
+   * @param {boolean} value Whether the marker rendering is optimized. Pass undefined to let Google decide.
+   * @returns {Marker}
+   */
+  setOptimizedSync(value) {
+    __privateMethod(this, _Marker_instances, setupGoogleMarkerSync_fn).call(this);
+    __privateMethod(this, _Marker_instances, setOptimized_fn).call(this, value);
+    return this;
+  }
+  /**
    * Set the marker options
    *
    * This intentionally does not set up the Google Maps marker object. This is so that when the
@@ -11096,6 +11151,12 @@ var _Marker = class _Marker extends Layer_default {
       __privateSet(this, _drag, options.drag);
       if (__privateGet(this, _marker)) {
         this.drag = options.drag;
+      }
+    }
+    if (isBoolean(options.optimized)) {
+      __privateGet(this, _options5).optimized = options.optimized;
+      if (__privateGet(this, _marker)) {
+        this.optimized = options.optimized;
       }
     }
     if (options.icon) {
@@ -11270,6 +11331,7 @@ var _Marker = class _Marker extends Layer_default {
 _customData = new WeakMap();
 _drag = new WeakMap();
 _isSettingUp = new WeakMap();
+_isReady2 = new WeakMap();
 _marker = new WeakMap();
 _options5 = new WeakMap();
 _Marker_instances = new WeakSet();
@@ -11403,6 +11465,19 @@ setMap_fn = function(value) {
   }
 };
 /**
+ * Set whether the marker rendering is optimized
+ *
+ * @param {boolean} value Whether the marker rendering is optimized
+ */
+setOptimized_fn = function(value) {
+  if (isBoolean(value)) {
+    __privateGet(this, _options5).optimized = value;
+  } else if (isNullOrUndefined(value)) {
+    __privateGet(this, _options5).optimized = void 0;
+  }
+  __privateGet(this, _marker).setOptions({ optimized: __privateGet(this, _options5).optimized });
+};
+/**
  * Set the latitude and longitude value for the marker
  *
  * @param {LatLngValue} value The latitude/longitude position for the marker
@@ -11445,7 +11520,7 @@ setupGoogleMarker_fn = function(map2) {
       __privateSet(this, _isSettingUp, true);
       if (checkForGoogleMaps("Marker", "Marker", false)) {
         __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this).then(() => {
-          this.dispatch(MarkerEvents.READY);
+          __privateMethod(this, _Marker_instances, dispatchReady_fn).call(this);
           resolve();
         });
       } else {
@@ -11461,7 +11536,7 @@ setupGoogleMarker_fn = function(map2) {
             } else if (__privateGet(this, _marker) && map2) {
               __privateGet(this, _marker).setMap((_b = map2.toGoogle()) != null ? _b : null);
             }
-            this.dispatch(MarkerEvents.READY);
+            __privateMethod(this, _Marker_instances, dispatchReady_fn).call(this);
             resolve();
           });
         });
@@ -11481,12 +11556,27 @@ setupGoogleMarker_fn = function(map2) {
 setupGoogleMarkerSync_fn = function() {
   if (!isObject(__privateGet(this, _marker))) {
     if (checkForGoogleMaps("Marker", "Marker", false)) {
-      __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this);
+      __privateMethod(this, _Marker_instances, createMarkerObject_fn).call(this).then(() => {
+        __privateMethod(this, _Marker_instances, dispatchReady_fn).call(this);
+      });
     } else {
       throw new Error(
         "The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first."
       );
     }
+  }
+};
+/**
+ * Dispatch the event to say that the marker is ready.
+ *
+ * It's only dispatched once, even if the marker is set up both syncronously and asyncronously.
+ *
+ * @private
+ */
+dispatchReady_fn = function() {
+  if (!__privateGet(this, _isReady2)) {
+    __privateSet(this, _isReady2, true);
+    this.dispatch(MarkerEvents.READY);
   }
 };
 /**
@@ -11511,6 +11601,9 @@ createMarkerObject_fn = function() {
         }
         if (__privateGet(this, _drag)) {
           markerOptions.draggable = true;
+        }
+        if (isBoolean(__privateGet(this, _options5).optimized)) {
+          markerOptions.optimized = __privateGet(this, _options5).optimized;
         }
         if (__privateGet(this, _options5).icon) {
           if (isString(__privateGet(this, _options5).icon)) {
@@ -16074,7 +16167,6 @@ var polylineIcon = (options) => {
 };
 
 // src/lib/Polyline.ts
-var highlightStats = { configured: 0, onMap: 0 };
 var _customData2, _dashed, _dashGap, _highlightOriginalOptions, _highlightPolyline, _highlightSetup, _hasHighlightListeners, _isHighlighted, _isHighlightReady, _isHovered, _options9, _polyline, _Polyline_instances, setupHighlightPolyline_fn, showHighlightPolyline_fn, setupIconsAndDashedPolylineOptions_fn, setupGooglePolyline_fn, setupGooglePolylineSync_fn, createPolylineObject_fn;
 var _Polyline = class _Polyline extends Layer_default {
   /**
@@ -16310,9 +16402,7 @@ var _Polyline = class _Polyline extends Layer_default {
     if (highlight !== __privateGet(this, _highlightPolyline)) {
       if (__privateGet(this, _highlightPolyline) && __privateGet(this, _highlightSetup)) {
         __privateGet(this, _highlightPolyline).setMap(null);
-        highlightStats.onMap -= 1;
       }
-      highlightStats.configured += 1;
       __privateSet(this, _highlightPolyline, highlight);
       __privateSet(this, _highlightSetup, void 0);
       __privateSet(this, _isHighlightReady, false);
@@ -17040,9 +17130,6 @@ setupHighlightPolyline_fn = function() {
       highlight.path = this.path;
     }
     const map2 = this.getMap();
-    if (map2) {
-      highlightStats.onMap += 1;
-    }
     const setup = map2 ? highlight.setMap(map2, false) : Promise.resolve();
     __privateSet(this, _highlightSetup, setup.then(() => {
       if (__privateGet(this, _highlightPolyline) === highlight) {
@@ -18463,7 +18550,7 @@ var PopupCollection = /* @__PURE__ */ (() => {
 })();
 
 // src/lib/Tooltip.ts
-var _activeTooltip, _callback2, _center2, _content2, _event3, _isAttached3, _theme2, _Tooltip_instances, tooltipFor_fn;
+var _activeTooltip, _callback2, _center2, _content2, _event3, _isAttached3, _isThemeApplied, _theme2, _Tooltip_instances, tooltipFor_fn, applyTheme_fn;
 var Tooltip = class extends Overlay {
   /**
    * Constructor
@@ -18519,6 +18606,13 @@ var Tooltip = class extends Overlay {
      * @type {boolean}
      */
     __privateAdd(this, _isAttached3, false);
+    /**
+     * Whether the default theme styles have been set on the tooltip element
+     *
+     * @private
+     * @type {boolean}
+     */
+    __privateAdd(this, _isThemeApplied, false);
     /**
      * The theme to use for the tooltip.
      *
@@ -18616,6 +18710,7 @@ var Tooltip = class extends Overlay {
    */
   set theme(theme) {
     __privateSet(this, _theme2, theme);
+    __privateSet(this, _isThemeApplied, false);
   }
   /**
    * Attach the tooltip to a element
@@ -18766,19 +18861,11 @@ var Tooltip = class extends Overlay {
         const offset = this.getOffset();
         this.style("left", `${divPosition.x + offset.getX()}px`);
         this.style("top", `${divPosition.y + offset.getY()}px`);
-        if (this.center) {
+        if (this.center && this.getOverlayElement().style.transform !== "translate(-50%, 0)") {
           this.style("transform", "translate(-50%, 0)");
         }
-        if (__privateGet(this, _theme2) === "default") {
-          const styles = this.styles || {};
-          const themeStyles = {
-            backgroundColor: "#fff",
-            color: "#333",
-            padding: "3px 6px",
-            borderRadius: "4px",
-            boxShadow: "0 0 5px rgba(0,0,0,0.3)"
-          };
-          this.styles = __spreadValues(__spreadValues({}, themeStyles), styles);
+        if (__privateGet(this, _theme2) === "default" && !__privateGet(this, _isThemeApplied)) {
+          __privateMethod(this, _Tooltip_instances, applyTheme_fn).call(this);
         }
       }
       if (this.getOverlayElement().style.display !== display) {
@@ -18793,6 +18880,7 @@ _center2 = new WeakMap();
 _content2 = new WeakMap();
 _event3 = new WeakMap();
 _isAttached3 = new WeakMap();
+_isThemeApplied = new WeakMap();
 _theme2 = new WeakMap();
 _Tooltip_instances = new WeakSet();
 /**
@@ -18816,6 +18904,29 @@ tooltipFor_fn = function(target) {
   }
   __privateSet(this, _activeTooltip, tooltipObject);
   return tooltipObject;
+};
+/**
+ * Set the default theme styles on the tooltip element.
+ *
+ * Any style that has already been set on the tooltip is kept so that custom styles win over the theme.
+ *
+ * @private
+ */
+applyTheme_fn = function() {
+  const themeStyles = {
+    backgroundColor: "#fff",
+    color: "#333",
+    padding: "3px 6px",
+    borderRadius: "4px",
+    boxShadow: "0 0 5px rgba(0,0,0,0.3)"
+  };
+  const styles = this.styles;
+  Object.keys(themeStyles).forEach((key) => {
+    if (typeof styles[key] === "undefined") {
+      this.style(key, themeStyles[key]);
+    }
+  });
+  __privateSet(this, _isThemeApplied, true);
 };
 var tooltip = (options) => {
   if (options instanceof Tooltip) {

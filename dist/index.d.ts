@@ -6567,6 +6567,7 @@ type GMMarkerOptions = {
     icon?: Icon | SvgSymbol | string;
     label?: string | MarkerLabel;
     map?: Map | null;
+    optimized?: boolean;
     position?: LatLng;
     title?: string;
 };
@@ -6680,6 +6681,18 @@ declare class Marker extends Layer {
      * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
      */
     set map(value: Map | null);
+    /**
+     * Get whether the marker rendering is optimized
+     *
+     * @returns {boolean | undefined} Undefined if it's not set, in which case Google decides.
+     */
+    get optimized(): boolean | undefined;
+    /**
+     * Set whether the marker rendering is optimized
+     *
+     * @param {boolean} value Whether the marker rendering is optimized
+     */
+    set optimized(value: boolean);
     /**
      * Get the marker position
      *
@@ -7030,6 +7043,29 @@ declare class Marker extends Layer {
      * @returns {Marker}
      */
     setMapSync(map: Map | null): Marker;
+    /**
+     * Set whether the marker rendering is optimized
+     *
+     * Optimization renders many markers as a single static element, which helps when there are a large
+     * number of markers. If it's not set then Google decides. Optimization has no effect on vector maps.
+     *
+     * It's best to set this in the marker options so that it's used when the marker is created.
+     *
+     * @param {boolean} value Whether the marker rendering is optimized. Pass undefined to let Google decide.
+     * @returns {Promise<Marker>}
+     */
+    setOptimized(value: boolean): Promise<Marker>;
+    /**
+     * Set whether the marker rendering is optimized syncronously.
+     *
+     * Only use this if you know that the Google Maps library is already loaded and you have to set up the marker
+     * syncronously. If you don't have to set up the marker syncronously, then use setOptimized() instead or pass the
+     * optimized value to the constructor or setOptions().
+     *
+     * @param {boolean} value Whether the marker rendering is optimized. Pass undefined to let Google decide.
+     * @returns {Marker}
+     */
+    setOptimizedSync(value: boolean): Marker;
     /**
      * Set the marker options
      *
