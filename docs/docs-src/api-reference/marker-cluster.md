@@ -300,6 +300,8 @@ These are the options for the default renderer.
 
 The image renderer displays an image for the cluster marker. The number of markers in the cluster shows in the middle of the cluster marker.
 
+If no valid images are set with the `image` or `images` option, the clusters are drawn with the [default renderer](#default-renderer) instead and a warning is logged to the console. The `showNumber`, `labelFontFamily`, and `labelFontSize` options are passed on to the default renderer.
+
 **Example usage.**
 
 ```js
