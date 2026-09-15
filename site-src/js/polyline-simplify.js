@@ -14,9 +14,6 @@ const zoomTestButton = document.getElementById('zoomTest');
 const resultsBody = document.getElementById('results');
 const stat = (id) => document.getElementById(id);
 
-// The tolerances used for the "By zoom level" option
-const zoomTolerances = { 0: 10, 14: 5, 16: 2, 18: 1 };
-
 // The generated track
 let track = [];
 
@@ -60,17 +57,9 @@ const gpsTrack = (count) => {
 /**
  * Get the value for the polyline simplify option from the form
  *
- * @returns {number|object}
+ * @returns {number|string} A tolerance in meters, or 'zoom' for the default zoom levels
  */
-const simplifyValue = () => {
-    const debug = form.debug.checked;
-    if (form.tolerance.value === 'zoom') {
-        return { zoom: zoomTolerances, debug };
-    }
-    const tolerance = Number(form.tolerance.value);
-    // Use the object form only when debug is on so that the simple number form is also used on this page
-    return debug ? { tolerance, debug } : tolerance;
-};
+const simplifyValue = () => (form.tolerance.value === 'zoom' ? 'zoom' : Number(form.tolerance.value));
 
 /**
  * Show the results table
@@ -177,6 +166,7 @@ const drawTrack = async () => {
     simplifiedLine = G.polyline({
         path: track,
         simplify: simplifyValue(),
+        simplifyDebug: form.debug.checked,
         strokeColor: '#d62828',
         strokeWeight: 3,
         zIndex: 2,
@@ -281,6 +271,11 @@ form.addEventListener('submit', (e) => {
     drawTrack();
 });
 form.tolerance.addEventListener('change', changeTolerance);
-form.debug.addEventListener('change', changeTolerance);
+form.debug.addEventListener('change', () => {
+    // Turning debug on logs what is drawn now
+    if (simplifiedLine) {
+        simplifiedLine.setSimplifyDebug(form.debug.checked);
+    }
+});
 form.showOriginal.addEventListener('change', updateOriginalLine);
 zoomTestButton.addEventListener('click', runZoomTest);

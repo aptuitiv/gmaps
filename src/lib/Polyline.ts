@@ -16,7 +16,7 @@ import Layer from './Layer';
 import { loader } from './Loader';
 import { Map } from './Map';
 import { polylineIcon, PolylineIcon, PolylineIconValue } from './PolylineIcon';
-import { DEFAULT_SIMPLIFY_TOLERANCE, simplifyPath } from './simplifyPath';
+import { DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, simplifyPath } from './simplifyPath';
 import { svgSymbol } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
 import {
@@ -64,8 +64,9 @@ export type PolylineSimplifyOptions = {
     // A tolerance for different zoom levels. The key is the zoom level and the value is the tolerance, in meters,
     // to use at that zoom level and higher, up to the next zoom level that is set. 0 means every point is drawn.
     // For example: { 0: 10, 14: 5, 16: 2, 18: 1 }
+    // Set to true to use the default zoom levels, which are the ones in the example.
     // The tolerance is updated after the map finishes zooming.
-    zoom?: { [zoom: number]: number };
+    zoom?: boolean | { [zoom: number]: number };
 };
 
 export type PolylineOptions = {
@@ -87,10 +88,14 @@ export type PolylineOptions = {
     path?: LatLngValue[];
     // Simplify the path that is drawn on the map so that it has fewer points but keeps the same shape.
     // This is useful for paths with a lot of points, like GPS tracks. Set a number for how far, in meters,
-    // the drawn line can be from the original path, or true to use 2 meters. Use an object to set a tolerance
-    // for different zoom levels or to log debug information. The path property still holds every point.
+    // the drawn line can be from the original path, true to use 2 meters, or 'zoom' to use the default
+    // tolerances for different zoom levels. Use an object to set your own tolerances for different zoom levels
+    // or to log debug information. The path property still holds every point.
     // Defaults to false.
-    simplify?: boolean | number | PolylineSimplifyOptions;
+    simplify?: boolean | number | 'zoom' | PolylineSimplifyOptions;
+    // Log to the console how many points are drawn each time the path is simplified. This is the same as the
+    // "debug" simplify option. If it's set, it's used instead of the "debug" simplify option.
+    simplifyDebug?: boolean;
     // The stroke color. All CSS3 colors are supported except for extended named colors.
     strokeColor?: string;
     // The stroke opacity between 0.0 and 1.0.
@@ -120,8 +125,18 @@ type SimplifyConfig = {
  * @returns {SimplifyConfig|undefined} Undefined if simplifying is off or the value isn't valid
  */
 const getSimplifyConfig = (value: unknown): SimplifyConfig | undefined => {
+    // Get the valid zoom level tolerances, lowest zoom level first
+    const getZoomTolerances = (zoom: { readonly [zoom: number]: number }): SimplifyConfig['zoom'] =>
+        Object.entries(zoom)
+            .map(([level, zoomTolerance]) => ({ level: Number(level), tolerance: Number(zoomTolerance) }))
+            .filter((z) => Number.isFinite(z.level) && Number.isFinite(z.tolerance) && z.tolerance >= 0)
+            .sort((a, b) => a.level - b.level);
+
     if (value === true) {
         return { debug: false, tolerance: DEFAULT_SIMPLIFY_TOLERANCE, zoom: [] };
+    }
+    if (value === 'zoom') {
+        return { debug: false, tolerance: DEFAULT_SIMPLIFY_TOLERANCE, zoom: getZoomTolerances(DEFAULT_SIMPLIFY_ZOOM) };
     }
     if (isNumberOrNumberString(value)) {
         const tolerance = Number(value);
@@ -133,12 +148,12 @@ const getSimplifyConfig = (value: unknown): SimplifyConfig | undefined => {
             isNumberOrNumberString(options.tolerance) && Number(options.tolerance) >= 0
                 ? Number(options.tolerance)
                 : DEFAULT_SIMPLIFY_TOLERANCE;
-        const zoom = isObject(options.zoom)
-            ? Object.entries(options.zoom)
-                  .map(([level, zoomTolerance]) => ({ level: Number(level), tolerance: Number(zoomTolerance) }))
-                  .filter((z) => Number.isFinite(z.level) && Number.isFinite(z.tolerance) && z.tolerance >= 0)
-                  .sort((a, b) => a.level - b.level)
-            : [];
+        let zoom: SimplifyConfig['zoom'] = [];
+        if (options.zoom === true) {
+            zoom = getZoomTolerances(DEFAULT_SIMPLIFY_ZOOM);
+        } else if (isObject(options.zoom)) {
+            zoom = getZoomTolerances(options.zoom);
+        }
         return { debug: options.debug === true, tolerance, zoom };
     }
     return undefined;
@@ -264,6 +279,14 @@ export class Polyline extends Layer {
      * @type {SimplifyConfig|undefined}
      */
     #simplifyConfig: SimplifyConfig | undefined;
+
+    /**
+     * Holds the simplifyDebug option. If it's set, it's used instead of the "debug" simplify option.
+     *
+     * @private
+     * @type {boolean|undefined}
+     */
+    #simplifyDebug: boolean | undefined;
 
     /**
      * Holds the simplified Google Maps path for each tolerance when the tolerance changes with the zoom level.
@@ -449,6 +472,7 @@ export class Polyline extends Layer {
             delete options.map;
             delete options.path;
             delete options.simplify;
+            delete options.simplifyDebug;
             highlight = new Polyline(options);
         }
 
@@ -630,8 +654,8 @@ export class Polyline extends Layer {
      * The path property still holds every point.
      *
      * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
-     *      original path. true uses 2 meters. false or 0 turns simplifying off. Use an object to set a tolerance for
-     *      different zoom levels or to log debug information.
+     *      original path. true uses 2 meters. 'zoom' uses the default tolerances for different zoom levels. false or 0
+     *      turns simplifying off. Use an object to set your own tolerances for different zoom levels or to log debug information.
      */
     set simplify(value: boolean | number | string | PolylineSimplifyOptions) {
         const config = getSimplifyConfig(value);
@@ -640,17 +664,53 @@ export class Polyline extends Layer {
             // An invalid value was passed so the current setting is kept
             return;
         }
+        const wasDebug = this.#isSimplifyDebug();
         this.#simplifyConfig = config;
         // Add to the options object so that it can be used when cloning the polyline
-        if (config) {
-            this.#options.simplify = isObject(value) ? (value as PolylineSimplifyOptions) : config.tolerance;
-        } else {
+        if (!config) {
             this.#options.simplify = false;
+        } else if (value === 'zoom') {
+            this.#options.simplify = 'zoom';
+        } else {
+            this.#options.simplify = isObject(value) ? (value as PolylineSimplifyOptions) : config.tolerance;
         }
         // The simplified paths that were kept may be for different tolerances
         this.#simplifiedPaths = {};
         this.#updateZoomListener();
-        this.#applySimplify();
+        const hasChanged = this.#applySimplify();
+        // If debug was just turned on but the drawn path didn't change, log what's drawn now
+        if (!hasChanged && !wasDebug) {
+            this.#logCurrentSimplify();
+        }
+    }
+
+    /**
+     * Get whether debug information is logged to the console each time the path is simplified
+     *
+     * @returns {boolean}
+     */
+    get simplifyDebug(): boolean {
+        return this.#isSimplifyDebug();
+    }
+
+    /**
+     * Set whether to log debug information to the console each time the path is simplified.
+     *
+     * This is the same as the "debug" simplify option. If it's set, it's used instead of the "debug" simplify option.
+     *
+     * @param {boolean} value Whether to log debug information
+     */
+    set simplifyDebug(value: boolean) {
+        if (isBoolean(value)) {
+            const wasDebug = this.#isSimplifyDebug();
+            this.#simplifyDebug = value;
+            // Add to the options object so that it can be used when cloning the polyline
+            this.#options.simplifyDebug = value;
+            // Log what's drawn now so that turning debug on shows something right away
+            if (!wasDebug) {
+                this.#logCurrentSimplify();
+            }
+        }
     }
 
     /**
@@ -1132,8 +1192,11 @@ export class Polyline extends Layer {
      */
     setOptions(options: PolylineOptions): Polyline {
         if (isObject(options)) {
-            // Set this before the map and path so that the path is only simplified once
-            if (isDefined<boolean | number | PolylineSimplifyOptions>(options.simplify)) {
+            // Set these before the map and path so that the path is only simplified once
+            if (isBoolean(options.simplifyDebug)) {
+                this.simplifyDebug = options.simplifyDebug;
+            }
+            if (isDefined<boolean | number | string | PolylineSimplifyOptions>(options.simplify)) {
                 this.simplify = options.simplify;
             }
             if (typeof options.clickable === 'boolean') {
@@ -1196,12 +1259,25 @@ export class Polyline extends Layer {
      * The path property still holds every point.
      *
      * @param {boolean|number|string|PolylineSimplifyOptions} value How far, in meters, the drawn line can be from the
-     *      original path. true uses 2 meters. false or 0 turns simplifying off. Use an object to set a tolerance for
-     *      different zoom levels or to log debug information.
+     *      original path. true uses 2 meters. 'zoom' uses the default tolerances for different zoom levels. false or 0
+     *      turns simplifying off. Use an object to set your own tolerances for different zoom levels or to log debug information.
      * @returns {Polyline}
      */
     setSimplify(value: boolean | number | string | PolylineSimplifyOptions): Polyline {
         this.simplify = value;
+        return this;
+    }
+
+    /**
+     * Set whether to log debug information to the console each time the path is simplified.
+     *
+     * This is the same as the "debug" simplify option. If it's set, it's used instead of the "debug" simplify option.
+     *
+     * @param {boolean} value Whether to log debug information
+     * @returns {Polyline}
+     */
+    setSimplifyDebug(value: boolean): Polyline {
+        this.simplifyDebug = value;
         return this;
     }
 
@@ -1345,24 +1421,72 @@ export class Polyline extends Layer {
         }
 
         // Log how many points are drawn so that developers can see if simplifying helps
-        if (this.#simplifyConfig?.debug && path.length > 0) {
-            const ms = (performance.now() - start).toFixed(1);
-            const zoomText =
-                this.#simplifyConfig.zoom.length > 0 && this.#requestedMap ? ` at zoom ${this.#requestedMap.zoom}` : '';
-            let message = `[Polyline simplify] ${path.length.toLocaleString()} points in the path, `;
-            if (tolerance > 0) {
-                const fewer = (100 - (googlePath.length / path.length) * 100).toFixed(1);
-                message += `${googlePath.length.toLocaleString()} drawn (${fewer}% fewer) with a ${tolerance} m tolerance${zoomText}.`;
-                message += isKeptPath ? ' Used the path that was already simplified.' : ` Took ${ms} ms.`;
-            } else {
-                message += `all drawn (not simplified${zoomText}).`;
+        if (this.#isSimplifyDebug()) {
+            let detail = '';
+            if (isKeptPath) {
+                detail = 'Used the path that was already simplified.';
+            } else if (tolerance > 0) {
+                detail = `Took ${(performance.now() - start).toFixed(1)} ms.`;
             }
-            // eslint-disable-next-line no-console
-            console.log(message, this);
+            this.#logSimplify(googlePath.length, detail);
         }
 
         // Give Google a copy of a kept path so that the kept path can't be changed
         return isKeptPath || useKeptPaths ? googlePath.slice() : googlePath;
+    }
+
+    /**
+     * Returns whether debug information about simplifying is logged to the console.
+     *
+     * The simplifyDebug option is used if it's set. Otherwise the "debug" simplify option is used.
+     *
+     * @private
+     * @returns {boolean}
+     */
+    #isSimplifyDebug(): boolean {
+        return this.#simplifyDebug ?? this.#simplifyConfig?.debug ?? false;
+    }
+
+    /**
+     * Log to the console how many points are drawn, if debug is on.
+     *
+     * @private
+     * @param {number} drawnCount The number of points in the path drawn on the map
+     * @param {string} detail Extra information to add to the end of the message
+     */
+    #logSimplify(drawnCount: number, detail: string): void {
+        const pathCount = this.#options.path?.length ?? 0;
+        if (!this.#isSimplifyDebug() || pathCount === 0) {
+            return;
+        }
+        const tolerance = this.#simplifyTolerance;
+        const zoomText =
+            (this.#simplifyConfig?.zoom.length ?? 0) > 0 && this.#requestedMap
+                ? ` at zoom ${this.#requestedMap.zoom}`
+                : '';
+        let message = `[Polyline simplify] ${pathCount.toLocaleString()} points in the path, `;
+        if (tolerance > 0) {
+            const fewer = (100 - (drawnCount / pathCount) * 100).toFixed(1);
+            message += `${drawnCount.toLocaleString()} drawn (${fewer}% fewer) with a ${tolerance} m tolerance${zoomText}.`;
+        } else {
+            message += `all drawn (not simplified${zoomText}).`;
+        }
+        if (detail) {
+            message += ` ${detail}`;
+        }
+        // eslint-disable-next-line no-console
+        console.log(message, this);
+    }
+
+    /**
+     * Log what is drawn on the map now, if debug is on and the Google polyline exists.
+     *
+     * @private
+     */
+    #logCurrentSimplify(): void {
+        if (this.#polyline) {
+            this.#logSimplify(this.#polyline.getPath().getLength(), '');
+        }
     }
 
     /**
@@ -1397,11 +1521,12 @@ export class Polyline extends Layer {
      * Update the path drawn on the map if the simplify tolerance to use has changed
      *
      * @private
+     * @returns {boolean} Whether the tolerance changed
      */
-    #applySimplify(): void {
+    #applySimplify(): boolean {
         const tolerance = this.#getCurrentTolerance();
         if (tolerance === this.#simplifyTolerance) {
-            return;
+            return false;
         }
         this.#simplifyTolerance = tolerance;
         if (this.#polyline) {
@@ -1411,6 +1536,7 @@ export class Polyline extends Layer {
         if (this.#highlightPolyline && this.#highlightSetup) {
             this.#highlightPolyline.simplify = tolerance;
         }
+        return true;
     }
 
     /**

@@ -102,7 +102,8 @@ Type `PolylineOptions`
 | icons | [PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)\|[PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)[] | | Any icons to show on the polyline. |
 | map | [Map](/api-reference/map) | | The map to add the polyline to. |
 | path | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type)[] | | An array of LatLng values defining the path of the polyline on the map. Invalid values are ignored. |
-| simplify | boolean\|number\|[PolylineSimplifyOptions](#polyline-simplify-options) | false | Simplify the path that is drawn on the map so that it has fewer points but keeps the same shape. Set a number for how far, in meters, the drawn line can be from the original path, or `true` to use 2 meters. Use an object to set a tolerance for different zoom levels or to log debug information. The `path` property still holds every point. See [Simplifying the path](#simplifying-the-path). |
+| simplify | boolean\|number\|'zoom'\|[PolylineSimplifyOptions](#polyline-simplify-options) | false | Simplify the path that is drawn on the map so that it has fewer points but keeps the same shape. Set a number for how far, in meters, the drawn line can be from the original path, `true` to use 2 meters, or `'zoom'` to use the [default tolerances for different zoom levels](#different-tolerances-for-zoom-levels). Use an object to set your own tolerances for different zoom levels or to log debug information. The `path` property still holds every point. See [Simplifying the path](#simplifying-the-path). |
+| simplifyDebug | boolean | | Log to the console how many points are drawn each time the path is simplified. This is the same as the `debug` [simplify option](#polyline-simplify-options), without needing to pass an object to `simplify`. If it's set, it's used instead of the `debug` simplify option. See [Checking if it helps](#checking-if-it-helps). |
 | strokeColor | string | | The polyline stroke color. All CSS3 colors are supported except for extended named colors. |
 | strokeOpacity | number\|string | 1 | The polyline stroke opacity. The value should be between 0 and 1.0. A number string is converted to a number. |
 | strokeWeight | number\|string | 1 | The polyline stroke width in pixels. A number string is converted to a number. |
@@ -138,13 +139,30 @@ Pass an object to the `simplify` option to set a tolerance for different zoom le
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| debug | boolean | false | Log to the console how many points are drawn each time the path is simplified. See [Checking if it helps](#checking-if-it-helps). |
+| debug | boolean | false | Log to the console how many points are drawn each time the path is simplified. The `simplifyDebug` polyline option does the same thing without needing an object, and it's used instead of this if it's set. See [Checking if it helps](#checking-if-it-helps). |
 | tolerance | number | 2 | How far, in meters, the drawn line can be from the original path. This is used at zoom levels that don't have their own tolerance in the `zoom` option. |
-| zoom | object | | A tolerance for different zoom levels. Each key is a zoom level and its value is the tolerance, in meters, to use at that zoom level and higher, up to the next zoom level that is set. `0` means every point is drawn. |
+| zoom | boolean\|object | | A tolerance for different zoom levels. Each key is a zoom level and its value is the tolerance, in meters, to use at that zoom level and higher, up to the next zoom level that is set. `0` means every point is drawn. Set to `true` to use the [default zoom levels](#different-tolerances-for-zoom-levels). |
 
 ### Different tolerances for zoom levels
 
-When the map is zoomed out, a larger tolerance can't be seen and removes more points. When it's zoomed in close, a smaller tolerance keeps more detail. Use the `zoom` option to set the tolerance for each range of zoom levels.
+When the map is zoomed out, a larger tolerance can't be seen and removes more points. When it's zoomed in close, a smaller tolerance keeps more detail.
+
+Set `simplify` to `'zoom'` to use the default tolerances for different zoom levels.
+
+```js
+const trail = G.polyline({ path: gpsPoints, map: map, simplify: 'zoom' });
+```
+
+| Zoom levels | Tolerance | Why |
+|-------------|-----------|-----|
+| 0 - 13 | 10 meters | Less than half a pixel on the map. |
+| 14 - 15 | 5 meters | The drawn line stays within about 2 pixels of the original path. |
+| 16 - 17 | 2 meters | The drawn line stays within about 2 pixels of the original path. |
+| 18 and higher | 1 meter | Smaller than the few meters that GPS points are usually accurate to. |
+
+To use the default zoom levels with other simplify options, set `zoom` to `true`: `simplify: { zoom: true, debug: true }`.
+
+To set your own tolerance for each range of zoom levels, pass an object to the `zoom` option.
 
 ```js
 const trail = G.polyline({
@@ -165,16 +183,17 @@ const trail = G.polyline({
 
 ### Checking if it helps
 
-Set `debug` to `true` to log to the console what happens each time the path is simplified.
+Set the `simplifyDebug` option to `true` to log to the console what happens each time the path is simplified. You can also set `debug` to `true` in the [simplify options](#polyline-simplify-options) object. If both are set, `simplifyDebug` is used.
 
 ```js
-const trail = G.polyline({ path: gpsPoints, map: map, simplify: { tolerance: 2, debug: true } });
+const trail = G.polyline({ path: gpsPoints, map: map, simplify: true, simplifyDebug: true });
+// Or: simplify: { tolerance: 2, debug: true }
 // [Polyline simplify] 20,000 points in the path, 2,068 drawn (89.7% fewer) with a 2 m tolerance. Took 5.5 ms.
 ```
 
 With the `zoom` option, the message also includes the zoom level, and it says when a path that was already simplified is used again. The polyline object is logged with the message so that you can tell which polyline it's about.
 
-To compare against no simplifying, set the tolerance to `0` with debug on: `simplify: { tolerance: 0, debug: true }`.
+To compare against no simplifying, leave `simplify` off and set `simplifyDebug: true`. The message then says that every point is drawn. Turning debug on for a line that is already drawn logs what is drawn now.
 
 ### Simplifying points yourself
 
@@ -257,7 +276,8 @@ polyline.onReady(() => {
 | icons | [PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)\|[PolylineIconValue](/api-reference/polyline-icon#polylineiconvalue-type)[] | Any icons to show on the polyline. The value is always returned as an array of [PolylineIcon](/api-reference/polyline-icon) objects. |
 | map | [Map](/api-reference/map)\|null | The map to add the polyline to. Set to `null` to remove the polyline from the map. |
 | path | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type)[] | An array of LatLng values defining the path of the polyline on the map. This always holds every point, even when the path is simplified. |
-| simplify | number | How far, in meters, the line drawn on the map can be from the original path. If the tolerance changes with the zoom level, this is the tolerance for the current zoom level. It's `0` if the path isn't simplified. It can be set with `true` (2 meters), `false` (off), a number, or a [PolylineSimplifyOptions](#polyline-simplify-options) object. Setting it calls [setSimplify()](#setsimplify). |
+| simplify | number | How far, in meters, the line drawn on the map can be from the original path. If the tolerance changes with the zoom level, this is the tolerance for the current zoom level. It's `0` if the path isn't simplified. It can be set with `true` (2 meters), `'zoom'` (the default tolerances for different zoom levels), `false` (off), a number, or a [PolylineSimplifyOptions](#polyline-simplify-options) object. Setting it calls [setSimplify()](#setsimplify). |
+| simplifyDebug | boolean | Whether debug information is logged to the console each time the path is simplified. Setting it calls [setSimplifyDebug()](#setsimplifydebug). |
 | strokeColor | string | The polyline stroke color. All CSS3 colors are supported except for extended named colors. |
 | strokeOpacity | number\|string | The polyline stroke opacity. The value should be between 0 and 1.0. The value is always returned as a number. |
 | strokeWeight | number\|string | The polyline stroke width in pixels. The value is always returned as a number. |
@@ -534,16 +554,33 @@ polyline.setPath([
 
 ### setSimplify
 
-`setSimplify(value: boolean|number|PolylineSimplifyOptions): Polyline`
+`setSimplify(value: boolean|number|'zoom'|PolylineSimplifyOptions): Polyline`
 
 Set whether to simplify the path that is drawn on the map. The `path` property still holds every point. See [Simplifying the path](#simplifying-the-path).
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| value | boolean\|number\|[PolylineSimplifyOptions](#polyline-simplify-options) | Yes | How far, in meters, the drawn line can be from the original path. `true` uses 2 meters. `false` or `0` turns simplifying off. Use an object to set a tolerance for different zoom levels or to log debug information. |
+| value | boolean\|number\|'zoom'\|[PolylineSimplifyOptions](#polyline-simplify-options) | Yes | How far, in meters, the drawn line can be from the original path. `true` uses 2 meters. `'zoom'` uses the [default tolerances for different zoom levels](#different-tolerances-for-zoom-levels). `false` or `0` turns simplifying off. Use an object to set your own tolerances for different zoom levels or to log debug information. |
 
 ```js
 polyline.setSimplify(5);
+polyline.setSimplify('zoom');
+```
+
+### setSimplifyDebug
+
+`setSimplifyDebug(value: boolean): Polyline`
+
+Set whether to log to the console how many points are drawn each time the path is simplified. If the line is already drawn, turning it on logs what is drawn now. See [Checking if it helps](#checking-if-it-helps).
+
+This is the same as the `debug` [simplify option](#polyline-simplify-options). If it's set, it's used instead of the `debug` simplify option.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| value | boolean | Yes | Whether to log debug information. |
+
+```js
+polyline.setSimplifyDebug(true);
 ```
 
 ### setStrokeColor

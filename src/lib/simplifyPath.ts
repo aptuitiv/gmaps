@@ -18,6 +18,16 @@ import { latLng, LatLng, LatLngValue } from './LatLng';
 // The tolerance, in meters, that is used when simplifying is turned on without a tolerance
 export const DEFAULT_SIMPLIFY_TOLERANCE = 2;
 
+/**
+ * The default tolerances, in meters, for different zoom levels.
+ *
+ * Each key is a zoom level and its value is the tolerance to use at that zoom level and higher.
+ * Below zoom 14, 10 meters is less than half a pixel on the map. Through zoom 17 the drawn line stays
+ * within about 2 pixels of the original path. From zoom 18, 1 meter is smaller than the few meters
+ * that GPS points are usually accurate to.
+ */
+export const DEFAULT_SIMPLIFY_ZOOM: { readonly [zoom: number]: number } = Object.freeze({ 0: 10, 14: 5, 16: 2, 18: 1 });
+
 // The radius of the earth in meters. This is used to convert degrees to meters.
 const EARTH_RADIUS = 6378137;
 

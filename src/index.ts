@@ -72,7 +72,7 @@ export { point, Point, PointObject, PointValue } from './lib/Point';
 export { polyline, Polyline, PolylineOptions, PolylineSimplifyOptions, PolylineValue } from './lib/Polyline';
 export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
 export { polylineIcon, PolylineIcon, PolylineIconOptions, PolylineIconValue } from './lib/PolylineIcon';
-export { DEFAULT_SIMPLIFY_TOLERANCE, simplifyPath } from './lib/simplifyPath';
+export { DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, simplifyPath } from './lib/simplifyPath';
 export {
     AttachPopupValue,
     closeAllPopups,
