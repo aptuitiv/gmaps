@@ -6,7 +6,7 @@
 =========================================================================== */
 
 /* global google */
-/* eslint-disable no-use-before-define -- Done because the PolylineCollection is referenced before it's created */
+ 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Custom data could be anything within an obect */
 
 import { PolylineEvents } from './constants';
