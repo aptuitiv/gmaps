@@ -145,6 +145,14 @@ export class Marker extends Layer {
     #isSettingUp: boolean = false;
 
     /**
+     * Holds if the "ready" event has been dispatched
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isReady: boolean = false;
+
+    /**
      * Holds the Google maps marker object
      *
      * @private
@@ -1362,8 +1370,7 @@ export class Marker extends Layer {
                 this.#isSettingUp = true;
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
                     this.#createMarkerObject().then(() => {
-                        // Dispatch the event to say that the marker is ready
-                        this.dispatch(MarkerEvents.READY);
+                        this.#dispatchReady();
                         resolve();
                     });
                 } else {
@@ -1385,8 +1392,7 @@ export class Marker extends Layer {
                             } else if (this.#marker && map) {
                                 this.#marker.setMap(map.toGoogle() ?? null);
                             }
-                            // Dispatch the event to say that the marker is ready
-                            this.dispatch(MarkerEvents.READY);
+                            this.#dispatchReady();
                             resolve();
                         });
                     });
@@ -1408,12 +1414,30 @@ export class Marker extends Layer {
     #setupGoogleMarkerSync(): void {
         if (!isObject(this.#marker)) {
             if (checkForGoogleMaps('Marker', 'Marker', false)) {
-                this.#createMarkerObject();
+                // Dispatch the "ready" event once the marker exists, the same as #setupGoogleMarker() does.
+                // Tooltips and popups wait for it before they add their event listeners to the marker.
+                this.#createMarkerObject().then(() => {
+                    this.#dispatchReady();
+                });
             } else {
                 throw new Error(
                     'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.',
                 );
             }
+        }
+    }
+
+    /**
+     * Dispatch the event to say that the marker is ready.
+     *
+     * It's only dispatched once, even if the marker is set up both syncronously and asyncronously.
+     *
+     * @private
+     */
+    #dispatchReady(): void {
+        if (!this.#isReady) {
+            this.#isReady = true;
+            this.dispatch(MarkerEvents.READY);
         }
     }
 
