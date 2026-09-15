@@ -63,7 +63,7 @@ export type EventListenerOptions = {
 };
 
 // The data to hold for each event listener
-type EventListenerData = {
+export type EventListenerData = {
     callback: EventCallback;
     context?: object;
     options: EventListenerOptions;
@@ -243,9 +243,10 @@ export class Evented extends Base {
             });
 
             // Remove the listeners that are set to be called once
-            listenersToRemove.forEach((listener) => {
-                this.off(event, listener.callback, listener.options);
-            });
+            if (listenersToRemove.length > 0) {
+                const removeStart = performance.now(); // TEMP performance logging
+                this.removeCalledOnceListeners(event, listenersToRemove);
+            }
         }
         return this;
     }
@@ -304,20 +305,51 @@ export class Evented extends Base {
                 } else {
                     this.#eventListeners[type] = [];
                 }
-
-                // Remove the event listener from the onlyEventListeners array
-                const index = this.#onlyEventListeners.indexOf(type);
-                if (index > -1) {
-                    this.#onlyEventListeners.splice(index, 1);
-                }
-
-                // If there are no more event listeners for the given type then remove the listener from the Google maps object
-                if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
-                    google.maps.event.clearListeners(this.#googleObject, type);
-                }
+                this.#afterListenersRemoved(type);
             }
         } else {
             this.offAll();
+        }
+    }
+
+    /**
+     * Clean up after event listeners for an event type have been removed
+     *
+     * @private
+     * @param {string} type The event type
+     */
+    #afterListenersRemoved(type: string): void {
+        // Remove the event listener from the onlyEventListeners array
+        const index = this.#onlyEventListeners.indexOf(type);
+        if (index > -1) {
+            this.#onlyEventListeners.splice(index, 1);
+        }
+
+        // If there are no more event listeners for the given type then remove the listener from the Google maps object
+        if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
+            google.maps.event.clearListeners(this.#googleObject, type);
+        }
+    }
+
+    /**
+     * Remove the "once" event listeners that were just called for an event.
+     *
+     * They're all removed in a single pass. Calling off() for each one would search the whole
+     * list of listeners each time, which gets slow when there are a lot of them. For example,
+     * every marker that is added before the map is ready waits for the map's "ready" event.
+     *
+     * Subclasses can override this to remove the listeners from other objects as well.
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @param {string} type The event type
+     * @param {EventListenerData[]} listeners The listeners that were called
+     */
+    removeCalledOnceListeners(type: string, listeners: EventListenerData[]): void {
+        if (this.#eventListeners[type]) {
+            const toRemove = new Set(listeners);
+            this.#eventListeners[type] = this.#eventListeners[type].filter((listener) => !toRemove.has(listener));
+            this.#afterListenersRemoved(type);
         }
     }
 
