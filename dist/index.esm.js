@@ -6658,6 +6658,21 @@ var Map = class extends Evented {
       zoom: 6
     };
     /**
+     * Holds the listener that cancels the gesture events, or null if it hasn't been added.
+     * It's held so that it can be removed if the preventPageZoom option is turned off.
+     *
+     * @private
+     * @type {null|((event: Event) => void)}
+     */
+    this.#pageZoomHandler = null;
+    /**
+     * Holds whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @private
+     * @type {boolean}
+     */
+    this.#preventPageZoom = true;
+    /**
      * Holds the styles to apply to the map
      *
      * @private
@@ -6692,6 +6707,48 @@ var Map = class extends Evented {
       }
     };
     /**
+     * Keep a pinch on the map from zooming the whole page on iOS.
+     *
+     * iOS ignores "user-scalable=no" in the viewport tag, so the gesture events that Safari fires
+     * are canceled instead. The map still zooms because the Google Maps API handles the pinch
+     * itself. Only the map element is covered so that the rest of the page can still be zoomed by
+     * people who need to. Other browsers don't fire these events, so this does nothing in them.
+     *
+     * @private
+     */
+    this.#setupPreventPageZoom = () => {
+      console.log("setupPreventPageZoom", this.#preventPageZoom);
+      const element = this.#element;
+      if (!this.#preventPageZoom || !element || this.#pageZoomHandler) {
+        console.log("preventPageZoom is false", this.#preventPageZoom, element, this.#pageZoomHandler);
+        return;
+      }
+      const handler = (event) => {
+        event.preventDefault();
+      };
+      this.#pageZoomHandler = handler;
+      ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+        element.addEventListener(eventName, handler, { passive: false });
+      });
+      console.log("setupPreventPageZoom DONE");
+    };
+    /**
+     * Stop keeping a pinch on the map from zooming the whole page
+     *
+     * @private
+     */
+    this.#removePreventPageZoom = () => {
+      const element = this.#element;
+      const handler = this.#pageZoomHandler;
+      if (!element || !handler) {
+        return;
+      }
+      ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+        element.removeEventListener(eventName, handler);
+      });
+      this.#pageZoomHandler = null;
+    };
+    /**
      * Set up the map object
      *
      * @param {HTMLElement} element THe HTML elemen to attach the map to
@@ -6702,6 +6759,7 @@ var Map = class extends Evented {
         const map2 = new google.maps.Map(element, mapOptions);
         this.#map = map2;
         this.setEventGoogleObject(map2);
+        this.#setupPreventPageZoom();
         if (this.#customControls.length > 0) {
           this.#customControls.forEach((control) => {
             map2.controls[convertControlPosition(control.position)].push(control.element);
@@ -6788,6 +6846,8 @@ var Map = class extends Evented {
   #maxFitBoundsZoom;
   #minFitBoundsZoom;
   #options;
+  #pageZoomHandler;
+  #preventPageZoom;
   /**
    * Holds the map restriction object to restrict the map to a certain area
    *
@@ -7168,6 +7228,29 @@ var Map = class extends Evented {
       this.#options.minZoom = value ?? void 0;
       if (this.#map) {
         this.#map.setOptions({ minZoom: value });
+      }
+    }
+  }
+  /**
+   * Get whether a pinch on the map is kept from zooming the whole page on iOS
+   *
+   * @returns {boolean}
+   */
+  get preventPageZoom() {
+    return this.#preventPageZoom;
+  }
+  /**
+   * Set whether a pinch on the map is kept from zooming the whole page on iOS
+   *
+   * @param {boolean} value Whether to keep a pinch on the map from zooming the page
+   */
+  set preventPageZoom(value) {
+    if (isBoolean(value)) {
+      this.#preventPageZoom = value;
+      if (value) {
+        this.#setupPreventPageZoom();
+      } else {
+        this.#removePreventPageZoom();
       }
     }
   }
@@ -8311,6 +8394,10 @@ var Map = class extends Evented {
       if (typeof options.minZoom !== "undefined") {
         this.minZoom = options.minZoom;
       }
+      console.log("options.preventPageZoom", options.preventPageZoom);
+      if (isBoolean(options.preventPageZoom)) {
+        this.preventPageZoom = options.preventPageZoom;
+      }
       if (typeof options.restriction !== "undefined") {
         this.restriction = options.restriction;
       }
@@ -8490,6 +8577,8 @@ var Map = class extends Evented {
       }
     });
   }
+  #setupPreventPageZoom;
+  #removePreventPageZoom;
   #setupMapObject;
   #setMapAsReady;
   /**

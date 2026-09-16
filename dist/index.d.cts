@@ -3455,6 +3455,7 @@ type MapOptions = {
     minFitBoundsZoom?: number;
     minZoom?: number;
     noClear?: boolean;
+    preventPageZoom?: boolean;
     renderingType?: RenderingTypeValue;
     restriction?: MapRestrictionValue;
     rotateControl?: boolean | RotateControlValue;
@@ -3696,6 +3697,18 @@ declare class Map extends Evented {
      * @param {null|number} value The minimum zoom level
      */
     set minZoom(value: null | number);
+    /**
+     * Get whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @returns {boolean}
+     */
+    get preventPageZoom(): boolean;
+    /**
+     * Set whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @param {boolean} value Whether to keep a pinch on the map from zooming the page
+     */
+    set preventPageZoom(value: boolean);
     /**
      * Get the MapRestriction object if it's been set
      *
