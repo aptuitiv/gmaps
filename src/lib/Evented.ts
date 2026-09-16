@@ -84,26 +84,41 @@ type PendingEvents = { [key: string]: PendingEventData[] };
  * Evented class to add syntatic sugar to handling events
  */
 export class Evented extends Base {
+    /*
+     * The containers below are only created when something is actually put in them.
+     *
+     * Every Marker, Polyline, Overlay, Popup, Tooltip, InfoWindow, DataFeature, Map and
+     * DataLayer extends this class. Creating these up front meant four objects per instance
+     * whether or not it ever had a listener, which is around 80,000 objects for a map with
+     * 20,000 markers, most of them empty for the life of the page.
+     *
+     * Reads use optional chaining and writes create the container first, so an object that
+     * never has a listener never allocates any of them.
+     */
+
     /**
      * Holds the events that have been called
+     *
+     * @private
+     * @type {object|undefined}
      */
-    #eventsCalled: { [key: string]: boolean } = {};
+    #eventsCalled: { [key: string]: boolean } | undefined;
 
     /**
      * Holds the event listeners
      *
      * @private
-     * @type {EventListeners}
+     * @type {EventListeners|undefined}
      */
-    #eventListeners: EventListeners = {};
+    #eventListeners: EventListeners | undefined;
 
     /**
      * Holds the event listeners that are set to only be called once
      *
      * @private
-     * @type {string[]}
+     * @type {string[]|undefined}
      */
-    #onlyEventListeners: string[] = [];
+    #onlyEventListeners: string[] | undefined;
 
     /**
      * Holds the Google maps object that events are set up on
@@ -125,7 +140,7 @@ export class Evented extends Base {
      * @private
      * @type {object}
      */
-    #googleListeners: { [key: string]: google.maps.MapsEventListener } = {};
+    #googleListeners: { [key: string]: google.maps.MapsEventListener } | undefined;
 
     /**
      * Holds the event listeners that are waiting to be added once the Google Maps object is set
@@ -133,7 +148,7 @@ export class Evented extends Base {
      * @private
      * @type {PendingEvents}
      */
-    #pendingMapObjectEventListeners: PendingEvents = {};
+    #pendingMapObjectEventListeners: PendingEvents | undefined;
 
     /**
      * The object that needs Google maps. This should be the name of the object that extends this class.
@@ -180,15 +195,15 @@ export class Evented extends Base {
      * @returns {Evented}
      */
     dispatch(event: string, data?: any): Evented {
-        this.#eventsCalled[event] = true;
+        // Record that the event happened even when nothing is listening, because a listener
+        // added later with callImmediate needs to know that it already fired.
+        (this.#eventsCalled ??= {})[event] = true;
 
-        if (!this.hasListener(event)) {
-            return this;
-        }
-
-        // Dispatch the event
-        const listeners = this.#eventListeners[event];
-        if (listeners) {
+        // One lookup, held in a local. This used to call hasListener(), which looked the list up
+        // twice more, and then look it up again here. dispatch() runs for every event on every
+        // object, including per-frame ones like bounds_changed.
+        const listeners = this.#eventListeners?.[event];
+        if (listeners && listeners.length > 0) {
             // Set up the data to pass to the callback function
             let eventData: Event = {
                 type: event,
@@ -258,14 +273,16 @@ export class Evented extends Base {
      * @returns {boolean}
      */
     hasListener(type: string, callback?: EventCallback): boolean {
-        if (!this.#eventListeners[type]) {
+        // One lookup held in a local, rather than up to three
+        const listeners = this.#eventListeners?.[type];
+        if (!listeners || listeners.length === 0) {
             return false;
         }
         if (typeof callback === 'function') {
             // some() stops at the first match and doesn't build an array to answer a boolean
-            return this.#eventListeners[type].some((event) => event.callback === callback);
+            return listeners.some((event) => event.callback === callback);
         }
-        return this.#eventListeners[type] && this.#eventListeners[type].length > 0;
+        return true;
     }
 
     /**
@@ -287,11 +304,12 @@ export class Evented extends Base {
      */
     off(type?: string, callback?: EventCallback, options?: EventListenerOptions): void {
         if (isString(type)) {
-            if (this.#eventListeners[type]) {
+            const eventListeners = this.#eventListeners;
+            if (eventListeners && eventListeners[type]) {
                 if (isFunction(callback)) {
                     // Compare the callback function and possibly the options to see if
                     // The event listener should be removed.
-                    this.#eventListeners[type] = this.#eventListeners[type].filter((listener) => {
+                    eventListeners[type] = eventListeners[type].filter((listener) => {
                         let keep = true;
                         if (isObject(options)) {
                             keep = listener.callback !== callback || !objectEquals(options, listener.options);
@@ -301,7 +319,7 @@ export class Evented extends Base {
                         return keep;
                     });
                 } else {
-                    this.#eventListeners[type] = [];
+                    eventListeners[type] = [];
                 }
                 this.#afterListenersRemoved(type);
             }
@@ -318,20 +336,23 @@ export class Evented extends Base {
      */
     #afterListenersRemoved(type: string): void {
         // Remove the event listener from the onlyEventListeners array
-        const index = this.#onlyEventListeners.indexOf(type);
-        if (index > -1) {
-            this.#onlyEventListeners.splice(index, 1);
+        const onlyEventListeners = this.#onlyEventListeners;
+        if (onlyEventListeners) {
+            const index = onlyEventListeners.indexOf(type);
+            if (index > -1) {
+                onlyEventListeners.splice(index, 1);
+            }
         }
 
         // If there are no more event listeners for the given type then remove the listener that
         // this object added to the Google maps object. Only that one is removed - see the comment
         // on #googleListeners for why. This also no longer needs #isGoogleObjectSet(), so it's
         // safe to call before the Google Maps library has loaded.
-        if (this.#eventListeners[type].length === 0) {
-            const googleListener = this.#googleListeners[type];
-            if (googleListener) {
-                googleListener.remove();
-                delete this.#googleListeners[type];
+        if ((this.#eventListeners?.[type]?.length ?? 0) === 0) {
+            const googleListeners = this.#googleListeners;
+            if (googleListeners && googleListeners[type]) {
+                googleListeners[type].remove();
+                delete googleListeners[type];
             }
         }
     }
@@ -351,9 +372,10 @@ export class Evented extends Base {
      * @param {EventListenerData[]} listeners The listeners that were called
      */
     removeCalledOnceListeners(type: string, listeners: EventListenerData[]): void {
-        if (this.#eventListeners[type]) {
+        const eventListeners = this.#eventListeners;
+        if (eventListeners && eventListeners[type]) {
             const toRemove = new Set(listeners);
-            this.#eventListeners[type] = this.#eventListeners[type].filter((listener) => !toRemove.has(listener));
+            eventListeners[type] = eventListeners[type].filter((listener) => !toRemove.has(listener));
             this.#afterListenersRemoved(type);
         }
     }
@@ -362,19 +384,24 @@ export class Evented extends Base {
      * Removes all event listeners
      */
     offAll(): void {
-        this.#eventListeners = {};
-        this.#onlyEventListeners = [];
+        // Cleared rather than set to empty containers, so that an object that has had all of its
+        // listeners removed holds no more than one that never had any
+        this.#eventListeners = undefined;
+        this.#onlyEventListeners = undefined;
         // Listeners that were waiting for the Google object aren't wanted any more either.
         // They used to be left behind and would be added when the Google object was set.
-        this.#pendingMapObjectEventListeners = {};
+        this.#pendingMapObjectEventListeners = undefined;
 
         // Remove only the listeners that this object added to the Google maps object.
         // clearInstanceListeners() would remove every listener on the object, including ones
         // added by other libraries.
-        Object.keys(this.#googleListeners).forEach((type) => {
-            this.#googleListeners[type].remove();
-        });
-        this.#googleListeners = {};
+        const googleListeners = this.#googleListeners;
+        if (googleListeners) {
+            Object.keys(googleListeners).forEach((type) => {
+                googleListeners[type].remove();
+            });
+            this.#googleListeners = undefined;
+        }
     }
 
     /**
@@ -486,7 +513,8 @@ export class Evented extends Base {
             // We only want to add the event listener to the Google maps object once. We can have multiple
             // internal event listeners, but because we are handling the event listener internally,
             // we only need to add it to the Google Maps object once.
-            if (!Array.isArray(this.#eventListeners[type]) || this.#eventListeners[type].length === 0) {
+            const existingListeners = this.#eventListeners?.[type];
+            if (!existingListeners || existingListeners.length === 0) {
                 let setupPending = false;
                 if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                     if (this.#isGoogleObjectSet()) {
@@ -499,8 +527,9 @@ export class Evented extends Base {
                         // from being added at all. That needed a special case for
                         // "bounds_changed" and "zoom_changed" to work around it. Tracking each
                         // listener separately removes the need for both.
-                        if (!this.#googleListeners[type]) {
-                            this.#googleListeners[type] = this.#googleObject.addListener(
+                        const googleListeners = (this.#googleListeners ??= {});
+                        if (!googleListeners[type]) {
+                            googleListeners[type] = this.#googleObject.addListener(
                                 type,
                                 (e: google.maps.MapMouseEvent) => {
                                     this.dispatch(type, e);
@@ -520,10 +549,9 @@ export class Evented extends Base {
 
                 // Set up the pending event listener if needed
                 if (setupPending) {
-                    if (!this.#pendingMapObjectEventListeners[type]) {
-                        this.#pendingMapObjectEventListeners[type] = [];
-                    }
-                    this.#pendingMapObjectEventListeners[type].push({ callback, config });
+                    const pending = (this.#pendingMapObjectEventListeners ??= {});
+                    pending[type] ??= [];
+                    pending[type].push({ callback, config });
                 }
             }
 
@@ -535,7 +563,7 @@ export class Evented extends Base {
             let context: object | undefined;
 
             // If the event type is already in the list of onlyEventListeners then don't add the listener
-            if (this.#onlyEventListeners.includes(type)) {
+            if (this.#onlyEventListeners?.includes(type)) {
                 addListener = false;
             }
 
@@ -546,7 +574,7 @@ export class Evented extends Base {
                     listenerOptions.once = true;
                 }
                 if (typeof config.only === 'boolean' && config.only === true) {
-                    this.#onlyEventListeners.push(type);
+                    (this.#onlyEventListeners ??= []).push(type);
                     if (this.hasListener(type)) {
                         // This is an event that should only be called once and only one listener should be added.
                         // If the event has already been dispatched then call the callback immediately.
@@ -565,7 +593,7 @@ export class Evented extends Base {
 
                 // Check if the event should be called immediately if the even type has already been dispatched
                 if (typeof config.callImmediate === 'boolean' && config.callImmediate === true) {
-                    if (typeof this.#eventsCalled[type] !== 'undefined') {
+                    if (typeof this.#eventsCalled?.[type] !== 'undefined') {
                         if (typeof config.once === 'boolean' && config.once === true) {
                             // This is an event that should only be called once so remove the listener.
                             // If the event is not a "once" event then it's ok to add the listener.
@@ -579,10 +607,9 @@ export class Evented extends Base {
             }
 
             if (addListener) {
-                if (!this.#eventListeners[type]) {
-                    this.#eventListeners[type] = [];
-                }
-                this.#eventListeners[type].push({ callback, context, options: listenerOptions });
+                const eventListeners = (this.#eventListeners ??= {});
+                eventListeners[type] ??= [];
+                eventListeners[type].push({ callback, context, options: listenerOptions });
             }
         } else {
             throw new Error(`The "${type}" event handler needs a callback function`);
@@ -606,14 +633,16 @@ export class Evented extends Base {
         // Set up the pending event listeners if there are any.
         // This handles siguations where the event was set up before the
         // Google maps object was set up.
-        if (isObject(this.#pendingMapObjectEventListeners)) {
-            Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
+        const pending = this.#pendingMapObjectEventListeners;
+        if (pending) {
+            const googleListeners = (this.#googleListeners ??= {});
+            Object.keys(pending).forEach((type) => {
                 // One Google listener per event type, not one per pending entry. The inner list
                 // was only ever walked for its length, so several listeners registered before the
                 // Google object existed each added their own Google listener, and every one of
                 // them then dispatched to all of the callbacks.
-                if (!this.#googleListeners[type]) {
-                    this.#googleListeners[type] = this.#googleObject.addListener(
+                if (!googleListeners[type]) {
+                    googleListeners[type] = this.#googleObject.addListener(
                         type,
                         (e: google.maps.MapMouseEvent) => {
                             this.dispatch(type, e);
@@ -621,7 +650,7 @@ export class Evented extends Base {
                     );
                 }
             });
-            this.#pendingMapObjectEventListeners = {};
+            this.#pendingMapObjectEventListeners = undefined;
         }
     }
 

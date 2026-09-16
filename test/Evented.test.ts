@@ -101,6 +101,87 @@ describe('Evented', () => {
         });
     });
 
+    // C-2. The containers are only built when something is put in them. Every Marker, Polyline,
+    // Overlay, Popup, Tooltip, InfoWindow, DataFeature, Map and DataLayer extends this class, so
+    // at 20,000 markers these were about 80,000 objects that stayed empty for the life of the
+    // page.
+    //
+    // Being straight about what these can and cannot check: the containers are #private, so a
+    // test cannot read them from outside and cannot count allocations directly. What these do is
+    // exercise every path that touches a container on an object that has never had a listener,
+    // so that a missed lazy-init would show up as a TypeError rather than passing silently.
+    // The real proof that the allocation is gone is a heap snapshot in a browser - see section
+    // 10 of the plan.
+    describe('every container path is safe before anything is added (C-2)', () => {
+        it('answers hasListener without building anything', () => {
+            const e = makeEvented();
+            expect(e.hasListener('click')).toBe(false);
+            expect(e.hasListener('click', vi.fn())).toBe(false);
+        });
+
+        it('dispatches to nothing without throwing', () => {
+            const e = makeEvented();
+            expect(() => e.dispatch('click')).not.toThrow();
+            expect(() => e.dispatch('click', { some: 'data' })).not.toThrow();
+        });
+
+        it('removes listeners that were never added without throwing', () => {
+            const e = makeEvented();
+            expect(() => e.off('click')).not.toThrow();
+            expect(() => e.off('click', vi.fn())).not.toThrow();
+            expect(() => e.offAll()).not.toThrow();
+        });
+
+        it('builds the containers once a listener is added, and works normally after', () => {
+            const e = makeEvented();
+            const cb = vi.fn();
+            e.on('click', cb);
+            e.dispatch('click');
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+
+        it('still records that an event happened when nothing is listening', () => {
+            const e = makeEvented();
+            // No listeners at all, so the early-out in dispatch() is taken
+            e.dispatch('ready');
+
+            // A callImmediate listener added afterwards must still be called, which only works
+            // if dispatch() recorded the event despite having nothing to call
+            const cb = vi.fn();
+            e.onceImmediate('ready', cb);
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+
+        it('goes back to holding nothing after offAll()', () => {
+            const e = makeEvented();
+            e.on('click', vi.fn());
+            e.on('mouseover', vi.fn());
+            e.offAll();
+
+            // The containers are cleared rather than left as empty objects, so a fully cleaned up
+            // object holds no more than one that never had a listener
+            expect(e.hasListener('click')).toBe(false);
+            expect(e.hasListener('mouseover')).toBe(false);
+            expect(() => e.dispatch('click')).not.toThrow();
+
+            // And it still works if listeners are added again
+            const cb = vi.fn();
+            e.on('click', cb);
+            e.dispatch('click');
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+
+        it('handles 1,000 objects that never get a listener', () => {
+            const objects: Evented[] = [];
+            for (let i = 0; i < 1000; i += 1) {
+                objects.push(makeEvented());
+            }
+            objects.forEach((e) => {
+                expect(e.hasListener('click')).toBe(false);
+            });
+        });
+    });
+
     describe('hasListener', () => {
         it('reports by type and by callback', () => {
             const e = makeEvented();
