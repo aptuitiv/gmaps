@@ -39,5 +39,8 @@ ts-out
 npm-debug.log
 yarn-error.log
 
+# Test coverage output
+coverage
+
 # static site output
 site-dist
