@@ -246,6 +246,12 @@ polyline.on(G.PolylineEvents.MOUSE_OVER, (e) => {
 
 ### ready
 
+:::info
+A polyline that is hidden when it's added to the map isn't drawn until it's shown, and it dispatches `ready` before the Google polyline exists. This is what lets a tooltip or popup set up its events without the polyline being drawn. The events are added to the Google polyline when the polyline is shown.
+
+If you need the Google polyline in a `ready` handler, use [toGoogle()](#togoogle). It creates the Google polyline if it doesn't exist yet.
+:::
+
 ```js
 polyline.on('ready', () => {
     // Do something
