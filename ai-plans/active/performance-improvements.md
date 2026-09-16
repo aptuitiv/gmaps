@@ -848,27 +848,110 @@ Do these before the laziness work, because Phase 3's fast paths depend on 6.2 be
 
 ### Phase 3 — Lazy allocation and lazy creation
 
-The core of the plan.
+The core of the plan. It's big enough that it's being done in **slices**, each verified against
+`npm test`, `tsc --noEmit` and `eslint ./src` before the next one starts. The slices are ordered
+so that the ones with no API risk land first: a fault in the primitives would otherwise be
+misattributed once the later work sat on top of them.
 
-1. Lazy `Evented` containers (C-2).
-2. `isObject()` fast path, with the call-site audit (C-3).
-3. `LatLng`/`Point`/`Size`: `(number, number)` fast path, drop `#valuesChanged`, `!== undefined` cache checks, cheap `equals` (C-7, C-12, C-13, C-14).
-4. Marker parity with Polyline: lazy `init()`, short-circuit `setMap(null)`, drop the throwaway
-   position `LatLng`, cache the `position` getter, resolved-promise fast path (M-1…M-6).
-   **Include M-13 here** — routing `title` through the private `#setTitle()` is the same mistake
-   as M-1 in a different place, and `test/Marker.test.ts` already has the expectations that flip
-   when it is fixed.
-5. **`DataFeature` parity too.** `Marker`, `DataFeature` and `Polyline` all share the same
-   `Layer.init()` contract, and only `Polyline` was changed in the previous pass. Whatever shape
-   the marker fix takes, apply it to `DataFeature` in the same phase so the three stay
-   consistent — this also addresses the eager-construction half of D-4.
-6. Overlay/Tooltip/Popup: lazy DOM, lazy content, defer `InfoWindow` setup, shared zero-offset
-   (O-1, O-2, O-10, O-11).
+**Status: A and B done 2026-09-16. C and D not started, and both need a decision first.**
 
-The `Polyline` half of this is **already shipped and confirmed working in the browser** — Eric's
+| Slice | Covers | State |
+|---|---|---|
+| A — core primitives | C-3, C-7, C-12, C-13, M11 | **Done** |
+| B — lazy `Evented` containers | C-2, C-8 | **Done** |
+| C — Marker and DataFeature laziness | M-1…M-6, M-13, §6.3, D-4 | Not started — adds a public option |
+| D — Overlay, Tooltip, Popup | O-1, O-2, O-10, O-11 | Not started — 42 call sites |
+
+#### Slice A — core primitives (done)
+
+- **C-3 `isObject()`**. A `typeof`/`null` pre-filter now runs in front of the `toString` call, so
+  primitives exit cheaply. The plan originally suggested replacing the check with `typeof`, which
+  would have been **wrong**: `typeof` reports `true` for `Date`, `Map` and `Set` where this check
+  reports `false`, and around 40 call sites depend on that. The answers are unchanged.
+  `isObjectWithValues()` reuses it so the keys are only listed for something that is an object.
+- **C-7** `(number, number)` fast paths on `LatLng`, `Point` and `Size`, skipping `set()`'s
+  `Array.isArray → isObject → instanceof` dispatch. `isNumber()` is used rather than a bare
+  `typeof` so the values accepted are exactly the ones the setters would have accepted.
+- **C-12** `#valuesChanged` deleted from `LatLng`. The setters clear the cached Google object
+  instead, which removes a field and a write per coordinate from every instance.
+- **C-13** `LatLng.equals()` no longer builds a third `LatLng` to compare two.
+- **M11** `isObject(this.#pointObject)` cache checks in `Point`/`Size` replaced with
+  `!== undefined`. That was a `toString` call on every coordinate write.
+
+**C-14 was deliberately skipped.** Caching "Google Maps has loaded" in a module-level boolean is
+unsafe here: the library supports creating objects before the library loads, and the test suite
+installs and removes the stub between tests, so a cached `true` would go stale and report the
+wrong answer. Not worth the correctness risk for one `typeof` check.
+
+#### Slice B — lazy `Evented` containers (done)
+
+All five containers (`#eventsCalled`, `#eventListeners`, `#onlyEventListeners`,
+`#pendingMapObjectEventListeners`, `#googleListeners`) are now `| undefined`, created on first
+write with `??=` and read with `?.`. Every class in the library extends `Evented`, so at 20,000
+markers this is roughly 80,000 objects that are no longer allocated and were empty for the life
+of the page.
+
+`offAll()` clears them back to `undefined` rather than leaving empty containers behind, so an
+object whose listeners have all been removed holds no more than one that never had any.
+
+**C-8** came with it: `dispatch()` now does a single lookup held in a local. It used to call
+`hasListener()`, which looked the list up twice more, and then look it up again itself — three
+lookups per dispatch, on a method that runs for every event on every object including per-frame
+ones like `bounds_changed`.
+
+One semantic point that had to be preserved: `#eventsCalled` is still written **even when nothing
+is listening**. A listener added later with `callImmediate` depends on knowing the event already
+fired, so that write cannot move behind the early-out. There's a test for exactly this.
+
+**On testing the laziness.** The containers are `#private`, so no test can read them or count
+allocations directly. `test/Evented.test.ts` exercises every container path on an object that has
+never had a listener, so a missed lazy-init shows up as a `TypeError` rather than passing
+silently — but the real proof that the allocation is gone is a heap snapshot in a browser, per
+section 10. An earlier attempt at a test that claimed to measure allocation was removed for
+overstating what it checked.
+
+#### Slice C — Marker and DataFeature laziness (not started)
+
+Marker parity with Polyline: lazy `init()`, short-circuit `setMap(null)`, drop the throwaway
+position `LatLng`, cache the `position` getter, resolved-promise fast path (M-1…M-6), plus
+**M-13** — routing `title` through the private `#setTitle()` is the same mistake as M-1 in a
+different place, and `test/Marker.test.ts` already holds the expectations that flip when it's
+fixed.
+
+**`DataFeature` gets the same treatment.** `Marker`, `DataFeature` and `Polyline` all share the
+`Layer.init()` contract and only `Polyline` was changed in the previous pass. Doing all three
+together keeps them consistent and covers the eager-construction half of D-4.
+
+**Why this needs a decision first:** §6.3 cannot be expressed without **adding a public `visible`
+option to `Marker`**, which has none (see the blocker note in 6.3). That is an API addition, and
+M-1 changes when the Google marker is created — a documented behaviour change. Both belong in
+§8.2 territory, which says to raise them before building.
+
+The `Polyline` half is **already shipped and confirmed working in the browser** — the
 2,595-segment page went from creating 2,595 Google polylines at load to zero. That is the
 existence proof for M-1: the same contract, applied to markers and data features, on a page that
 creates far more of them.
+
+#### Slice D — Overlay, Tooltip, Popup (not started)
+
+Lazy DOM (O-1), lazy content (O-2), defer `InfoWindow` setup (O-10), shared zero-offset (O-11).
+
+**Bigger than the audit made it look.** `Overlay.ts` has **42** `this.#overlay` references, not
+the handful implied by "build the element lazily". Four are the constructor, one is the public
+`getOverlayElement()`, and the rest are spread through `className`, `removeClassName`, `style()`,
+the drag setup, resize-handle creation and teardown, the drag and resize handlers, `remove()` and
+`#setupGoogleOverlay`. Most are of the form `this.#overlay.style.x = …`, so **a missed call site
+fails at runtime with `undefined.style`, not at compile time**, and the jsdom tests only cover a
+fraction of the drag and resize paths.
+
+Note also that lines ~1338-1364 use `#overlay` for something else entirely — the private field
+inside the hoisted `OverlayView` class, which holds the `Overlay` instance rather than the
+element. Worth not conflating when converting.
+
+**Suggested split:** do O-2 and O-11 first. Lazy content is most of the attach-time win at 2,595
+segments (it's an `innerHTML` parse per overlay) and both are small and low-risk. Leave the full
+lazy-DOM conversion (O-1) until the drag and resize paths have test cover, so a missed reference
+is caught by something other than a user.
 
 **Expected:** the headline win. Attach cost for thousands of tooltips/popups drops to near zero,
 and per-object allocation falls across the whole library.
