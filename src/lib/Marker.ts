@@ -380,16 +380,22 @@ export class Marker extends Layer {
      * @returns {LatLng}
      */
     get position(): LatLng {
-        let returnValue = this.#options.position;
-        if (this.#marker) {
-            // The marker position could have changed if it was dragged around so try to get the latest position
-            // directly from the Google Maps marker object
-            returnValue = latLng(this.#marker.getPosition() ?? undefined);
+        // Only a draggable marker can move without the library being told, so only that case
+        // needs to ask Google where the marker is now. Every other marker's stored position is
+        // authoritative, because setPosition() updates both sides.
+        //
+        // This used to go to Google and build a new LatLng on every read, whatever kind of
+        // marker it was, so anything that looped over markers - fitting bounds, filtering,
+        // sorting by distance - allocated one object per marker per pass.
+        if (this.#drag && this.#marker) {
+            return latLng(this.#marker.getPosition() ?? undefined);
         }
-        if (isNullOrUndefined(returnValue)) {
-            returnValue = latLng([0, 0]);
+        if (isNullOrUndefined(this.#options.position)) {
+            // Nothing set a position, so fall back to 0,0. It's created here rather than in the
+            // field initialiser so that a marker with a real position never builds it.
+            this.#options.position = latLng([0, 0]);
         }
-        return returnValue;
+        return this.#options.position;
     }
 
     /**
@@ -1385,7 +1391,10 @@ export class Marker extends Layer {
      * Set the position for the marker on the Google marker object
      */
     #setGoogleMarkerPosition() {
-        this.#marker.setPosition(this.#options.position.toGoogle());
+        // The position getter creates the 0,0 default if nothing set one, so this always has a
+        // value to hand over. #options.position is optional now, so it's read through the getter
+        // rather than directly.
+        this.#marker.setPosition(this.position.toGoogle());
     }
 
     /**

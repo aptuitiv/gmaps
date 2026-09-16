@@ -264,17 +264,22 @@ describe('Marker', () => {
         });
     });
 
-    // M-4 in the plan. Once the Google marker exists, every read of .position allocates a
-    // new LatLng and calls into Google.
-    describe('the position getter allocates on every read (M-4)', () => {
-        it('builds a new LatLng each time once the Google marker exists', () => {
+    // M-4, fixed in Phase 3. Every read of .position used to call into Google and build a new
+    // LatLng, whatever kind of marker it was, so any loop over markers - fitting bounds,
+    // filtering, sorting by distance - allocated one object per marker per pass.
+    //
+    // Only a draggable marker can move without the library being told, so only that case still
+    // asks Google. Everything else returns the stored position, which setPosition() keeps in
+    // step with the Google marker.
+    describe('the position getter no longer allocates on every read (M-4)', () => {
+        it('returns the same object each time once the Google marker exists', () => {
             const m = marker({ position: [1, 2] });
             m.toGoogleSync();
 
             const first = m.position;
             const second = m.position;
-            expect(first).not.toBe(second);
-            expect(first.lat).toBe(second.lat);
+            expect(first).toBe(second);
+            expect(first.lat).toBe(1);
         });
 
         it('returns the stored object while there is no Google marker', () => {
@@ -285,7 +290,53 @@ describe('Marker', () => {
         it('getPosition() goes through the same getter', () => {
             const m = marker({ position: [1, 2] });
             m.toGoogleSync();
-            expect(m.getPosition()).not.toBe(m.getPosition());
+            expect(m.getPosition()).toBe(m.getPosition());
+        });
+
+        it('reads back a position that was changed after the marker was created', () => {
+            const m = marker({ position: [1, 2] });
+            m.toGoogleSync();
+            m.setPositionSync([5, 6]);
+
+            expect(m.position.lat).toBe(5);
+            expect(m.position.lng).toBe(6);
+        });
+
+        // The carve-out. A draggable marker CAN move behind the library's back, so it still has
+        // to ask Google. Removing this would silently break dragging, so it is pinned here.
+        it('still asks Google for the position of a draggable marker', () => {
+            const m = marker({ position: [1, 2], drag: true });
+            const google = m.toGoogleSync() as unknown as { setPosition(p: unknown): void };
+
+            // Simulate Google moving the marker, the way a drag would
+            google.setPosition({ lat: () => 9, lng: () => 9 });
+
+            expect(m.position.lat).toBe(9);
+            expect(m.position.lng).toBe(9);
+        });
+    });
+
+    // M-3. The options used to start with a 0,0 LatLng that almost every marker replaced
+    // immediately, so it was built and thrown away once per marker.
+    describe('no position object is built until one is needed (M-3)', () => {
+        it('still reports 0,0 for a marker that was given no position', () => {
+            const m = marker({ title: 'no position' });
+            expect(m.position.lat).toBe(0);
+            expect(m.position.lng).toBe(0);
+        });
+
+        it('returns the same default object across reads', () => {
+            const m = marker({ title: 'no position' });
+            expect(m.position).toBe(m.position);
+        });
+
+        it('builds no Google LatLng for 1,000 markers', () => {
+            for (let i = 0; i < 1000; i += 1) {
+                marker({ position: [i / 100, i / 100] });
+            }
+            // The library's own LatLng objects aren't counted by the stub, but nothing should
+            // have reached Google
+            expect(mapsStats.countOf('LatLng')).toBe(0);
         });
     });
 

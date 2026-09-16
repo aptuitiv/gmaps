@@ -858,17 +858,18 @@ so that the ones with no API risk land first: a fault in the primitives would ot
 misattributed once the later work sat on top of them.
 
 **Status: 2026-09-16. A, B and C done. D done apart from O-1 and O-10.**
-443 tests passing, `tsc --noEmit` clean, `eslint ./src` clean.
+448 tests passing, `tsc --noEmit` clean, `eslint ./src` clean.
 
 | Slice | Covers | State |
 |---|---|---|
 | A — core primitives | C-3, C-7, C-12, C-13, M11 | **Done** |
 | B — lazy `Evented` containers | C-2, C-8 | **Done** |
-| C — Marker and DataFeature laziness | M-1, M-2, M-6, M-13, §6.3 | **Done** — M-3/M-4 deferred |
+| C — Marker and DataFeature laziness | M-1…M-4, M-6, M-13, §6.3 | **Done** |
 | D — Overlay, Tooltip, Popup | O-2, O-11 | **Done**. O-1 and O-10 deferred |
 
-**Left in Phase 3:** M-3 and M-4 (marker allocation, no API impact), O-1 (the full lazy DOM
-conversion) and O-10 (`InfoWindow` deferring its setup). None of them blocks a later phase.
+**Left in Phase 3:** O-1 (the full lazy DOM conversion) and O-10 (`InfoWindow` deferring its
+setup). Neither blocks a later phase, and both are bigger than the audit made them look — see
+the notes at the end of Slice D.
 
 #### Slice A — core primitives (done)
 
@@ -948,9 +949,22 @@ contract, but `DataFeature` already satisfies it. D-4's eager-construction half 
 problem (`#afterLoad` materialising a wrapper per feature), not a `DataFeature` one, and stays in
 Phase 7.
 
-**Still open in this slice:** M-3 (the throwaway `latLng([0, 0])` allocated per marker) and M-4
-(the `position` getter building a new `LatLng` on every read). Both are pure allocation work with
-no API impact, deliberately left out so this slice stayed focused on the creation semantics.
+**M-3 and M-4 followed after the creation semantics were settled.**
+
+- **M-3.** `#options` no longer starts with a `latLng([0, 0])`. Almost every marker replaced it
+  immediately, so it was built and thrown away once per marker. The `position` getter creates the
+  0,0 default if something asks for a position that was never set, and
+  `#setGoogleMarkerPosition()` reads through the getter rather than the field.
+- **M-4.** The `position` getter no longer calls into Google and builds a new `LatLng` on every
+  read. **Only a draggable marker can move without the library being told**, so only that case
+  still asks Google; for every other marker the stored position is authoritative, because
+  `setPosition()` keeps both sides in step. Any loop over markers — fitting bounds, filtering,
+  sorting by distance — used to allocate one object per marker per pass.
+
+  This is the behaviour change §8.2 flagged: the returned `LatLng` now has **stable identity** for
+  a non-draggable marker, so a caller that mutates what `position` hands back is mutating the
+  marker's own state rather than a private copy. The draggable carve-out has its own test, because
+  removing that branch as a "simplification" would silently break dragging.
 
 **Two bugs in the new code, both caught by the tests:**
 
@@ -1021,8 +1035,22 @@ knowing if these are ever rewritten.
 
 **O-1 is still deferred, for the reason given below:** 42 `this.#overlay` references, most of the
 form `this.#overlay.style.x = …`, so a missed one fails at runtime rather than at compile time,
-and the drag and resize paths have no test cover. **O-10** (`InfoWindow` building its Google
-object as soon as content is set) was not part of this split and is untouched.
+and the drag and resize paths have no test cover.
+
+**O-10 is also bigger than the audit implied, and was left alone deliberately.** The audit
+described it as the `content` setter calling `#setupGoogleInfoWindow()` eagerly. In fact **nine**
+setters call it — `InfoWindow.ts:185, 209, 233, 283, 311, 336, 361, 390` and `690` — and each one
+follows the same shape:
+
+```js
+this.#setupGoogleInfoWindow();
+if (this.#infoWindow) { this.#infoWindow.setX(value); }
+```
+
+The setup call is what makes the guard on the next line true. Removing it from one setter without
+the others gives a class where some options reach Google and some silently don't, depending on
+which was set first. Doing this properly means auditing all nine together and deciding where the
+deferred values get flushed — the same shape of change as O-1, not a one-liner.
 
 **Background — the original notes for this slice, kept for the reasoning behind the split:**
 
