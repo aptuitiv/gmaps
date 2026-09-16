@@ -123,44 +123,35 @@ describe('PlacesSearchBox', () => {
             expect(created.args[0]).toBe(input);
         });
 
-        // BUG, found while writing this file and recorded in section 6.6 of the plan:
-        // init() never settles when it fails.
-        //
-        // init() wraps its work in `new Promise((resolve) => ...)` with no reject path, and
-        // calls `#createPlacesSearchBox().then(() => { resolve(); })` with no .catch. When
-        // there is no input element, #createPlacesSearchBox() throws (PlacesSearchBox.ts:250),
-        // the rejection escapes unhandled, and resolve() is never reached. So
-        // `await box.init()` hangs forever instead of throwing.
-        //
-        // This is deliberately not exercised. Calling init() without an input produces an
-        // unhandled rejection that vitest reports as a run-level error, and a test asserting
-        // the hang has to burn a timeout to do it - both would pollute every future run for a
-        // bug that is already written down. Turn this into a real test once init() rejects.
-        it.todo('rejects when there is no input element (currently never settles - see 6.6)');
+        // Fixed in Phase 2. init() used to wrap its work in a promise with no reject path and
+        // no .catch, so a failure escaped as an unhandled rejection and the promise never
+        // settled - awaiting it hung forever rather than throwing.
+        it('rejects when there is no input element', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+        });
     });
 
-    // Section 6.6.
+    // Section 6.6, fixed in Phase 2. init() now memoizes its promise, so the work starts once
+    // and every caller waits on the same promise however many times it is called.
     describe('two concurrent init() calls (6.6)', () => {
-        // The bug. When it is fixed this expectation becomes 1.
-        it('build TWO SearchBoxes on one input when a bounds option is set', async () => {
+        it('build one SearchBox when a bounds option is set', async () => {
             const box = new PlacesSearchBox({ input: searchInput(), bounds });
 
             await Promise.all([box.init(), box.init()]);
 
-            expect(mapsStats.countOf('SearchBox')).toBe(2);
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
         });
 
-        it('build three when called three times', async () => {
+        it('build one when called three times', async () => {
             const box = new PlacesSearchBox({ input: searchInput(), bounds });
 
             await Promise.all([box.init(), box.init(), box.init()]);
 
-            expect(mapsStats.countOf('SearchBox')).toBe(3);
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
         });
 
-        // Without bounds there is no await before the assignment, so the guard works and the
-        // race never opens. This is why the bug is easy to miss.
-        it('build only one when no bounds option is set', async () => {
+        it('build one when no bounds option is set', async () => {
             const box = new PlacesSearchBox(searchInput());
 
             await Promise.all([box.init(), box.init(), box.init()]);
@@ -168,13 +159,30 @@ describe('PlacesSearchBox', () => {
             expect(mapsStats.countOf('SearchBox')).toBe(1);
         });
 
-        it('each duplicate registers its own places_changed listener', async () => {
+        // One widget means one set of listeners, which is what stops the duplicate billed
+        // Places requests.
+        it('register a single places_changed listener', async () => {
             const box = new PlacesSearchBox({ input: searchInput(), bounds });
 
             await Promise.all([box.init(), box.init()]);
 
-            // One listener per widget built, which is how the duplicate billed requests happen
-            expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(2);
+            expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(1);
+        });
+
+        // init() is declared async, so it wraps the memoized promise in a fresh one on every
+        // call and the returned objects are never identical. What matters is that the work
+        // behind them happens once, so that is what's asserted.
+        it('start the work once however late the calls come in', async () => {
+            const box = new PlacesSearchBox({ input: searchInput(), bounds });
+
+            await box.init();
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+
+            // A call made well after the first one has finished still builds nothing more
+            await box.init();
+            await Promise.all([box.init(), box.init()]);
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+            expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(1);
         });
     });
 

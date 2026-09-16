@@ -170,25 +170,29 @@ describe('crossing the 180 degree meridian', () => {
         expect(bounds.getNorthEast()!.lng).toBe(-170);
     });
 
-    // QUIRK, found while writing these tests.
+    // Section 6.7, fixed in Phase 2.
     //
-    // getCenter() averages the two longitudes and then normalises, but never adds the missing
-    // 360 for a wrapped bounds. For west 170 / east -170 the true centre is 180, and this
-    // returns 0 - the opposite side of the globe.
-    //
-    //   lng = (-170 + 170) / 2 = 0
-    //   ne.lng < sw.lng, so lng = ((0 + 180) % 360) - 180 = 0
-    //
-    // Recorded as current behaviour so a fix is a deliberate change. Latitude is correct.
-    it('gets the centre longitude wrong for a wrapped bounds', () => {
+    // getCenter() used to average the two longitudes and normalise, without adding the missing
+    // 360 for a wrapped bounds, so west 170 / east -170 gave 0 - the opposite side of the globe.
+    // A full turn is now added to the east longitude before averaging.
+    it('gets the centre of a wrapped bounds right', () => {
         const bounds = new LatLngBounds();
         bounds.extend([10, 170]);
         bounds.extend([-10, -170]);
 
         const center = bounds.getCenter();
         expect(center.lat).toBe(0);
-        // Should be 180 (or -180). It is not.
-        expect(center.lng).toBe(0);
+        // The middle of a bounds running 170 east to -170 is the antimeridian
+        expect(center.lng).toBe(180);
+    });
+
+    it('gets the centre right for a wrapped bounds that is not symmetrical', () => {
+        const bounds = new LatLngBounds();
+        bounds.extend([0, 170]);
+        bounds.extend([0, -150]);
+
+        // 170 east to -150 spans 40 degrees, so the middle is -170
+        expect(bounds.getCenter().lng).toBe(-170);
     });
 
     it('gets the centre right for an ordinary bounds', () => {
@@ -287,11 +291,10 @@ describe('output formats', () => {
         expect(bounds.toUrlValue(1)).toBe('0.1,5.1,10.1,20.1');
     });
 
-    // QUIRK: `precision || 3` treats 0 as missing, so a precision of 0 silently becomes 3.
-    // Noted in section 6.6 of the plan. When it is fixed this expects '0,5,10,20'.
-    it('toUrlValue turns a precision of 0 into 3', () => {
+    // Fixed in Phase 2. `precision || 3` treated 0 as missing and silently used 3.
+    it('toUrlValue accepts a precision of 0', () => {
         const bounds = latLngBounds({ ne: [10.123456, 20.123456], sw: [0.123456, 5.123456] });
-        expect(bounds.toUrlValue(0)).toBe('0.123,5.123,10.123,20.123');
+        expect(bounds.toUrlValue(0)).toBe('0,5,10,20');
     });
 
     it('the output formats throw on an empty bounds', () => {

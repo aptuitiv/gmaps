@@ -308,53 +308,52 @@ describe('Evented without the Google Maps library loaded', () => {
         expect(cb).toHaveBeenCalledTimes(1);
     });
 
-    // BUG, found while writing these tests.
+    // Section 6.5, fixed in Phase 2.
     //
-    // Removing the last listener for a type runs #afterListenersRemoved(), which calls
-    // #isGoogleObjectSet(). That does `this.#googleObject instanceof google.maps.MVCObject`
-    // against the bare `google` global, so it throws a ReferenceError when the Google Maps
-    // library has not loaded.
+    // Removing the last listener for a type used to throw a ReferenceError when the Google Maps
+    // library had not loaded, because #isGoogleObjectSet() read the bare `google` global.
+    // #afterListenersRemoved() no longer calls it at all - it removes the listener this object
+    // added, by its own handle - and #isGoogleObjectSet() now checks that `google` exists first.
     //
     // This matters because the library deliberately supports creating objects and attaching
-    // listeners before Google Maps loads - that is what the pending listener mechanism is for.
-    // Anything that empties a listener list before the library loads will crash:
-    //   - dispatching a "once" listener (it is removed straight after being called)
-    //   - off() / offAll()
-    //
-    // These use it.fails(), so they PASS while the bug exists and FAIL once it is fixed,
-    // which is the signal to turn them into ordinary expectations.
-    it.fails('dispatching a "once" listener before Google Maps loads should not throw', () => {
+    // listeners before Google Maps loads; that is what the pending listener mechanism is for.
+    it('dispatching a "once" listener before Google Maps loads does not throw', () => {
         const e = makeEvented();
         e.once('click', vi.fn());
-        e.dispatch('click');
+        expect(() => e.dispatch('click')).not.toThrow();
+        expect(e.hasListener('click')).toBe(false);
     });
 
-    it.fails('off() before Google Maps loads should not throw', () => {
+    it('off() before Google Maps loads does not throw', () => {
         const e = makeEvented();
         e.on('click', vi.fn());
-        e.off('click');
+        expect(() => e.off('click')).not.toThrow();
+        expect(e.hasListener('click')).toBe(false);
     });
 
-    // Same root cause as the two above: offAll() calls #isGoogleObjectSet() unconditionally.
-    // Locked in as "currently throws" rather than it.fails() so that the assertion is explicit.
-    // When the ReferenceError is fixed this becomes .not.toThrow().
-    it('offAll() also throws before Google Maps loads, for the same reason', () => {
+    it('offAll() before Google Maps loads does not throw', () => {
         const e = makeEvented();
         e.on('click', vi.fn());
-        expect(() => e.offAll()).toThrow();
+        e.on('mouseover', vi.fn());
+        expect(() => e.offAll()).not.toThrow();
+        expect(e.hasListener('click')).toBe(false);
+        expect(e.hasListener('mouseover')).toBe(false);
     });
 });
 
-// Section 6.1, and the most damaging bug in the plan.
+// Section 6.1, fixed in Phase 2. This was the most damaging bug in the plan.
 //
-// #afterListenersRemoved() calls google.maps.event.clearListeners(googleObject, type) as soon
-// as the library's own listener list for that type becomes empty. clearListeners removes EVERY
-// listener of that type on the object, including ones the library never added.
+// #afterListenersRemoved() used to call google.maps.event.clearListeners(googleObject, type) as
+// soon as the library's own listener list for that type became empty. clearListeners removes
+// EVERY listener of that type on the object, including ones the library never added.
 //
 // Two live paths reach it: Map.fitBounds registers this.once(BOUNDS_CHANGED, ...), and
 // Polyline.#updateZoomListener calls map.off('idle', ...). @googlemaps/markerclusterer drives
-// its re-clustering off "idle", so a polyline leaving a map can stop clustering working.
-describe('removing listeners wipes listeners this library did not add (6.1)', () => {
+// its re-clustering off "idle", so a polyline leaving a map could stop clustering working.
+//
+// Each listener this library adds to a Google object is now kept by its handle and removed on
+// its own, so listeners added by anything else are left alone.
+describe('removing listeners leaves listeners this library did not add (6.1)', () => {
     beforeEach(() => {
         installGoogleMaps();
     });
@@ -373,7 +372,7 @@ describe('removing listeners wipes listeners this library did not add (6.1)', ()
     const listenersFor = (googleObject: unknown, type: string): unknown[] =>
         (googleObject as { __listeners: Record<string, unknown[]> }).__listeners[type] ?? [];
 
-    it('off() removes a third-party listener along with its own', () => {
+    it('off() leaves a third-party listener in place while removing its own', () => {
         const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
         const googleObject = new google.maps.MVCObject();
 
@@ -390,12 +389,13 @@ describe('removing listeners wipes listeners this library did not add (6.1)', ()
         e.on('idle', mine);
         e.off('idle', mine);
 
-        // The third-party listener is gone too
-        expect(listenersFor(googleObject, 'idle')).toHaveLength(0);
+        // The third-party listener survives; only this library's own is gone
+        expect(listenersFor(googleObject, 'idle')).toHaveLength(1);
+        expect(listenersFor(googleObject, 'idle')[0]).toBe(thirdParty);
         expect(e.hasListener('idle')).toBe(false);
     });
 
-    it('a once listener firing is enough to wipe them', () => {
+    it('a once listener firing does not wipe them', () => {
         const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
         const googleObject = new google.maps.MVCObject();
 
@@ -409,11 +409,12 @@ describe('removing listeners wipes listeners this library did not add (6.1)', ()
         );
 
         // This is the shape of Map.fitBounds: a single once listener that empties the list
-        // as soon as it fires.
+        // as soon as it fires. It used to take the third-party listener with it.
         e.once('bounds_changed', vi.fn());
         e.dispatch('bounds_changed');
 
-        expect(listenersFor(googleObject, 'bounds_changed')).toHaveLength(0);
+        expect(listenersFor(googleObject, 'bounds_changed')).toHaveLength(1);
+        expect(listenersFor(googleObject, 'bounds_changed')[0]).toBe(thirdParty);
     });
 
     it('leaves them alone while the library still has a listener of that type', () => {
@@ -432,24 +433,36 @@ describe('removing listeners wipes listeners this library did not add (6.1)', ()
         e.on('idle', second);
         e.off('idle', first);
 
-        // Only the last removal triggers clearListeners, which is what makes this
-        // intermittent and easy to miss in the wild
-        expect(listenersFor(googleObject, 'idle')).toHaveLength(1);
+        // The third-party one, plus the single listener this library adds per type
+        expect(listenersFor(googleObject, 'idle')).toHaveLength(2);
     });
 
-    it('offAll() wipes every type on the object', () => {
+    it('offAll() leaves every third-party listener in place', () => {
         const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
         const googleObject = new google.maps.MVCObject();
 
         const e = makeEvented();
         e.setEventGoogleObject(googleObject);
 
-        (googleObject as unknown as { addListener(t: string, f: () => void): void }).addListener('idle', vi.fn());
-        (googleObject as unknown as { addListener(t: string, f: () => void): void }).addListener('click', vi.fn());
+        const thirdPartyIdle = vi.fn();
+        const thirdPartyClick = vi.fn();
+        (googleObject as unknown as { addListener(t: string, f: () => void): void }).addListener(
+            'idle',
+            thirdPartyIdle,
+        );
+        (googleObject as unknown as { addListener(t: string, f: () => void): void }).addListener(
+            'click',
+            thirdPartyClick,
+        );
 
+        // Give this library its own listeners for the same types, then remove them all
+        e.on('idle', vi.fn());
+        e.on('click', vi.fn());
         e.offAll();
 
-        expect(listenersFor(googleObject, 'idle')).toHaveLength(0);
-        expect(listenersFor(googleObject, 'click')).toHaveLength(0);
+        // clearInstanceListeners() used to take everything on the object with it
+        expect(listenersFor(googleObject, 'idle')).toHaveLength(1);
+        expect(listenersFor(googleObject, 'click')).toHaveLength(1);
+        expect(e.hasListener('idle')).toBe(false);
     });
 });
