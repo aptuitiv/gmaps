@@ -249,7 +249,8 @@ export class Evented extends Base {
             return false;
         }
         if (typeof callback === 'function') {
-            return this.#eventListeners[type].filter((event) => event.callback === callback).length > 0;
+            // some() stops at the first match and doesn't build an array to answer a boolean
+            return this.#eventListeners[type].some((event) => event.callback === callback);
         }
         return this.#eventListeners[type] && this.#eventListeners[type].length > 0;
     }
