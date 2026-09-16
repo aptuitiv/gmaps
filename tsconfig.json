@@ -6,7 +6,13 @@
         "module": "esnext",
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
-        "target": "es6",
+        // ES2022 so that the build uses native #private fields. Older targets emulate them with a
+        // WeakMap for each field, which is much slower and uses more memory for objects that are
+        // created in large numbers, like LatLng. This needs Safari 15 (iOS 15), Chrome 84, or Firefox 90.
+        "target": "es2022",
+        // Keep assignment semantics for class fields. Typescript turns this on by default for ES2022,
+        // which would change how class fields are initialized.
+        "useDefineForClassFields": false,
         "lib": ["es2017", "dom", "dom.iterable"],
         "types": ["google.maps", "node"],
         "rootDir": "src",

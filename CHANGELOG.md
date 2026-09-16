@@ -29,13 +29,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added the `hideBusinesses`, `hidePointsOfInterest`, and `hideTransit` map options as shortcuts to hide the `poi.business`, `poi`, and `transit` feature types. Each is also available as a property and as a method (`setHideBusinesses()`, `setHidePointsOfInterest()`, `setHideTransit()`) so that they can be changed after the map has been rendered. They're combined with any styles set with the `styles` option. Like other styles, they have no effect when a `mapId` is set.
 - Added support for the `stylers` property in `MapStyle` options as an alias of `styles`. This matches the Google Maps `MapTypeStyle` format so Google's style JSON can be used as is.
 - Added `PolylineCollection.isEmpty()`. It replaces the misspelled `isEmtpy()` method.
+- Added the `simplify` polyline option to draw the path with fewer points while keeping the same shape. This helps with paths that have a lot of points, like GPS tracks, which often have far more points than can be seen on the map. Set a number for how far, in meters, the drawn line can be from the original path, `true` to use 2 meters, or `'zoom'` to use a tolerance that changes with the zoom level. Pass an object to set your own tolerance for different zoom levels. The `path` property still holds every point. It's off unless it's set. `setSimplify()` and the `simplify` property were added to change it later.
+- Added the `simplifyDebug` polyline option, which logs to the console how many points are drawn each time the path is simplified, so that it's easy to see whether simplifying is helping. It can also be set with the `debug` simplify option, and with `setSimplifyDebug()` or the `simplifyDebug` property.
+- Added the `simplifyPath()` helper to simplify an array of positions on its own, for example before saving them. The `DEFAULT_SIMPLIFY_TOLERANCE` and `DEFAULT_SIMPLIFY_ZOOM` values that it uses are exported as well.
+- Added the `optimized` marker option, which is passed to Google to say whether many markers should be drawn together as a single element. Google decides on its own if it isn't set. It has no effect on vector maps. `setOptimized()`, `setOptimizedSync()` and the `optimized` property were added to change it later.
 
-## Changed
+### Changed
 
+- Changed the build target to ES2022. Older targets don't support private class fields, so the build replaced each one with a WeakMap lookup, which is much slower and uses more memory for the objects that are created in large numbers. Creating 500,000 positions went from about 1,250ms to about 55ms, and 20,000 markers went from about 182ms to about 42ms while using about 22% less memory each. A map with 1,400 polylines holding 2.4 million points went from about 12 seconds to well under a second to set up. This requires Safari 15 (iOS 15), Chrome 84, Firefox 90, or Edge 84. See the browser support section of the README.
 - Improved the performance of rendering polylines with hover polylines. Nothing is built until the highlight is first needed.
+- Improved the performance of showing a tooltip. Only the position is updated as the map is zoomed or panned. The theme styles are set once instead of on every frame.
+- Improved the performance of removing event listeners that are only called once. They're now all removed in one pass instead of searching the whole list of listeners for each one. This is noticeable when a lot of markers or polylines are waiting for the map to be ready.
+- A polyline that is hidden waits until it's shown again before updating the path it draws when the simplify tolerance changes. This saves work when polylines are hidden with `PolylineCollection.hide()` and the zoom level changes.
+- The polyline `setOptions()` method sets the path before the map so that the path is only prepared once when the polyline is created.
 
 ### Fixed
 
+- Fixed tooltips and popups never showing on a marker that was set up with one of the `Sync` methods, like `setMapSync()`. Those methods didn't dispatch the marker's `ready` event, which the tooltip and popup wait for before they attach their events to the marker.
+- Fixed the highlight polyline keeping the old path when the polyline's path was changed.
+- Fixed the previous highlight polyline being left on the map when a new one was set on a polyline. Setting a highlight polyline more than once also added another set of hover event listeners each time.
 - Fixed the popup `fit` option having no effect. The map was panned to bring the popup into view even when `fit` was set to `false`.
 - Fixed issue with attaching events to the polyline when it has a highlight polyline.
 - Fixed the `locationerror` event data not including the error details. The event data now includes the `code` and `message` values from the Geolocation API error.
