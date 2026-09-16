@@ -115,23 +115,6 @@ export class Evented extends Base {
     #googleObject!: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement;
 
     /**
-     * Holds whether the onload event was set on the Loader class to
-     * set up the pending event listeners after the Google Maps API library is loaded.
-     *
-     * @private
-     * @type {boolean}
-     */
-    #isOnLoadEventSet: boolean = false;
-
-    /**
-     * Holds the event listeners that are waiting to be added once the Google Maps API is loaded
-     *
-     * @private
-     * @type {PendingEvents}
-     */
-    #pendingLoadEventListeners: PendingEvents = {};
-
-    /**
      * Holds the event listeners that are waiting to be added once the Google Maps object is set
      *
      * @private
