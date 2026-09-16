@@ -189,12 +189,15 @@ export class Marker extends Layer {
     /**
      * Holds the marker options
      *
-     * The position always has a value. It defaults to 0,0 and is only replaced with a valid position.
+     * The position is only set once there is a real one. It used to default to a 0,0 LatLng,
+     * which meant every marker built a LatLng object that was thrown away as soon as a position
+     * was set - and almost every marker has one. The position getter creates the 0,0 default if
+     * something asks for a position that was never set.
      *
      * @private
-     * @type {GMMarkerOptions & { position: LatLng }}
+     * @type {GMMarkerOptions}
      */
-    #options: GMMarkerOptions & { position: LatLng } = { position: latLng([0, 0]) };
+    #options: GMMarkerOptions = {};
 
     /**
      * Constructor
