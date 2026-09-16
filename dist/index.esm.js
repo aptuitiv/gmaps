@@ -15984,6 +15984,24 @@ var Polyline = class _Polyline extends Layer_default {
    */
   #isSimplifyOutOfDate = false;
   /**
+   * Holds whether the polyline was hidden when it was added to the map, so the Google polyline
+   * hasn't been created yet.
+   *
+   * A polyline that is hidden isn't drawn, so nothing is created for it until it's first shown.
+   * This saves the work for polylines that start out hidden, like ones that a filter leaves out.
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isCreationDeferred = false;
+  /**
+   * Holds whether the "ready" event has been dispatched
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isReadyDispatched = false;
+  /**
    * Holds the simplified Google Maps path for each tolerance when the tolerance changes with the zoom level.
    * They're kept so that the path doesn't have to be simplified again when zooming back to the same zoom levels.
    *
@@ -16447,6 +16465,15 @@ var Polyline = class _Polyline extends Layer_default {
       if (value && this.#isSimplifyOutOfDate) {
         this.#applySimplify();
       }
+      if (value && this.#isCreationDeferred) {
+        this.#isCreationDeferred = false;
+        const map2 = this.#requestedMap;
+        this.#setupGooglePolyline(map2 ?? void 0).then((googlePolyline) => {
+          if (map2 && this.#options.map === map2) {
+            googlePolyline.setMap(map2.toGoogle() ?? null);
+          }
+        });
+      }
       if (this.#polyline) {
         this.#polyline.setVisible(value);
       }
@@ -16605,6 +16632,10 @@ var Polyline = class _Polyline extends Layer_default {
    */
   init() {
     return new Promise((resolve) => {
+      if (this.#isCreationDeferred) {
+        resolve();
+        return;
+      }
       this.#setupGooglePolyline().then(() => {
         resolve();
       });
@@ -16749,13 +16780,22 @@ var Polyline = class _Polyline extends Layer_default {
     if (this.#highlightPolyline && this.#highlightSetup) {
       this.#highlightPolyline.setMap(value, false);
     }
-    const googlePolyline = await this.#setupGooglePolyline(value ?? void 0);
     if (value instanceof Map) {
+      if (!this.#polyline && isVisible === false) {
+        this.visible = isVisible;
+        this.#options.map = value;
+        super.setMap(value);
+        this.#isCreationDeferred = true;
+        this.#dispatchReady();
+        return this;
+      }
+      const googlePolyline = await this.#setupGooglePolyline(value);
       this.visible = isVisible;
       this.#options.map = value;
       super.setMap(value);
       googlePolyline.setMap(value.toGoogle() ?? null);
     } else if (isNullOrUndefined(value)) {
+      this.#isCreationDeferred = false;
       this.#options.map = null;
       super.setMap(null);
       if (this.#polyline) {
@@ -16793,8 +16833,11 @@ var Polyline = class _Polyline extends Layer_default {
       if (options.path) {
         this.path = options.path;
       }
+      if (typeof options.visible === "boolean") {
+        this.visible = options.visible;
+      }
       if (options.map) {
-        this.setMap(options.map);
+        this.setMap(options.map, this.#options.visible !== false);
       }
       if (isStringWithValue(options.strokeColor)) {
         this.strokeColor = options.strokeColor;
@@ -16804,9 +16847,6 @@ var Polyline = class _Polyline extends Layer_default {
       }
       if (isNumberOrNumberString(options.strokeWeight)) {
         this.strokeWeight = options.strokeWeight;
-      }
-      if (typeof options.visible === "boolean") {
-        this.visible = options.visible;
       }
       if (isNumberOrNumberString(options.zIndex)) {
         this.zIndex = options.zIndex;
@@ -17262,7 +17302,7 @@ var Polyline = class _Polyline extends Layer_default {
       if (!isObject(this.#polyline)) {
         if (checkForGoogleMaps("Polyline", "Polyline", false)) {
           const googlePolyline = this.#createPolylineObject();
-          this.dispatch(PolylineEvents.READY);
+          this.#dispatchReady();
           resolve(googlePolyline);
         } else {
           loader().onMapLoad(() => {
@@ -17274,7 +17314,7 @@ var Polyline = class _Polyline extends Layer_default {
                 this.#highlightPolyline.setMap(thisMap, false);
               }
             }
-            this.dispatch(PolylineEvents.READY);
+            this.#dispatchReady();
             resolve(googlePolyline);
           });
           if (map2 instanceof Map) {
@@ -17301,6 +17341,20 @@ var Polyline = class _Polyline extends Layer_default {
     }
   }
   /**
+   * Dispatch the event to say that the polyline is ready.
+   *
+   * It's only dispatched once. A polyline that is hidden when it's added to the map says that it's
+   * ready before the Google polyline is created, so that tooltips and popups can set up their events.
+   *
+   * @private
+   */
+  #dispatchReady() {
+    if (!this.#isReadyDispatched) {
+      this.#isReadyDispatched = true;
+      this.dispatch(PolylineEvents.READY);
+    }
+  }
+  /**
    * Create the polyline object if it doesn't already exist
    *
    * @private
@@ -17308,6 +17362,7 @@ var Polyline = class _Polyline extends Layer_default {
    */
   #createPolylineObject() {
     if (!this.#polyline) {
+      this.#isCreationDeferred = false;
       const polylineOptions = {};
       const optionsToSet = [
         "clickable",
