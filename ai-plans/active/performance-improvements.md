@@ -180,6 +180,27 @@ verified directly against the source rather than taken from the audit.
 | M-10 | `DefaultRenderer` rebuilds and base64-encodes the cluster SVG every render | `MarkerCluster/DefaultRender.ts:297` | Medium |
 | M-11 | `addMarker()` re-renders after **every** add, and stacks one loader listener per marker | `MarkerCluster.ts:356` | Medium |
 | M-12 | `console.log` on `AdvancedMarker` hot paths | `AdvancedMarker.ts:628, 668, 738` | Medium |
+| M-13 ✅ | **`setOptions` forces eager creation via `title`.** Found by the Phase 0 tests 2026-09-16 | `Marker.ts:1197` | High |
+
+**M-13, in full.** `setOptions()` documents itself as deliberately *not* setting up the Google
+marker (`Marker.ts:1091`), and for almost every option that holds: each one writes to `#options`
+directly and only pushes to Google inside an `if (this.#marker)` guard. Two break the rule:
+
+- `title` — `Marker.ts:1197` does `this.title = options.title`, which is the **public setter** →
+  `setTitle()` → `await this.#setupGoogleMarker()` → builds the `google.maps.Marker`.
+- `tooltip` — `Marker.ts:1195` calls `attachTooltip()`, which awaits `init()`. That is M-1.
+
+So `marker({ position, title })` — an ordinary, documented call — builds a Google marker
+immediately. Verified: 1,000 markers created that way produce 1,000 `google.maps.Marker`
+objects, where the same call without `title` produces none.
+
+There is a second-order bug in it. Because `#setTitle()` runs *after* the `await`, the marker is
+constructed **without** the title and then patched with `setTitle()` immediately after — an extra
+Google call per marker, and the constructor options are missing a value that was known up front.
+
+**Fix:** route `title` through the private `#setTitle()` and sync to Google only when `#marker`
+already exists, exactly like every neighbouring option. Small, self-contained, and it should land
+with M-1 in Phase 3 since they are the same mistake.
 
 ### 5.3 Map
 
@@ -389,7 +410,41 @@ passing `map` on something intended to start hidden forces work that setting `vi
 rebuilds `themeStyles` plus a spread object every frame (`Popup.ts:791`). The CHANGELOG records
 the tooltip half of this work as done; the popup half was missed.
 
-### 6.5 Others, from the audits
+### 6.5 ✅ Removing the last listener throws before Google Maps loads
+
+**Found by the Phase 0 tests on 2026-09-16, confirmed by running them.** Not in any of the six
+audits.
+
+`#afterListenersRemoved()` (`Evented.ts:311`) and `offAll()` (`Evented.ts:346`) both call
+`#isGoogleObjectSet()`, which does:
+
+```js
+this.#googleObject instanceof google.maps.MVCObject
+```
+
+against the **bare `google` global**. When the Google Maps library has not loaded, that is a
+`ReferenceError`, not a `false`.
+
+This matters because the library deliberately supports creating objects and attaching listeners
+*before* Google Maps loads — that is the entire purpose of the pending-listener mechanism at
+`Evented.ts:489-494`. Anything that empties a listener list before the library loads throws:
+
+- **dispatching a `once` listener** — it is removed immediately after being called, which empties
+  the list and triggers the check
+- **`off()`** and **`offAll()`**
+
+Note the short-circuit detail: `#afterListenersRemoved` only reaches `#isGoogleObjectSet()` when
+`this.#eventListeners[type].length === 0`, so removing one of several listeners is safe and only
+removing the *last* one throws. That makes it intermittent and easy to miss.
+
+**Fix:** guard with `typeof google !== 'undefined'` (as `checkForGoogleMaps` already does at
+`helpers.ts:221`) before touching `google.maps`. Cheap, and it should land in Phase 2 with the
+other correctness work.
+
+Covered by `test/Evented.test.ts` with `it.fails()`, so the tests pass while the bug exists and
+go red the moment it is fixed — which is the signal to convert them to ordinary expectations.
+
+### 6.6 Others, from the audits
 
 - `loader().onMapLoad()` registered after the map has loaded **never fires** and its promise
   never settles — `Loader.on()` always re-dispatches `LOAD`, never the requested type
@@ -497,6 +552,37 @@ cleanup pass afterwards.** Specifically, each phase must land with:
 
 ### Phase 0 — Test suite (vitest), and a real-device baseline
 
+**Status: 2026-09-16. 148 passing, 2 expected-fail, across 6 files.**
+
+| Item | State |
+|---|---|
+| 0.1 Setup — vitest 5.0.1 + jsdom, `vitest.config.ts`, `test/`, npm scripts, `coverage` ignored | **Done** |
+| 0.2 Instrumented `google.maps` stub — `test/support/googleMaps.ts` | **Done** |
+| 0.3 Priority 1, core primitives — `helpers`, `LatLng`, `Point`, `Size`, `Evented` | **Done** |
+| 0.3 Priority 1, `Marker` | **Done**, except what needs a real `Map` — see below |
+| 0.3 Priority 1, `Polyline`, `Map`, `Tooltip`, `Popup`, collections | Not started |
+| 0.3 Priority 2, §6 regressions | 6.5 covered; 6.1-6.4 and 6.6 not started |
+| 0.3 Priority 3, absence assertions — markers | **Done** (M-1, M-2, M-4, M-13) |
+| 0.3 Priority 3, absence assertions — polylines, overlays | Not started |
+| 0.3 Priorities 4-6 — §8.2 rows, allocation shape, simplify correctness | Not started |
+| 0.4 Stress page for the absence assertions | **Done** — `site-src/stress.njk` |
+| 0.5 Real-device baseline | **In progress — Eric, testing on iOS** |
+| CI wiring of `npm test` | **Done** — `.github/workflows/test.yml` |
+
+**Blocked: anything needing a real `Map` instance.** Building one needs a DOM element and the
+loader, which reaches for the real Google Maps script. That currently blocks tests for §6.3
+(`setOptions({ map })`), `setMap(map)` and its not-ready path, and M-5's duplicate `onReady`
+registration. Deciding how to fake a `Map` — a lightweight test double that satisfies
+`instanceof Map`, or a jsdom + stubbed-loader setup — is the next thing to settle, because the
+overlay and polyline work needs it too.
+
+**Two bugs found by writing the tests**, neither of which came out of the six audits: §6.5 (the
+`ReferenceError` before Google Maps loads) and M-13 (`title` forcing eager marker creation).
+That is the case for Phase 0 going first, made concretely.
+
+Nothing user-facing changed, so there is no CHANGELOG entry for this phase. Phase 1 onward does
+change behavior and gets entries per the rule above.
+
 **This comes first and is not optional.** The rest of this plan rewrites `Evented`, which every
 other class extends, and changes when Google objects get created across five subsystems. There is
 currently **no test suite at all** — `package.json`'s `test` script is
@@ -595,11 +681,14 @@ Do these before the laziness work, because Phase 3's fast paths depend on 6.2 be
 
 1. Reorder `#setMapAsReady()` (6.2).
 2. Scope `clearListeners` to this library's own listeners (6.1).
-3. Fix `Loader.on()` so `onMapLoad` after load fires (6.5).
-4. One Google listener per type in `setEventGoogleObject()`; clear pending in `offAll()` (6.5).
-5. Memoize the searchbox init promise (6.5).
-6. Guard `MarkerCluster.removeMarker()` (6.5).
-7. The small ones: `helpers.ts:278`, `LatLngBounds.ts:598`, the dead `isObject` branches, the stuck flags.
+3. Guard `#isGoogleObjectSet()` against a missing `google` global (6.5). **Already covered by
+   tests** — `test/Evented.test.ts` has two `it.fails()` cases that go red the moment this is
+   fixed, which is the signal to convert them to ordinary expectations.
+4. Fix `Loader.on()` so `onMapLoad` after load fires (6.6).
+5. One Google listener per type in `setEventGoogleObject()`; clear pending in `offAll()` (6.6).
+6. Memoize the searchbox init promise (6.6).
+7. Guard `MarkerCluster.removeMarker()` (6.6).
+8. The small ones: `helpers.ts:278`, `LatLngBounds.ts:598`, the dead `isObject` branches, the stuck flags.
 
 **Decide 6.3 (`setOptions({map})`) here** — it gates Phase 3.
 
@@ -612,6 +701,9 @@ The core of the plan.
 3. `LatLng`/`Point`/`Size`: `(number, number)` fast path, drop `#valuesChanged`, `!== undefined` cache checks, cheap `equals` (C-7, C-12, C-13, C-14).
 4. Marker parity with Polyline: lazy `init()`, short-circuit `setMap(null)`, drop the throwaway
    position `LatLng`, cache the `position` getter, resolved-promise fast path (M-1…M-6).
+   **Include M-13 here** — routing `title` through the private `#setTitle()` is the same mistake
+   as M-1 in a different place, and `test/Marker.test.ts` already has the expectations that flip
+   when it is fixed.
 5. **`DataFeature` parity too.** `Marker`, `DataFeature` and `Polyline` all share the same
    `Layer.init()` contract, and only `Polyline` was changed in the previous pass. Whatever shape
    the marker fix takes, apply it to `DataFeature` in the same phase so the three stay
@@ -706,6 +798,21 @@ Two consequences for how this plan is executed:
    pages, and record it here — this is Phase 0.5. Without it, none of the phases below can be
    honestly claimed as an improvement on the platform that prompted them. Instructions in 10.3
    and 10.4.
+
+**On automating this (decided 2026-09-16: not for now).** Driving the pages with Playwright or
+Puppeteer was considered and deliberately deferred. Measurement is done by hand per 10.3/10.4.
+Two things to know if it is ever revisited:
+
+- **Headless cannot measure frame rate.** There is no real compositor or GPU pipeline, so the FPS
+  and lowest-FPS columns — the most user-visible numbers on these pages — would be misleading
+  rather than merely imprecise. Automation must drive a **headed** browser to produce a frame-rate
+  number worth reading.
+- **It belongs in the same tier as vitest, not above it.** Automation can reliably capture build
+  time, heap, and element counts — that is, *work avoided*. It cannot tell you whether anything
+  got faster for a person on a phone. It would complement Phase 0, never replace 10.4.
+
+There is also a running cost: every page load is a real, billed Maps JS API load, so a scripted
+matrix multiplies API usage.
 
 ### 10.2 The harness that exists
 

@@ -189,6 +189,104 @@ const recorded = (name: string) =>
         getMap(): any {
             return this.__values.map ?? null;
         }
+
+        /**
+         * Record and store the position
+         *
+         * @param {any} position The position
+         */
+        setPosition(position: any): void {
+            mapsStats.call(name, 'setPosition', [position]);
+            this.__values.position = position;
+        }
+
+        /**
+         * Get the position
+         *
+         * @returns {any}
+         */
+        getPosition(): any {
+            return this.__values.position ?? null;
+        }
+
+        /**
+         * Record and store the path. This is the expensive call on a real polyline.
+         *
+         * @param {any} path The path
+         */
+        setPath(path: any): void {
+            mapsStats.call(name, 'setPath', [path]);
+            this.__values.path = path;
+        }
+
+        /**
+         * Get the path
+         *
+         * @returns {any}
+         */
+        getPath(): any {
+            return this.__values.path ?? null;
+        }
+
+        /**
+         * Record and store the title
+         *
+         * @param {any} title The title
+         */
+        setTitle(title: any): void {
+            mapsStats.call(name, 'setTitle', [title]);
+            this.__values.title = title;
+        }
+
+        /**
+         * Record and store the label
+         *
+         * @param {any} label The label
+         */
+        setLabel(label: any): void {
+            mapsStats.call(name, 'setLabel', [label]);
+            this.__values.label = label;
+        }
+
+        /**
+         * Record and store the icon
+         *
+         * @param {any} icon The icon
+         */
+        setIcon(icon: any): void {
+            mapsStats.call(name, 'setIcon', [icon]);
+            this.__values.icon = icon;
+        }
+
+        /**
+         * Record and store the cursor
+         *
+         * @param {any} cursor The cursor
+         */
+        setCursor(cursor: any): void {
+            mapsStats.call(name, 'setCursor', [cursor]);
+            this.__values.cursor = cursor;
+        }
+
+        /**
+         * Record and store whether it is draggable
+         *
+         * @param {any} value Whether it is draggable
+         */
+        setDraggable(value: any): void {
+            mapsStats.call(name, 'setDraggable', [value]);
+            this.__values.draggable = value;
+        }
+
+        /**
+         * Record and store whether it is visible
+         *
+         * @param {any} value Whether it is visible
+         */
+        setVisible(value: any): void {
+            mapsStats.call(name, 'setVisible', [value]);
+            this.__values.visible = value;
+        }
     };
 
 /**
