@@ -115,6 +115,19 @@ export class Evented extends Base {
     #googleObject!: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement;
 
     /**
+     * Holds the listeners that this object added to the Google maps object, by event type.
+     *
+     * They're held so that only the listeners this object added are removed. Removing them with
+     * google.maps.event.clearListeners() takes away every listener of that type on the object,
+     * including ones added by other libraries - the marker clusterer listens for "idle" on the
+     * map, for example, and would stop re-clustering.
+     *
+     * @private
+     * @type {object}
+     */
+    #googleListeners: { [key: string]: google.maps.MapsEventListener } = {};
+
+    /**
      * Holds the event listeners that are waiting to be added once the Google Maps object is set
      *
      * @private
@@ -310,9 +323,16 @@ export class Evented extends Base {
             this.#onlyEventListeners.splice(index, 1);
         }
 
-        // If there are no more event listeners for the given type then remove the listener from the Google maps object
-        if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
-            google.maps.event.clearListeners(this.#googleObject, type);
+        // If there are no more event listeners for the given type then remove the listener that
+        // this object added to the Google maps object. Only that one is removed - see the comment
+        // on #googleListeners for why. This also no longer needs #isGoogleObjectSet(), so it's
+        // safe to call before the Google Maps library has loaded.
+        if (this.#eventListeners[type].length === 0) {
+            const googleListener = this.#googleListeners[type];
+            if (googleListener) {
+                googleListener.remove();
+                delete this.#googleListeners[type];
+            }
         }
     }
 
@@ -344,11 +364,17 @@ export class Evented extends Base {
     offAll(): void {
         this.#eventListeners = {};
         this.#onlyEventListeners = [];
+        // Listeners that were waiting for the Google object aren't wanted any more either.
+        // They used to be left behind and would be added when the Google object was set.
+        this.#pendingMapObjectEventListeners = {};
 
-        // Remove all event listeners from the Google maps object
-        if (this.#isGoogleObjectSet()) {
-            google.maps.event.clearInstanceListeners(this.#googleObject);
-        }
+        // Remove only the listeners that this object added to the Google maps object.
+        // clearInstanceListeners() would remove every listener on the object, including ones
+        // added by other libraries.
+        Object.keys(this.#googleListeners).forEach((type) => {
+            this.#googleListeners[type].remove();
+        });
+        this.#googleListeners = {};
     }
 
     /**
@@ -464,18 +490,22 @@ export class Evented extends Base {
                 let setupPending = false;
                 if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                     if (this.#isGoogleObjectSet()) {
-                        // The Google maps object is set
-                        // Make sure the event listener is not already set up
-                        if (!google.maps.event.hasListeners(this.#googleObject, type)) {
-                            this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
-                                this.dispatch(type, e);
-                            });
-                        } else if (['bounds_changed', 'zoom_changed'].includes(type)) {
-                            // Certain map events could be added by a library that this library uses, like the google maps loader library.
-                            // This event isn't in the list of event listeners so it's ok for these select events to add them again.
-                            this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
-                                this.dispatch(type, e);
-                            });
+                        // The Google maps object is set. Add a listener if this object hasn't
+                        // already added one for this type, and keep hold of it so that it can be
+                        // removed on its own later.
+                        //
+                        // This used to ask the Google object whether it had any listeners of this
+                        // type, which meant a listener added by another library stopped this one
+                        // from being added at all. That needed a special case for
+                        // "bounds_changed" and "zoom_changed" to work around it. Tracking each
+                        // listener separately removes the need for both.
+                        if (!this.#googleListeners[type]) {
+                            this.#googleListeners[type] = this.#googleObject.addListener(
+                                type,
+                                (e: google.maps.MapMouseEvent) => {
+                                    this.dispatch(type, e);
+                                },
+                            );
                         }
                     } else {
                         // The Google maps object is not set yet so so save the event listener so that it
@@ -578,11 +608,18 @@ export class Evented extends Base {
         // Google maps object was set up.
         if (isObject(this.#pendingMapObjectEventListeners)) {
             Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
-                this.#pendingMapObjectEventListeners[type].forEach(() => {
-                    this.#googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
-                        this.dispatch(type, e);
-                    });
-                });
+                // One Google listener per event type, not one per pending entry. The inner list
+                // was only ever walked for its length, so several listeners registered before the
+                // Google object existed each added their own Google listener, and every one of
+                // them then dispatched to all of the callbacks.
+                if (!this.#googleListeners[type]) {
+                    this.#googleListeners[type] = this.#googleObject.addListener(
+                        type,
+                        (e: google.maps.MapMouseEvent) => {
+                            this.dispatch(type, e);
+                        },
+                    );
+                }
             });
             this.#pendingMapObjectEventListeners = {};
         }
@@ -594,6 +631,13 @@ export class Evented extends Base {
      * @returns {boolean}
      */
     #isGoogleObjectSet(): boolean {
+        // The Google Maps library may not have loaded yet. "google" is a bare global, so reading
+        // google.maps without checking first throws a ReferenceError instead of returning false.
+        // Objects can be created and have listeners added before the library loads, so this is
+        // reached in normal use.
+        if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+            return false;
+        }
         let isSet = this.#googleObject instanceof google.maps.MVCObject;
         if (
             !isSet &&
