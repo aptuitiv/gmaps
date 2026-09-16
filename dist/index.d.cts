@@ -6775,6 +6775,18 @@ declare class Marker extends Layer {
      */
     hide(): Marker;
     /**
+     * Returns whether the Google maps marker object has been created yet.
+     *
+     * This lets other parts of the library avoid building the Google marker just to find out
+     * that there isn't one, which toGoogleSync() would otherwise do.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {boolean}
+     */
+    hasGoogleMarker(): boolean;
+    /**
      * Initialize the marker
      *
      * This is used when another element (like a tooltip) needs to be attached to the marker,

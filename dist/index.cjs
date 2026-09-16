@@ -776,7 +776,7 @@ var getSizeWithUnit = (value, defaultUnit = "px", allowedUnits = ["%", "px"], al
       }
     }
     if (pass) {
-      const val = parseFloat(value.replace(`${allowedUnits.join("|")}/g`, ""));
+      const val = parseFloat(value);
       if (val >= 0) {
         returnValue = value;
       }
@@ -1440,6 +1440,18 @@ var Evented = class extends Base_default {
   // Definitely assigned because it's only used after #isGoogleObjectSet() confirms that it's set.
   #googleObject;
   /**
+   * Holds the listeners that this object added to the Google maps object, by event type.
+   *
+   * They're held so that only the listeners this object added are removed. Removing them with
+   * google.maps.event.clearListeners() takes away every listener of that type on the object,
+   * including ones added by other libraries - the marker clusterer listens for "idle" on the
+   * map, for example, and would stop re-clustering.
+   *
+   * @private
+   * @type {object}
+   */
+  #googleListeners = {};
+  /**
    * Holds the event listeners that are waiting to be added once the Google Maps object is set
    *
    * @private
@@ -1605,8 +1617,12 @@ var Evented = class extends Base_default {
     if (index > -1) {
       this.#onlyEventListeners.splice(index, 1);
     }
-    if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
-      google.maps.event.clearListeners(this.#googleObject, type);
+    if (this.#eventListeners[type].length === 0) {
+      const googleListener = this.#googleListeners[type];
+      if (googleListener) {
+        googleListener.remove();
+        delete this.#googleListeners[type];
+      }
     }
   }
   /**
@@ -1636,9 +1652,11 @@ var Evented = class extends Base_default {
   offAll() {
     this.#eventListeners = {};
     this.#onlyEventListeners = [];
-    if (this.#isGoogleObjectSet()) {
-      google.maps.event.clearInstanceListeners(this.#googleObject);
-    }
+    this.#pendingMapObjectEventListeners = {};
+    Object.keys(this.#googleListeners).forEach((type) => {
+      this.#googleListeners[type].remove();
+    });
+    this.#googleListeners = {};
   }
   /**
    * Add an event listener to the object
@@ -1741,14 +1759,13 @@ var Evented = class extends Base_default {
         let setupPending = false;
         if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
           if (this.#isGoogleObjectSet()) {
-            if (!google.maps.event.hasListeners(this.#googleObject, type)) {
-              this.#googleObject.addListener(type, (e) => {
-                this.dispatch(type, e);
-              });
-            } else if (["bounds_changed", "zoom_changed"].includes(type)) {
-              this.#googleObject.addListener(type, (e) => {
-                this.dispatch(type, e);
-              });
+            if (!this.#googleListeners[type]) {
+              this.#googleListeners[type] = this.#googleObject.addListener(
+                type,
+                (e) => {
+                  this.dispatch(type, e);
+                }
+              );
             }
           } else {
             setupPending = true;
@@ -1821,11 +1838,14 @@ var Evented = class extends Base_default {
     this.#googleObject = googleObject;
     if (isObject(this.#pendingMapObjectEventListeners)) {
       Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
-        this.#pendingMapObjectEventListeners[type].forEach(() => {
-          this.#googleObject.addListener(type, (e) => {
-            this.dispatch(type, e);
-          });
-        });
+        if (!this.#googleListeners[type]) {
+          this.#googleListeners[type] = this.#googleObject.addListener(
+            type,
+            (e) => {
+              this.dispatch(type, e);
+            }
+          );
+        }
       });
       this.#pendingMapObjectEventListeners = {};
     }
@@ -1836,6 +1856,9 @@ var Evented = class extends Base_default {
    * @returns {boolean}
    */
   #isGoogleObjectSet() {
+    if (typeof google === "undefined" || typeof google.maps === "undefined") {
+      return false;
+    }
     let isSet = this.#googleObject instanceof google.maps.MVCObject;
     if (!isSet && typeof google.maps.marker !== "undefined" && typeof google.maps.marker.AdvancedMarkerElement !== "undefined") {
       isSet = this.#googleObject instanceof google.maps.marker.AdvancedMarkerElement;
@@ -1880,6 +1903,16 @@ var Loader = class extends EventTarget {
    * @type {boolean}
    */
   #isLoaded = false;
+  /**
+   * Holds whether the map has finished loading.
+   *
+   * This is set when the "map_load" event is dispatched so that a listener added after that
+   * point can still be called.
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isMapLoaded = false;
   /**
    * Holds the libraries to load with Google maps
    *
@@ -2075,6 +2108,9 @@ var Loader = class extends EventTarget {
    * @param {string} event The event to dispatch
    */
   dispatch(event) {
+    if (event === LoaderEvents.MAP_LOAD) {
+      this.#isMapLoaded = true;
+    }
     super.dispatchEvent(new CustomEvent(event));
   }
   /**
@@ -2089,8 +2125,10 @@ var Loader = class extends EventTarget {
   on(type, callback) {
     if (isFunction(callback)) {
       this.addEventListener(type, callback, { once: true });
-      if (this.#isLoaded) {
+      if (type === LoaderEvents.LOAD && this.#isLoaded) {
         this.dispatch(LoaderEvents.LOAD);
+      } else if (type === LoaderEvents.MAP_LOAD && this.#isMapLoaded) {
+        this.dispatch(LoaderEvents.MAP_LOAD);
       }
     } else {
       throw new Error("the event handler needs a callback function");
@@ -2409,9 +2447,14 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
     }
     const { northEast, southWest } = this.#getCorners();
     const lat = (northEast.latitude + southWest.latitude) / 2;
-    let lng = (northEast.longitude + southWest.longitude) / 2;
+    let lng;
     if (northEast.longitude < southWest.longitude) {
-      lng = (lng + 180) % 360 - 180;
+      lng = (southWest.longitude + northEast.longitude + 360) / 2;
+      if (lng > 180) {
+        lng -= 360;
+      }
+    } else {
+      lng = (northEast.longitude + southWest.longitude) / 2;
     }
     return latLng([lat, lng]);
   }
@@ -2611,10 +2654,7 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toUrlValue(precision) {
-    let prec = precision || 3;
-    if (!isNumber(prec)) {
-      prec = 3;
-    }
+    const prec = isNumber(precision) ? precision : 3;
     if (this.#bounds) {
       return this.#bounds.toUrlValue(prec);
     }
@@ -3979,6 +4019,16 @@ var AutocompleteSearchBox = class extends Evented {
    */
   #input;
   /**
+   * Holds the promise for setting up the search box.
+   *
+   * Every call to init() waits on this same promise so that the search box is only built once,
+   * however many times init() is called and whenever those calls are made.
+   *
+   * @private
+   * @type {Promise<void>|undefined}
+   */
+  #initPromise;
+  /**
    * Holds the place that has been found.
    *
    * @private
@@ -4254,23 +4304,18 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {Promise<void>}
    */
   async init() {
-    return new Promise((resolve) => {
-      if (!isObject(this.#searchBox)) {
+    if (!this.#initPromise) {
+      this.#initPromise = new Promise((resolve, reject) => {
         if (checkForGoogleMaps("AutocompleteSearchBox", "places", false)) {
-          this.#createAutocompleteSearchBox().then(() => {
-            resolve();
-          });
+          this.#createAutocompleteSearchBox().then(resolve).catch(reject);
         } else {
           loader().onMapLoad(() => {
-            this.#createAutocompleteSearchBox().then(() => {
-              resolve();
-            });
+            this.#createAutocompleteSearchBox().then(resolve).catch(reject);
           });
         }
-      } else {
-        resolve();
-      }
-    });
+      });
+    }
+    return this.#initPromise;
   }
   /**
    * Create the places search box object
@@ -6919,10 +6964,11 @@ var Map = class extends Evented {
      * Set the map as ready
      */
     this.#setMapAsReady = () => {
-      this.dispatch(MapEvents.READY);
-      loader().dispatch(LoaderEvents.MAP_LOAD);
       this.#isInitialized = true;
       this.#isReady = true;
+      this.#isGettingMapOptions = false;
+      this.dispatch(MapEvents.READY);
+      loader().dispatch(LoaderEvents.MAP_LOAD);
     };
     this.#fullscreenControl = fullscreenControl();
     this.#mapTypeControl = mapTypeControl();
@@ -10565,6 +10611,20 @@ var Marker = class extends Layer_default {
     return this;
   }
   /**
+   * Returns whether the Google maps marker object has been created yet.
+   *
+   * This lets other parts of the library avoid building the Google marker just to find out
+   * that there isn't one, which toGoogleSync() would otherwise do.
+   *
+   * This is not intended to be called outside of this library.
+   *
+   * @internal
+   * @returns {boolean}
+   */
+  hasGoogleMarker() {
+    return isObject(this.#marker);
+  }
+  /**
    * Initialize the marker
    *
    * This is used when another element (like a tooltip) needs to be attached to the marker,
@@ -11360,6 +11420,7 @@ var Marker = class extends Layer_default {
         this.#isSettingUp = true;
         if (checkForGoogleMaps("Marker", "Marker", false)) {
           this.#createMarkerObject().then(() => {
+            this.#isSettingUp = false;
             this.#dispatchReady();
             resolve();
           });
@@ -13015,6 +13076,9 @@ var MarkerCluster = class extends Base_default {
    * @returns {MarkerCluster}
    */
   removeMarker(marker2, draw = false) {
+    if (!marker2.hasGoogleMarker()) {
+      return this;
+    }
     this.#clusterer?.removeMarker(marker2.toGoogleSync(), !draw);
     return this;
   }
@@ -15396,6 +15460,16 @@ var PlacesSearchBox = class extends Evented {
    */
   #searchBox;
   /**
+   * Holds the promise for setting up the search box.
+   *
+   * Every call to init() waits on this same promise so that the search box is only built once,
+   * however many times init() is called and whenever those calls are made.
+   *
+   * @private
+   * @type {Promise<void>|undefined}
+   */
+  #initPromise;
+  /**
    * Holds the options for the places search box
    *
    * @private
@@ -15519,23 +15593,18 @@ var PlacesSearchBox = class extends Evented {
    * @returns {Promise<void>}
    */
   async init() {
-    return new Promise((resolve) => {
-      if (!isObject(this.#searchBox)) {
+    if (!this.#initPromise) {
+      this.#initPromise = new Promise((resolve, reject) => {
         if (checkForGoogleMaps("PlacesSearchBox", "places", false)) {
-          this.#createPlacesSearchBox().then(() => {
-            resolve();
-          });
+          this.#createPlacesSearchBox().then(resolve).catch(reject);
         } else {
           loader().onMapLoad(() => {
-            this.#createPlacesSearchBox().then(() => {
-              resolve();
-            });
+            this.#createPlacesSearchBox().then(resolve).catch(reject);
           });
         }
-      } else {
-        resolve();
-      }
-    });
+      });
+    }
+    return this.#initPromise;
   }
   /**
    * Create the places search box object
@@ -18094,12 +18163,8 @@ var Popup = class extends Overlay {
     super("popup", "Popup");
     this.#clearance = size(0, 0);
     this.#popupOffset = point(0, 0);
-    if (isObject(options)) {
-      if (options instanceof HTMLElement || options instanceof Text) {
-        this.content = options;
-      } else {
-        this.setOptions(options);
-      }
+    if (isObject(options) && !(options instanceof HTMLElement) && !(options instanceof Text)) {
+      this.setOptions(options);
     } else if (typeof options !== "undefined") {
       this.content = options;
     }
@@ -18939,12 +19004,8 @@ var Tooltip = class extends Overlay {
   constructor(options) {
     super("tooltip", "Tooltip");
     this.setOffset([0, 4]);
-    if (isObject(options)) {
-      if (options instanceof HTMLElement || options instanceof Text) {
-        this.content = options;
-      } else {
-        this.setOptions(options);
-      }
+    if (isObject(options) && !(options instanceof HTMLElement) && !(options instanceof Text)) {
+      this.setOptions(options);
     } else {
       if (typeof options !== "undefined") {
         this.content = options;
