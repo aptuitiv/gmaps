@@ -1072,16 +1072,17 @@ export class Polyline extends Layer {
      */
     init(): Promise<void> {
         return new Promise((resolve) => {
-            if (this.#isCreationDeferred) {
-                // The polyline is hidden so it isn't drawn yet. The "ready" event has already been
-                // dispatched, so a tooltip or popup can set up its events now. They're added to the
-                // Google polyline when the polyline is shown and the Google polyline is created.
+            if (this.#polyline) {
+                // The polyline is already drawn
                 resolve();
                 return;
             }
-            this.#setupGooglePolyline().then(() => {
-                resolve();
-            });
+            // Nothing is drawn yet, and attaching a tooltip or a popup isn't a reason to draw it.
+            // Say that the polyline is ready so that they can set up their events now. The events are
+            // held until the polyline is drawn and are added to the Google polyline then.
+            // The polyline is drawn when it's added to a map, when it's shown, or when toGoogle() is called.
+            this.#dispatchReady();
+            resolve();
         });
     }
 
