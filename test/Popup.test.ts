@@ -298,12 +298,14 @@ describe('attaching a popup (M-1)', () => {
         expect(mapsStats.countOf('Polyline')).toBe(0);
     });
 
-    it('attaching to a marker builds the Google marker (the M-1 bug)', async () => {
+    // M-1 fixed in Phase 3. Marker.init() no longer builds the Google marker, so attaching a
+    // popup costs nothing until something actually shows the marker.
+    it('attaching to a marker builds nothing (M-1)', async () => {
         const m = marker({ position: [1, 2] });
         m.attachPopup('Marker 1');
         await tick();
 
-        expect(mapsStats.countOf('Marker')).toBe(1);
+        expect(mapsStats.countOf('Marker')).toBe(0);
     });
 
     it('a tooltip and a popup on the same polyline still build nothing', async () => {

@@ -216,23 +216,24 @@ describe('attaching a tooltip (M-1)', () => {
         expect(mapsStats.countOf('Polyline')).toBe(0);
     });
 
-    // The same call on a marker builds the Google object, because Marker.init() sets up the
-    // marker where Polyline.init() only dispatches ready. When M-1 lands this becomes 0.
-    it('attaching to a marker builds the Google marker (the M-1 bug)', async () => {
+    // M-1 fixed in Phase 3. Marker.init() used to set up the Google marker where
+    // Polyline.init() only dispatches ready, so the same call had opposite results. Both now
+    // build nothing, which is the whole point of the change.
+    it('attaching to a marker builds nothing (M-1)', async () => {
         const m = marker({ position: [1, 2] });
         m.attachTooltip('Marker 1');
         await tick();
 
-        expect(mapsStats.countOf('Marker')).toBe(1);
+        expect(mapsStats.countOf('Marker')).toBe(0);
     });
 
-    it('attaching to 100 markers builds 100 Google markers', async () => {
+    it('attaching to 100 markers builds nothing', async () => {
         for (let i = 0; i < 100; i += 1) {
             marker({ position: [i / 100, i / 100] }).attachTooltip(`Marker ${i}`);
         }
         await tick();
 
-        expect(mapsStats.countOf('Marker')).toBe(100);
+        expect(mapsStats.countOf('Marker')).toBe(0);
     });
 
     it('returns the Tooltip so the caller can keep changing it', () => {

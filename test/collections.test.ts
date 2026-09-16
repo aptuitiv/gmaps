@@ -86,9 +86,11 @@ describe('MarkerCollection', () => {
         expect(mapsStats.countOf('Marker')).toBe(2);
     });
 
-    // M-2 at collection scale.
-    describe('clear() builds Google markers for markers that were never shown (M-2)', () => {
-        it('builds one per marker', () => {
+    // M-2 at collection scale, fixed in Phase 3. clear() calls hideAll(), which calls
+    // marker.hide(); that used to build the Google marker so setMap(null) had something to call,
+    // so clearing a collection of never-shown markers built one for every marker in it.
+    describe('clear() builds nothing for markers that were never shown (M-2)', () => {
+        it('builds nothing for 50 markers', () => {
             const collection = markerCollection();
             const markers: Marker[] = [];
             for (let i = 0; i < 50; i += 1) {
@@ -100,19 +102,16 @@ describe('MarkerCollection', () => {
 
             collection.clear();
 
-            // The bug: clear() calls hideAll(), which calls marker.hide(), which builds the
-            // Google marker so that setMap(null) has something to call. When M-2 lands this
-            // becomes 0.
-            expect(mapsStats.countOf('Marker')).toBe(50);
+            expect(mapsStats.countOf('Marker')).toBe(0);
             expect(collection.isEmpty()).toBe(true);
         });
 
-        it('hideAll() on its own does the same', () => {
+        it('hideAll() on its own builds nothing', () => {
             const collection = markerCollection();
             collection.add(marker({ position: [1, 2] }));
             collection.add(marker({ position: [3, 4] }));
             collection.hideAll();
-            expect(mapsStats.countOf('Marker')).toBe(2);
+            expect(mapsStats.countOf('Marker')).toBe(0);
         });
     });
 });

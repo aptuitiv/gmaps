@@ -386,6 +386,10 @@ This constrains M-1 rather than blocking it. The rule is:
 So the laziness is driven by *visibility*, not by *whether a map is set*. Every class this is
 applied to must follow the same rule so the behavior is consistent across the library.
 
+**Resolved in Phase 3 Slice C (2026-09-16): `Marker` now has a `visible` option**, so the rule
+above is expressible and implemented. `setOptions({ map })` displays the marker;
+`{ map, visible: false }` creates nothing until it is shown. The original blocker note follows.
+
 **Blocker found while building the stress page: `Marker` has no `visible` option.** `Polyline` has
 one (`Polyline.ts:107-108`, getter/setter at `:864-879`), and it is what drives the deferred
 drawing — `Polyline.ts:1252` states outright that "a hidden polyline isn't drawn, so nothing is
@@ -859,7 +863,7 @@ misattributed once the later work sat on top of them.
 |---|---|---|
 | A — core primitives | C-3, C-7, C-12, C-13, M11 | **Done** |
 | B — lazy `Evented` containers | C-2, C-8 | **Done** |
-| C — Marker and DataFeature laziness | M-1…M-6, M-13, §6.3, D-4 | Not started — adds a public option |
+| C — Marker and DataFeature laziness | M-1, M-2, M-6, M-13, §6.3 | **Done** — M-3/M-4 deferred |
 | D — Overlay, Tooltip, Popup | O-1, O-2, O-10, O-11 | Not started — 42 call sites |
 
 #### Slice A — core primitives (done)
@@ -910,7 +914,53 @@ silently — but the real proof that the allocation is gone is a heap snapshot i
 section 10. An earlier attempt at a test that claimed to measure allocation was removed for
 overstating what it checked.
 
-#### Slice C — Marker and DataFeature laziness (not started)
+#### Slice C — Marker and DataFeature laziness (done)
+
+**Done 2026-09-16.** 438 tests passing, `tsc --noEmit` clean, `eslint ./src` clean.
+
+**M-1 and §6.3 had to land together.** They looked separable and are not. Today
+`marker({ position, map, tooltip })` only appeared on the map because `attachTooltip()` awaits
+`init()` and `init()` created the Google marker as a side effect — `setOptions({ map })` created
+nothing of its own. Making `init()` lazy on its own would have silently stopped that marker
+appearing. Both changed in one go, with the new `visible` option that §6.3's rule needs.
+
+| Item | What changed |
+|---|---|
+| M-1 | `init()` dispatches `ready` and creates nothing, matching `Polyline.init()` |
+| §6.3 | `setOptions({ map })` now displays the marker. The old guard was `if (this.#marker)`, never true for a new marker |
+| `visible` | **New public option**, plus `setVisible()` and a `visible` property. `{ map, visible: false }` creates nothing until shown |
+| M-2 | `setMap(null)` on a marker that was never drawn returns early instead of building one to detach |
+| M-6 | `#setupGoogleMarker()` returns a shared resolved promise when the marker already exists |
+| M-13 | `title` is held on the options instead of assigned through the public setter |
+
+**Decided: option A for the timing.** `setOptions({ map })` calls the async `setMap()`, so the
+Google marker is created on a later microtask rather than synchronously. This matches the shipped
+`Polyline` contract, and `setMapSync()` is there for callers who need it to exist on return.
+
+**`DataFeature` needs no change.** Its `init()` is already `return Promise.resolve()` and it holds
+only `#feature` and `#layer`, both passed into the constructor — the Google feature always exists,
+so there is nothing to defer. The parity item in this plan was based on the shared `Layer.init()`
+contract, but `DataFeature` already satisfies it. D-4's eager-construction half is a `DataLayer`
+problem (`#afterLoad` materialising a wrapper per feature), not a `DataFeature` one, and stays in
+Phase 7.
+
+**Still open in this slice:** M-3 (the throwaway `latLng([0, 0])` allocated per marker) and M-4
+(the `position` getter building a new `LatLng` on every read). Both are pure allocation work with
+no API impact, deliberately left out so this slice stayed focused on the creation semantics.
+
+**Two bugs in the new code, both caught by the tests:**
+
+1. `Layer.setMap()` sets `isVisible = true` for any non-null map (`Layer.ts:197`), which
+   overwrote the `isVisible = false` that `setOptions` had just set from the `visible` option one
+   line earlier. The deferred branch now restores it after `super.setMap()`.
+2. A test of mine registered `onReady()` *after* `marker()` had already dispatched `ready`
+   synchronously. `Marker.onReady()` uses plain `on()`, so it never fired. This is worth knowing
+   beyond the test: **`ready` firing before anyone can subscribe is only safe because the real
+   consumers use `onceImmediate`** — `Tooltip.attachTo()` and `Popup.attachTo()` both do
+   (`Tooltip.ts:259`, `Popup.ts:471`), which is exactly what lets them attach to a marker that is
+   never drawn.
+
+**Background — the original notes for this slice, kept for the reasoning behind it:**
 
 Marker parity with Polyline: lazy `init()`, short-circuit `setMap(null)`, drop the throwaway
 position `LatLng`, cache the `position` getter, resolved-promise fast path (M-1…M-6), plus

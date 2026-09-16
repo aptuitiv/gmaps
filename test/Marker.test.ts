@@ -12,6 +12,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Marker, marker } from '../src/lib/Marker';
+import { MarkerEvents } from '../src/lib/constants';
 import { LatLng } from '../src/lib/LatLng';
 import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
 import { asFakeMap, fakeMap } from './support/fakeMap';
@@ -158,13 +159,18 @@ describe('Marker', () => {
             expect(mapsStats.countOf('Marker')).toBe(1);
         });
 
-        // M-1 in the plan. init() is what Tooltip.attachTo() and Popup.attachTo() await, so
-        // this is why attaching a tooltip to a marker builds the Google object today.
-        // Polyline.init() already avoids this. When M-1 lands, this expectation becomes 0.
-        it('init() creates it, which is what M-1 is about', async () => {
+        // M-1, fixed in Phase 3. init() is what Tooltip.attachTo() and Popup.attachTo() await,
+        // and it used to build the Google marker, which is why attaching a tooltip created one.
+        // It now matches Polyline.init(): it says the marker is ready without creating anything.
+        it('init() creates nothing and dispatches ready (M-1)', async () => {
             const m = marker({ position: [1, 2] });
+            const cb = vi.fn();
+            m.onReady(cb);
+
             await m.init();
-            expect(mapsStats.countOf('Marker')).toBe(1);
+
+            expect(mapsStats.countOf('Marker')).toBe(0);
+            expect(cb).toHaveBeenCalledTimes(1);
         });
 
         it('passes the position through to Google when it is created', () => {
@@ -189,77 +195,72 @@ describe('Marker', () => {
         });
     });
 
-    // M-13, found by these tests rather than by the audits.
+    // M-13, found by these tests rather than by the audits, and fixed in Phase 3.
     //
     // setOptions() documents itself as deliberately NOT setting up the Google marker, and that
-    // holds for every option except two. `title` (Marker.ts:1197) assigns through the PUBLIC
-    // setter, which awaits #setupGoogleMarker() and builds the Google object. `tooltip`
-    // (Marker.ts:1195) does the same through attachTooltip(), which is M-1.
-    //
-    // When M-13 is fixed, the counts below become 0 and the title becomes readable
-    // synchronously, so these expectations all change deliberately.
-    describe('the title option forces eager creation (M-13)', () => {
-        it('builds a Google marker that the same call without a title does not', () => {
+    // held for every option except `title`, which assigned through the PUBLIC setter. That setter
+    // awaits #setupGoogleMarker(), so it built the Google object - and because the value was
+    // applied after the await, the marker was built WITHOUT the title and then patched with an
+    // extra setTitle() call. The option is now held on the options object like its neighbours.
+    describe('the title option no longer forces eager creation (M-13)', () => {
+        it('builds nothing, with or without a title', () => {
             marker({ position: [1, 2], title: 'A title' });
-            expect(mapsStats.countOf('Marker')).toBe(1);
+            expect(mapsStats.countOf('Marker')).toBe(0);
 
             mapsStats.reset();
             marker({ position: [1, 2] });
             expect(mapsStats.countOf('Marker')).toBe(0);
         });
 
-        it('builds 1,000 Google markers for 1,000 titled markers', () => {
+        it('builds nothing for 1,000 titled markers', () => {
             for (let i = 0; i < 1000; i += 1) {
                 marker({ position: [i / 100, i / 100], title: `Marker ${i}` });
             }
-            expect(mapsStats.countOf('Marker')).toBe(1000);
+            expect(mapsStats.countOf('Marker')).toBe(0);
         });
 
-        // Second-order effect: #setTitle() runs after the await, so the value that was passed
-        // in is not readable until the microtask queue drains.
-        it('leaves the title unreadable until the microtask queue drains', async () => {
+        it('makes the title readable straight away', () => {
             const m = marker({ position: [1, 2], title: 'A title' });
-            expect(m.title).toBeUndefined();
-            await tick();
             expect(m.title).toBe('A title');
         });
 
-        // ...and the Google marker is built without a title it already knew about, then
-        // patched with an extra setTitle() call.
-        it('constructs the Google marker without the title, then patches it with setTitle', async () => {
-            marker({ position: [1, 2], title: 'A title' });
-            await tick();
+        // The title is known up front, so it goes into the constructor options rather than being
+        // applied afterwards with a second Google call.
+        it('passes the title in the constructor options, with no extra setTitle call', () => {
+            const m = marker({ position: [1, 2], title: 'A title' });
+            m.toGoogleSync();
+
             const created = mapsStats.callsTo('Marker', 'constructor')[0];
-            expect(created.args[0]).not.toHaveProperty('title');
-            expect(mapsStats.callsTo('Marker', 'setTitle')).toHaveLength(1);
+            expect(created.args[0]).toMatchObject({ title: 'A title' });
+            expect(mapsStats.callsTo('Marker', 'setTitle')).toHaveLength(0);
         });
     });
 
-    // M-2 in the plan. Hiding a marker that was never shown should not have to build one.
+    // M-2, fixed in Phase 3. Hiding a marker that was never shown used to build one so that
+    // setMap(null) had something to call.
     describe('hiding a marker that was never shown (M-2)', () => {
-        it('currently builds a google.maps.Marker just to detach it', () => {
+        it('builds nothing to detach it', () => {
             const m = marker({ position: [1, 2] });
             expect(mapsStats.countOf('Marker')).toBe(0);
             m.hide();
-            // The bug: a marker is created so that setMap(null) has something to call.
-            // When M-2 lands this becomes 0.
-            expect(mapsStats.countOf('Marker')).toBe(1);
+            expect(mapsStats.countOf('Marker')).toBe(0);
+            expect(m.getMap()).toBeNull();
+            expect(m.isVisible).toBe(false);
         });
 
-        it('setMap(null) on a never-shown marker does the same', () => {
+        it('setMap(null) on a never-shown marker builds nothing', async () => {
             const m = marker({ position: [1, 2] });
-            m.setMap(null);
-            expect(mapsStats.countOf('Marker')).toBe(1);
+            await m.setMap(null);
+            expect(mapsStats.countOf('Marker')).toBe(0);
         });
 
-        it('hiding 100 never-shown markers builds 100 Google markers', () => {
+        it('hiding 100 never-shown markers builds nothing', () => {
             const markers: Marker[] = [];
             for (let i = 0; i < 100; i += 1) {
                 markers.push(marker({ position: [i / 100, i / 100] }));
             }
-            expect(mapsStats.countOf('Marker')).toBe(0);
             markers.forEach((m) => m.hide());
-            expect(mapsStats.countOf('Marker')).toBe(100);
+            expect(mapsStats.countOf('Marker')).toBe(0);
         });
     });
 
@@ -340,32 +341,84 @@ describe('Marker with a map', () => {
         uninstallGoogleMaps();
     });
 
-    // Section 6.3. The decided behavior is that passing `map` displays the marker unless a
-    // hide option is also passed. Today it does neither: setOptions stores the map and marks
-    // the layer visible, but the guard at Marker.ts:1212 is `if (this.#marker)`, which is
-    // never true for a fresh marker. So nothing is created and nothing reaches the map.
-    //
-    // When 6.3 is fixed the count below becomes 1 and the marker is attached.
-    describe('setOptions({ map }) does not display the marker (6.3)', () => {
-        it('creates no Google marker', () => {
+    // Section 6.3, fixed in Phase 3. The decided rule is that passing `map` displays the marker
+    // unless a hide option is passed with it. It used to do neither: setOptions stored the map
+    // and marked the layer visible, but the guard was `if (this.#marker)`, which is never true
+    // for a fresh marker, so nothing was created and nothing reached the map.
+    describe('setOptions({ map }) displays the marker (6.3)', () => {
+        it('creates the Google marker', async () => {
             const map = fakeMap();
             marker({ position: [1, 2], map });
-            expect(mapsStats.countOf('Marker')).toBe(0);
+            // setMap() is async, so creation lands on a later microtask
+            await tick();
+            expect(mapsStats.countOf('Marker')).toBe(1);
         });
 
-        it('still reports the map as set and the layer as visible', () => {
+        it('reports the map as set and the layer as visible', () => {
             const map = fakeMap();
             const m = marker({ position: [1, 2], map });
             expect(m.getMap()).toBe(map);
             expect(m.hasMap()).toBe(true);
-            // This is the misleading part: it says it is visible while nothing exists
             expect(m.isVisible).toBe(true);
         });
 
-        it('never calls setMap on a Google marker', () => {
+        it('attaches it to the map', async () => {
             const map = fakeMap();
             marker({ position: [1, 2], map });
-            expect(mapsStats.callsTo('Marker', 'setMap')).toHaveLength(0);
+            await tick();
+
+            const created = mapsStats.callsTo('Marker', 'constructor')[0];
+            expect(created.args[0].map).toEqual({ __fakeGoogleMap: true });
+        });
+
+        // The other half of the rule: a hide option passed with the map defers the work, which
+        // is what makes a page that starts with markers filtered out cost nothing.
+        it('creates nothing when visible is false', async () => {
+            const map = fakeMap();
+            const m = marker({ position: [1, 2], map, visible: false });
+            await tick();
+
+            expect(mapsStats.countOf('Marker')).toBe(0);
+            expect(m.visible).toBe(false);
+            expect(m.isVisible).toBe(false);
+        });
+
+        it('creates nothing for 100 markers that start hidden', async () => {
+            const map = fakeMap();
+            for (let i = 0; i < 100; i += 1) {
+                marker({ position: [i / 100, i / 100], map, visible: false });
+            }
+            await tick();
+            expect(mapsStats.countOf('Marker')).toBe(0);
+        });
+
+        it('draws a hidden marker when it is shown', async () => {
+            const map = fakeMap();
+            const m = marker({ position: [1, 2], map, visible: false });
+            await tick();
+            expect(mapsStats.countOf('Marker')).toBe(0);
+
+            m.visible = true;
+            await tick();
+
+            expect(mapsStats.countOf('Marker')).toBe(1);
+            expect(m.visible).toBe(true);
+        });
+
+        // ready is dispatched synchronously inside the marker() call for a hidden marker, so a
+        // plain onReady() registered afterwards has already missed it - onReady uses on(), not
+        // onceImmediate(). This is why Tooltip.attachTo() and Popup.attachTo() both use
+        // onceImmediate(READY_EVENT, ...): it fires straight away when the event has already
+        // happened, which is the whole reason they can attach to a marker that is never drawn.
+        it('still dispatches ready for a marker that starts hidden', async () => {
+            const map = fakeMap();
+            const m = marker({ position: [1, 2], map, visible: false });
+            const cb = vi.fn();
+            m.onceImmediate(MarkerEvents.READY, cb);
+            await tick();
+
+            expect(cb).toHaveBeenCalledTimes(1);
+            expect(mapsStats.countOf('Marker')).toBe(0);
         });
     });
 
