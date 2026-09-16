@@ -15825,36 +15825,77 @@ var polylineIcon = (options) => {
 var DEFAULT_SIMPLIFY_TOLERANCE = 2;
 var DEFAULT_SIMPLIFY_ZOOM = Object.freeze({ 0: 10, 14: 5, 16: 2, 18: 1 });
 var EARTH_RADIUS = 6378137;
-var simplifyPath = (path, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
-  const points = [];
-  if (Array.isArray(path)) {
-    path.forEach((value) => {
-      const point2 = value instanceof LatLng ? value : latLng(value);
-      if (point2.isValid()) {
-        points.push(point2);
+var getNumberValue = (value) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : void 0;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : void 0;
+  }
+  return void 0;
+};
+var coordsFromPath = (path) => {
+  if (!Array.isArray(path)) {
+    return new Float64Array(0);
+  }
+  const coords = new Float64Array(path.length * 2);
+  let count = 0;
+  path.forEach((value) => {
+    let latitude;
+    let longitude;
+    if (value instanceof LatLng) {
+      if (value.isValid()) {
+        latitude = value.latitude;
+        longitude = value.longitude;
       }
-    });
-  }
-  const count = points.length;
+    } else if (Array.isArray(value)) {
+      latitude = getNumberValue(value[0]);
+      longitude = getNumberValue(value[1]);
+    } else if (isObject(value)) {
+      const object = value;
+      latitude = getNumberValue(object.lat) ?? getNumberValue(object.latitude);
+      longitude = getNumberValue(object.lng) ?? getNumberValue(object.longitude);
+      if (typeof latitude === "undefined" || typeof longitude === "undefined") {
+        const point2 = latLng(value);
+        if (point2.isValid()) {
+          latitude = point2.latitude;
+          longitude = point2.longitude;
+        }
+      }
+    }
+    if (typeof latitude === "number" && typeof longitude === "number") {
+      coords[count * 2] = latitude;
+      coords[count * 2 + 1] = longitude;
+      count += 1;
+    }
+  });
+  return count * 2 === coords.length ? coords : coords.slice(0, count * 2);
+};
+var simplifyCoords = (coords, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
+  const count = coords.length / 2;
   if (count <= 2 || !isNumber(tolerance) || tolerance <= 0) {
-    return points;
+    return coords;
   }
-  const averageLatitude = points.reduce((sum, point2) => sum + point2.latitude, 0) / count;
+  let latitudeTotal = 0;
+  for (let i = 0; i < count; i += 1) {
+    latitudeTotal += coords[i * 2];
+  }
   const metersPerLatDegree = Math.PI / 180 * EARTH_RADIUS;
-  const metersPerLngDegree = metersPerLatDegree * Math.cos(averageLatitude * Math.PI / 180);
+  const metersPerLngDegree = metersPerLatDegree * Math.cos(latitudeTotal / count * Math.PI / 180);
   const xs = new Float64Array(count);
   const ys = new Float64Array(count);
-  points.forEach((point2, index) => {
-    xs[index] = point2.longitude * metersPerLngDegree;
-    ys[index] = point2.latitude * metersPerLatDegree;
-  });
-  const segmentDistanceSquared = (index, first, last) => {
+  for (let i = 0; i < count; i += 1) {
+    xs[i] = coords[i * 2 + 1] * metersPerLngDegree;
+    ys[i] = coords[i * 2] * metersPerLatDegree;
+  }
+  const segmentDistanceSquared = (index2, first, last) => {
     let x = xs[first];
     let y = ys[first];
     let dx = xs[last] - x;
     let dy = ys[last] - y;
     if (dx !== 0 || dy !== 0) {
-      const t = ((xs[index] - x) * dx + (ys[index] - y) * dy) / (dx * dx + dy * dy);
+      const t = ((xs[index2] - x) * dx + (ys[index2] - y) * dy) / (dx * dx + dy * dy);
       if (t > 1) {
         x = xs[last];
         y = ys[last];
@@ -15863,8 +15904,8 @@ var simplifyPath = (path, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
         y += dy * t;
       }
     }
-    dx = xs[index] - x;
-    dy = ys[index] - y;
+    dx = xs[index2] - x;
+    dy = ys[index2] - y;
     return dx * dx + dy * dy;
   };
   const keep = new Uint8Array(count);
@@ -15889,7 +15930,28 @@ var simplifyPath = (path, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
       stack.push(first, furthest, furthest, last);
     }
   }
-  return points.filter((point2, index) => keep[index] === 1);
+  let keptCount = 0;
+  for (let i = 0; i < count; i += 1) {
+    keptCount += keep[i];
+  }
+  const simplified = new Float64Array(keptCount * 2);
+  let index = 0;
+  for (let i = 0; i < count; i += 1) {
+    if (keep[i] === 1) {
+      simplified[index * 2] = coords[i * 2];
+      simplified[index * 2 + 1] = coords[i * 2 + 1];
+      index += 1;
+    }
+  }
+  return simplified;
+};
+var simplifyPath = (path, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
+  const coords = simplifyCoords(coordsFromPath(path), tolerance);
+  const points = [];
+  for (let i = 0; i < coords.length; i += 2) {
+    points.push(latLng(coords[i], coords[i + 1]));
+  }
+  return points;
 };
 
 // src/lib/Polyline.ts
@@ -16007,6 +16069,29 @@ var Polyline = class _Polyline extends Layer_default {
    * @type {PolylineOptions}
    */
   #options = {};
+  /**
+   * Holds the path as the latitude and longitude of each point, one after the other.
+   *
+   * Plain numbers are held instead of LatLng objects because a path can have a lot of points.
+   * Two numbers use a small fraction of the memory that a LatLng object does, and the points that
+   * are drawn are created straight from these numbers.
+   *
+   * This array is never changed once it's set. It's replaced when the path changes, so it can be
+   * shared with the highlight polyline and with clones.
+   *
+   * @private
+   * @type {Float64Array|undefined}
+   */
+  #pathCoords;
+  /**
+   * Holds the LatLng objects for the path.
+   *
+   * These are only created if the path property is read, and they're thrown away when the path changes.
+   *
+   * @private
+   * @type {LatLng[]|undefined}
+   */
+  #pathObjects;
   /**
    * Holds how far, in meters, the line drawn on the map can be from the original path when it's simplified.
    *
@@ -16298,12 +16383,27 @@ var Polyline = class _Polyline extends Layer_default {
   /**
    * Get the path of the polyline.
    *
-   * The path is an array of LatLng values defining the path of the polyline.
+   * The path is an array of LatLng objects defining the path of the polyline.
+   *
+   * The path is held as plain numbers, so the LatLng objects are created the first time that this
+   * is read. Changing the returned array doesn't change the polyline. Use the path property or
+   * setPath() to change the path.
    *
    * @returns {LatLngValue[]|undefined}
    */
   get path() {
-    return this.#options.path;
+    if (!this.#pathCoords) {
+      return void 0;
+    }
+    if (!this.#pathObjects) {
+      const coords = this.#pathCoords;
+      const points = [];
+      for (let i = 0; i < coords.length; i += 2) {
+        points.push(latLng(coords[i], coords[i + 1]));
+      }
+      this.#pathObjects = points;
+    }
+    return this.#pathObjects;
   }
   /**
    * Set the path of the polyline.
@@ -16314,21 +16414,7 @@ var Polyline = class _Polyline extends Layer_default {
    */
   set path(value) {
     if (Array.isArray(value)) {
-      const paths = [];
-      value.forEach((pathValue) => {
-        const position = latLng(pathValue);
-        if (position.isValid()) {
-          paths.push(position);
-        }
-      });
-      this.#options.path = paths;
-      this.#simplifiedPaths = {};
-      if (this.#polyline) {
-        this.#polyline.setPath(this.#getGooglePath());
-      }
-      if (this.#highlightPolyline && this.#highlightSetup) {
-        this.#highlightPolyline.path = paths;
-      }
+      this.#setPathCoords(coordsFromPath(value));
     }
   }
   /**
@@ -16543,6 +16629,9 @@ var Polyline = class _Polyline extends Layer_default {
       clone.setHighlightPolyline(this.#highlightPolyline.clone());
     }
     clone.setOptions(this.#options);
+    if (this.#pathCoords) {
+      clone.#setPathCoords(this.#pathCoords);
+    }
     clone.data = this.#customData;
     clone.setMap(this.getMap());
     if (isObjectWithValues(this.tooltipConfig)) {
@@ -17012,14 +17101,17 @@ var Polyline = class _Polyline extends Layer_default {
    */
   #getGooglePath() {
     const start = performance.now();
-    const path = this.#options.path ?? [];
+    const coords = this.#pathCoords ?? new Float64Array(0);
     const tolerance = this.#simplifyTolerance;
     const useKeptPaths = tolerance > 0 && (this.#simplifyConfig?.zoom.length ?? 0) > 0;
     let googlePath = useKeptPaths ? this.#simplifiedPaths[tolerance] : void 0;
     const isKeptPath = typeof googlePath !== "undefined";
     if (!googlePath) {
-      const points = tolerance > 0 ? simplifyPath(path, tolerance) : path.map((point2) => point2 instanceof LatLng ? point2 : latLng(point2));
-      googlePath = points.map((point2) => point2.toGoogle()).filter((point2) => point2 !== null);
+      const drawCoords = tolerance > 0 ? simplifyCoords(coords, tolerance) : coords;
+      googlePath = [];
+      for (let i = 0; i < drawCoords.length; i += 2) {
+        googlePath.push(new google.maps.LatLng(drawCoords[i], drawCoords[i + 1]));
+      }
       if (useKeptPaths) {
         this.#simplifiedPaths[tolerance] = googlePath;
       }
@@ -17034,6 +17126,26 @@ var Polyline = class _Polyline extends Layer_default {
       this.#logSimplify(googlePath.length, detail);
     }
     return isKeptPath || useKeptPaths ? googlePath.slice() : googlePath;
+  }
+  /**
+   * Set the path from the latitude and longitude of each point, one after the other.
+   *
+   * The array is used as it is and is never changed, so it can be shared with the highlight
+   * polyline and with clones.
+   *
+   * @private
+   * @param {Float64Array} coords The path as the latitude and longitude of each point
+   */
+  #setPathCoords(coords) {
+    this.#pathCoords = coords;
+    this.#pathObjects = void 0;
+    this.#simplifiedPaths = {};
+    if (this.#polyline) {
+      this.#polyline.setPath(this.#getGooglePath());
+    }
+    if (this.#highlightPolyline && this.#highlightSetup) {
+      this.#highlightPolyline.#setPathCoords(coords);
+    }
   }
   /**
    * Returns whether debug information about simplifying is logged to the console.
@@ -17054,7 +17166,7 @@ var Polyline = class _Polyline extends Layer_default {
    * @param {string} detail Extra information to add to the end of the message
    */
   #logSimplify(drawnCount, detail) {
-    const pathCount = this.#options.path?.length ?? 0;
+    const pathCount = this.#pathCoords ? this.#pathCoords.length / 2 : 0;
     if (!this.#isSimplifyDebug() || pathCount === 0) {
       return;
     }
@@ -17187,8 +17299,8 @@ var Polyline = class _Polyline extends Layer_default {
     }
     if (!this.#highlightSetup) {
       highlight.simplify = this.#simplifyTolerance;
-      if (this.path) {
-        highlight.path = this.path;
+      if (this.#pathCoords) {
+        highlight.#setPathCoords(this.#pathCoords);
       }
       const map2 = this.getMap();
       const setup = map2 ? highlight.setMap(map2, false) : Promise.resolve();

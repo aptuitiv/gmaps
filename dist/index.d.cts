@@ -8151,7 +8151,11 @@ declare class Polyline extends Layer {
     /**
      * Get the path of the polyline.
      *
-     * The path is an array of LatLng values defining the path of the polyline.
+     * The path is an array of LatLng objects defining the path of the polyline.
+     *
+     * The path is held as plain numbers, so the LatLng objects are created the first time that this
+     * is read. Changing the returned array doesn't change the polyline. Use the path property or
+     * setPath() to change the path.
      *
      * @returns {LatLngValue[]|undefined}
      */
