@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Marker, marker } from '../src/lib/Marker';
 import { LatLng } from '../src/lib/LatLng';
 import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
+import { asFakeMap, fakeMap } from './support/fakeMap';
 
 /**
  * Let any pending promise callbacks run
@@ -330,15 +331,133 @@ describe('Marker', () => {
     });
 });
 
-/*
-    Still to do for markers, blocked on being able to build a Map in tests:
+describe('Marker with a map', () => {
+    beforeEach(() => {
+        installGoogleMaps();
+    });
 
-    - setOptions({ map }) not creating or displaying the marker (section 6.3). This is the
-      decided behavior change: passing `map` should display the marker unless a hide option
-      is also passed. It needs a real Map to assert against.
-    - setMap(map) attaching to the map, and the onReady path when the map is not ready yet.
-    - The duplicate onReady registration in #createMarkerObject and #setMap (M-5).
-    - attachTooltip/attachPopup not creating the Google marker (M-1's real payoff). Those
-      mixins are added by importing Tooltip.ts and Popup.ts, and Overlay builds DOM in its
-      constructor, so that test needs the jsdom environment.
+    afterEach(() => {
+        uninstallGoogleMaps();
+    });
+
+    // Section 6.3. The decided behavior is that passing `map` displays the marker unless a
+    // hide option is also passed. Today it does neither: setOptions stores the map and marks
+    // the layer visible, but the guard at Marker.ts:1212 is `if (this.#marker)`, which is
+    // never true for a fresh marker. So nothing is created and nothing reaches the map.
+    //
+    // When 6.3 is fixed the count below becomes 1 and the marker is attached.
+    describe('setOptions({ map }) does not display the marker (6.3)', () => {
+        it('creates no Google marker', () => {
+            const map = fakeMap();
+            marker({ position: [1, 2], map });
+            expect(mapsStats.countOf('Marker')).toBe(0);
+        });
+
+        it('still reports the map as set and the layer as visible', () => {
+            const map = fakeMap();
+            const m = marker({ position: [1, 2], map });
+            expect(m.getMap()).toBe(map);
+            expect(m.hasMap()).toBe(true);
+            // This is the misleading part: it says it is visible while nothing exists
+            expect(m.isVisible).toBe(true);
+        });
+
+        it('never calls setMap on a Google marker', () => {
+            const map = fakeMap();
+            marker({ position: [1, 2], map });
+            expect(mapsStats.callsTo('Marker', 'setMap')).toHaveLength(0);
+        });
+    });
+
+    describe('setMap(map) on a ready map', () => {
+        it('creates the Google marker and attaches it', async () => {
+            const map = fakeMap();
+            const m = marker({ position: [1, 2] });
+            await m.setMap(map);
+
+            expect(mapsStats.countOf('Marker')).toBe(1);
+            const attached = mapsStats.callsTo('Marker', 'setMap');
+            expect(attached).toHaveLength(1);
+            expect(attached[0].args[0]).toEqual({ __fakeGoogleMap: true });
+            expect(m.getMap()).toBe(map);
+        });
+
+        it('setMap(null) afterwards detaches it without creating another', async () => {
+            const map = fakeMap();
+            const m = marker({ position: [1, 2] });
+            await m.setMap(map);
+            await m.setMap(null);
+
+            expect(mapsStats.countOf('Marker')).toBe(1);
+            const calls = mapsStats.callsTo('Marker', 'setMap');
+            expect(calls[calls.length - 1].args[0]).toBeNull();
+            expect(m.getMap()).toBeNull();
+            expect(m.isVisible).toBe(false);
+        });
+
+        it('show() is the same as setMap()', async () => {
+            const map = fakeMap();
+            const m = marker({ position: [1, 2] });
+            await m.show(map);
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+    });
+
+    // A map whose element is hidden is not ready yet. The marker has to wait for it rather
+    // than being created against a map that does not exist.
+    describe('a map that is not ready yet', () => {
+        it('waits for the map before creating the Google marker', async () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+
+            // toGoogle() starts the work but cannot finish until the map is ready
+            const pending = m.toGoogle();
+            await tick();
+            expect(mapsStats.countOf('Marker')).toBe(0);
+            expect(asFakeMap(map).readyCallbackCount()).toBe(1);
+
+            asFakeMap(map).makeReady();
+            await pending;
+
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+
+        it('passes the map into the constructor options once it is ready', async () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+            const pending = m.toGoogle();
+            asFakeMap(map).makeReady();
+            await pending;
+
+            const created = mapsStats.callsTo('Marker', 'constructor')[0];
+            expect(created.args[0].map).toEqual({ __fakeGoogleMap: true });
+        });
+
+        it('dispatches ready only after the map is ready', async () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+            const cb = vi.fn();
+            m.onReady(cb);
+
+            const pending = m.toGoogle();
+            await tick();
+            expect(cb).not.toHaveBeenCalled();
+
+            asFakeMap(map).makeReady();
+            await pending;
+            await tick();
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+    });
+});
+
+/*
+    Still to do for markers:
+
+    - attachTooltip/attachPopup not creating the Google marker, which is M-1's real payoff.
+      Those mixins are added by importing Tooltip.ts and Popup.ts, and Overlay builds its DOM
+      in the constructor, so that test needs the jsdom environment.
+    - M-5's duplicate onReady registration. Both #createMarkerObject and #setMap register a
+      wait, but they never queue at the same moment in the paths above, so showing the
+      duplicate needs a more specific setup than a simple not-ready map.
 */

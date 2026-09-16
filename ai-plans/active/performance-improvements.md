@@ -559,22 +559,28 @@ cleanup pass afterwards.** Specifically, each phase must land with:
 | 0.1 Setup — vitest 5.0.1 + jsdom, `vitest.config.ts`, `test/`, npm scripts, `coverage` ignored | **Done** |
 | 0.2 Instrumented `google.maps` stub — `test/support/googleMaps.ts` | **Done** |
 | 0.3 Priority 1, core primitives — `helpers`, `LatLng`, `Point`, `Size`, `Evented` | **Done** |
-| 0.3 Priority 1, `Marker` | **Done**, except what needs a real `Map` — see below |
-| 0.3 Priority 1, `Polyline`, `Map`, `Tooltip`, `Popup`, collections | Not started |
-| 0.3 Priority 2, §6 regressions | 6.5 covered; 6.1-6.4 and 6.6 not started |
+| 0.3 Priority 1, `Marker` | **Done**, including the map paths |
+| 0.3 Priority 1, `Polyline` | **Done** |
+| 0.3 Priority 1, `Map`, `Tooltip`, `Popup`, collections | Not started |
+| 0.3 Priority 2, §6 regressions | 6.3 and 6.5 covered; 6.1, 6.2, 6.4 and 6.6 not started |
 | 0.3 Priority 3, absence assertions — markers | **Done** (M-1, M-2, M-4, M-13) |
-| 0.3 Priority 3, absence assertions — polylines, overlays | Not started |
+| 0.3 Priority 3, absence assertions — polylines | **Done** (L-4, L-5, L-7, deferred drawing) |
+| 0.3 Priority 3, absence assertions — overlays | Not started, needs jsdom |
 | 0.3 Priorities 4-6 — §8.2 rows, allocation shape, simplify correctness | Not started |
 | 0.4 Stress page for the absence assertions | **Done** — `site-src/stress.njk` |
 | 0.5 Real-device baseline | **In progress — Eric, testing on iOS** |
 | CI wiring of `npm test` | **Done** — `.github/workflows/test.yml` |
 
-**Blocked: anything needing a real `Map` instance.** Building one needs a DOM element and the
-loader, which reaches for the real Google Maps script. That currently blocks tests for §6.3
-(`setOptions({ map })`), `setMap(map)` and its not-ready path, and M-5's duplicate `onReady`
-registration. Deciding how to fake a `Map` — a lightweight test double that satisfies
-`instanceof Map`, or a jsdom + stubbed-loader setup — is the next thing to settle, because the
-overlay and polyline work needs it too.
+**The `Map` blocker is solved** — `test/support/fakeMap.ts`. It does **not** extend `Map`, which
+would run the real constructor; instead its prototype is pointed at `Map.prototype` with
+`Object.setPrototypeOf` after the class is defined. That makes `instanceof Map` true while every
+method defined on the double shadows the real one, so no `#private` field is ever touched. It
+covers `getIsReady`, `toGoogle`, `onReady`, `init`, `on`/`off`, `zoom`, plus `makeReady()`,
+`zoomTo()`, `listenerCount()` and `readyCallbackCount()` for driving and inspecting tests.
+
+The failure mode is deliberately loud: a method that isn't defined on the double falls through to
+the real `Map` and throws on a private field, which names exactly what needs adding rather than
+silently doing the wrong thing.
 
 **Two bugs found by writing the tests**, neither of which came out of the six audits: §6.5 (the
 `ReferenceError` before Google Maps loads) and M-13 (`title` forcing eager marker creation).
