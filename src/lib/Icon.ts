@@ -32,6 +32,13 @@ export type IconOptions = {
     url?: string;
 };
 
+// The option keys grouped by how they're converted. These are held here instead of inside
+// setOptions() so that the arrays aren't rebuilt every time an icon is set up. An icon is
+// often shared by a lot of markers, and setOptions() runs for each one.
+const POINT_OPTIONS: ('anchor' | 'labelOrigin' | 'origin')[] = ['anchor', 'labelOrigin', 'origin'];
+const SIZE_OPTIONS: ('scaledSize' | 'size')[] = ['scaledSize', 'size'];
+const STRING_OPTIONS: 'url'[] = ['url'];
+
 /**
  * Icon class to set up an icon options for a marker
  */
@@ -70,22 +77,19 @@ export class Icon extends Base {
      */
     setOptions(options: IconOptions): Icon {
         if (isObject(options)) {
-            const pointValues: ('anchor' | 'labelOrigin' | 'origin')[] = ['anchor', 'labelOrigin', 'origin'];
-            const sizeValues: ('scaledSize' | 'size')[] = ['scaledSize', 'size'];
-            const stringValues: 'url'[] = ['url'];
-            pointValues.forEach((key) => {
+            POINT_OPTIONS.forEach((key) => {
                 const value = options[key];
                 if (value) {
                     this.#options[key] = point(value).toGoogle();
                 }
             });
-            sizeValues.forEach((key) => {
+            SIZE_OPTIONS.forEach((key) => {
                 const value = options[key];
                 if (value) {
                     this.#options[key] = size(value).toGoogle();
                 }
             });
-            stringValues.forEach((key) => {
+            STRING_OPTIONS.forEach((key) => {
                 const value = options[key];
                 if (value && isStringWithValue(value)) {
                     this.#options[key] = value;

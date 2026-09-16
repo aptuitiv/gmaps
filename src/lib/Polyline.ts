@@ -110,6 +110,10 @@ export type PolylineOptions = {
     zIndex?: number;
 };
 
+// Shared empty path, so that a polyline with no path doesn't allocate a new array each time
+// the drawn path is worked out.
+const EMPTY_COORDS = new Float64Array(0);
+
 // The simplify settings after the value passed to the simplify option has been checked
 type SimplifyConfig = {
     debug: boolean;
@@ -1496,8 +1500,11 @@ export class Polyline extends Layer {
      * @returns {google.maps.LatLng[]}
      */
     #getGooglePath(): google.maps.LatLng[] {
-        const start = performance.now();
-        const coords = this.#pathCoords ?? new Float64Array(0);
+        const isDebug = this.#isSimplifyDebug();
+        // Only read the clock when the timing is going to be used. This runs for every polyline
+        // each time the drawn path is worked out.
+        const start = isDebug ? performance.now() : 0;
+        const coords = this.#pathCoords ?? EMPTY_COORDS;
         const tolerance = this.#simplifyTolerance;
         // When the tolerance changes with the zoom level, keep each simplified path so that it isn't worked out again
         const useKeptPaths = tolerance > 0 && (this.#simplifyConfig?.zoom.length ?? 0) > 0;
@@ -1516,7 +1523,7 @@ export class Polyline extends Layer {
         }
 
         // Log how many points are drawn so that developers can see if simplifying helps
-        if (this.#isSimplifyDebug()) {
+        if (isDebug) {
             let detail = '';
             if (isKeptPath) {
                 detail = 'Used the path that was already simplified.';

@@ -35,6 +35,12 @@ import {
 
 export type MarkerLabel = google.maps.MarkerLabel;
 
+// Option keys that are copied across as they are. These are held here rather than inside the
+// methods that use them so that the arrays aren't rebuilt for every marker. At 20,000 markers
+// that's 40,000 throwaway arrays and closures.
+const STRING_OPTIONS: 'cursor'[] = ['cursor'];
+const GOOGLE_OPTIONS_TO_SET: ('cursor' | 'title')[] = ['cursor', 'title'];
+
 // Custom data to attach to the marker object
 type CustomData = {
     [key: string]: any;
@@ -1198,8 +1204,7 @@ export class Marker extends Layer {
         }
 
         // Set simple options
-        const stringOptions: 'cursor'[] = ['cursor'];
-        stringOptions.forEach((key) => {
+        STRING_OPTIONS.forEach((key) => {
             if (options[key] && isStringWithValue(options[key])) {
                 this.#options[key] = options[key];
             }
@@ -1453,8 +1458,7 @@ export class Marker extends Layer {
                 (async () => {
                     const markerOptions: google.maps.MarkerOptions = {};
                     // Options that can be set on the marker without any modification
-                    const optionsToSet: ('cursor' | 'title')[] = ['cursor', 'title'];
-                    optionsToSet.forEach((key) => {
+                    GOOGLE_OPTIONS_TO_SET.forEach((key) => {
                         if (typeof this.#options[key] !== 'undefined') {
                             markerOptions[key] = this.#options[key];
                         }

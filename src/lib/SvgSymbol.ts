@@ -53,6 +53,19 @@ type SymbolOptions = Omit<google.maps.Symbol, 'anchor' | 'labelOrigin'> & {
     labelOrigin?: google.maps.Point | Point | null;
 };
 
+// The option keys grouped by how they're converted. These are held here instead of inside
+// setOptions() so that the arrays aren't rebuilt every time a symbol is set up. One symbol is
+// often shared by a lot of markers or polylines, and setOptions() runs for each one.
+const NUMBER_OPTIONS: ('fillOpacity' | 'rotation' | 'scale' | 'strokeOpacity' | 'strokeWeight')[] = [
+    'fillOpacity',
+    'rotation',
+    'scale',
+    'strokeOpacity',
+    'strokeWeight',
+];
+const POINT_OPTIONS: ('anchor' | 'labelOrigin')[] = ['anchor', 'labelOrigin'];
+const STRING_OPTIONS: ('fillColor' | 'path' | 'strokeColor')[] = ['fillColor', 'path', 'strokeColor'];
+
 /**
  * Class to set up an SVG icon for a marker
  */
@@ -302,16 +315,7 @@ export class SvgSymbol extends Base {
      */
     setOptions(options: SvgSymbolOptions): SvgSymbol {
         if (isObject(options)) {
-            const numberValues: ('fillOpacity' | 'rotation' | 'scale' | 'strokeOpacity' | 'strokeWeight')[] = [
-                'fillOpacity',
-                'rotation',
-                'scale',
-                'strokeOpacity',
-                'strokeWeight',
-            ];
-            const pointValues: ('anchor' | 'labelOrigin')[] = ['anchor', 'labelOrigin'];
-            const stringValues: ('fillColor' | 'path' | 'strokeColor')[] = ['fillColor', 'path', 'strokeColor'];
-            numberValues.forEach((key) => {
+            NUMBER_OPTIONS.forEach((key) => {
                 if ((typeof options[key] !== 'undefined' && isNumber(options[key])) || isNumberString(options[key])) {
                     if (isNumberString(options[key])) {
                         this.#options[key] = Number(options[key]);
@@ -320,12 +324,12 @@ export class SvgSymbol extends Base {
                     }
                 }
             });
-            pointValues.forEach((key) => {
+            POINT_OPTIONS.forEach((key) => {
                 if (options[key]) {
                     this.#options[key] = point(options[key]);
                 }
             });
-            stringValues.forEach((key) => {
+            STRING_OPTIONS.forEach((key) => {
                 if (options[key] && isStringWithValue(options[key])) {
                     this.#options[key] = options[key];
                 }
