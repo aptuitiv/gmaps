@@ -224,13 +224,12 @@ export class Popup extends Overlay {
         this.#clearance = size(0, 0);
         this.#popupOffset = point(0, 0);
 
-        if (isObject(options)) {
-            if (options instanceof HTMLElement || options instanceof Text) {
-                // The popup contents were passed
-                this.content = options;
-            } else {
-                this.setOptions(options);
-            }
+        // isObject() only matches a plain object, so an HTMLElement or Text never reached this
+        // branch. There used to be a test for them here that could never run. Element content
+        // goes through the else branch below, which handles it. The element types are named in
+        // the check so that Typescript narrows the value the same way that isObject() does.
+        if (isObject(options) && !(options instanceof HTMLElement) && !(options instanceof Text)) {
+            this.setOptions(options);
         } else if (typeof options !== 'undefined') {
             // The popup contents were passed
             this.content = options;
