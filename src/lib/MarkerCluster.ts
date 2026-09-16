@@ -435,6 +435,11 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     removeMarker(marker: Marker, draw: boolean = false): MarkerCluster {
+        // If the Google marker was never created then it can't be in the clusterer, so there's
+        // nothing to remove. toGoogleSync() would build one just to hand it over to be removed.
+        if (!marker.hasGoogleMarker()) {
+            return this;
+        }
         this.#clusterer?.removeMarker(marker.toGoogleSync(), !draw);
         return this;
     }
