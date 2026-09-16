@@ -154,12 +154,31 @@ export class Popup extends Overlay {
     #callback: PopupCallback | undefined;
 
     /**
+     * Whether the close handlers have been bound to the elements inside the popup
+     *
+     * They're bound the first time the popup is drawn rather than on every draw. Setting the
+     * content replaces the element's children, so the content setter sets this back to false.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #areCloseHandlersBound: boolean = false;
+
+    /**
      * Whether the popup is attached to an element
      *
      * @private
      * @type {boolean}
      */
     #isAttached: boolean = false;
+
+    /**
+     * Whether the default theme styles have been set on the popup element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isThemeApplied: boolean = false;
 
     /**
      * Holds if the Popup is open or not
@@ -315,9 +334,12 @@ export class Popup extends Overlay {
     set content(content: string | HTMLElement | Text) {
         if (isStringWithValue(content)) {
             this.#content = content;
+            // The old children are replaced, so anything the close handlers were bound to is gone
+            this.#areCloseHandlersBound = false;
             this.getOverlayElement().innerHTML = content;
         } else if (content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
+            this.#areCloseHandlersBound = false;
             const overlayElement = this.getOverlayElement();
             // First clear all existing children and their events
             while (overlayElement.firstChild) {
@@ -386,6 +408,33 @@ export class Popup extends Overlay {
      */
     set theme(theme: string) {
         this.#theme = theme;
+        // Apply the theme styles again the next time the popup is drawn
+        this.#isThemeApplied = false;
+    }
+
+    /**
+     * Set the default theme styles on the popup element.
+     *
+     * Any style that has already been set on the popup is kept so that custom styles win over
+     * the theme. This is the same as Tooltip.#applyTheme().
+     *
+     * @private
+     */
+    #applyTheme(): void {
+        const themeStyles: { [key: string]: string } = {
+            backgroundColor: '#fff',
+            color: '#333',
+            padding: '3px 6px',
+            borderRadius: '4px',
+            boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+        };
+        const styles = this.styles as { [key: string]: string };
+        Object.keys(themeStyles).forEach((key) => {
+            if (typeof styles[key] === 'undefined') {
+                this.style(key, themeStyles[key]);
+            }
+        });
+        this.#isThemeApplied = true;
     }
 
     /**
@@ -786,23 +835,20 @@ export class Popup extends Overlay {
                 // Position the popup above the element.
                 this.style('transform', 'translate(0, -100%)');
             }
-            if (this.#theme === 'default') {
-                const styles = this.styles || {};
-                const themeStyles = {
-                    backgroundColor: '#fff',
-                    color: '#333',
-                    padding: '3px 6px',
-                    borderRadius: '4px',
-                    boxShadow: '0 0 5px rgba(0,0,0,0.3)',
-                };
-                this.styles = { ...themeStyles, ...styles };
+            // Only the position changes from one draw to the next. draw() is called on every
+            // frame while the map is zoomed or panned, so the theme styles are only set once.
+            if (this.#theme === 'default' && !this.#isThemeApplied) {
+                this.#applyTheme();
             }
 
             if (this.getOverlayElement().style.display !== display) {
                 this.style('display', display);
             }
 
-            if (this.#closeElement) {
+            // Bind the close handlers once rather than on every frame. Setting the content
+            // replaces the element's children, so the content setter marks them for binding again.
+            if (this.#closeElement && !this.#areCloseHandlersBound) {
+                this.#areCloseHandlersBound = true;
                 if (this.#closeElement instanceof HTMLElement) {
                     this.#setupCloseClick(this.#closeElement);
                 } else if (isStringWithValue(this.#closeElement)) {

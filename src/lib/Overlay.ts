@@ -768,6 +768,12 @@ export class Overlay extends Layer {
      */
     style(name: string, value: string): Overlay {
         if (isString(name) && isString(value)) {
+            // Don't write to the DOM if the value hasn't changed. draw() runs on every frame
+            // while the map is panned or zoomed and most of the styles it sets are the same
+            // every time, so this saves a style write per frame per overlay.
+            if (this.#styles[name] === value) {
+                return this;
+            }
             this.#styles[name] = value;
             // Index the style declaration by name so that both camelCase and dashed property names work.
             (this.#overlay.style as unknown as { [key: string]: string })[name] = value;
@@ -1297,7 +1303,19 @@ export class Overlay extends Layer {
  * @param {Overlay} classObject The overlay class object
  * @returns {OverlayView}
  */
-const getOverlayViewClass = (classObject: Overlay) => {
+// Holds the overlay view class once it's been built. The class can't be declared at the top
+// level because google.maps.OverlayView doesn't exist until the Google Maps library loads, but
+// it only needs to be built once. Declaring it inside the function gave every overlay its own
+// class and its own prototype, which meant the engine saw a different shape at each draw() call
+// site and couldn't optimise them.
+let OverlayViewClass: (new (overlay: Overlay) => google.maps.OverlayView) | undefined;
+
+/**
+ * Build the overlay view class, once
+ *
+ * @returns {Function} The overlay view class
+ */
+const buildOverlayViewClass = () => {
     /**
      * Basic overlay class to handle displaying the overlay
      */
@@ -1346,7 +1364,20 @@ const getOverlayViewClass = (classObject: Overlay) => {
             this.#overlay.remove();
         }
     }
-    return new OverlayView(classObject);
+    return OverlayView;
+};
+
+/**
+ * Gets an overlay view object for the overlay
+ *
+ * @param {Overlay} classObject The overlay class object
+ * @returns {google.maps.OverlayView}
+ */
+const getOverlayViewClass = (classObject: Overlay): google.maps.OverlayView => {
+    if (!OverlayViewClass) {
+        OverlayViewClass = buildOverlayViewClass() as unknown as new (overlay: Overlay) => google.maps.OverlayView;
+    }
+    return new OverlayViewClass(classObject);
 };
 
 /**
