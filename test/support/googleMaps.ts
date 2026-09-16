@@ -94,6 +94,15 @@ class MVCObject {
     __values: Record<string, any> = {};
 
     /**
+     * The name to record calls under.
+     *
+     * recorded() builds anonymous class expressions, so their `.name` is not the class name
+     * we want in the stats. Each recorded class sets this so that addListener() and friends
+     * are filed under the right key.
+     */
+    __recordedName: string = '';
+
+    /**
      * Add an event listener
      *
      * @param {string} type The event type
@@ -101,7 +110,7 @@ class MVCObject {
      * @returns {object} A handle with a remove() method, like Google's
      */
     addListener(type: string, fn: (...args: any[]) => void): { remove: () => void } {
-        mapsStats.call(this.constructor.name, 'addListener', [type]);
+        mapsStats.call(this.__recordedName || this.constructor.name, 'addListener', [type]);
         if (!this.__listeners[type]) {
             this.__listeners[type] = [];
         }
@@ -154,6 +163,9 @@ const recorded = (name: string) =>
     class extends MVCObject {
         constructor(...args: any[]) {
             super();
+            // So that inherited methods like addListener() are recorded under this class's
+            // name rather than the empty name of this anonymous class expression.
+            this.__recordedName = name;
             mapsStats.construct(name);
             mapsStats.call(name, 'constructor', args);
             if (args[0]) {
@@ -373,19 +385,27 @@ class LatLngBoundsStub {
     }
 
     /**
-     * Grow the bounds to include a point
+     * Grow the bounds to include a point.
      *
-     * @param {LatLngStub} value The point
+     * Google's extend() takes either a LatLng, which has lat()/lng() methods, or a plain
+     * {lat, lng} literal. Both shapes have to be handled here: LatLngBounds holds its points
+     * as literals in #boundValues and replays them through extend() when it builds the Google
+     * object, so the literal form is the one the library actually uses most.
+     *
+     * @param {LatLngStub|object} value The point, as a LatLng or a {lat, lng} literal
      * @returns {LatLngBoundsStub}
      */
-    extend(value: LatLngStub): LatLngBoundsStub {
+    extend(value: LatLngStub | { lat: number; lng: number }): LatLngBoundsStub {
         mapsStats.call('LatLngBounds', 'extend', [value]);
+        const source = value as { lat: unknown; lng: unknown };
+        const lat = typeof source.lat === 'function' ? (value as LatLngStub).lat() : Number(source.lat);
+        const lng = typeof source.lng === 'function' ? (value as LatLngStub).lng() : Number(source.lng);
         if (!this.#sw || !this.#ne) {
-            this.#sw = new LatLngStub(value.lat(), value.lng());
-            this.#ne = new LatLngStub(value.lat(), value.lng());
+            this.#sw = new LatLngStub(lat, lng);
+            this.#ne = new LatLngStub(lat, lng);
         } else {
-            this.#sw = new LatLngStub(Math.min(this.#sw.lat(), value.lat()), Math.min(this.#sw.lng(), value.lng()));
-            this.#ne = new LatLngStub(Math.max(this.#ne.lat(), value.lat()), Math.max(this.#ne.lng(), value.lng()));
+            this.#sw = new LatLngStub(Math.min(this.#sw.lat(), lat), Math.min(this.#sw.lng(), lng));
+            this.#ne = new LatLngStub(Math.max(this.#ne.lat(), lat), Math.max(this.#ne.lng(), lng));
         }
         return this;
     }
@@ -546,6 +566,15 @@ const buildMaps = () => ({
     Polygon: recorded('Polygon'),
     InfoWindow: recorded('InfoWindow'),
     OverlayView: class OverlayView extends MVCObject {
+        constructor(...args: any[]) {
+            super();
+            // Recorded so that tests can assert how many overlay views were built. Note that
+            // getOverlayViewClass() declares a NEW subclass per overlay (O-4), so each of these
+            // is an instance of a different class.
+            mapsStats.construct('OverlayView');
+            mapsStats.call('OverlayView', 'constructor', args);
+        }
+
         static preventMapHitsAndGesturesFrom(): void {
             // Nothing to do in the stub
         }
@@ -561,6 +590,14 @@ const buildMaps = () => ({
         }
     },
     event,
+    // The places library. checkForGoogleMaps('PlacesSearchBox', 'places') looks for this key,
+    // so it has to exist for the search box classes to get past their library check.
+    // Note: getPlaces() is not provided, because it is only called from inside the
+    // places_changed listener, which these tests never fire.
+    places: {
+        SearchBox: recorded('SearchBox'),
+        Autocomplete: recorded('Autocomplete'),
+    },
     SymbolPath: {
         BACKWARD_CLOSED_ARROW: 3,
         BACKWARD_OPEN_ARROW: 4,

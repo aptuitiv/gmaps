@@ -14,6 +14,9 @@ export default defineConfig({
         // describe/it/expect come from.
         globals: false,
         include: ['test/**/*.test.ts'],
+        // Transforming the source was taking about 42% of each run and being redone every time.
+        // This keeps the transformed modules on disk between runs.
+        fsModuleCache: true,
         coverage: {
             include: ['src/**/*.ts'],
             reporter: ['text', 'html'],

@@ -410,6 +410,21 @@ passing `map` on something intended to start hidden forces work that setting `vi
 rebuilds `themeStyles` plus a spread object every frame (`Popup.ts:791`). The CHANGELOG records
 the tooltip half of this work as done; the popup half was missed.
 
+**Tempered, from the Phase 0 tests (2026-09-16).** Popup's theme defaults to **`'none'`**
+(`Popup.ts:187`), where Tooltip's defaults to `'default'` (`Tooltip.ts:120`). The `if (this.#theme
+=== 'default')` block in `Popup.draw()` therefore does nothing at all unless the caller opts into
+the default theme, so this costs nothing for the common case. Still worth fixing — the guard is
+four lines and `Tooltip` already shows the shape — but it is not the per-frame tax it first looks
+like, and it should be ranked below O-5's sibling problems.
+
+Two things in `Popup.draw()` are *not* tempered and do run on every frame regardless of theme:
+the unconditional `transform` write (`Popup.ts:781-788`, which `Tooltip.ts:457` guards by
+comparing against the current value), and the `querySelectorAll` plus listener rebind for
+`closeElement` (`Popup.ts:805-814`). Those are the parts worth fixing first.
+
+Covered by `test/Popup.test.ts`, which calls `draw()` directly with a fake projection and records
+which styles each frame writes.
+
 ### 6.5 ✅ Removing the last listener throws before Google Maps loads
 
 **Found by the Phase 0 tests on 2026-09-16, confirmed by running them.** Not in any of the six
@@ -456,6 +471,37 @@ go red the moment it is fixed — which is the signal to convert them to ordinar
   `#searchBox`, so two concurrent calls both pass the `if (!this.#searchBox)` guard and build two
   widgets on one input — duplicate listeners and **duplicate billed Places requests**
   (`AutocompleteSearchBox.ts:429`, `PlacesSearchBox.ts:243`).
+
+  **Narrowed by the Phase 0 tests (2026-09-16).** The race is conditional, which is why it has
+  survived. `#createPlacesSearchBox()` has exactly one `await` before it assigns `#searchBox`:
+
+  ```js
+  if (this.#options.bounds) { options.bounds = await this.#options.bounds.toGoogle(); }
+  ```
+
+  So it only opens when a **`bounds` option is set**. With bounds, two concurrent `init()` calls
+  both yield at that await and both construct a widget. Without bounds there is no await before
+  the assignment, the first call assigns synchronously, and the second call's guard catches it —
+  so the common case looks perfectly correct. Verified both ways in
+  `test/PlacesSearchBox.test.ts`: three concurrent `init()` calls build three `SearchBox` objects
+  with bounds set, and one without.
+
+  `AutocompleteSearchBox` awaits its bounds the same way, so one fix covers both. Memoize the
+  creation promise — `DataLayer.#getGoogleData()` (`DataLayer.ts:1123-1156`) already does exactly
+  this correctly and is the pattern to copy.
+
+- **`PlacesSearchBox.init()` never settles when it fails.** Found by the Phase 0 tests
+  (2026-09-16), not by the audits. `init()` (`PlacesSearchBox.ts:216-236`) wraps its work in
+  `new Promise((resolve) => ...)` with **no reject path**, and calls
+  `this.#createPlacesSearchBox().then(() => { resolve(); })` with **no `.catch`**.
+
+  `#createPlacesSearchBox()` throws when there is no input element (`PlacesSearchBox.ts:250`).
+  That rejection has no handler, so it escapes as an unhandled promise rejection and `resolve()`
+  is never reached — meaning **`await box.init()` hangs forever** rather than throwing. A caller
+  gets neither a working search box nor an error, just a promise that never settles.
+
+  The fix is to take the `reject` parameter and `.catch(reject)`, which should land with the
+  memoization above since both are in the same few lines.
 - `MarkerCluster.removeMarker()` calls `toGoogleSync()`, which can return `undefined` because
   `#createMarkerObject()` resolves asynchronously when a map is set (`MarkerCluster.ts:438`).
 - `helpers.ts:278` passes the **string** `"%|px/g"` to `replace()` instead of a RegExp, so it
@@ -467,6 +513,39 @@ go red the moment it is fixed — which is the signal to convert them to ordinar
 - `Map.ts:2198` — `element.offsetHeight === 1` reads like a typo for `=== 0`.
 - `Map.ts:2180` — `#isGettingMapOptions` is set but never reset.
 - `Marker.ts:145` — `#isSettingUp` is set true and never reset to false.
+
+---
+
+### 6.7 ✅ `getCenter()` returns the wrong longitude for a bounds that crosses the meridian
+
+**Found by the Phase 0 tests on 2026-09-16 and proven by a passing test.** Not in any audit.
+
+`getCenter()` (`LatLngBounds.ts:360-377`) averages the two longitudes, then normalises the
+result into `[-180, 180)`. For a bounds that wraps the 180th meridian the average is taken the
+wrong way round and the normalisation never recovers the missing half-turn:
+
+```js
+lng = (northEast.longitude + southWest.longitude) / 2;   // (-170 + 170) / 2 = 0
+if (northEast.longitude < southWest.longitude) {
+    lng = ((lng + 180) % 360) - 180;                     // ((0 + 180) % 360) - 180 = 0
+}
+```
+
+For a bounds running west 170° → east −170° (a 20° span across the meridian) the true centre is
+**180°**. It returns **0°** — the opposite side of the globe. Latitude is computed correctly; only
+longitude is wrong, and only in the wrapped case.
+
+**Fix:** in the wrapped branch, average across the wrap before normalising — add 360 to the east
+longitude first (`(sw + (ne + 360)) / 2`), or equivalently add 180 to the naive average, then
+normalise.
+
+**Why it matters here.** It is a plain correctness bug, but it also sits directly on Phase 4's
+path: `getCenter()` is one of the methods that reads the maintained corners rather than
+`#boundValues`, so the corner arithmetic has to be right before that array can be dropped. It
+should be fixed in Phase 2 with the other correctness work, not left for Phase 4.
+
+Covered by `test/LatLngBounds.test.ts`, which asserts the current wrong answer with a QUIRK
+comment, so fixing it turns that test red and forces a deliberate update.
 
 ---
 
@@ -552,7 +631,7 @@ cleanup pass afterwards.** Specifically, each phase must land with:
 
 ### Phase 0 — Test suite (vitest), and a real-device baseline
 
-**Status: 2026-09-16. 148 passing, 2 expected-fail, across 6 files.**
+**Status: 2026-09-16. 419 passing, 2 expected-fail, 1 todo, across 16 files.**
 
 | Item | State |
 |---|---|
@@ -561,12 +640,16 @@ cleanup pass afterwards.** Specifically, each phase must land with:
 | 0.3 Priority 1, core primitives — `helpers`, `LatLng`, `Point`, `Size`, `Evented` | **Done** |
 | 0.3 Priority 1, `Marker` | **Done**, including the map paths |
 | 0.3 Priority 1, `Polyline` | **Done** |
-| 0.3 Priority 1, `Map`, `Tooltip`, `Popup`, collections | Not started |
-| 0.3 Priority 2, §6 regressions | 6.3 and 6.5 covered; 6.1, 6.2, 6.4 and 6.6 not started |
+| 0.3 Priority 1, `Tooltip`, `Popup`, `Overlay` | **Done** (jsdom) |
+| 0.3 Priority 1, `Loader`, both collections, `simplifyPath`, `PlacesSearchBox`, `LatLngBounds` | **Done** |
+| 0.3 Priority 1, `Map` | **Done** apart from the render path — see the note below |
+| 0.3 Priority 2, §6 regressions | 6.1, 6.3, 6.4, 6.5 and 6.6 covered; 6.2 blocked on the render path |
 | 0.3 Priority 3, absence assertions — markers | **Done** (M-1, M-2, M-4, M-13) |
 | 0.3 Priority 3, absence assertions — polylines | **Done** (L-4, L-5, L-7, deferred drawing) |
-| 0.3 Priority 3, absence assertions — overlays | Not started, needs jsdom |
-| 0.3 Priorities 4-6 — §8.2 rows, allocation shape, simplify correctness | Not started |
+| 0.3 Priority 3, absence assertions — overlays | **Done** (O-1, O-2, O-11, M-1 both halves) |
+| 0.3 Priority 4, §8.2 behaviour-change rows | Mostly covered as a side effect of the absence assertions (M-1, M-2, M-4, L-4, 6.3). No dedicated pass yet |
+| 0.3 Priority 5, allocation shape | **Done** — `LatLng` construction counts, the path staying as plain numbers, `Point`/`Size` cache reuse, and the bounds corner arithmetic that gates Phase 4 (`test/LatLngBounds.test.ts`) |
+| 0.3 Priority 6, simplify correctness | **Done** — a geometric tolerance property, not a point count |
 | 0.4 Stress page for the absence assertions | **Done** — `site-src/stress.njk` |
 | 0.5 Real-device baseline | **In progress — Eric, testing on iOS** |
 | CI wiring of `npm test` | **Done** — `.github/workflows/test.yml` |
@@ -1035,6 +1118,13 @@ real verdict rather than a confirmation step.
 - `"types": ["google.maps", "node"]` pulls Node types into a browser library.
 - `DataFeature.#geometryPaths` uses O(n²) `reduce(concat)` (`DataFeature.ts:375`) — becomes
   `.flat()` once `lib` is raised in Phase 1.
+- **There is no way to read back the element a `Map` was built with.** `#element`
+  (`Map.ts:145`) has no public accessor — it is only used internally at `:1868`, `:2230`,
+  `:2299` and `:2322`. `getDiv()` (`Map.ts:1363-1368`) looks like the accessor but is not: it
+  returns the **Google** map's div, and `undefined` until the map has actually rendered. So
+  `map.getDiv()` on a configured-but-unrendered map returns nothing, and the element/selector
+  forms are indistinguishable from outside. Noted because it cost a wrong assumption while
+  writing `test/Map.test.ts`, and an `getElement()` accessor would be additive and cheap.
 
 ---
 
