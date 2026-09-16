@@ -6583,6 +6583,7 @@ type GMMarkerOptions = {
     optimized?: boolean;
     position?: LatLng;
     title?: string;
+    visible?: boolean;
 };
 type MarkerOptions = GMMarkerOptions & {
     anchorPoint?: PointValue;
@@ -6730,6 +6731,18 @@ declare class Marker extends Layer {
      * @param {string} value The title for the marker
      */
     set title(value: string);
+    /**
+     * Get whether the marker is visible on the map
+     *
+     * @returns {boolean | undefined} Undefined if it hasn't been set, which means visible
+     */
+    get visible(): boolean | undefined;
+    /**
+     * Set whether the marker is visible on the map
+     *
+     * @param {boolean} value Whether the marker is visible on the map
+     */
+    set visible(value: boolean);
     /**
      * Disable dragging for this marker
      *
@@ -7137,6 +7150,16 @@ declare class Marker extends Layer {
      * @returns {Marker}
      */
     setTitleSync(value: string): Marker;
+    /**
+     * Set whether the marker is visible on the map.
+     *
+     * A marker that isn't visible isn't drawn, so nothing is created on the Google map for it
+     * until it's shown. Setting it to visible draws it if it was waiting to be drawn.
+     *
+     * @param {boolean} visible Whether the marker is visible on the map
+     * @returns {Marker}
+     */
+    setVisible(visible: boolean): Marker;
     /**
      * Adds the marker to the map object
      *

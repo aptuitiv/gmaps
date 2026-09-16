@@ -1281,24 +1281,38 @@ var point = (x, y) => new Point(x, y);
 
 // src/lib/Evented.ts
 var Evented = class extends Base_default {
+  /*
+   * The containers below are only created when something is actually put in them.
+   *
+   * Every Marker, Polyline, Overlay, Popup, Tooltip, InfoWindow, DataFeature, Map and
+   * DataLayer extends this class. Creating these up front meant four objects per instance
+   * whether or not it ever had a listener, which is around 80,000 objects for a map with
+   * 20,000 markers, most of them empty for the life of the page.
+   *
+   * Reads use optional chaining and writes create the container first, so an object that
+   * never has a listener never allocates any of them.
+   */
   /**
    * Holds the events that have been called
+   *
+   * @private
+   * @type {object|undefined}
    */
-  #eventsCalled = {};
+  #eventsCalled;
   /**
    * Holds the event listeners
    *
    * @private
-   * @type {EventListeners}
+   * @type {EventListeners|undefined}
    */
-  #eventListeners = {};
+  #eventListeners;
   /**
    * Holds the event listeners that are set to only be called once
    *
    * @private
-   * @type {string[]}
+   * @type {string[]|undefined}
    */
-  #onlyEventListeners = [];
+  #onlyEventListeners;
   /**
    * Holds the Google maps object that events are set up on
    *
@@ -1318,14 +1332,14 @@ var Evented = class extends Base_default {
    * @private
    * @type {object}
    */
-  #googleListeners = {};
+  #googleListeners;
   /**
    * Holds the event listeners that are waiting to be added once the Google Maps object is set
    *
    * @private
    * @type {PendingEvents}
    */
-  #pendingMapObjectEventListeners = {};
+  #pendingMapObjectEventListeners;
   /**
    * The object that needs Google maps. This should be the name of the object that extends this class.
    *
@@ -1368,12 +1382,9 @@ var Evented = class extends Base_default {
    * @returns {Evented}
    */
   dispatch(event, data) {
-    this.#eventsCalled[event] = true;
-    if (!this.hasListener(event)) {
-      return this;
-    }
-    const listeners = this.#eventListeners[event];
-    if (listeners) {
+    (this.#eventsCalled ??= {})[event] = true;
+    const listeners = this.#eventListeners?.[event];
+    if (listeners && listeners.length > 0) {
       let eventData = {
         type: event
       };
@@ -1427,13 +1438,14 @@ var Evented = class extends Base_default {
    * @returns {boolean}
    */
   hasListener(type, callback) {
-    if (!this.#eventListeners[type]) {
+    const listeners = this.#eventListeners?.[type];
+    if (!listeners || listeners.length === 0) {
       return false;
     }
     if (typeof callback === "function") {
-      return this.#eventListeners[type].some((event) => event.callback === callback);
+      return listeners.some((event) => event.callback === callback);
     }
-    return this.#eventListeners[type] && this.#eventListeners[type].length > 0;
+    return true;
   }
   /**
    * Removes the event listener
@@ -1454,9 +1466,10 @@ var Evented = class extends Base_default {
    */
   off(type, callback, options) {
     if (isString(type)) {
-      if (this.#eventListeners[type]) {
+      const eventListeners = this.#eventListeners;
+      if (eventListeners && eventListeners[type]) {
         if (isFunction(callback)) {
-          this.#eventListeners[type] = this.#eventListeners[type].filter((listener) => {
+          eventListeners[type] = eventListeners[type].filter((listener) => {
             let keep = true;
             if (isObject(options)) {
               keep = listener.callback !== callback || !objectEquals(options, listener.options);
@@ -1466,7 +1479,7 @@ var Evented = class extends Base_default {
             return keep;
           });
         } else {
-          this.#eventListeners[type] = [];
+          eventListeners[type] = [];
         }
         this.#afterListenersRemoved(type);
       }
@@ -1481,15 +1494,18 @@ var Evented = class extends Base_default {
    * @param {string} type The event type
    */
   #afterListenersRemoved(type) {
-    const index = this.#onlyEventListeners.indexOf(type);
-    if (index > -1) {
-      this.#onlyEventListeners.splice(index, 1);
+    const onlyEventListeners = this.#onlyEventListeners;
+    if (onlyEventListeners) {
+      const index = onlyEventListeners.indexOf(type);
+      if (index > -1) {
+        onlyEventListeners.splice(index, 1);
+      }
     }
-    if (this.#eventListeners[type].length === 0) {
-      const googleListener = this.#googleListeners[type];
-      if (googleListener) {
-        googleListener.remove();
-        delete this.#googleListeners[type];
+    if ((this.#eventListeners?.[type]?.length ?? 0) === 0) {
+      const googleListeners = this.#googleListeners;
+      if (googleListeners && googleListeners[type]) {
+        googleListeners[type].remove();
+        delete googleListeners[type];
       }
     }
   }
@@ -1508,9 +1524,10 @@ var Evented = class extends Base_default {
    * @param {EventListenerData[]} listeners The listeners that were called
    */
   removeCalledOnceListeners(type, listeners) {
-    if (this.#eventListeners[type]) {
+    const eventListeners = this.#eventListeners;
+    if (eventListeners && eventListeners[type]) {
       const toRemove = new Set(listeners);
-      this.#eventListeners[type] = this.#eventListeners[type].filter((listener) => !toRemove.has(listener));
+      eventListeners[type] = eventListeners[type].filter((listener) => !toRemove.has(listener));
       this.#afterListenersRemoved(type);
     }
   }
@@ -1518,13 +1535,16 @@ var Evented = class extends Base_default {
    * Removes all event listeners
    */
   offAll() {
-    this.#eventListeners = {};
-    this.#onlyEventListeners = [];
-    this.#pendingMapObjectEventListeners = {};
-    Object.keys(this.#googleListeners).forEach((type) => {
-      this.#googleListeners[type].remove();
-    });
-    this.#googleListeners = {};
+    this.#eventListeners = void 0;
+    this.#onlyEventListeners = void 0;
+    this.#pendingMapObjectEventListeners = void 0;
+    const googleListeners = this.#googleListeners;
+    if (googleListeners) {
+      Object.keys(googleListeners).forEach((type) => {
+        googleListeners[type].remove();
+      });
+      this.#googleListeners = void 0;
+    }
   }
   /**
    * Add an event listener to the object
@@ -1623,12 +1643,14 @@ var Evented = class extends Base_default {
    */
   #on(type, callback, config) {
     if (isFunction(callback)) {
-      if (!Array.isArray(this.#eventListeners[type]) || this.#eventListeners[type].length === 0) {
+      const existingListeners = this.#eventListeners?.[type];
+      if (!existingListeners || existingListeners.length === 0) {
         let setupPending = false;
         if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
           if (this.#isGoogleObjectSet()) {
-            if (!this.#googleListeners[type]) {
-              this.#googleListeners[type] = this.#googleObject.addListener(
+            const googleListeners = this.#googleListeners ??= {};
+            if (!googleListeners[type]) {
+              googleListeners[type] = this.#googleObject.addListener(
                 type,
                 (e) => {
                   this.dispatch(type, e);
@@ -1642,16 +1664,15 @@ var Evented = class extends Base_default {
           setupPending = true;
         }
         if (setupPending) {
-          if (!this.#pendingMapObjectEventListeners[type]) {
-            this.#pendingMapObjectEventListeners[type] = [];
-          }
-          this.#pendingMapObjectEventListeners[type].push({ callback, config });
+          const pending = this.#pendingMapObjectEventListeners ??= {};
+          pending[type] ??= [];
+          pending[type].push({ callback, config });
         }
       }
       let addListener = true;
       const listenerOptions = {};
       let context;
-      if (this.#onlyEventListeners.includes(type)) {
+      if (this.#onlyEventListeners?.includes(type)) {
         addListener = false;
       }
       if (addListener && isObjectWithValues(config)) {
@@ -1659,7 +1680,7 @@ var Evented = class extends Base_default {
           listenerOptions.once = true;
         }
         if (typeof config.only === "boolean" && config.only === true) {
-          this.#onlyEventListeners.push(type);
+          (this.#onlyEventListeners ??= []).push(type);
           if (this.hasListener(type)) {
             addListener = false;
           }
@@ -1671,7 +1692,7 @@ var Evented = class extends Base_default {
           }
         }
         if (typeof config.callImmediate === "boolean" && config.callImmediate === true) {
-          if (typeof this.#eventsCalled[type] !== "undefined") {
+          if (typeof this.#eventsCalled?.[type] !== "undefined") {
             if (typeof config.once === "boolean" && config.once === true) {
               addListener = false;
             }
@@ -1682,10 +1703,9 @@ var Evented = class extends Base_default {
         }
       }
       if (addListener) {
-        if (!this.#eventListeners[type]) {
-          this.#eventListeners[type] = [];
-        }
-        this.#eventListeners[type].push({ callback, context, options: listenerOptions });
+        const eventListeners = this.#eventListeners ??= {};
+        eventListeners[type] ??= [];
+        eventListeners[type].push({ callback, context, options: listenerOptions });
       }
     } else {
       throw new Error(`The "${type}" event handler needs a callback function`);
@@ -1704,10 +1724,12 @@ var Evented = class extends Base_default {
    */
   setEventGoogleObject(googleObject) {
     this.#googleObject = googleObject;
-    if (isObject(this.#pendingMapObjectEventListeners)) {
-      Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
-        if (!this.#googleListeners[type]) {
-          this.#googleListeners[type] = this.#googleObject.addListener(
+    const pending = this.#pendingMapObjectEventListeners;
+    if (pending) {
+      const googleListeners = this.#googleListeners ??= {};
+      Object.keys(pending).forEach((type) => {
+        if (!googleListeners[type]) {
+          googleListeners[type] = this.#googleObject.addListener(
             type,
             (e) => {
               this.dispatch(type, e);
@@ -1715,7 +1737,7 @@ var Evented = class extends Base_default {
           );
         }
       });
-      this.#pendingMapObjectEventListeners = {};
+      this.#pendingMapObjectEventListeners = void 0;
     }
   }
   /**
@@ -4955,7 +4977,7 @@ var Size = class _Size extends Base_default {
     } else if (isNumber(height)) {
       this.#height = height;
     }
-    if (isObject(this.#sizeObject)) {
+    if (this.#sizeObject !== void 0) {
       this.#sizeObject.height = this.#height;
     }
   }
@@ -4978,7 +5000,7 @@ var Size = class _Size extends Base_default {
     } else if (isNumber(width)) {
       this.#width = width;
     }
-    if (isObject(this.#sizeObject)) {
+    if (this.#sizeObject !== void 0) {
       this.#sizeObject.width = this.#width;
     }
   }
@@ -5074,7 +5096,7 @@ var Size = class _Size extends Base_default {
    */
   toGoogle() {
     if (checkForGoogleMaps("Size", "Size")) {
-      if (!isObject(this.#sizeObject)) {
+      if (this.#sizeObject === void 0) {
         this.#sizeObject = new google.maps.Size(this.#width, this.#height);
       }
       return this.#sizeObject;
@@ -10176,6 +10198,7 @@ var dataLayer = (options) => {
 // src/lib/Marker.ts
 var STRING_OPTIONS3 = ["cursor"];
 var GOOGLE_OPTIONS_TO_SET = ["cursor", "title"];
+var RESOLVED = Promise.resolve();
 var Marker = class extends Layer_default {
   /**
    * Holds any custom data to attach to the marker object
@@ -10191,6 +10214,17 @@ var Marker = class extends Layer_default {
    * @type {boolean}
    */
   #drag = false;
+  /**
+   * Holds whether the marker was hidden when it was added to the map, so the Google marker
+   * hasn't been created yet.
+   *
+   * A marker that isn't visible isn't drawn, so nothing is created for it until it's first
+   * shown. This saves the work for markers that start out hidden, like ones a filter leaves out.
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isCreationDeferred = false;
   /**
    * Holds if the marker is setting up
    *
@@ -10414,6 +10448,22 @@ var Marker = class extends Layer_default {
     this.setTitle(value);
   }
   /**
+   * Get whether the marker is visible on the map
+   *
+   * @returns {boolean | undefined} Undefined if it hasn't been set, which means visible
+   */
+  get visible() {
+    return this.#options.visible;
+  }
+  /**
+   * Set whether the marker is visible on the map
+   *
+   * @param {boolean} value Whether the marker is visible on the map
+   */
+  set visible(value) {
+    this.setVisible(value);
+  }
+  /**
    * Disable dragging for this marker
    *
    * @returns {Promise<Marker>}
@@ -10508,9 +10558,12 @@ var Marker = class extends Layer_default {
    */
   init() {
     return new Promise((resolve) => {
-      this.#setupGoogleMarker().then(() => {
+      if (isObject(this.#marker)) {
         resolve();
-      });
+        return;
+      }
+      this.#dispatchReady();
+      resolve();
     });
   }
   /**
@@ -10968,6 +11021,12 @@ var Marker = class extends Layer_default {
    * @returns {Promise<Marker>}
    */
   async setMap(map2) {
+    if (isNullOrUndefined(map2) && !isObject(this.#marker)) {
+      this.#isCreationDeferred = false;
+      this.#options.map = null;
+      super.setMap(null);
+      return this;
+    }
     await this.#setupGoogleMarker(map2 ?? void 0);
     this.#setMap(map2);
     return this;
@@ -11135,17 +11194,28 @@ var Marker = class extends Layer_default {
       }
       this.attachTooltip(tooltip2);
     } else if (options.title) {
-      this.title = options.title;
+      this.#options.title = options.title;
+      if (this.#marker) {
+        this.title = options.title;
+      }
     }
     STRING_OPTIONS3.forEach((key) => {
       if (options[key] && isStringWithValue(options[key])) {
         this.#options[key] = options[key];
       }
     });
+    if (isBoolean(options.visible)) {
+      this.#options.visible = options.visible;
+      this.isVisible = options.visible;
+    }
     if (options.map) {
       this.#options.map = options.map;
       super.setMap(options.map);
-      if (this.#marker) {
+      if (this.#options.visible === false) {
+        this.isVisible = false;
+        this.#isCreationDeferred = true;
+        this.#dispatchReady();
+      } else {
         this.setMap(options.map);
       }
     }
@@ -11239,6 +11309,33 @@ var Marker = class extends Layer_default {
     this.#marker.setTitle(this.#options.title);
   }
   /**
+   * Set whether the marker is visible on the map.
+   *
+   * A marker that isn't visible isn't drawn, so nothing is created on the Google map for it
+   * until it's shown. Setting it to visible draws it if it was waiting to be drawn.
+   *
+   * @param {boolean} visible Whether the marker is visible on the map
+   * @returns {Marker}
+   */
+  setVisible(visible) {
+    if (isBoolean(visible)) {
+      this.#options.visible = visible;
+      this.isVisible = visible;
+      if (visible && this.#isCreationDeferred) {
+        this.#isCreationDeferred = false;
+        const { map: map2 } = this.#options;
+        this.#setupGoogleMarker(map2 ?? void 0).then(() => {
+          if (map2 && this.#options.map === map2 && this.#marker) {
+            this.#marker.setMap(map2.toGoogle() ?? null);
+          }
+        });
+      } else if (this.#marker) {
+        this.#marker.setVisible(visible);
+      }
+    }
+    return this;
+  }
+  /**
    * Adds the marker to the map object
    *
    * Alternate of setMap()
@@ -11286,6 +11383,9 @@ var Marker = class extends Layer_default {
    * @returns {Promise<void>}
    */
   #setupGoogleMarker(map2) {
+    if (isObject(this.#marker)) {
+      return RESOLVED;
+    }
     return new Promise((resolve) => {
       if (!this.#isSettingUp && !isObject(this.#marker)) {
         this.#isSettingUp = true;
