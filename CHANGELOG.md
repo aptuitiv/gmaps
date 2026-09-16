@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Added the `preventPageZoom` map option, which keeps a pinch on the map from zooming the whole page on iOS. It defaults to true. iOS ignores `user-scalable=no` in the viewport tag, so the gesture events that Safari fires on the map element are canceled instead. The map still zooms because the Google Maps API handles the pinch itself, and only the map element is covered so that the rest of the page can still be zoomed. Other browsers don't fire these events. It's also available as the `preventPageZoom` property so that it can be changed after the map has been rendered.
 - Added the `DataLayer` class and the `dataLayer()` function to work with the [Google maps data layer](https://developers.google.com/maps/documentation/javascript/datalayer). It can either wrap the map's own data layer or be a separate layer of its own.
 - Added the `DataFeature` class to represent a single feature within a data layer. It extends `Layer` so tooltips and popups can be attached to a feature.
 - Added `map.data` to get the map's own data layer. The layer is created the first time it's used and the same object is returned after that.

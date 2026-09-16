@@ -130,6 +130,7 @@ MapOptions is an object containing the configuration options for the Map object.
 | minFitBoundsZoom | number \| null | | The minimum zoom level to use when fitting the map to a set of bounds. |
 | minZoom | number \| null | | The minimum zoom level for the map. |
 | noClear | boolean | false | Whether to clear the contents of the map div. If true, then the map div contents will not be cleared. [Details](https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.noClear) |
+| preventPageZoom | boolean | true | Whether to keep a pinch on the map from zooming the whole page on iOS. The map still zooms because the Google Maps API handles the pinch itself. Only the map element is covered so that the rest of the page can still be zoomed. Other browsers are not affected. See [preventPageZoom](#preventpagezoom). |
 | renderingType | [G.RenderingType](/api-reference/constants#renderingtype) | G.RenderingType.RASTER | The rendering type for the map. This sets if it should be a raster or vector map. |
 | restriction | [MapRestrictionValue](/api-reference/map-configuration/map-restriction#maprestriction-value-type) | | The boundry to restrict the map to. When set the user can only pan and zoom within this latitude/longitude bounds. |
 | rotateControl | boolean \| [RotateControl](/api-reference/map-controls/rotate-control) | true | Whether to display the [Rotate control](https://developers.google.com/maps/documentation/javascript/controls) on the map, or the RotateControl object to configure the Rotate control. |
@@ -216,6 +217,7 @@ You can use the plain text name for the event, or you can use the [event constan
 | maxZoom | number \| null | The maximum zoom level for the map. |
 | minFitBoundsZoom | number \| null | The minimum zoom level to use when fitting the map to a set of bounds. |
 | minZoom | number \| null | The minimum zoom level for the map. |
+| preventPageZoom | boolean | Whether a pinch on the map is kept from zooming the whole page on iOS. |
 | restriction | [MapRestriction](/api-reference/map-configuration/map-restriction) \| undefined | The boundry to restrict the map to. When set the user can only pan and zoom within this latitude/longitude bounds. When setting, any [MapRestrictionValue](/api-reference/map-configuration/map-restriction#maprestriction-value-type) can be used. |
 | rotateControl | boolean \| [RotateControl](/api-reference/map-controls/rotate-control) | Whether to display the [Rotate control](https://developers.google.com/maps/documentation/javascript/controls) on the map, or the RotateControl object to configure the Rotate control. |
 | scaleControl | boolean \| [ScaleControl](/api-reference/map-controls/scale-control) | Whether to display the [Scale control](https://developers.google.com/maps/documentation/javascript/controls) on the map, or the ScaleControl object to configure the Scale control. |
@@ -492,6 +494,22 @@ const minZoom = map.minZoom;
 
 ```js
 map.minZoom = 12;
+```
+
+### preventPageZoom
+
+Get and set whether a pinch on the map is kept from zooming the whole page on iOS. Defaults to `true`.
+
+iOS ignores `user-scalable=no` in the viewport tag, so there's no way to stop the page from zooming with the viewport tag alone. Instead, the gesture events that Safari fires on the map element are canceled. The map still zooms because the Google Maps API handles the pinch itself.
+
+Only the map element is covered, so the rest of the page can still be zoomed by people who need to. Other browsers don't fire these events, so this has no effect in them.
+
+```js
+const preventPageZoom = map.preventPageZoom;
+```
+
+```js
+map.preventPageZoom = false;
 ```
 
 ### restriction
