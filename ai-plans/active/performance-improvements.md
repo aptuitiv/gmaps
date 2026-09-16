@@ -749,6 +749,37 @@ numbers into this plan. Every later "X% faster" claim is measured against it.
 
 ### Phase 1 — Free wins, zero API risk
 
+**Status: in progress, started 2026-09-16.** Done so far:
+
+| Item | State |
+|---|---|
+| C-1 delete the dead `Evented` fields | **Was already done** before Phase 1 started — nothing to do |
+| C-9 `hasListener()` → `.some()` | **Done** |
+| C-10 simplify the per-listener `once` check | **Done** — `#on()` always sets `options`, so the `undefined`/`isObject` tests were dead |
+| C-11 lazy `listenersToRemove` | **Done** |
+| Hoist constant option arrays | **Done** — `Icon`, `SvgSymbol`, `Marker` (×2), `AdvancedMarker` |
+| O-5 Popup theme guard | **Done** — `#isThemeApplied` + `#applyTheme()`, mirroring `Tooltip`, with the theme setter resetting it |
+| O-6 bind Popup close handlers once | **Done** — `#areCloseHandlersBound`, reset by the content setter since new content replaces the children |
+| O-4 hoist the `OverlayView` class | **Done** — built once into a module-level variable, still lazily after Google loads |
+| O-8 dirty check in `Overlay.style()` | **Done** |
+| Polyline `performance.now()` behind the debug guard, `EMPTY_COORDS` hoisted | **Done** |
+| M-12 remove `console.log` from hot paths | **Done** — and see below |
+| Build: drop the eslint plugin from the second entry | **Done** |
+| Build: raise `lib` to `es2022` | **Done**, with a note that some ES2022 built-ins need newer browsers than the target |
+
+**More logging than the audits found.** M-12 listed `AdvancedMarker` only. `Map` also had four
+live `console.log` calls in the `preventPageZoom` path (`#setupPreventPageZoom` and
+`setOptions`), which ran on every map setup. Those are removed too.
+
+**A dead branch removed with it.** `AdvancedMarker.on()` had a `mouseenter` branch that added two
+listeners which only logged and **never called the callback that was passed in**, so
+`on('mouseenter', fn)` silently did nothing. Removing the logging would have left a branch that
+swallows the callback, so `mouseenter` now goes through the normal `super.on()` path.
+
+Still to do in this phase: nothing — but re-verify with `npm test`, `tsc --noEmit` and
+`npx eslint ./src` before moving on, and note that two Popup tests were updated because the
+§6.4 fix deliberately turned them red.
+
 Mechanical, no behavior change, no discussion needed.
 
 1. Delete the two dead `Evented` fields (C-1).
