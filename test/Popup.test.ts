@@ -3,10 +3,11 @@
 /* ===========================================================================
     Tests for the Popup class and the attachPopup mixin.
 
-    The centrepiece is section 6.4. Tooltip was given an #isThemeApplied guard so that its
-    theme styles are written once instead of on every frame. Popup never got the same fix:
-    its draw() rebuilds the theme object and re-applies all five styles every time it runs,
-    and draw() runs on every frame of every pan and zoom while a popup is open.
+    The centrepiece is section 6.4, fixed in Phase 1. Tooltip had an #isThemeApplied guard so
+    that its theme styles are written once instead of on every frame; Popup did not, so its
+    draw() rebuilt the theme object and re-applied all five styles every time it ran - on every
+    frame of every pan and zoom while a popup was open. Popup now has the same guard, and these
+    tests hold it in place.
 
     draw() takes the projection as a parameter, so it can be called directly with a fake one.
     That makes the per-frame work observable rather than something to take on trust.
@@ -139,8 +140,9 @@ describe('Popup', () => {
         });
     });
 
-    // Section 6.4.
-    describe('the theme is re-applied on every draw (6.4)', () => {
+    // Section 6.4, now fixed in Phase 1. Popup was given the same #isThemeApplied guard that
+    // Tooltip already had, so the theme styles are written once instead of on every frame.
+    describe('the theme is applied once, not on every draw (6.4)', () => {
         /**
          * Record the style names written during one draw
          *
@@ -155,18 +157,27 @@ describe('Popup', () => {
             return names;
         };
 
-        it('writes the five theme styles again on the second draw', () => {
+        it('writes the theme styles on the first draw', () => {
+            const p = popup({ content: 'x', theme: 'default' });
+            p.setPosition([1, 2]);
+
+            const first = styleNamesForOneDraw(p);
+
+            expect(first).toEqual(expect.arrayContaining(['backgroundColor', 'color', 'padding', 'borderRadius']));
+        });
+
+        it('does not write them again on the second draw', () => {
             const p = popup({ content: 'x', theme: 'default' });
             p.setPosition([1, 2]);
 
             styleNamesForOneDraw(p);
             const second = styleNamesForOneDraw(p);
 
-            // Every theme style is written again, although nothing about it changed
-            expect(second).toEqual(expect.arrayContaining(['backgroundColor', 'color', 'padding', 'borderRadius']));
+            // Only the position and transform are left, which is the point of the fix
+            expect(second).not.toContain('backgroundColor');
         });
 
-        it('keeps writing them on every draw after that', () => {
+        it('stops writing them on every draw after that', () => {
             const p = popup({ content: 'x', theme: 'default' });
             p.setPosition([1, 2]);
 
@@ -174,10 +185,38 @@ describe('Popup', () => {
             p.draw(fakeProjection());
             const fifth = styleNamesForOneDraw(p);
 
-            expect(fifth).toContain('backgroundColor');
+            expect(fifth).not.toContain('backgroundColor');
         });
 
-        // Tooltip has the guard that Popup is missing. This is the fix to copy.
+        // Applying once does not mean the styles go away. They stay on the element, so a later
+        // draw has nothing to do - #applyTheme() only writes keys that aren't set yet, and
+        // style() now skips a write when the value hasn't changed.
+        it('leaves the theme styles on the element after later draws', () => {
+            const p = popup({ content: 'x', theme: 'default' });
+            p.setPosition([1, 2]);
+
+            p.draw(fakeProjection());
+            p.draw(fakeProjection());
+            p.draw(fakeProjection());
+
+            expect(p.getOverlayElement().style.backgroundColor).toBe('rgb(255, 255, 255)');
+            expect(p.styles).toMatchObject({ backgroundColor: '#fff', padding: '3px 6px' });
+        });
+
+        // The precedence rule that #applyTheme() has to keep: a style the caller set explicitly
+        // is never overwritten by the theme.
+        it('lets a custom style win over the theme', () => {
+            const p = popup({ content: 'x', theme: 'default', styles: { backgroundColor: 'red' } });
+            p.setPosition([1, 2]);
+
+            p.draw(fakeProjection());
+
+            expect(p.styles).toMatchObject({ backgroundColor: 'red' });
+            // The rest of the theme is still applied around it
+            expect(p.styles).toMatchObject({ padding: '3px 6px' });
+        });
+
+        // Tooltip had this guard first; Popup now matches it.
         it('Tooltip writes them on the first draw only', () => {
             const t = tooltip('x');
             t.setPosition([1, 2]);
