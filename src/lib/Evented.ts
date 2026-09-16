@@ -210,23 +210,25 @@ export class Evented extends Base {
                 }
             }
 
-            const listenersToRemove: EventListenerData[] = [];
+            // Only created if a "once" listener is actually found. Most events don't have any,
+            // and dispatch runs for every event on every object, so the array isn't worth
+            // allocating up front.
+            let listenersToRemove: EventListenerData[] | undefined;
             // Call the callback functions
             listeners.forEach((listener) => {
                 listener.callback.call(listener.context || this, eventData);
-                // If the event listener is set to be called once then add it to the list of listeners to remove
-                if (
-                    typeof listener.options !== 'undefined' &&
-                    isObject(listener.options) &&
-                    typeof listener.options.once === 'boolean' &&
-                    listener.options.once === true
-                ) {
+                // If the event listener is set to be called once then add it to the list of listeners to remove.
+                // #on() always sets the options object, so it's never undefined and never a non-object.
+                if (listener.options.once === true) {
+                    if (!listenersToRemove) {
+                        listenersToRemove = [];
+                    }
                     listenersToRemove.push(listener);
                 }
             });
 
             // Remove the listeners that are set to be called once
-            if (listenersToRemove.length > 0) {
+            if (listenersToRemove) {
                 this.removeCalledOnceListeners(event, listenersToRemove);
             }
         }
