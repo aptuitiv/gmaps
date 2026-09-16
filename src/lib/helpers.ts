@@ -274,8 +274,10 @@ export const getSizeWithUnit = (
             }
         }
         if (pass) {
-            // Remove theunits from the value
-            const val = parseFloat((value as string).replace(`${allowedUnits.join('|')}/g`, ''));
+            // parseFloat reads the number from the front of the string and stops at the unit,
+            // so "50px" and "50%" both give 50. This used to call replace() with the string
+            // "%|px/g" as the pattern, which matched nothing and did nothing.
+            const val = parseFloat(value as string);
             if (val >= 0) {
                 returnValue = value;
             }
