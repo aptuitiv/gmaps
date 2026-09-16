@@ -160,7 +160,13 @@ export const getBoolean = (thing: any): boolean => {
  * @returns {boolean}
  */
 export const isObject = <T = object>(thing: any): thing is T =>
-    Object.prototype.toString.call(thing) === '[object Object]';
+    // The typeof test costs almost nothing and rules out every primitive, which is most of what
+    // this is called with - option arguments that weren't passed, strings, numbers, functions.
+    // Only a value that could actually be an object reaches the slower toString call.
+    //
+    // The answers are exactly the same as before. Arrays, null, Date, Map and Set are all still
+    // not objects by this test, which a plain typeof check would have got wrong.
+    typeof thing === 'object' && thing !== null && Object.prototype.toString.call(thing) === '[object Object]';
 
 /**
  * Returns if the value is an object
@@ -171,7 +177,9 @@ export const isObject = <T = object>(thing: any): thing is T =>
  * @returns {boolean}
  */
 export const isObjectWithValues = <T = object>(thing: any): thing is T =>
-    Object.prototype.toString.call(thing) === '[object Object]' && Object.keys(thing).length > 0;
+    // Reuses isObject so that the cheap typeof test runs first and the keys are only listed for
+    // something that is actually an object
+    isObject(thing) && Object.keys(thing).length > 0;
 
 /**
  * Returns if the thing is a Promise function
