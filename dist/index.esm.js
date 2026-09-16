@@ -16632,13 +16632,12 @@ var Polyline = class _Polyline extends Layer_default {
    */
   init() {
     return new Promise((resolve) => {
-      if (this.#isCreationDeferred) {
+      if (this.#polyline) {
         resolve();
         return;
       }
-      this.#setupGooglePolyline().then(() => {
-        resolve();
-      });
+      this.#dispatchReady();
+      resolve();
     });
   }
   /**
