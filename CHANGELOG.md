@@ -42,6 +42,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Improved the performance of removing event listeners that are only called once. They're now all removed in one pass instead of searching the whole list of listeners for each one. This is noticeable when a lot of markers or polylines are waiting for the map to be ready.
 - A polyline that is hidden waits until it's shown again before updating the path it draws when the simplify tolerance changes. This saves work when polylines are hidden with `PolylineCollection.hide()` and the zoom level changes.
 - The polyline `setOptions()` method sets the path before the map so that the path is only prepared once when the polyline is created.
+- Changed how a polyline holds its path. The latitude and longitude of each point are held as plain numbers instead of a `LatLng` object for every point. The points that are drawn are built straight from those numbers, so a path that is only drawn doesn't create any objects. For 1,400 polylines holding 2.5 million points, the path data went from about 260MB to about 40MB, roughly 106 bytes per point down to 17, and they were built about three times faster. The `path` property still returns `LatLng` objects. They're created the first time the property is read.
+- Changing the array returned by the polyline `path` property no longer changes the polyline. The array used to be the one the polyline stored its path in. Use the `path` property or `setPath()` to change the path.
+- The `simplifyPath()` helper always returns new `LatLng` objects. It used to return any `LatLng` objects that were passed to it as they were.
 
 ### Fixed
 

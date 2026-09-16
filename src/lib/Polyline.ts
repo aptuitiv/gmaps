@@ -16,7 +16,7 @@ import Layer from './Layer';
 import { loader } from './Loader';
 import { Map } from './Map';
 import { polylineIcon, PolylineIcon, PolylineIconValue } from './PolylineIcon';
-import { DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, simplifyPath } from './simplifyPath';
+import { coordsFromPath, DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, simplifyCoords } from './simplifyPath';
 import { svgSymbol } from './SvgSymbol';
 import { TooltipValue } from './Tooltip';
 import {
@@ -261,6 +261,31 @@ export class Polyline extends Layer {
      * @type {PolylineOptions}
      */
     #options: PolylineOptions = {};
+
+    /**
+     * Holds the path as the latitude and longitude of each point, one after the other.
+     *
+     * Plain numbers are held instead of LatLng objects because a path can have a lot of points.
+     * Two numbers use a small fraction of the memory that a LatLng object does, and the points that
+     * are drawn are created straight from these numbers.
+     *
+     * This array is never changed once it's set. It's replaced when the path changes, so it can be
+     * shared with the highlight polyline and with clones.
+     *
+     * @private
+     * @type {Float64Array|undefined}
+     */
+    #pathCoords: Float64Array | undefined;
+
+    /**
+     * Holds the LatLng objects for the path.
+     *
+     * These are only created if the path property is read, and they're thrown away when the path changes.
+     *
+     * @private
+     * @type {LatLng[]|undefined}
+     */
+    #pathObjects: LatLng[] | undefined;
 
     /**
      * Holds how far, in meters, the line drawn on the map can be from the original path when it's simplified.
@@ -609,12 +634,27 @@ export class Polyline extends Layer {
     /**
      * Get the path of the polyline.
      *
-     * The path is an array of LatLng values defining the path of the polyline.
+     * The path is an array of LatLng objects defining the path of the polyline.
+     *
+     * The path is held as plain numbers, so the LatLng objects are created the first time that this
+     * is read. Changing the returned array doesn't change the polyline. Use the path property or
+     * setPath() to change the path.
      *
      * @returns {LatLngValue[]|undefined}
      */
     get path(): LatLngValue[] | undefined {
-        return this.#options.path;
+        if (!this.#pathCoords) {
+            return undefined;
+        }
+        if (!this.#pathObjects) {
+            const coords = this.#pathCoords;
+            const points: LatLng[] = [];
+            for (let i = 0; i < coords.length; i += 2) {
+                points.push(latLng(coords[i], coords[i + 1]));
+            }
+            this.#pathObjects = points;
+        }
+        return this.#pathObjects;
     }
 
     /**
@@ -626,23 +666,7 @@ export class Polyline extends Layer {
      */
     set path(value: LatLngValue[]) {
         if (Array.isArray(value)) {
-            const paths: LatLng[] = [];
-            value.forEach((pathValue) => {
-                const position = latLng(pathValue);
-                if (position.isValid()) {
-                    paths.push(position);
-                }
-            });
-            this.#options.path = paths;
-            // The simplified paths that were kept are for the old path
-            this.#simplifiedPaths = {};
-            if (this.#polyline) {
-                this.#polyline.setPath(this.#getGooglePath());
-            }
-            // Keep the highlight polyline on the same path once it has one
-            if (this.#highlightPolyline && this.#highlightSetup) {
-                this.#highlightPolyline.path = paths;
-            }
+            this.#setPathCoords(coordsFromPath(value));
         }
     }
 
@@ -884,6 +908,10 @@ export class Polyline extends Layer {
         }
 
         clone.setOptions(this.#options);
+        // The path is shared as plain numbers so that LatLng objects aren't created for it
+        if (this.#pathCoords) {
+            clone.#setPathCoords(this.#pathCoords);
+        }
         clone.data = this.#customData;
         // The map may have been set in the options, or later with setMap(), or it may have been removed.
         // Make sure that the clone has the most recent map value.
@@ -1415,20 +1443,19 @@ export class Polyline extends Layer {
      */
     #getGooglePath(): google.maps.LatLng[] {
         const start = performance.now();
-        const path = this.#options.path ?? [];
+        const coords = this.#pathCoords ?? new Float64Array(0);
         const tolerance = this.#simplifyTolerance;
         // When the tolerance changes with the zoom level, keep each simplified path so that it isn't worked out again
         const useKeptPaths = tolerance > 0 && (this.#simplifyConfig?.zoom.length ?? 0) > 0;
         let googlePath = useKeptPaths ? this.#simplifiedPaths[tolerance] : undefined;
         const isKeptPath = typeof googlePath !== 'undefined';
         if (!googlePath) {
-            const points =
-                tolerance > 0
-                    ? simplifyPath(path, tolerance)
-                    : path.map((point) => (point instanceof LatLng ? point : latLng(point)));
-            googlePath = points
-                .map((point) => point.toGoogle())
-                .filter((point): point is google.maps.LatLng => point !== null);
+            // The path is held as plain numbers so the Google points are the only objects created for it
+            const drawCoords = tolerance > 0 ? simplifyCoords(coords, tolerance) : coords;
+            googlePath = [];
+            for (let i = 0; i < drawCoords.length; i += 2) {
+                googlePath.push(new google.maps.LatLng(drawCoords[i], drawCoords[i + 1]));
+            }
             if (useKeptPaths) {
                 this.#simplifiedPaths[tolerance] = googlePath;
             }
@@ -1447,6 +1474,29 @@ export class Polyline extends Layer {
 
         // Give Google a copy of a kept path so that the kept path can't be changed
         return isKeptPath || useKeptPaths ? googlePath.slice() : googlePath;
+    }
+
+    /**
+     * Set the path from the latitude and longitude of each point, one after the other.
+     *
+     * The array is used as it is and is never changed, so it can be shared with the highlight
+     * polyline and with clones.
+     *
+     * @private
+     * @param {Float64Array} coords The path as the latitude and longitude of each point
+     */
+    #setPathCoords(coords: Float64Array): void {
+        this.#pathCoords = coords;
+        // The LatLng objects and the simplified paths that were kept are for the old path
+        this.#pathObjects = undefined;
+        this.#simplifiedPaths = {};
+        if (this.#polyline) {
+            this.#polyline.setPath(this.#getGooglePath());
+        }
+        // Keep the highlight polyline on the same path once it has one
+        if (this.#highlightPolyline && this.#highlightSetup) {
+            this.#highlightPolyline.#setPathCoords(coords);
+        }
     }
 
     /**
@@ -1469,7 +1519,7 @@ export class Polyline extends Layer {
      * @param {string} detail Extra information to add to the end of the message
      */
     #logSimplify(drawnCount: number, detail: string): void {
-        const pathCount = this.#options.path?.length ?? 0;
+        const pathCount = this.#pathCoords ? this.#pathCoords.length / 2 : 0;
         if (!this.#isSimplifyDebug() || pathCount === 0) {
             return;
         }
@@ -1615,8 +1665,9 @@ export class Polyline extends Layer {
         if (!this.#highlightSetup) {
             // Draw the same simplified path as this polyline
             highlight.simplify = this.#simplifyTolerance;
-            if (this.path) {
-                highlight.path = this.path;
+            if (this.#pathCoords) {
+                // The path is shared as plain numbers so that a second set of objects isn't created for it
+                highlight.#setPathCoords(this.#pathCoords);
             }
             const map = this.getMap();
             const setup: Promise<unknown> = map ? highlight.setMap(map, false) : Promise.resolve();
