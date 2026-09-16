@@ -714,8 +714,20 @@ var getBoolean = (thing) => {
   }
   return false;
 };
-var isObject = (thing) => Object.prototype.toString.call(thing) === "[object Object]";
-var isObjectWithValues = (thing) => Object.prototype.toString.call(thing) === "[object Object]" && Object.keys(thing).length > 0;
+var isObject = (thing) => (
+  // The typeof test costs almost nothing and rules out every primitive, which is most of what
+  // this is called with - option arguments that weren't passed, strings, numbers, functions.
+  // Only a value that could actually be an object reaches the slower toString call.
+  //
+  // The answers are exactly the same as before. Arrays, null, Date, Map and Set are all still
+  // not objects by this test, which a plain typeof check would have got wrong.
+  typeof thing === "object" && thing !== null && Object.prototype.toString.call(thing) === "[object Object]"
+);
+var isObjectWithValues = (thing) => (
+  // Reuses isObject so that the cheap typeof test runs first and the keys are only listed for
+  // something that is actually an object
+  isObject(thing) && Object.keys(thing).length > 0
+);
 var isPromise = (thing) => !!thing && isFunction(thing.then);
 var getPixelsFromLatLng = (map2, position) => {
   const projection = map2.getProjection();
@@ -864,12 +876,6 @@ var LatLng = class _LatLng extends Base_default {
    */
   #longitude;
   /**
-   * Whether the latitude/longitude pair values have changed since the last time they were set
-   *
-   * @type {boolean}
-   */
-  #valuesChanged = false;
-  /**
    * Constructor
    *
    * @param {Latitude|LatLng|google.maps.LatLng} latitude The latitude value or the latitude/longitude pair
@@ -877,7 +883,10 @@ var LatLng = class _LatLng extends Base_default {
    */
   constructor(latitude, longitude) {
     super("latlng");
-    if (typeof latitude !== "undefined") {
+    if (isNumber(latitude) && isNumber(longitude)) {
+      this.#latitude = latitude;
+      this.#longitude = longitude;
+    } else if (typeof latitude !== "undefined") {
       this.set(latitude, longitude);
     }
   }
@@ -900,7 +909,7 @@ var LatLng = class _LatLng extends Base_default {
     } else if (isNumber(latitude)) {
       this.#latitude = latitude;
     }
-    this.#valuesChanged = true;
+    this.#latLngObject = void 0;
   }
   /**
    * Get the latitude value (shortened version of the latitude property)
@@ -937,7 +946,7 @@ var LatLng = class _LatLng extends Base_default {
     } else if (isNumber(longitude)) {
       this.#longitude = longitude;
     }
-    this.#valuesChanged = true;
+    this.#latLngObject = void 0;
   }
   /**
    * Get the longitude value (shortened version of the longitude property)
@@ -970,6 +979,9 @@ var LatLng = class _LatLng extends Base_default {
    * @returns {boolean}
    */
   equals(other) {
+    if (other instanceof _LatLng) {
+      return other.isValid() && this.latitude === other.latitude && this.longitude === other.longitude;
+    }
     let isEqual = false;
     const otherLatLng = new _LatLng(other);
     if (otherLatLng.isValid()) {
@@ -1068,9 +1080,8 @@ var LatLng = class _LatLng extends Base_default {
       );
     }
     checkForGoogleMaps("LatLng", "LatLng");
-    if (!isObject(this.#latLngObject) || this.#valuesChanged) {
+    if (this.#latLngObject === void 0) {
       this.#latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
-      this.#valuesChanged = false;
     }
     return this.#latLngObject;
   }
@@ -1127,7 +1138,10 @@ var Point = class _Point extends Base_default {
    */
   constructor(x, y) {
     super("point");
-    if (typeof x !== "undefined") {
+    if (isNumber(x) && isNumber(y)) {
+      this.#x = x;
+      this.#y = y;
+    } else if (typeof x !== "undefined") {
       this.set(x, y);
     }
   }
@@ -1150,7 +1164,7 @@ var Point = class _Point extends Base_default {
     } else if (isNumber(x)) {
       this.#x = x;
     }
-    if (isObject(this.#pointObject)) {
+    if (this.#pointObject !== void 0) {
       this.#pointObject.x = this.#x;
     }
   }
@@ -1173,7 +1187,7 @@ var Point = class _Point extends Base_default {
     } else if (isNumber(y)) {
       this.#y = y;
     }
-    if (isObject(this.#pointObject)) {
+    if (this.#pointObject !== void 0) {
       this.#pointObject.y = this.#y;
     }
   }
@@ -1391,7 +1405,7 @@ var Point = class _Point extends Base_default {
    */
   toGoogle() {
     checkForGoogleMaps("Point", "Point");
-    if (!isObject(this.#pointObject)) {
+    if (this.#pointObject === void 0) {
       this.#pointObject = new google.maps.Point(this.x, this.y);
     }
     return this.#pointObject;
@@ -5061,7 +5075,10 @@ var Size = class _Size extends Base_default {
     super("size");
     this.#height = 0;
     this.#width = 0;
-    if (typeof width !== "undefined") {
+    if (isNumber(width) && isNumber(height)) {
+      this.#width = width;
+      this.#height = height;
+    } else if (typeof width !== "undefined") {
       this.set(width, height);
     }
   }
