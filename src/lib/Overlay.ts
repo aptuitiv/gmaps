@@ -78,12 +78,16 @@ export class Overlay extends Layer {
     #isResizing: boolean = false;
 
     /**
-     * Holds the offset for the overlay
+     * Holds the offset for the overlay.
+     *
+     * This is undefined until an offset is set or read. The constructor used to set a 0,0
+     * offset, which allocated a Point for every overlay - and Tooltip and Popup both replace it
+     * with their own straight afterwards, so it was thrown away immediately.
      *
      * @private
-     * @type {Point}
+     * @type {Point|undefined}
      */
-    #offset!: Point;
+    #offset: Point | undefined;
 
     /**
      * Holds the overlay HTML element. This is the container element that the
@@ -184,8 +188,7 @@ export class Overlay extends Layer {
         this.#overlay.style.pointerEvents = 'auto';
         this.#overlay.style.zIndex = '1000';
 
-        // Set the default offset
-        this.setOffset([0, 0]);
+        // The default 0,0 offset is created by getOffset() if it's ever needed, rather than here
     }
 
     /**
@@ -447,6 +450,13 @@ export class Overlay extends Layer {
      * @returns {Point}
      */
     getOffset(): Point {
+        // Built on first use so that an overlay which never needs an offset never allocates one,
+        // and so that Tooltip and Popup don't pay for a default that they immediately replace.
+        // It isn't a shared instance because Point is mutable through its setters, and
+        // Object.freeze can't stop that - the values are held in #private fields, not properties.
+        if (this.#offset === undefined) {
+            this.#offset = point(0, 0);
+        }
         return this.#offset;
     }
 

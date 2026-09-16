@@ -67,14 +67,31 @@ describe('Overlay', () => {
         });
     });
 
-    // O-11. The base constructor sets a [0, 0] offset, which allocates a Point that
-    // subclasses (Tooltip, Popup) immediately replace with their own.
+    // O-11, fixed in Phase 3 Slice D. The base constructor used to set a [0, 0] offset, which
+    // allocated a Point for every overlay - and Tooltip and Popup both replace it with their own
+    // straight afterwards, so it was thrown away immediately. getOffset() now builds it on first
+    // read instead.
+    //
+    // It is deliberately NOT a shared instance: Point is mutable through its setters, and
+    // Object.freeze can't prevent that because the values live in #private fields rather than
+    // properties. Two overlays must never end up sharing one offset.
     describe('the default offset (O-11)', () => {
-        it('defaults to 0, 0', () => {
+        it('defaults to 0, 0 on first read', () => {
             const o = overlay();
             expect(o.offset.x).toBe(0);
             expect(o.offset.y).toBe(0);
             expect(o.getOffset()).toBe(o.offset);
+        });
+
+        it('gives each overlay its own offset object', () => {
+            const first = overlay();
+            const second = overlay();
+            expect(first.getOffset()).not.toBe(second.getOffset());
+
+            // Changing one must not move the other
+            first.setOffset([10, 20]);
+            expect(second.offset.x).toBe(0);
+            expect(second.offset.y).toBe(0);
         });
 
         it('can be replaced, and ignores an invalid value', () => {
