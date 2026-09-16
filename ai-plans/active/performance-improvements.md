@@ -1080,14 +1080,15 @@ and per-object allocation falls across the whole library.
 
 ### What is left, in one table
 
-Phases 0-3 are done. Phases 4-7 were re-examined on 2026-09-16 after those landed, and each item
-was re-tested against one question: **is this worth doing, and what is the evidence?** The phase
-numbers are unchanged so that references elsewhere in this plan still resolve.
+Phases 0-3 are done, and D-2 from Phase 4 landed on 2026-09-16. Phases 4-7 were re-examined on
+2026-09-16 after Phases 0-3 landed, and each item was re-tested against one question: **is this
+worth doing, and what is the evidence?** The phase numbers are unchanged so that references
+elsewhere in this plan still resolve.
 
 | Do now — no measurement needed | Phase | Why |
 |---|---|---|
 | D-8 geocode caching and dedupe | 7 | Costs **money**, not milliseconds |
-| D-2 data-layer coordinate conversion | 4 | Bad code, not slow code |
+| ~~D-2 data-layer coordinate conversion~~ **done 2026-09-16** | 4 | Bad code, not slow code |
 | B-1 `sideEffects` array (never `false`) | 7 | Measured: 100 KB pulled by one import |
 | P-1 skip Google wiring for internal events | 5 | Pure waste; a five-line guard |
 
@@ -1145,13 +1146,58 @@ run post-load — most of those twelve manual branches could go. That is a simpl
 correctness upside, which is the opposite trade from C-4. It touches public synchronous methods,
 so it needs its own decision.
 
-**Do now — D-2, on clarity grounds, no measurement needed.**
+**D-2 — DONE 2026-09-16, on clarity grounds. Not measured, and not claimed to be faster.**
 
-`DataLayer.#toPositions` is `path.map(latLng).filter(isValid).map(toGoogle)` — three intermediate
-arrays and two objects per point, when `google.maps.Data.LineString` accepts plain `{lat, lng}`
-literals and needs neither. `#toRings` builds a throwaway `LatLng` purely to *test* whether
-`paths[0]` is a position. This is bad code rather than slow code, and it would be worth fixing if
-it cost nothing at all.
+The problem as written: `DataLayer.#toPositions` was `path.map(latLng).filter(isValid).map(toGoogle)`
+— three intermediate arrays and two objects per point, when `google.maps.Data.LineString` accepts
+plain `{lat, lng}` literals and needs neither. `#toRings` built a throwaway `LatLng` purely to
+*test* whether `paths[0]` is a position. This was bad code rather than slow code.
+
+**The load-bearing check, done before any edit.** Dropping `toGoogle()` is only safe if Google
+takes literals. Verified in `node_modules/@types/google.maps/index.d.ts`: `Data.LinearRing` (7019)
+and `Data.LineString` (7048) both take `(google.maps.LatLng | google.maps.LatLngLiteral)[]`, and
+`Data.Polygon` (7194) takes `(LinearRing | (LatLng | LatLngLiteral)[])[]`.
+
+**What changed** (`src/lib/DataLayer.ts`):
+
+- `#toPositions` is a single `for` loop pushing `{lat: value.latitude, lng: value.longitude}`.
+  Returns `google.maps.LatLngLiteral[]`.
+- `#toRingPositions` now delegates to `#toPositions` and compares the first and last positions as
+  plain numbers instead of going through `LatLng.equals()`. The GeoJson closing-position drop is
+  unchanged in behavior.
+- `#toRings` replaces the throwaway-`LatLng` probe with a shape test: an array first element of
+  length 2 whose two values are numbers is a position, so the value is one ring; any other array
+  is an array of rings; a non-array can only be a position. Same answers as the old probe,
+  including for garbage input, without running `LatLng`'s type dispatch.
+
+**Two deliberate deviations from the item as written:**
+
+1. **`addPoint` still uses `toGoogle()`.** It converts one position per call, so there is nothing
+   to save, and changing it would only widen the diff. D-2's value is entirely in the per-point
+   loops.
+2. **`#toRingPositions` keeps its own identity** rather than being folded into `#toPositions`,
+   because only rings drop a repeated closing position.
+
+**Testing — this was untested code before this change.** `DataLayer` had no tests at all, and the
+stub had no `Data` namespace, so the change could not have been caught by anything. Both were
+fixed:
+
+- `test/support/googleMaps.ts` gained a `Data` stub extending `MVCObject` (required — `#setDataObject`
+  hands it to `setEventGoogleObject`), with `add`/`remove`/`contains`/`forEach`/`getFeatureById`/
+  `setStyle`/`overrideStyle`/`revertStyle`/`addGeoJson`/`loadGeoJson`/`toGeoJson`, a
+  `DataFeatureStub` with the property and geometry methods, and the geometry classes `Data.Point`,
+  `Data.LineString`, `Data.LinearRing` and `Data.Polygon` as recording statics. Adding the `Data`
+  key is also what makes `checkForGoogleMaps('DataLayer', 'Data', false)` pass, so a `dataLayer()`
+  with no options builds its Data object immediately and the tests need neither a map nor the loader.
+- `test/DataLayer.test.ts` — 15 tests asserting the *shape* handed to Google: literals not `LatLng`
+  objects, every accepted position form, invalid positions filtered, the GeoJson closing-position
+  drop, a ring that legitimately ends elsewhere, single-ring vs array-of-rings discrimination, and
+  both minimum-position errors. Two of them assert `mapsStats.countOf('LatLng') === 0` over 500-
+  and 300-point inputs, which is the actual regression guard: it goes red the moment anything
+  reintroduces a `google.maps.LatLng` per point.
+
+**Gates:** 463 tests pass (448 before, +15), `tsc --noEmit` exit 0, `eslint ./src` exit 0.
+Per §10.1 this proves work was *avoided*, not that anything got faster.
 
 **Gated on the profile — everything else in this phase.**
 

@@ -481,6 +481,253 @@ class SizeStub {
 }
 
 /**
+ * A feature in the data layer.
+ *
+ * DataFeature wraps one of these, so it needs the property and geometry methods rather than
+ * just recording that it was constructed.
+ */
+class DataFeatureStub {
+    #geometry: any;
+
+    #id: string | number | undefined;
+
+    #properties: Record<string, any> = {};
+
+    /**
+     * Constructor
+     *
+     * @param {object} [options] The feature options - geometry, id and properties
+     */
+    constructor(options?: any) {
+        mapsStats.construct('Data.Feature');
+        mapsStats.call('Data.Feature', 'constructor', [options]);
+        this.#geometry = options?.geometry;
+        this.#id = options?.id;
+        this.#properties = { ...(options?.properties ?? {}) };
+    }
+
+    /**
+     * The feature id
+     *
+     * @returns {string|number|undefined}
+     */
+    getId(): string | number | undefined {
+        return this.#id;
+    }
+
+    /**
+     * The geometry object
+     *
+     * @returns {any}
+     */
+    getGeometry(): any {
+        return this.#geometry ?? null;
+    }
+
+    /**
+     * Get one property
+     *
+     * @param {string} key The property name
+     * @returns {any}
+     */
+    getProperty(key: string): any {
+        return this.#properties[key];
+    }
+
+    /**
+     * Set one property
+     *
+     * @param {string} key The property name
+     * @param {any} value The value
+     */
+    setProperty(key: string, value: any): void {
+        this.#properties[key] = value;
+    }
+
+    /**
+     * Remove one property
+     *
+     * @param {string} key The property name
+     */
+    removeProperty(key: string): void {
+        delete this.#properties[key];
+    }
+
+    /**
+     * Walk every property
+     *
+     * @param {Function} fn Called with the value and the name
+     */
+    forEachProperty(fn: (value: any, name: string) => void): void {
+        Object.keys(this.#properties).forEach((name) => fn(this.#properties[name], name));
+    }
+}
+
+/**
+ * The google.maps.Data layer.
+ *
+ * This extends MVCObject because DataLayer hands it to setEventGoogleObject(), which needs a
+ * real Google map object to attach listeners to.
+ *
+ * The geometry classes hang off this as statics, the way Google's do, so that the library's
+ * `new google.maps.Data.LineString(...)` resolves. They record their constructor arguments,
+ * which is what the D-2 tests read to check whether Google was handed LatLng objects or plain
+ * {lat, lng} literals.
+ */
+class DataStub extends MVCObject {
+    static Point = recorded('Data.Point');
+
+    static LineString = recorded('Data.LineString');
+
+    static LinearRing = recorded('Data.LinearRing');
+
+    static Polygon = recorded('Data.Polygon');
+
+    static Feature = DataFeatureStub;
+
+    /** The features that have been added */
+    __features: DataFeatureStub[] = [];
+
+    /**
+     * Constructor
+     *
+     * @param {object} [options] The data layer options
+     */
+    constructor(options?: any) {
+        super();
+        this.__recordedName = 'Data';
+        mapsStats.construct('Data');
+        mapsStats.call('Data', 'constructor', [options]);
+    }
+
+    /**
+     * Add a feature
+     *
+     * @param {object} featureOptions The feature options
+     * @returns {DataFeatureStub}
+     */
+    add(featureOptions: any): DataFeatureStub {
+        mapsStats.call('Data', 'add', [featureOptions]);
+        const feature = new DataFeatureStub(featureOptions);
+        this.__features.push(feature);
+        return feature;
+    }
+
+    /**
+     * Remove a feature
+     *
+     * @param {DataFeatureStub} feature The feature
+     */
+    remove(feature: DataFeatureStub): void {
+        mapsStats.call('Data', 'remove', [feature]);
+        this.__features = this.__features.filter((f) => f !== feature);
+    }
+
+    /**
+     * Whether the layer holds a feature
+     *
+     * @param {DataFeatureStub} feature The feature
+     * @returns {boolean}
+     */
+    contains(feature: DataFeatureStub): boolean {
+        return this.__features.includes(feature);
+    }
+
+    /**
+     * Walk every feature
+     *
+     * @param {Function} fn Called with each feature
+     */
+    forEach(fn: (feature: DataFeatureStub) => void): void {
+        this.__features.slice().forEach(fn);
+    }
+
+    /**
+     * Find a feature by its id
+     *
+     * @param {string|number} id The feature id
+     * @returns {DataFeatureStub|undefined}
+     */
+    getFeatureById(id: string | number): DataFeatureStub | undefined {
+        return this.__features.find((f) => f.getId() === id);
+    }
+
+    /**
+     * Record and store the map
+     *
+     * @param {any} map The map or null
+     */
+    setMap(map: any): void {
+        mapsStats.call('Data', 'setMap', [map]);
+        this.__values.map = map;
+    }
+
+    /**
+     * Record the style
+     *
+     * @param {any} style The style, a function, or null
+     */
+    setStyle(style: any): void {
+        mapsStats.call('Data', 'setStyle', [style]);
+    }
+
+    /**
+     * Record a style override for one feature
+     *
+     * @param {DataFeatureStub} feature The feature
+     * @param {any} style The style
+     */
+    overrideStyle(feature: DataFeatureStub, style: any): void {
+        mapsStats.call('Data', 'overrideStyle', [feature, style]);
+    }
+
+    /**
+     * Record reverting the style
+     *
+     * @param {DataFeatureStub} [feature] The feature, or every feature when not set
+     */
+    revertStyle(feature?: DataFeatureStub): void {
+        mapsStats.call('Data', 'revertStyle', [feature]);
+    }
+
+    /**
+     * Add GeoJson. The stub does not parse it, so no features are produced.
+     *
+     * @param {object} geoJson The GeoJson
+     * @param {any} [options] The options
+     * @returns {DataFeatureStub[]}
+     */
+    addGeoJson(geoJson: any, options?: any): DataFeatureStub[] {
+        mapsStats.call('Data', 'addGeoJson', [geoJson, options]);
+        return [];
+    }
+
+    /**
+     * Load GeoJson from a url. The stub does not fetch, so it calls back with no features.
+     *
+     * @param {string} url The url
+     * @param {any} options The options
+     * @param {Function} [callback] Called with the features
+     */
+    loadGeoJson(url: string, options: any, callback?: (features: DataFeatureStub[]) => void): void {
+        mapsStats.call('Data', 'loadGeoJson', [url, options]);
+        if (typeof callback === 'function') {
+            callback([]);
+        }
+    }
+
+    /**
+     * Hand back an empty feature collection
+     *
+     * @param {Function} callback Called with the GeoJson
+     */
+    toGeoJson(callback: (geoJson: any) => void): void {
+        mapsStats.call('Data', 'toGeoJson', []);
+        callback({ type: 'FeatureCollection', features: [] });
+    }
+}
+
+/**
  * The google.maps.event namespace
  */
 const event = {
@@ -590,6 +837,9 @@ const buildMaps = () => ({
         }
     },
     event,
+    // The data layer. checkForGoogleMaps('DataLayer', 'Data', false) looks for this key, and
+    // finding it is what lets DataLayer build its Data object without waiting on the loader.
+    Data: DataStub,
     // The places library. checkForGoogleMaps('PlacesSearchBox', 'places') looks for this key,
     // so it has to exist for the search box classes to get past their library check.
     // Note: getPlaces() is not provided, because it is only called from inside the
