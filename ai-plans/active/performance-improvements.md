@@ -797,6 +797,40 @@ steady-state allocation. **Risk: none.**
 
 ### Phase 2 — Correctness
 
+**Status: complete, 2026-09-16.** 427 tests passing, `tsc --noEmit` clean, `eslint ./src` clean.
+
+Every §6 bug is fixed except 6.3, which belongs with M-1 in Phase 3. The suite now has **no
+`it.fails()` and no `it.todo` left** — all three existed to pin bugs that are now gone.
+
+| Item | State |
+|---|---|
+| 6.1 scope `clearListeners` to this library's own listeners | **Done** — each Google listener is kept by handle in `#googleListeners` and removed on its own |
+| 6.2 reorder `#setMapAsReady()` | **Done** |
+| 6.5 guard `#isGoogleObjectSet()` against a missing `google` | **Done** — and `#afterListenersRemoved()` no longer calls it at all |
+| 6.6 `Loader.on()` dispatching the wrong event type | **Done** — plus an `#isMapLoaded` flag |
+| 6.6 one Google listener per type in `setEventGoogleObject()` | **Done** |
+| 6.6 `offAll()` leaving pending listeners behind | **Done** |
+| 6.6 memoize the searchbox `init()` promise | **Done** — both search box classes |
+| 6.6 `PlacesSearchBox.init()` never settling on failure | **Done** — it rejects now |
+| 6.6 guard `MarkerCluster.removeMarker()` | **Done** — needed a new `Marker.hasGoogleMarker()` |
+| 6.6 `helpers.ts` broken `replace()` pattern | **Done** |
+| 6.6 `LatLngBounds.toUrlValue()` precision of 0 | **Done** |
+| 6.6 the dead `isObject` branches | **Done** |
+| 6.6 the stuck `#isSettingUp` / `#isGettingMapOptions` flags | **Done** |
+| 6.7 `getCenter()` across the meridian | **Done** |
+
+**Two things worth knowing for later phases.**
+
+Removing the dead `isObject` branches broke the **types**, though not the runtime. The
+`instanceof HTMLElement` arm could never execute, but Typescript was using it to narrow the
+union, so `setOptions()` started receiving `HTMLElement | Text | Options`. The element types are
+now named in the guard so the narrowing matches what `isObject()` does at runtime. Dead to the
+engine is not the same as dead to the compiler.
+
+`init()` on both search boxes is `async`, so it wraps the memoized promise in a fresh one each
+call and the returned objects are never identical. The memoization is still correct — the work
+happens once — but a test cannot assert it with `toBe` on the promise.
+
 Do these before the laziness work, because Phase 3's fast paths depend on 6.2 being right.
 
 1. Reorder `#setMapAsReady()` (6.2).
