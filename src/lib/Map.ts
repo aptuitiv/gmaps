@@ -2359,18 +2359,22 @@ export class Map extends Evented {
      * Set the map as ready
      */
     #setMapAsReady = () => {
+        // Set the flags before dispatching, not after. Anything running inside a "ready" handler
+        // asks the map whether it's ready - Marker.#setMap() branches on getIsReady() - and used
+        // to be told that it wasn't, so it took the slow path of waiting for a ready event that
+        // had already been dispatched.
+        this.#isInitialized = true;
+        this.#isReady = true;
+        // The map is set up, so it's no longer being set up. This was never cleared, which left
+        // the flag true for the life of the map.
+        this.#isGettingMapOptions = false;
+
         // Dispatch the event to say that the map is visible and ready
         this.dispatch(MapEvents.READY);
         // Dispatch the event on the loader to say that the map is fully loaded.
         // This is done because the map is loaded after the loader's "load" event is dispatched
         // and some objects depend on the map being loaded before they can be set up.
         loader().dispatch(LoaderEvents.MAP_LOAD);
-
-        // Set that the map is initialized
-        this.#isInitialized = true;
-
-        // Set that the map is visible
-        this.#isReady = true;
     };
 
     /**
