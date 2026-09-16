@@ -146,7 +146,7 @@ verified directly against the source rather than taken from the audit.
 | C-1 ✅ | Two dead fields, never read or written | `Evented.ts:124, 132` | Free |
 | C-2 | Five containers allocated per instance before any listener | `Evented.ts:90, 98, 106, 132, 140` | High |
 | C-3 | `isObject()` is `Object.prototype.toString.call` — probably the most-executed function in the library | `helpers.ts:162` | High |
-| C-4 | `#boundValues` retains one literal per point | `LatLngBounds.ts:71, 286` | High |
+| C-4 | ~~`#boundValues` retains one literal per point~~ — **dropped**, see Phase 4 | `LatLngBounds.ts:71, 286` | Struck |
 | C-5 | `extend()` allocates ~2 objects per point | `LatLngBounds.ts:250, 286, 309` | High |
 | C-6 | `latLng()`/`point()`/`size()` always allocate, even given the right type | `LatLng.ts:330`, `Point.ts:384`, `Size.ts:245` | High |
 | C-7 | The common `(number, number)` case is checked *last*, after the most expensive test | `LatLng.ts:198`, `Point.ts:275`, `Size.ts:167` | High |
@@ -1076,57 +1076,213 @@ is caught by something other than a user.
 **Expected:** the headline win. Attach cost for thousands of tooltips/popups drops to near zero,
 and per-object allocation falls across the whole library.
 
+---
+
+### What is left, in one table
+
+Phases 0-3 are done. Phases 4-7 were re-examined on 2026-09-16 after those landed, and each item
+was re-tested against one question: **is this worth doing, and what is the evidence?** The phase
+numbers are unchanged so that references elsewhere in this plan still resolve.
+
+| Do now — no measurement needed | Phase | Why |
+|---|---|---|
+| D-8 geocode caching and dedupe | 7 | Costs **money**, not milliseconds |
+| D-2 data-layer coordinate conversion | 4 | Bad code, not slow code |
+| B-1 `sideEffects` array (never `false`) | 7 | Measured: 100 KB pulled by one import |
+| P-1 skip Google wiring for internal events | 5 | Pure waste; a five-line guard |
+
+| Worth doing, moderate effort | Phase | Why |
+|---|---|---|
+| L-4 skip redundant `setPath` | 6 | `setPath` is the expensive half of a tolerance change |
+| L-7 skip the dashed/icon pass | 6 | A promise, a microtask and a no-op Google call per polyline |
+| O-3 opt-in shared tooltip | 7 | 2,595 divs to one, and it largely obviates O-1 |
+| B-2 split out `markerclusterer` | 7 | Measured: 18% of the browser bundle |
+
+| Struck, with reasons | Phase |
+|---|---|
+| C-4 drop `#boundValues` | 4 |
+| P-4 `Promise.all` control conversions, P-5 setter batching | 5 |
+| L-2 chunked scheduler, L-6 O(n²) teardown, L-12 cache cap | 6 |
+| O-1 lazy overlay DOM, O-10 `InfoWindow` deferral | 3 |
+| L-1 viewport culling | 6 |
+
+Everything not listed above is **gated on a real-device profile**. Section 10.1 is the reason:
+nothing in this plan has been measured on the iPhone that motivated it, and the harness
+structurally cannot measure the things that matter most.
+
+**Three items were invalidated by work already done**, which is the main argument for
+re-examining a plan rather than working through it: P-1's headline cost was removed by Phase 2,
+L-6's path was changed by Phases 2 and 3, and L-12 is pre-empted by L-3.
+
+---
+
 ### Phase 4 — Bounds and numeric paths
 
-1. Internal `extendNumeric(lat, lng)` on `LatLngBounds`; funnel the public `extend()` into it (C-5).
-2. Drop `#boundValues`, building the Google bounds from the maintained corners (C-4).
-   **Needs a meridian-crossing test first** — the comment at `LatLngBounds.ts:94` explains why
-   the point list exists.
-3. `containsCoords(lat, lng)` fast path; memoize the corner getters (C-15, C-17).
-4. Data layer: single-pass coordinate conversion emitting `LatLngLiteral`, and numeric `#bounds()` (D-2, D-3).
+**C-4 is dropped. Do not reinstate it.** The plan was to stop keeping `#boundValues` and build
+the Google bounds from the maintained corners instead. That is the wrong trade, for three reasons:
+
+1. **It makes a known-shaky calculation authoritative.** `LatLngBounds` delegates to Google at
+   **twelve** points once `#bounds` exists — `contains`, `equals`, `extend`, `getCenter`,
+   `getNorthEast`, `getSouthWest`, `intersects`, `isEmpty`, `toJson`, `toString`, `toUrlValue`,
+   `union`. The manual corner arithmetic is only a fallback for questions asked *before* the
+   Google library loads, and once the Google object is built from the replayed points, any error
+   in our maths is discarded. Dropping the point list flips that: our corners become the only
+   input Google ever sees, so every error becomes permanent.
+2. **That arithmetic has already produced two bugs.** `getCenter()` returned the antipodal
+   longitude for a wrapped bounds (§6.7, shipping until Phase 2), and `#extend()` still collapses
+   any span wider than 180 degrees because it always takes the smaller extension. The second one
+   is harmless today *because* the point list exists. C-4 would promote it to load-bearing.
+3. **The win is unmeasured and may be zero.** It saves one literal per point, which only matters
+   if something extends a bounds over a very large number of points. Nothing has shown that
+   happens outside `polyline-simplify.js`, which is a test page.
+
+Paying a correctness risk on shaky code for an unmeasured win fails on all three axes.
+
+**Follow-up worth considering instead (not scheduled):** shrink the fallback rather than grow it.
+Two bounds engines live in this class and the harder one barely runs. If a bounds is only ever
+*queried* after Google loads — the normal flow, since `Map.fitBounds` and `DataLayer.#bounds` both
+run post-load — most of those twelve manual branches could go. That is a simplification with a
+correctness upside, which is the opposite trade from C-4. It touches public synchronous methods,
+so it needs its own decision.
+
+**Do now — D-2, on clarity grounds, no measurement needed.**
+
+`DataLayer.#toPositions` is `path.map(latLng).filter(isValid).map(toGoogle)` — three intermediate
+arrays and two objects per point, when `google.maps.Data.LineString` accepts plain `{lat, lng}`
+literals and needs neither. `#toRings` builds a throwaway `LatLng` purely to *test* whether
+`paths[0]` is a position. This is bad code rather than slow code, and it would be worth fixing if
+it cost nothing at all.
+
+**Gated on the profile — everything else in this phase.**
+
+| Item | What it buys | Why it is gated |
+|---|---|---|
+| C-5 `extendNumeric()` | One `LatLng` per point | Without C-4 the literal stays, so this is about half the original win. Only pays off if something extends a bounds over a very large number of points |
+| C-15 memoize corner getters | One `LatLng` per `getNorthEast`/`getSouthWest` call | `intersects()` calls them four times; nothing else is known to loop |
+| C-17 `containsCoords()` | One `LatLng` per `contains()` call | The loop that would justify it was viewport culling, which is dropped (5.4.1) |
+| D-3 numeric `#bounds()` | A `LatLng` per coordinate of every feature | Same condition as C-5 |
+
+The shared condition is one unanswered question: **does anything extend a bounds over a large
+number of points?** For two corners this saves four objects. For 2.4 million points it saves
+hundreds of megabytes. Nobody has measured which end of that range this library lives at, and the
+only known large call is in `polyline-simplify.js`, which is a test page.
 
 ### Phase 5 — Map ready/init machinery
 
-1. Early-out in `Evented.#on()` for already-dispatched fire-once-immediate listeners, and skip
-   the Google-wiring block for internal event types (P-1).
-2. Shared `#readyPromise` on the map (P-2).
-3. Loader singleton promise (P-6, P-7).
-4. `Promise.all` the control conversions; cache converted control options; lookup tables for
-   `convertControlPosition` (P-4, P-8).
-5. Cache `center`/`zoom`/`mapTypeId`, invalidated from Google's change events (P-9).
-6. Styles caching and a change check in `#setHideFeature` (P-10).
-7. P-5 setter batching — accumulate into `#pendingOptions` and flush once via `queueMicrotask()`.
-   Approved; this also fixes the current inconsistency where async control setters land out of
-   order relative to synchronous ones.
+**This phase shrank the most on re-examination.** Its headline finding was already fixed as a side
+effect of Phase 2, and several items turned out to be per-*map* costs rather than per-object ones
+— and there is only ever one map.
+
+**Do now — the surviving half of P-1.**
+
+P-1's main claim was that every `onReady()` re-runs `google.maps.event.hasListeners`, a real call
+across the Google API boundary, once per marker. **That call no longer exists.** Phase 2 removed
+it when scoping `clearListeners`: `#on()` now checks its own `#googleListeners[type]` instead.
+
+What survives is small and still worth doing: **skip the Google-wiring block for the library's own
+event types.** `ready`, `locationfound` and `locationerror` are not Google events, so registering
+a native listener for them is pure waste — and `Map.ts:59` already declares exactly that list.
+Today every object that listens for `ready` gets a dead native listener. A five-line guard.
+
+**Gated on the profile.**
+
+| Item | Why it is gated |
+|---|---|
+| P-2 shared `#readyPromise` | Cheap and safe, but the cost is one promise per waiter and nothing has shown that list is long now that markers create lazily |
+| P-6/P-7 loader singleton promise | `Loader.on()` was fixed in Phase 2 to dispatch the requested type. What remains is that registering a load listener after load still dispatches to everyone. Worth a shared promise, unproven |
+| P-8 `convertControlPosition` lookup tables | Six `Object.entries()` scans per map options build |
+| P-9 cache `center`/`zoom`/`mapTypeId` | Real per-read cost, but the known hot caller was per-polyline `idle` handling, which L-5 addresses more directly |
+| P-10 styles caching | Only bites when the hide-feature shortcuts are toggled |
+
+**Struck — P-4 and P-5.**
+
+- **P-4** (`Promise.all` the six control conversions) is a per-map cost. Six promises, once. Micro.
+- **P-5** (setter batching) was approved earlier and should not be done. There is **one** map
+  object. Batching saves a handful of `setOptions` calls in exchange for making every map setter
+  land at end-of-microtask — a real, user-visible timing change for a negligible win. If async
+  control setters landing out of order relative to synchronous ones is a genuine bug, fix that
+  directly rather than by changing when every setter applies.
 
 ### Phase 6 — Polyline leftovers
 
-1. Skip `setPath` when the resulting path is unchanged (L-4) and skip the dashed/icon pass for
-   plain polylines (L-7). Both are small, self-contained, and immediate. For L-4, compare the
-   **point count first** — that alone catches most short segments across adjacent buckets for
-   almost nothing, before any element-wise comparison. Today the only skip is when the tolerance
-   itself is unchanged.
-2. Precomputed per-point significance array, making any tolerance an O(n) filter (L-3). This is
-   the change that carries the weight previously assigned to L-1 — see 5.4.1. The current layout
-   suits it directly: paths are already a `Float64Array` of `[lat, lng, …]` pairs and RDP already
-   runs on that, projected to local metres around the path's mean latitude, so a parallel
-   `Float64Array` of drop-distances drops straight in alongside it. It also removes the current
-   per-tolerance `google.maps.LatLng[]` cache (L-12), which costs memory *and* still re-simplifies
-   on first visit to each bucket. Note the `simplifyPath()` output caveat in 8.2.
-4. One shared zoom broadcaster per map instead of 1,400 `idle` listeners — this also removes
-   L-6's O(n²) teardown (L-5, L-6).
-5. Chunked scheduler with a frame budget for the initial build (L-2).
-6. Additive `getPathCoords()`/`pathLength` so counting points doesn't materialize 2.5M objects
-   (L-10); faster `coordsFromPath` (L-11); cap the tolerance cache (L-12).
+**Do now — L-4 and L-7.** Both are small, self-contained, have no API surface, and need no
+measurement to justify.
+
+1. **L-4** — skip `setPath` when the resulting path is unchanged. `setPath` is the expensive half
+   of a tolerance change, and today the only skip is when the tolerance itself is unchanged.
+   Compare the **point count first**: that alone catches most short segments across adjacent
+   buckets for almost nothing, before any element-wise comparison.
+2. **L-7** — skip the dashed/icon pass for a plain polyline. Every polyline currently pays for a
+   promise, a microtask hop and a Google `setOptions` call that changes nothing, and it delays
+   `setEventGoogleObject` by a tick for no reason.
+
+**Gated on the profile.**
+
+- **L-5** — one shared zoom broadcaster per map instead of an `idle` listener per polyline. Every
+  polyline currently calls `getZoom()` across the Google boundary on every **pan**, not just
+  every zoom. Good change, but it needs a profile to confirm panning is actually where the cost
+  lands.
+- **L-10** — additive `getPathCoords()`/`pathLength`, so counting points doesn't materialise
+  millions of `LatLng` objects. Purely additive, but it only matters if consumer code reads
+  `.path` for its length, which is a trap nobody has confirmed is being hit.
+- **L-11** — faster `coordsFromPath`. Real per-point cost on ingest, unmeasured.
+
+**Downgraded — L-3.** The plan treated the significance array as this phase's headline, and that
+overstates it. The measured 200-230 ms is the cost of the **first** crossing of each zoom bucket;
+`#simplifiedPaths` already caches per tolerance and there are four buckets, so the real exposure
+is roughly four hitches per session, not one per zoom. It is also the only change here that can
+alter `simplifyPath()`'s public output (see 8.2). Still worth doing eventually — it removes the
+per-tolerance cache along with the recomputation — but it is not the top of this list.
+
+**Struck — L-2, L-6 and L-12 as written.**
+
+- **L-2** (chunked scheduler) was built in another session and forced non-opt-in async semantics:
+  zoom-tolerance updates became a beat after `idle`, which broke existing expectations. See 5.4.1.
+- **L-6** (O(n²) teardown) described `Evented.off()` rescanning the listener array per removal.
+  Phase 2's per-handle `#googleListeners` and Phase 3's lazy containers changed that path; the
+  finding needs re-measuring before it means anything.
+- **L-12** (cap the tolerance cache) is pre-empted by L-3, which deletes the cache outright.
+  Scheduling both double-counts the same memory.
 
 ### Phase 7 — Structural, plan deliberately
 
-1. Opt-in shared tooltip (O-3). **Not for popups.**
-2. Data layer: feature-array caching, `#enqueue` fast path, chunked post-load (D-4…D-7).
-3. Geocode caching and in-flight dedupe — reduces **billed** API calls (D-8).
-4. Bundle: explicit `sideEffects` array (never `false`), then subpath exports, then splitting
-   `markerclusterer` out of the browser build (B-1, B-2).
-5. Listener delegation at the collection level (O-9 and the polyline equivalent).
+**Do now — D-8, and it should arguably never have been in a performance plan.**
+
+`Geocode` builds a new `google.maps.Geocoder` per request, caches nothing, and does not dedupe
+identical concurrent lookups. Geocoding a list with duplicates bills for every one of them. This
+is the only item in the plan that costs **money** rather than milliseconds, and it needs no
+profile to justify. Add a lazily-created shared `Geocoder`, a result cache keyed on the request,
+and the in-flight promise stored in the same map so concurrent identical requests share one call.
+Give it an opt-out and a size cap, since geocode results can legitimately change.
+
+**Do now — B-1, the safe form only.**
+
+Add `"sideEffects": ["**/Popup.*", "**/Tooltip.*", "**/InfoWindow.*"]` to `package.json`.
+Measured: importing only `latLng` currently pulls 100.6 KB, about 75% of the library. This lets
+bundlers drop `Geocode`, `AutocompleteSearchBox`, `ImageOverlay` and `MarkerCluster`, which were
+confirmed droppable.
+
+**Never `"sideEffects": false`** — see 8.1. Those three files mutate prototypes at module scope,
+so dropping them would make `attachTooltip`/`attachPopup`/`attachInfoWindow` vanish at runtime
+with no build error.
+
+**Worth doing, moderate effort — O-3 and B-2.**
+
+- **O-3 opt-in shared tooltip. Not for popups.** This now ranks *above* O-1. Every `Tooltip` still
+  builds a div in its constructor, so 2,595 segments means 2,595 detached divs plus objects and
+  offsets. One shared tooltip collapses that to one — capturing most of O-1's benefit for the
+  dominant case, while being additive and opt-in rather than a 42-site conversion with
+  runtime-only failure modes. **O-3 largely obviates O-1.**
+- **B-2** — split `markerclusterer` out of the browser bundle. Measured at 29,835 bytes, 18% of
+  `browser.js`, paid by every consumer who never clusters. A second bundle avoids changing
+  `markerCluster()`'s signature, which lazy-loading would not.
+
+**Gated on the profile — D-4 to D-7.** Feature-array caching, the `#enqueue` fast path and chunked
+post-load all scale with feature count, and no data-layer workload has been profiled. D-4's
+eager-`DataFeature` half is also already partly addressed by Phase 3 Slice B, since most of what a
+`DataFeature` allocated was `Evented` containers.
+
+**Gated — O-9 listener delegation.** The largest design change in the plan and the least evidenced.
 
 ---
 
