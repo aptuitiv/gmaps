@@ -77,6 +77,17 @@ export class PlacesSearchBox extends Evented {
     #searchBox: google.maps.places.SearchBox | undefined;
 
     /**
+     * Holds the promise for setting up the search box.
+     *
+     * Every call to init() waits on this same promise so that the search box is only built once,
+     * however many times init() is called and whenever those calls are made.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #initPromise: Promise<void> | undefined;
+
+    /**
      * Holds the options for the places search box
      *
      * @private
@@ -214,25 +225,29 @@ export class PlacesSearchBox extends Evented {
      * @returns {Promise<void>}
      */
     async init(): Promise<void> {
-        return new Promise((resolve) => {
-            if (!isObject(this.#searchBox)) {
+        // The work is only started once and every caller waits on the same promise.
+        //
+        // This used to guard on whether #searchBox was set, which isn't enough: creating the
+        // search box awaits the bounds before it assigns #searchBox, so two calls made before
+        // that await finished both got past the guard and both built a search box on the same
+        // input. That meant two sets of listeners and two lots of billed Places requests.
+        //
+        // The promise also used to have no reject path, so a failure - no input element, for
+        // example - left it unsettled forever and anything awaiting init() hung.
+        if (!this.#initPromise) {
+            this.#initPromise = new Promise((resolve, reject) => {
                 if (checkForGoogleMaps('PlacesSearchBox', 'places', false)) {
-                    this.#createPlacesSearchBox().then(() => {
-                        resolve();
-                    });
+                    this.#createPlacesSearchBox().then(resolve).catch(reject);
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().onMapLoad(() => {
-                        this.#createPlacesSearchBox().then(() => {
-                            resolve();
-                        });
+                        this.#createPlacesSearchBox().then(resolve).catch(reject);
                     });
                 }
-            } else {
-                resolve();
-            }
-        });
+            });
+        }
+        return this.#initPromise;
     }
 
     /**
