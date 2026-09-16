@@ -1,5 +1,6 @@
 [
     { "title": "Main", "url": "/" },
+    { "title": "Bounds Benchmark", "url": "/bounds-bench" },
     { "title": "Data Layer", "url": "/datalayer" },
     { "title": "Geocode", "url": "/geocode" },
     { "title": "Geolocation", "url": "/geolocation" },

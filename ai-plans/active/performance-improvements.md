@@ -1201,17 +1201,57 @@ Per §10.1 this proves work was *avoided*, not that anything got faster.
 
 **Gated on the profile — everything else in this phase.**
 
-| Item | What it buys | Why it is gated |
-|---|---|---|
-| C-5 `extendNumeric()` | One `LatLng` per point | Without C-4 the literal stays, so this is about half the original win. Only pays off if something extends a bounds over a very large number of points |
-| C-15 memoize corner getters | One `LatLng` per `getNorthEast`/`getSouthWest` call | `intersects()` calls them four times; nothing else is known to loop |
-| C-17 `containsCoords()` | One `LatLng` per `contains()` call | The loop that would justify it was viewport culling, which is dropped (5.4.1) |
-| D-3 numeric `#bounds()` | A `LatLng` per coordinate of every feature | Same condition as C-5 |
+**Correction, 2026-09-16.** This section previously said the only known large bounds call was in
+`polyline-simplify.js`, a test page. **That was wrong**, and it was the sole reason C-5 and D-3 were
+gated. Two real callers exist:
 
-The shared condition is one unanswered question: **does anything extend a bounds over a large
-number of points?** For two corners this saves four objects. For 2.4 million points it saves
-hundreds of megabytes. Nobody has measured which end of that range this library lives at, and the
-only known large call is in `polyline-simplify.js`, which is a test page.
+1. **`DataLayer.#bounds()`** (`DataLayer.ts:1263`) walks *every coordinate of every feature* through
+   `bounds.extend(latLngConvert(googleLatLng))`. It runs on `getBounds()`, on `fitBounds()`, and on
+   any `addGeoJson()`/`loadGeoJson()` with `fitBounds: true`. A detailed boundary or trail GeoJson is
+   tens of thousands of coordinates, and this is ordinary usage, not a test page.
+2. **`Map.addToBounds()`** (`Map.ts:979`) is public API taking `LatLngValue | LatLngValue[]`, and
+   `extend()` builds a `LatLng` per entry. An application fitting the map to its marker positions
+   goes through here.
+
+So the question is no longer "does a large caller exist" — it does — but "is the saving large enough
+to be worth the code". `site-src/bounds-bench.njk` was built to answer exactly that.
+
+| Item | What it buys | Status |
+|---|---|---|
+| C-5 `extendNumeric()` | One `LatLng` per point | **Measurable now.** Scenarios A and B on the benchmark page |
+| D-3 numeric `#bounds()` | A `LatLng` per coordinate of every feature | **Measurable now.** Scenario A. The largest real caller |
+| C-15 memoize corner getters | One `LatLng` per `getNorthEast`/`getSouthWest` call | **No caller.** Only `intersects()` reads them repeatedly — four times in one call, which is not a loop |
+| C-17 `containsCoords()` | One `LatLng` per `contains()` call | **No caller.** The justifying loop was viewport culling, struck in 5.4.1. Applies only to *application* code that loops `contains()` |
+
+**C-15 and C-17 cannot be rescued by a benchmark**, and the page says so on its face. Manufacturing a
+loop to measure them would be measuring code nobody runs. They stay struck unless a real caller
+appears — for C-17, that means the user's own application code, which is why the page offers scenario
+C while stating plainly that the library itself no longer does this.
+
+**How the page avoids justifying work that isn't worth doing.** Two deliberate constraints:
+
+- It times **library operations** (`dataLayer.getBounds()`, `map.addToBounds()`), never
+  `bounds.extend()` in a tight loop. A primitive micro-benchmark over millions of points produces an
+  impressive number regardless of whether any real path does that, which is precisely the trap that
+  produced C-4.
+- Since the optimizations don't exist, there is nothing to A/B. Each scenario instead runs a
+  **numeric floor** — the same coordinates reduced with `Math.min`/`Math.max` over a `Float64Array`,
+  allocating nothing — and reports the gap as a **ceiling** on the possible saving. **That ceiling is
+  unreachable:** Google's `forEachLatLng()` hands back a `google.maps.LatLng` per coordinate whatever
+  this library does, so D-3 can drop the `latLngConvert()` wrapper and the stored literal but not
+  Google's object. The real change lands below the number shown.
+
+**The decision rule the page applies**, stated in terms of the saving rather than the total, because
+a 400 ms operation is irrelevant if only 3 ms of it is recoverable:
+
+| Ceiling on the saving | Verdict |
+|---|---|
+| Under 5 ms | Not worth doing. Leave struck |
+| 5–50 ms | Only if it also simplifies the code. Judge on the code, not the clock |
+| Over 50 ms | Worth doing |
+
+**Run it on the iPhone, not the Mac.** Per §10.1, a desktop number decides nothing for the device
+that motivated this plan.
 
 ### Phase 5 — Map ready/init machinery
 
