@@ -18,6 +18,7 @@
     { "title": "Polyline Simplify", "url": "/polyline-simplify" },
     { "title": "Popup", "url": "/popup" },
     { "title": "Size", "url": "/size" },
+    { "title": "Stress Test", "url": "/stress" },
     { "title": "SvgSymbol", "url": "/svgsymbol" },
     { "title": "Tooltip", "url": "/tooltip" }
 ]

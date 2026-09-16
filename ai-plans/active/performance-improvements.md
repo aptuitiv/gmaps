@@ -365,6 +365,19 @@ This constrains M-1 rather than blocking it. The rule is:
 So the laziness is driven by *visibility*, not by *whether a map is set*. Every class this is
 applied to must follow the same rule so the behavior is consistent across the library.
 
+**Blocker found while building the stress page: `Marker` has no `visible` option.** `Polyline` has
+one (`Polyline.ts:107-108`, getter/setter at `:864-879`), and it is what drives the deferred
+drawing — `Polyline.ts:1252` states outright that "a hidden polyline isn't drawn, so nothing is
+created for it yet". On `Marker`, the only matches for `visible` are the `visible_changed` event
+name and its listener helper; there is no option, no getter and no setter. `Layer` has
+`isVisible`, but it is not settable through marker options.
+
+This means the rule decided above **cannot currently be expressed for markers** — there is no hide
+option to pass alongside `map`. Implementing 6.3 uniformly therefore requires **adding a `visible`
+option to `Marker`** (and to any other class this is applied to), mirroring `Polyline`'s. That is
+an additive, non-breaking API change, but it is real scope and it belongs in Phase 3 alongside the
+marker laziness work rather than being discovered mid-implementation.
+
 **Documentation is part of this change**, not a follow-up: the map option's behavior must be
 stated explicitly in the API reference for each class, along with the performance note that
 passing `map` on something intended to start hidden forces work that setting `visible: false`
@@ -751,16 +764,34 @@ So the order is:
 | 1-5 | `marker-optimized` | The most instrumented page: creation ms, element/canvas/image counts, heap, FPS and lowest FPS, plus the shared-vs-per-marker overlay toggle that previews O-3 |
 | 6 | `polyline-simplify` | Point counts, simplify time, and the scripted zoom test |
 | 4 | a new bounds page | Does not exist. Needed for `fitBounds` over ~1M points |
-| 3, 7 | **a new polyline-scale page — does not exist** | See below |
+| 3, 7 | `stress` — **built 2026-09-16** | Many polylines and many markers together, each with a tooltip and a popup. See below |
 
-**The gap worth closing first.** No page matches the trail site's actual shape. `polyline.js`
-creates seven polylines as a feature demo (it does use `attachTooltip`/`attachPopup`, but at
-single-digit scale) and `polyline-simplify.js` creates two with no overlays at all. Nothing
-creates **N polylines each carrying a tooltip and a popup** — which is precisely the 2,595-segment
-workload the CHANGELOG cites, and precisely what M-1, O-1, O-2 and O-3 are aimed at. Build that
-page in Phase 0: a count field, an overlay mode toggle (none / per-polyline / shared) mirroring the
-marker page, and the same results table and zoom test. Without it, the largest wins in this plan
-have no controlled instrument.
+**The gap that was closed — the `stress` page (built 2026-09-16).** No existing page matched the
+trail site's shape. `polyline.js` creates seven polylines as a feature demo (it does use
+`attachTooltip`/`attachPopup`, but at single-digit scale) and `polyline-simplify.js` creates two
+with no overlays at all. Nothing created **N polylines each carrying a tooltip and a popup** —
+precisely the 2,595-segment workload the CHANGELOG cites, and precisely what M-1, O-1, O-2 and
+O-3 are aimed at.
+
+`site-src/stress.njk` + `site-src/js/stress.js` now covers it:
+
+- Polylines (0-2,000) × points each (10-1,000), with the `simplify` options from the polyline page.
+- Markers (0-5,000), with the `optimized` and `svgIcon` options from the marker page.
+- Independent tooltip/popup mode for each — **none / separate / shared** — so the per-object cost
+  can be measured against the one-shared-object baseline on both at once. This is the controlled
+  instrument for O-3.
+- **"Polylines start hidden"**, using `visible: false`, plus a *Show hidden polylines* button that
+  times drawing them afterwards. This measures directly what deferring creation saves, and is the
+  page to use when verifying M-1 and the 6.3 rule.
+- **A seed field.** Everything is generated from a seeded PRNG, so two runs with the same settings
+  build identical geometry. This is the fix for the `Math.random()` problem noted in 10.3, and it
+  is what makes a before/after pair meaningful.
+- Separate build timings for polylines and markers, plus the standard element/canvas/image counts,
+  heap, FPS, lowest-FPS zoom test and results table.
+
+It fits the map to the fixed generation area rather than to the points, deliberately — extending
+bounds over ~400k points would make the page a measurement of `fitBounds` (D-3/C-4) instead of
+what it is for.
 
 **Pointing the trail site at a local build.** The test pages load `dist/browser.js` via eleventy's
 passthrough copy, but the trail site will be loading a published copy. To measure a change there,
