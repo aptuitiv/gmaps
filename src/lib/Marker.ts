@@ -471,6 +471,21 @@ export class Marker extends Layer {
     }
 
     /**
+     * Returns whether the Google maps marker object has been created yet.
+     *
+     * This lets other parts of the library avoid building the Google marker just to find out
+     * that there isn't one, which toGoogleSync() would otherwise do.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {boolean}
+     */
+    hasGoogleMarker(): boolean {
+        return isObject(this.#marker);
+    }
+
+    /**
      * Initialize the marker
      *
      * This is used when another element (like a tooltip) needs to be attached to the marker,
@@ -1375,6 +1390,9 @@ export class Marker extends Layer {
                 this.#isSettingUp = true;
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
                     this.#createMarkerObject().then(() => {
+                        // The marker exists now, so it's no longer being set up. This was never
+                        // cleared, which left the flag true for the life of the marker.
+                        this.#isSettingUp = false;
                         this.#dispatchReady();
                         resolve();
                     });
