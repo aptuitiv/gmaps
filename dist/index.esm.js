@@ -1294,21 +1294,6 @@ var Evented = class extends Base_default {
   // Definitely assigned because it's only used after #isGoogleObjectSet() confirms that it's set.
   #googleObject;
   /**
-   * Holds whether the onload event was set on the Loader class to
-   * set up the pending event listeners after the Google Maps API library is loaded.
-   *
-   * @private
-   * @type {boolean}
-   */
-  #isOnLoadEventSet = false;
-  /**
-   * Holds the event listeners that are waiting to be added once the Google Maps API is loaded
-   *
-   * @private
-   * @type {PendingEvents}
-   */
-  #pendingLoadEventListeners = {};
-  /**
    * Holds the event listeners that are waiting to be added once the Google Maps object is set
    *
    * @private
