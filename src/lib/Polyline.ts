@@ -324,6 +324,26 @@ export class Polyline extends Layer {
     #isSimplifyOutOfDate: boolean = false;
 
     /**
+     * Holds whether the polyline was hidden when it was added to the map, so the Google polyline
+     * hasn't been created yet.
+     *
+     * A polyline that is hidden isn't drawn, so nothing is created for it until it's first shown.
+     * This saves the work for polylines that start out hidden, like ones that a filter leaves out.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isCreationDeferred: boolean = false;
+
+    /**
+     * Holds whether the "ready" event has been dispatched
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isReadyDispatched: boolean = false;
+
+    /**
      * Holds the simplified Google Maps path for each tolerance when the tolerance changes with the zoom level.
      * They're kept so that the path doesn't have to be simplified again when zooming back to the same zoom levels.
      *
@@ -862,6 +882,17 @@ export class Polyline extends Layer {
             if (value && this.#isSimplifyOutOfDate) {
                 this.#applySimplify();
             }
+            if (value && this.#isCreationDeferred) {
+                // The polyline was hidden when it was added to the map, so it wasn't drawn. Draw it now.
+                this.#isCreationDeferred = false;
+                const map = this.#requestedMap;
+                this.#setupGooglePolyline(map ?? undefined).then((googlePolyline) => {
+                    // Make sure the polyline is still on the same map
+                    if (map && this.#options.map === map) {
+                        googlePolyline.setMap(map.toGoogle() ?? null);
+                    }
+                });
+            }
             if (this.#polyline) {
                 this.#polyline.setVisible(value);
             }
@@ -1041,6 +1072,13 @@ export class Polyline extends Layer {
      */
     init(): Promise<void> {
         return new Promise((resolve) => {
+            if (this.#isCreationDeferred) {
+                // The polyline is hidden so it isn't drawn yet. The "ready" event has already been
+                // dispatched, so a tooltip or popup can set up its events now. They're added to the
+                // Google polyline when the polyline is shown and the Google polyline is created.
+                resolve();
+                return;
+            }
             this.#setupGooglePolyline().then(() => {
                 resolve();
             });
@@ -1208,8 +1246,20 @@ export class Polyline extends Layer {
         if (this.#highlightPolyline && this.#highlightSetup) {
             this.#highlightPolyline.setMap(value, false);
         }
-        const googlePolyline = await this.#setupGooglePolyline(value ?? undefined);
         if (value instanceof Map) {
+            if (!this.#polyline && isVisible === false) {
+                // A hidden polyline isn't drawn, so nothing is created for it yet. The visible setter
+                // creates it when the polyline is shown.
+                this.visible = isVisible;
+                this.#options.map = value;
+                super.setMap(value);
+                this.#isCreationDeferred = true;
+                // Say that the polyline is ready so that a tooltip or popup can set up its events.
+                // They're added to the Google polyline when it's created.
+                this.#dispatchReady();
+                return this;
+            }
+            const googlePolyline = await this.#setupGooglePolyline(value);
             this.visible = isVisible;
             // Set the map
             this.#options.map = value;
@@ -1217,6 +1267,7 @@ export class Polyline extends Layer {
             googlePolyline.setMap(value.toGoogle() ?? null);
         } else if (isNullOrUndefined(value)) {
             // Remove the polyline from the map
+            this.#isCreationDeferred = false;
             this.#options.map = null;
             super.setMap(null);
             if (this.#polyline) {
@@ -1257,8 +1308,13 @@ export class Polyline extends Layer {
             if (options.path) {
                 this.path = options.path;
             }
+            // Set whether the polyline is visible before the map so that a polyline that starts out
+            // hidden isn't drawn on the map until it's shown
+            if (typeof options.visible === 'boolean') {
+                this.visible = options.visible;
+            }
             if (options.map) {
-                this.setMap(options.map);
+                this.setMap(options.map, this.#options.visible !== false);
             }
             if (isStringWithValue(options.strokeColor)) {
                 this.strokeColor = options.strokeColor;
@@ -1268,9 +1324,6 @@ export class Polyline extends Layer {
             }
             if (isNumberOrNumberString(options.strokeWeight)) {
                 this.strokeWeight = options.strokeWeight;
-            }
-            if (typeof options.visible === 'boolean') {
-                this.visible = options.visible;
             }
             if (isNumberOrNumberString(options.zIndex)) {
                 this.zIndex = options.zIndex;
@@ -1784,8 +1837,7 @@ export class Polyline extends Layer {
             if (!isObject(this.#polyline)) {
                 if (checkForGoogleMaps('Polyline', 'Polyline', false)) {
                     const googlePolyline = this.#createPolylineObject();
-                    // Dispatch the event to say that the polyline is ready
-                    this.dispatch(PolylineEvents.READY);
+                    this.#dispatchReady();
                     resolve(googlePolyline);
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
@@ -1803,8 +1855,7 @@ export class Polyline extends Layer {
                                 this.#highlightPolyline.setMap(thisMap, false);
                             }
                         }
-                        // Dispatch the event to say that the polyline is ready
-                        this.dispatch(PolylineEvents.READY);
+                        this.#dispatchReady();
                         resolve(googlePolyline);
                     });
 
@@ -1836,6 +1887,21 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Dispatch the event to say that the polyline is ready.
+     *
+     * It's only dispatched once. A polyline that is hidden when it's added to the map says that it's
+     * ready before the Google polyline is created, so that tooltips and popups can set up their events.
+     *
+     * @private
+     */
+    #dispatchReady(): void {
+        if (!this.#isReadyDispatched) {
+            this.#isReadyDispatched = true;
+            this.dispatch(PolylineEvents.READY);
+        }
+    }
+
+    /**
      * Create the polyline object if it doesn't already exist
      *
      * @private
@@ -1843,6 +1909,8 @@ export class Polyline extends Layer {
      */
     #createPolylineObject(): google.maps.Polyline {
         if (!this.#polyline) {
+            // The polyline is being drawn now, so nothing is waiting to be created
+            this.#isCreationDeferred = false;
             const polylineOptions: google.maps.PolylineOptions = {};
 
             // Options that can be set on the Polyline without any modification
