@@ -4814,6 +4814,15 @@ declare class Popup extends Overlay {
      */
     set content(content: string | HTMLElement | Text);
     /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
+    /**
      * Returns the event to trigger the popup
      *
      * @returns {string}
@@ -6467,6 +6476,15 @@ declare class Tooltip extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the tooltip
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
     /**
      * Returns the event to trigger the tooltip
      *

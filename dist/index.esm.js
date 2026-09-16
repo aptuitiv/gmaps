@@ -13551,7 +13551,6 @@ var Overlay = class extends Layer_default {
     this.#overlay.style.position = "absolute";
     this.#overlay.style.pointerEvents = "auto";
     this.#overlay.style.zIndex = "1000";
-    this.setOffset([0, 0]);
   }
   #drag;
   /**
@@ -13564,10 +13563,14 @@ var Overlay = class extends Layer_default {
   #isDragging;
   #isResizing;
   /**
-   * Holds the offset for the overlay
+   * Holds the offset for the overlay.
+   *
+   * This is undefined until an offset is set or read. The constructor used to set a 0,0
+   * offset, which allocated a Point for every overlay - and Tooltip and Popup both replace it
+   * with their own straight afterwards, so it was thrown away immediately.
    *
    * @private
-   * @type {Point}
+   * @type {Point|undefined}
    */
   #offset;
   /**
@@ -13842,6 +13845,9 @@ var Overlay = class extends Layer_default {
    * @returns {Point}
    */
   getOffset() {
+    if (this.#offset === void 0) {
+      this.#offset = point(0, 0);
+    }
     return this.#offset;
   }
   /**
@@ -18036,6 +18042,13 @@ var Popup = class extends Overlay {
    */
   #content;
   /**
+   * Whether the content still needs to be written into the overlay element
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isContentDirty = false;
+  /**
    * The event to trigger the popup
    *
    * @private
@@ -18231,19 +18244,44 @@ var Popup = class extends Overlay {
    * @param {string|HTMLElement|Text} content The content for the popup
    */
   set content(content) {
-    if (isStringWithValue(content)) {
+    if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
       this.#content = content;
       this.#areCloseHandlersBound = false;
-      this.getOverlayElement().innerHTML = content;
-    } else if (content instanceof HTMLElement || content instanceof Text) {
-      this.#content = content;
-      this.#areCloseHandlersBound = false;
-      const overlayElement = this.getOverlayElement();
-      while (overlayElement.firstChild) {
-        overlayElement.removeChild(overlayElement.firstChild);
-      }
-      overlayElement.appendChild(content);
+      this.#isContentDirty = true;
     }
+  }
+  /**
+   * Write the content into the overlay element if it hasn't been written yet
+   *
+   * @private
+   */
+  #flushContent() {
+    if (!this.#isContentDirty) {
+      return;
+    }
+    this.#isContentDirty = false;
+    const element = super.getOverlayElement();
+    const content = this.#content;
+    if (isStringWithValue(content)) {
+      element.innerHTML = content;
+    } else if (content instanceof HTMLElement || content instanceof Text) {
+      while (element.firstChild) {
+        element.removeChild(element.firstChild);
+      }
+      element.appendChild(content);
+    }
+  }
+  /**
+   * Get the overlay HTML element, writing any content that is waiting into it first.
+   *
+   * Everything that uses the element goes through here - add(), draw(), and anything outside
+   * the library - so the content is always there by the time it's looked at.
+   *
+   * @returns {HTMLElement}
+   */
+  getOverlayElement() {
+    this.#flushContent();
+    return super.getOverlayElement();
   }
   /**
    * Returns the event to trigger the popup
@@ -18945,6 +18983,13 @@ var Tooltip = class extends Overlay {
    */
   #content;
   /**
+   * Whether the content still needs to be written into the overlay element
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isContentDirty = false;
+  /**
    * The event to trigger the tooltip
    *
    * @private
@@ -19021,14 +19066,41 @@ var Tooltip = class extends Overlay {
    * @param {string|HTMLElement|Text} content The content for the tooltip
    */
   set content(content) {
-    if (isStringWithValue(content)) {
+    if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
       this.#content = content;
-      this.getOverlayElement().innerHTML = content;
-    } else if (content instanceof HTMLElement || content instanceof Text) {
-      this.#content = content;
-      this.getOverlayElement().innerHTML = "";
-      this.getOverlayElement().appendChild(content);
+      this.#isContentDirty = true;
     }
+  }
+  /**
+   * Write the content into the overlay element if it hasn't been written yet
+   *
+   * @private
+   */
+  #flushContent() {
+    if (!this.#isContentDirty) {
+      return;
+    }
+    this.#isContentDirty = false;
+    const element = super.getOverlayElement();
+    const content = this.#content;
+    if (isStringWithValue(content)) {
+      element.innerHTML = content;
+    } else if (content instanceof HTMLElement || content instanceof Text) {
+      element.innerHTML = "";
+      element.appendChild(content);
+    }
+  }
+  /**
+   * Get the overlay HTML element, writing any content that is waiting into it first.
+   *
+   * Everything that uses the element goes through here - add(), draw(), and anything outside
+   * the library - so the content is always there by the time it's looked at.
+   *
+   * @returns {HTMLElement}
+   */
+  getOverlayElement() {
+    this.#flushContent();
+    return super.getOverlayElement();
   }
   /**
    * Returns the event to trigger the tooltip
