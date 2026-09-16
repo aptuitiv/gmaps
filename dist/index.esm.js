@@ -1375,14 +1375,17 @@ var Evented = class extends Base_default {
           eventData = { ...eventData, ...data };
         }
       }
-      const listenersToRemove = [];
+      let listenersToRemove;
       listeners.forEach((listener) => {
         listener.callback.call(listener.context || this, eventData);
-        if (typeof listener.options !== "undefined" && isObject(listener.options) && typeof listener.options.once === "boolean" && listener.options.once === true) {
+        if (listener.options.once === true) {
+          if (!listenersToRemove) {
+            listenersToRemove = [];
+          }
           listenersToRemove.push(listener);
         }
       });
-      if (listenersToRemove.length > 0) {
+      if (listenersToRemove) {
         this.removeCalledOnceListeners(event, listenersToRemove);
       }
     }
@@ -1402,7 +1405,7 @@ var Evented = class extends Base_default {
       return false;
     }
     if (typeof callback === "function") {
-      return this.#eventListeners[type].filter((event) => event.callback === callback).length > 0;
+      return this.#eventListeners[type].some((event) => event.callback === callback);
     }
     return this.#eventListeners[type] && this.#eventListeners[type].length > 0;
   }
@@ -5020,6 +5023,9 @@ var Size = class _Size extends Base_default {
 var size = (width, height) => new Size(width, height);
 
 // src/lib/Icon.ts
+var POINT_OPTIONS = ["anchor", "labelOrigin", "origin"];
+var SIZE_OPTIONS = ["scaledSize", "size"];
+var STRING_OPTIONS = ["url"];
 var Icon = class extends Base_default {
   /**
    * Holds the Google maps icon options
@@ -5053,22 +5059,19 @@ var Icon = class extends Base_default {
    */
   setOptions(options) {
     if (isObject(options)) {
-      const pointValues = ["anchor", "labelOrigin", "origin"];
-      const sizeValues = ["scaledSize", "size"];
-      const stringValues = ["url"];
-      pointValues.forEach((key) => {
+      POINT_OPTIONS.forEach((key) => {
         const value = options[key];
         if (value) {
           this.#options[key] = point(value).toGoogle();
         }
       });
-      sizeValues.forEach((key) => {
+      SIZE_OPTIONS.forEach((key) => {
         const value = options[key];
         if (value) {
           this.#options[key] = size(value).toGoogle();
         }
       });
-      stringValues.forEach((key) => {
+      STRING_OPTIONS.forEach((key) => {
         const value = options[key];
         if (value && isStringWithValue(value)) {
           this.#options[key] = value;
@@ -6717,10 +6720,8 @@ var Map = class extends Evented {
      * @private
      */
     this.#setupPreventPageZoom = () => {
-      console.log("setupPreventPageZoom", this.#preventPageZoom);
       const element = this.#element;
       if (!this.#preventPageZoom || !element || this.#pageZoomHandler) {
-        console.log("preventPageZoom is false", this.#preventPageZoom, element, this.#pageZoomHandler);
         return;
       }
       const handler = (event) => {
@@ -6730,7 +6731,6 @@ var Map = class extends Evented {
       ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
         element.addEventListener(eventName, handler, { passive: false });
       });
-      console.log("setupPreventPageZoom DONE");
     };
     /**
      * Stop keeping a pinch on the map from zooming the whole page
@@ -8394,7 +8394,6 @@ var Map = class extends Evented {
       if (typeof options.minZoom !== "undefined") {
         this.minZoom = options.minZoom;
       }
-      console.log("options.preventPageZoom", options.preventPageZoom);
       if (isBoolean(options.preventPageZoom)) {
         this.preventPageZoom = options.preventPageZoom;
       }
@@ -8607,6 +8606,15 @@ var Map = class extends Evented {
 var map = (selector, config) => new Map(selector, config);
 
 // src/lib/SvgSymbol.ts
+var NUMBER_OPTIONS = [
+  "fillOpacity",
+  "rotation",
+  "scale",
+  "strokeOpacity",
+  "strokeWeight"
+];
+var POINT_OPTIONS2 = ["anchor", "labelOrigin"];
+var STRING_OPTIONS2 = ["fillColor", "path", "strokeColor"];
 var SvgSymbol = class extends Base_default {
   /**
    * Holds the icon options
@@ -8830,16 +8838,7 @@ var SvgSymbol = class extends Base_default {
    */
   setOptions(options) {
     if (isObject(options)) {
-      const numberValues = [
-        "fillOpacity",
-        "rotation",
-        "scale",
-        "strokeOpacity",
-        "strokeWeight"
-      ];
-      const pointValues = ["anchor", "labelOrigin"];
-      const stringValues = ["fillColor", "path", "strokeColor"];
-      numberValues.forEach((key) => {
+      NUMBER_OPTIONS.forEach((key) => {
         if (typeof options[key] !== "undefined" && isNumber(options[key]) || isNumberString(options[key])) {
           if (isNumberString(options[key])) {
             this.#options[key] = Number(options[key]);
@@ -8848,12 +8847,12 @@ var SvgSymbol = class extends Base_default {
           }
         }
       });
-      pointValues.forEach((key) => {
+      POINT_OPTIONS2.forEach((key) => {
         if (options[key]) {
           this.#options[key] = point(options[key]);
         }
       });
-      stringValues.forEach((key) => {
+      STRING_OPTIONS2.forEach((key) => {
         if (options[key] && isStringWithValue(options[key])) {
           this.#options[key] = options[key];
         }
@@ -10112,6 +10111,8 @@ var dataLayer = (options) => {
 };
 
 // src/lib/Marker.ts
+var STRING_OPTIONS3 = ["cursor"];
+var GOOGLE_OPTIONS_TO_SET = ["cursor", "title"];
 var Marker = class extends Layer_default {
   /**
    * Holds any custom data to attach to the marker object
@@ -11059,8 +11060,7 @@ var Marker = class extends Layer_default {
     } else if (options.title) {
       this.title = options.title;
     }
-    const stringOptions = ["cursor"];
-    stringOptions.forEach((key) => {
+    STRING_OPTIONS3.forEach((key) => {
       if (options[key] && isStringWithValue(options[key])) {
         this.#options[key] = options[key];
       }
@@ -11283,8 +11283,7 @@ var Marker = class extends Layer_default {
       if (!this.#marker) {
         (async () => {
           const markerOptions = {};
-          const optionsToSet = ["cursor", "title"];
-          optionsToSet.forEach((key) => {
+          GOOGLE_OPTIONS_TO_SET.forEach((key) => {
             if (typeof this.#options[key] !== "undefined") {
               markerOptions[key] = this.#options[key];
             }
@@ -13956,6 +13955,9 @@ var Overlay = class extends Layer_default {
    */
   style(name, value) {
     if (isString(name) && isString(value)) {
+      if (this.#styles[name] === value) {
+        return this;
+      }
       this.#styles[name] = value;
       this.#overlay.style[name] = value;
     }
@@ -14164,7 +14166,8 @@ var Overlay = class extends Layer_default {
     }
   }
 };
-var getOverlayViewClass = (classObject) => {
+var OverlayViewClass;
+var buildOverlayViewClass = () => {
   class OverlayView extends google.maps.OverlayView {
     /**
      * Holds the class instance for this overlay
@@ -14206,7 +14209,13 @@ var getOverlayViewClass = (classObject) => {
       this.#overlay.remove();
     }
   }
-  return new OverlayView(classObject);
+  return OverlayView;
+};
+var getOverlayViewClass = (classObject) => {
+  if (!OverlayViewClass) {
+    OverlayViewClass = buildOverlayViewClass();
+  }
+  return new OverlayViewClass(classObject);
 };
 var overlay = () => new Overlay("overlay", "OverlayView");
 
@@ -15888,6 +15897,7 @@ var simplifyPath = (path, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
 };
 
 // src/lib/Polyline.ts
+var EMPTY_COORDS = new Float64Array(0);
 var getSimplifyConfig = (value) => {
   const getZoomTolerances = (zoom) => Object.entries(zoom).map(([level, zoomTolerance]) => ({ level: Number(level), tolerance: Number(zoomTolerance) })).filter((z) => Number.isFinite(z.level) && Number.isFinite(z.tolerance) && z.tolerance >= 0).sort((a, b) => a.level - b.level);
   if (value === true) {
@@ -17072,8 +17082,9 @@ var Polyline = class _Polyline extends Layer_default {
    * @returns {google.maps.LatLng[]}
    */
   #getGooglePath() {
-    const start = performance.now();
-    const coords = this.#pathCoords ?? new Float64Array(0);
+    const isDebug = this.#isSimplifyDebug();
+    const start = isDebug ? performance.now() : 0;
+    const coords = this.#pathCoords ?? EMPTY_COORDS;
     const tolerance = this.#simplifyTolerance;
     const useKeptPaths = tolerance > 0 && (this.#simplifyConfig?.zoom.length ?? 0) > 0;
     let googlePath = useKeptPaths ? this.#simplifiedPaths[tolerance] : void 0;
@@ -17088,7 +17099,7 @@ var Polyline = class _Polyline extends Layer_default {
         this.#simplifiedPaths[tolerance] = googlePath;
       }
     }
-    if (this.#isSimplifyDebug()) {
+    if (isDebug) {
       let detail = "";
       if (isKeptPath) {
         detail = "Used the path that was already simplified.";
@@ -17881,12 +17892,29 @@ var Popup = class extends Overlay {
    */
   #callback;
   /**
+   * Whether the close handlers have been bound to the elements inside the popup
+   *
+   * They're bound the first time the popup is drawn rather than on every draw. Setting the
+   * content replaces the element's children, so the content setter sets this back to false.
+   *
+   * @private
+   * @type {boolean}
+   */
+  #areCloseHandlersBound = false;
+  /**
    * Whether the popup is attached to an element
    *
    * @private
    * @type {boolean}
    */
   #isAttached = false;
+  /**
+   * Whether the default theme styles have been set on the popup element
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isThemeApplied = false;
   /**
    * Holds if the Popup is open or not
    *
@@ -18023,9 +18051,11 @@ var Popup = class extends Overlay {
   set content(content) {
     if (isStringWithValue(content)) {
       this.#content = content;
+      this.#areCloseHandlersBound = false;
       this.getOverlayElement().innerHTML = content;
     } else if (content instanceof HTMLElement || content instanceof Text) {
       this.#content = content;
+      this.#areCloseHandlersBound = false;
       const overlayElement = this.getOverlayElement();
       while (overlayElement.firstChild) {
         overlayElement.removeChild(overlayElement.firstChild);
@@ -18086,6 +18116,31 @@ var Popup = class extends Overlay {
    */
   set theme(theme) {
     this.#theme = theme;
+    this.#isThemeApplied = false;
+  }
+  /**
+   * Set the default theme styles on the popup element.
+   *
+   * Any style that has already been set on the popup is kept so that custom styles win over
+   * the theme. This is the same as Tooltip.#applyTheme().
+   *
+   * @private
+   */
+  #applyTheme() {
+    const themeStyles = {
+      backgroundColor: "#fff",
+      color: "#333",
+      padding: "3px 6px",
+      borderRadius: "4px",
+      boxShadow: "0 0 5px rgba(0,0,0,0.3)"
+    };
+    const styles = this.styles;
+    Object.keys(themeStyles).forEach((key) => {
+      if (typeof styles[key] === "undefined") {
+        this.style(key, themeStyles[key]);
+      }
+    });
+    this.#isThemeApplied = true;
   }
   /**
    * Attach the popup to a element
@@ -18400,21 +18455,14 @@ var Popup = class extends Overlay {
       } else {
         this.style("transform", "translate(0, -100%)");
       }
-      if (this.#theme === "default") {
-        const styles = this.styles || {};
-        const themeStyles = {
-          backgroundColor: "#fff",
-          color: "#333",
-          padding: "3px 6px",
-          borderRadius: "4px",
-          boxShadow: "0 0 5px rgba(0,0,0,0.3)"
-        };
-        this.styles = { ...themeStyles, ...styles };
+      if (this.#theme === "default" && !this.#isThemeApplied) {
+        this.#applyTheme();
       }
       if (this.getOverlayElement().style.display !== display) {
         this.style("display", display);
       }
-      if (this.#closeElement) {
+      if (this.#closeElement && !this.#areCloseHandlersBound) {
+        this.#areCloseHandlersBound = true;
         if (this.#closeElement instanceof HTMLElement) {
           this.#setupCloseClick(this.#closeElement);
         } else if (isStringWithValue(this.#closeElement)) {
