@@ -2061,7 +2061,6 @@ export class Map extends Evented {
                 this.minZoom = options.minZoom;
             }
 
-            console.log('options.preventPageZoom', options.preventPageZoom);
             if (isBoolean(options.preventPageZoom)) {
                 this.preventPageZoom = options.preventPageZoom;
             }
@@ -2295,12 +2294,10 @@ export class Map extends Evented {
      * @private
      */
     #setupPreventPageZoom = () => {
-        console.log('setupPreventPageZoom', this.#preventPageZoom);
         const element = this.#element;
         // Don't add the listener if it's turned off, if there's no element to add it to,
         // or if it has already been added.
         if (!this.#preventPageZoom || !element || this.#pageZoomHandler) {
-            console.log('preventPageZoom is false', this.#preventPageZoom, element, this.#pageZoomHandler);
             return;
         }
         const handler = (event: Event) => {
@@ -2310,7 +2307,6 @@ export class Map extends Evented {
         ['gesturestart', 'gesturechange', 'gestureend'].forEach((eventName) => {
             element.addEventListener(eventName, handler, { passive: false });
         });
-        console.log('setupPreventPageZoom DONE');
     };
 
     /**
