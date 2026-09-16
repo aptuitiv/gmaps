@@ -419,6 +419,9 @@ the tooltip half of this work as done; the popup half was missed.
 | `map` in options | **Displays** the object unless a hide option is also passed | Confirmed 2026-09-16. Laziness keys off visibility, not off whether a map is set. See 6.3 |
 | `minify: false` for ESM/CJS | Keep | Correct for a distributed library; consumers minify |
 | `Float32Array` for paths | **No** | ~7 significant digits puts longitude precision at ~1m, the same order as the 1–2m tolerances. It would corrupt simplification |
+| Test framework | **vitest**, in `test/` at the repo root | Eric's preference. `test/` is already in `eslint.config.js`'s `globalIgnores`, so the convention was anticipated. There is no existing suite to migrate |
+| Where tests sit in the order | **Phase 0 — before any refactoring** | The plan rewrites `Evented`, which every class extends. A safety net after the fact is not a safety net |
+| What the stub can prove | Correctness and *absence of work* — never speed | A stubbed `google.maps` cannot measure Google's renderer. Speed claims come from 10.3/10.4 only |
 
 ---
 
@@ -476,6 +479,85 @@ cleanup pass afterwards.** Specifically, each phase must land with:
   invisible from the API surface, and documenting them is part of the fix.
 - **Behavior changes called out explicitly**, even the non-breaking ones, so upgraders can find
   them. Section 8.2 is the list.
+- **Tests.** Every phase lands with the tests that lock in what it changed — both the behavior
+  and, where it is the point of the change, the *absence* of work. See Phase 0.
+
+### Phase 0 — Test suite (vitest), and a real-device baseline
+
+**This comes first and is not optional.** The rest of this plan rewrites `Evented`, which every
+other class extends, and changes when Google objects get created across five subsystems. There is
+currently **no test suite at all** — `package.json`'s `test` script is
+`echo "Error: no test specified" && exit 1`. Doing phases 1-7 without tests is how a performance
+push becomes a regression hunt.
+
+There is also a second reason, specific to this plan: **most of these wins are the absence of
+something.** "The Google marker was not constructed", "`setPath` was not called", "no DOM element
+was created". Those are not observable by eye, they are trivially re-broken by a later change, and
+they are *exactly* what a counting stub can assert. The test suite is how the performance work
+stays done.
+
+#### 0.1 Setup
+
+- **vitest** (not installed yet; nothing else is either). Node 20+ is already required, so any
+  current version is fine.
+- `test/` at the repo root, mirroring `src/lib/`. This directory is **already in
+  `eslint.config.js`'s `globalIgnores`**, so the convention was anticipated — follow it.
+- Two environments: `node` for the vast majority, and `jsdom` (or `happy-dom`) only for the
+  overlay/tooltip/popup DOM tests in Phase 3.
+- Scripts: `test`, `test:watch`, `test:coverage`. Replace the current failing `test` script.
+- Add `coverage/` to `.gitignore`.
+- `.github/` already exists — wire `npm test` into CI. This also pairs with the Phase 1 change of
+  removing the eslint plugin from the build: lint and test both move to CI, where they belong.
+
+#### 0.2 The `google.maps` stub is the core of this
+
+The previous session's harness stubbed `google.maps.Polyline` as a trivial class. That is the
+right approach, but it needs to be **shared, faithful in shape, and instrumented**:
+
+- One stub module covering `Map`, `Marker`, `Polyline`, `OverlayView`, `InfoWindow`, `LatLng`,
+  `LatLngBounds`, `Point`, `Size`, `Data`, `event`, and the `SymbolPath`/enum objects.
+- Every constructor and every mutating method **records its calls** — construction counts,
+  `setMap` / `setPath` / `setOptions` arguments, listener add/remove. Assertions are then things
+  like `expect(stub.Polyline.constructed).toBe(0)`.
+- `google.maps.event.clearListeners` must be recorded too, because 6.1 is specifically about it
+  removing more than it should.
+- Be explicit in the stub's own comments that it **cannot** measure renderer cost — see 10.1 —
+  so nobody later mistakes a green test for a performance measurement.
+
+#### 0.3 What to test, in priority order
+
+1. **Lock current behavior before changing it.** The public surface of `Marker`, `Polyline`,
+   `Map`, `LatLng`, `LatLngBounds`, `Evented`, `Tooltip`, `Popup`: constructors, option handling,
+   getters/setters, factory functions, chainable returns. This is the safety net for everything
+   after, and most of it can be written without deciding anything.
+2. **Regression tests for the §6 bugs — written first, failing.** Each one is a precise, cheap
+   test: `getIsReady()` inside a `ready` handler (6.2); a marker created with `map` in the options
+   appears (6.3); `clearListeners` not wiping a listener the library did not add (6.1); popup
+   theme applied once across repeated `draw()` calls (6.4); `onMapLoad` after load still firing;
+   two concurrent `init()` calls producing one searchbox.
+3. **The absence assertions** — the heart of it. Attaching a tooltip or popup constructs **zero**
+   Google objects. `hideAll()` on never-shown markers constructs zero. A hidden polyline draws
+   nothing. `setPath` is not called when the simplified path is unchanged. No DOM element is
+   created until first show.
+4. **Every row of §8.2 gets a test**, so the intended behavior changes are deliberate and
+   documented in code, not discovered later.
+5. **Allocation-shape assertions where they are cheap and stable**: `LatLng` count after building
+   a path, `path` returning `LatLng` objects while `getPathCoords()` allocates none, bounds built
+   from corners matching bounds built by replay (the meridian case that gates Phase 4).
+6. **Simplify correctness** — the significance-array rewrite (L-3) must produce paths within
+   tolerance of the current implementation. Property-style tests over generated tracks are worth
+   it here, since L-3 is the one algorithmic change in the plan.
+
+#### 0.4 What this suite will not do
+
+It will not tell you anything about frame rate, real memory, or how long Google takes to draw.
+That is what 10.3 and 10.4 are for. Keep the two honest and separate: **vitest proves correctness
+and proves work was avoided; only a real browser proves it got faster.**
+
+#### 0.5 Baseline
+
+Before Phase 1 changes anything, record a real-device baseline per 10.3/10.4 and write the
+numbers into this plan. Every later "X% faster" claim is measured against it.
 
 ### Phase 1 — Free wins, zero API risk
 
@@ -608,8 +690,9 @@ Two consequences for how this plan is executed:
    overlay DOM work in O-1/O-2 — **must be measured in a real browser**, not in the harness. A
    harness number for those is not evidence.
 2. **Before starting Phase 1, establish a real-device baseline** on the iPhone using the existing
-   pages, and record it here. Without it, none of the phases below can be honestly claimed as an
-   improvement on the platform that prompted them.
+   pages, and record it here — this is Phase 0.5. Without it, none of the phases below can be
+   honestly claimed as an improvement on the platform that prompted them. Instructions in 10.3
+   and 10.4.
 
 ### 10.2 The harness that exists
 
@@ -634,6 +717,140 @@ New pages worth adding, following the same pattern:
 For each phase, record before/after in the results table the pages already build: creation time,
 heap, element counts, and lowest FPS during the zoom test. The CHANGELOG entries for the polyline
 work are the model for how to write these up.
+
+### 10.2.1 Which page to record on — the real trail page first
+
+**Start with the real trail site, not a library test page — and treat the first recording as a
+*profile*, not a benchmark.**
+
+The reason is specific. Nothing in this plan has been measured on the iPhone, so nobody knows yet
+where the time actually goes on that device. The synthetic pages can only confirm what was already
+suspected: they contain exactly the objects someone chose to put in them. A profile of the real
+page can show that the bottleneck is somewhere this plan does not even cover — tile loading, app
+code outside the library, layout, image decoding — and that is worth knowing **before** committing
+to seven phases of work.
+
+So the order is:
+
+1. **Profile the real trail page on the iPhone.** Safari Web Inspector, Timelines, during load and
+   during a pan/zoom. The question is "what is the main thread actually doing", not "what is the
+   number". Write down the three biggest costs.
+2. **Check them against this plan.** If the top cost is polyline simplify work or Google object
+   creation, the plan is aimed correctly and Phase order stands. If it is something else, re-order
+   the phases — or add a finding — before writing code.
+3. **Then switch to the library pages** to iterate. They are the instrument: controlled, seeded,
+   one variable at a time. Attributing a win to a specific change on the real page is not possible,
+   because too much varies at once.
+4. **Return to the real page at the end of each phase** as the acceptance test. It is the reason
+   the work exists, and it is the number worth putting in the CHANGELOG.
+
+**Which library page for which phase.**
+
+| Phase | Page | Why |
+|---|---|---|
+| 1-5 | `marker-optimized` | The most instrumented page: creation ms, element/canvas/image counts, heap, FPS and lowest FPS, plus the shared-vs-per-marker overlay toggle that previews O-3 |
+| 6 | `polyline-simplify` | Point counts, simplify time, and the scripted zoom test |
+| 4 | a new bounds page | Does not exist. Needed for `fitBounds` over ~1M points |
+| 3, 7 | **a new polyline-scale page — does not exist** | See below |
+
+**The gap worth closing first.** No page matches the trail site's actual shape. `polyline.js`
+creates seven polylines as a feature demo (it does use `attachTooltip`/`attachPopup`, but at
+single-digit scale) and `polyline-simplify.js` creates two with no overlays at all. Nothing
+creates **N polylines each carrying a tooltip and a popup** — which is precisely the 2,595-segment
+workload the CHANGELOG cites, and precisely what M-1, O-1, O-2 and O-3 are aimed at. Build that
+page in Phase 0: a count field, an overlay mode toggle (none / per-polyline / shared) mirroring the
+marker page, and the same results table and zoom test. Without it, the largest wins in this plan
+have no controlled instrument.
+
+**Pointing the trail site at a local build.** The test pages load `dist/browser.js` via eleventy's
+passthrough copy, but the trail site will be loading a published copy. To measure a change there,
+serve the locally built `dist/browser.js` in place of the published one — `npm link`, a local file
+swap, or overriding the script URL. Confirm which build is actually loaded before recording;
+measuring the published bundle while believing you are measuring a local change is the exact
+failure mode that cost an earlier session an afternoon.
+
+### 10.3 Measuring in a real browser on the Mac
+
+**Setup, every time.** The test pages load `/map/browser.js`, which eleventy copies from
+`dist/browser.js` — so **the pages test the built bundle, not `src/`**. Always `npm run build`
+before measuring, or you will measure stale code. (This already bit an earlier session: a stale
+bundle was the leading suspect for a bug that could never be reproduced.) Then `npm run site-serve`
+and open `http://localhost:9090`. `npm run watch-all` does all three at once and is the normal
+working mode.
+
+**Fix the randomness first — small change, large payoff.** `gpsTrack()` in
+`site-src/js/polyline-simplify.js` and `randomPosition()` in `site-src/js/marker-optimized.js`
+both use `Math.random()`, so no two runs use the same data. That is fine for a demo and useless
+for an A/B comparison. Add a seeded PRNG with the seed in the form, so a before/after pair is the
+same geometry. Do this as part of Phase 0.
+
+**Chrome — the primary tool, for allocation and memory.**
+- Performance panel → record → run the page's built-in zoom test → stop. Read long tasks, scripting
+  time, and the frame-rate track. Long yellow scripting blocks during zoom are the L-2/L-3 target.
+- Performance Monitor (⋮ → More tools) gives a live read of JS heap size, DOM node count and
+  listener count while you interact — the fastest way to see a per-object leak.
+- Memory panel → Heap snapshot, before and after building objects. Compare snapshots to see
+  retained size per class. This is where "5,190 detached divs" or "1M `{lat,lng}` literals" show up
+  concretely. Take the snapshot *after* a manual GC (the bin icon).
+- `performance.memory` is Chrome-only and the marker page already reports it in its results table.
+- **Use CPU throttling (4× or 6×)** in the Performance panel to approximate phone-class hardware
+  before you go near the phone. Run in a clean profile or Incognito so extensions do not pollute
+  the numbers.
+
+**Safari — the one that matters for parity with iOS.** Same engine family as the iPhone, so it is
+the best desktop proxy. Enable Settings → Advanced → "Show features for web developers". Use
+Timelines (JavaScript & Events, plus the Memory timeline) rather than Chrome-style heap diffing —
+Safari's memory tooling is thinner. Note `performance.memory` does **not** exist here, so the
+pages' heap column will read `n/a`; rely on the Memory timeline and the pages' own FPS counters.
+
+**Firefox — a sanity check, not a primary.** Its Performance panel is good for confirming a win is
+not Chrome-specific. No `performance.memory` here either.
+
+**Method.**
+- Change one thing at a time; keep the seed, the object count and the zoom-test script identical.
+- Run each configuration **three times and take the median** — single runs on a laptop are noisy.
+- Record in the results table the pages already build: creation time, heap, element/canvas/image
+  counts, and lowest FPS during the zoom test.
+- Keep the baseline row. A phase that improves creation time but halves frame rate is not a win,
+  and only a side-by-side table will show that.
+
+### 10.4 Measuring on the iPhone
+
+This is the platform that motivated the work and the one with no numbers yet, so treat it as the
+real verdict rather than a confirmation step.
+
+**One-time setup.**
+1. iPhone: Settings → Apps → Safari → Advanced → **Web Inspector** on. (On older iOS this is
+   Settings → Safari → Advanced.)
+2. Mac: Safari → Settings → Advanced → **Show features for web developers**, which reveals the
+   Develop menu.
+3. Connect the iPhone by USB and tap **Trust** on the phone.
+4. The page must be reachable *from the phone*: eleventy is configured for port 9090 in
+   `eleventy.config.cjs` but binds to localhost, so add `host: '0.0.0.0'` to `setServerOptions`,
+   put both devices on the same Wi-Fi, and browse to `http://<mac-lan-ip>:9090`.
+5. **Check the API key restrictions.** The key comes from `.env` via `GOOGLE_MAPS_API_KEY` and is
+   injected into the page. If it has HTTP-referrer restrictions, a bare LAN IP will be rejected and
+   the map will silently fail to load. Allow the IP, or use a key without restrictions for testing.
+6. On the Mac: Safari → Develop → *[iPhone name]* → the page. You now have a full Web Inspector
+   attached to the phone.
+
+**What to measure.**
+- The pages' own instrumentation is the primary record here — creation time, lowest FPS during the
+  zoom test, element counts. It works identically on the phone and writes to the same results
+  table, which is why it is worth more than the Inspector's own tooling on iOS.
+- Web Inspector Timelines for JavaScript & Events and Memory. Expect less detail than Chrome;
+  `performance.memory` is absent, so heap reads `n/a`.
+- Watch for the failure mode desktop hides: long main-thread blocks that are tolerable at 3GHz and
+  are a visible freeze on a phone. The 200-230ms zoom-bucket figure is a desktop number.
+
+**Discipline that actually matters on a phone.**
+- Disable Low Power Mode, keep the device plugged in, and let it cool between runs — thermal
+  throttling will invent regressions that are not there.
+- Close other apps and other Safari tabs.
+- Three runs, median, same as desktop.
+- **Record the device model and iOS version** next to every number. A figure from one iPhone is not
+  comparable to a figure from another, and the browser-support floor in the README is tied to
+  iOS 15.
 
 ---
 
