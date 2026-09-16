@@ -44,6 +44,10 @@ import {
 
 export type MarkerLabel = google.maps.MarkerLabel;
 
+// The option keys that are copied across as they are. Held here so that the array isn't
+// rebuilt every time a marker's options are set.
+const STRING_OPTIONS: 'cursor'[] = ['cursor'];
+
 // Options that will be passed to the Google maps marker object
 type GMMarkerOptions = {
     // The offset from the marker's position to the tip of an InfoWindow that has been opened with the marker as anchor.
@@ -338,19 +342,11 @@ export class AdvancedMarker extends Layer {
         // if (eventType === 'click') {
         //     eventType = 'gmp-click';
         // }
-        if (type === 'mouseenter') {
-            // this.#marker.content.addEventListener('click', () => {
-            //     console.log('click');
-            // });
-            this.#marker.addListener('mouseover', () => {
-                console.log('mouseover');
-            });
-            this.#marker.content?.addEventListener('mouseover', () => {
-                console.log('content mouseover');
-            });
-        } else {
-            super.on(type, callback, config);
-        }
+        // "mouseenter" used to take its own branch here that added two listeners which only
+        // logged to the console and never called the callback that was passed in, so
+        // on('mouseenter', fn) silently did nothing. It now goes through the normal path with
+        // every other event. The commented-out experiments above and below record what was tried.
+        super.on(type, callback, config);
         // if (eventType === 'click') {
         //     if (this.#marker) {
         //         console.log('Marker on: ', eventType, callback);
@@ -625,7 +621,6 @@ export class AdvancedMarker extends Layer {
      * @returns {AdvancedMarker}
      */
     setOptions(options: MarkerOptions): AdvancedMarker {
-        console.log('Marker setOptions: ', options);
         // Set the anchor point
         if (options.anchorPoint) {
             this.anchorPoint = options.anchorPoint;
@@ -665,9 +660,7 @@ export class AdvancedMarker extends Layer {
             } else if (isNumberOrNumberString(options.longitude)) {
                 latLngValue.lng = options.longitude;
             }
-            console.log('options position: ', latLngValue);
             this.position = latLngValue;
-            console.log('this.position: ', this.position);
         } else if (options.position) {
             this.position = options.position;
         }
@@ -685,8 +678,7 @@ export class AdvancedMarker extends Layer {
         }
 
         // Set simple options
-        const stringOptions: 'cursor'[] = ['cursor'];
-        stringOptions.forEach((key) => {
+        STRING_OPTIONS.forEach((key) => {
             if (options[key] && isStringWithValue(options[key])) {
                 this.#options[key] = options[key];
             }
@@ -735,9 +727,7 @@ export class AdvancedMarker extends Layer {
      */
     #setPosition(value: LatLngValue) {
         const position = latLng(value);
-        console.log('#setPosition: ', value, position);
         if (position.isValid()) {
-            console.log('#setPosition: ', position);
             this.#options.position = position;
             this.#marker.position = this.#options.position.toGoogle();
         }
