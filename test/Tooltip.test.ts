@@ -104,8 +104,63 @@ describe('Tooltip', () => {
         });
     });
 
-    // O-2. Nothing has been shown, and the DOM already holds the parsed content.
-    describe('content is parsed into the DOM at construction (O-2)', () => {
+    // O-2, fixed in Phase 3 Slice D. The content setter used to write straight into the element,
+    // so a tooltip attached to a layer that was never hovered had already paid for the innerHTML
+    // parse. It now stores the value and writes it the first time the element is used.
+    //
+    // The public contract is unchanged: getOverlayElement() flushes what's waiting, so anything
+    // reading the element still sees the content. That does mean most of the tests below can't
+    // tell the difference - they go through the accessor and so trigger the flush. The one case
+    // that CAN be observed without touching the overlay is element content: the node is only
+    // appended during the flush, so its parentElement stays null until then.
+    describe('content is not written into the DOM until the element is used (O-2)', () => {
+        it('leaves element content unattached until the overlay element is read', () => {
+            const element = document.createElement('span');
+            element.textContent = 'Trail 12';
+            const t = tooltip(element);
+
+            // Checking the content node doesn't touch the overlay, so nothing is flushed
+            expect(element.parentElement).toBeNull();
+            expect(t.hasContent()).toBe(true);
+            expect(t.content).toBe(element);
+
+            // Reading the overlay element writes it in
+            expect(t.getOverlayElement().firstChild).toBe(element);
+            expect(element.parentElement).not.toBeNull();
+        });
+
+        it('leaves 100 tooltips worth of element content unattached', () => {
+            const elements: HTMLElement[] = [];
+            for (let i = 0; i < 100; i += 1) {
+                const element = document.createElement('span');
+                elements.push(element);
+                tooltip(element);
+            }
+            elements.forEach((element) => {
+                expect(element.parentElement).toBeNull();
+            });
+        });
+
+        it('flushes only once, however many times the element is read', () => {
+            const t = tooltip('<b>Trail 12</b>');
+            expect(t.getOverlayElement().innerHTML).toBe('<b>Trail 12</b>');
+
+            // A second read must not rewrite it, which would undo an edit made to the element
+            t.getOverlayElement().innerHTML = '<i>changed by hand</i>';
+            expect(t.getOverlayElement().innerHTML).toBe('<i>changed by hand</i>');
+        });
+
+        it('writes new content set after the first flush', () => {
+            const t = tooltip('first');
+            expect(t.getOverlayElement().innerHTML).toBe('first');
+            t.setContent('second');
+            expect(t.getOverlayElement().innerHTML).toBe('second');
+        });
+    });
+
+    // These go through getOverlayElement(), so they verify the flush-on-access contract rather
+    // than the deferral itself.
+    describe('content reaches the DOM when the element is read (O-2)', () => {
         it('writes the content into the element before anything is shown', () => {
             const t = tooltip('<b>Trail 12</b>');
             expect(t.getOverlayElement().innerHTML).toBe('<b>Trail 12</b>');

@@ -88,6 +88,14 @@ export class Tooltip extends Overlay {
     #content: string | HTMLElement | Text | undefined;
 
     /**
+     * Whether the content still needs to be written into the overlay element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isContentDirty: boolean = false;
+
+    /**
      * The event to trigger the tooltip
      *
      * @private
@@ -178,14 +186,48 @@ export class Tooltip extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the tooltip
      */
     set content(content: string | HTMLElement | Text) {
-        if (isStringWithValue(content)) {
+        if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
-            this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof HTMLElement || content instanceof Text) {
-            this.#content = content;
-            this.getOverlayElement().innerHTML = '';
-            this.getOverlayElement().appendChild(content);
+            // The content isn't written into the element here. Parsing it is the expensive part,
+            // and a tooltip attached to a layer that is never hovered would pay for it for
+            // nothing. On a page with a tooltip on every one of 2,595 segments that's 2,595
+            // innerHTML parses before anything is shown. #flushContent() writes it the first
+            // time the element is actually used.
+            this.#isContentDirty = true;
         }
+    }
+
+    /**
+     * Write the content into the overlay element if it hasn't been written yet
+     *
+     * @private
+     */
+    #flushContent(): void {
+        if (!this.#isContentDirty) {
+            return;
+        }
+        this.#isContentDirty = false;
+        const element = super.getOverlayElement();
+        const content = this.#content;
+        if (isStringWithValue(content)) {
+            element.innerHTML = content;
+        } else if (content instanceof HTMLElement || content instanceof Text) {
+            element.innerHTML = '';
+            element.appendChild(content);
+        }
+    }
+
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement {
+        this.#flushContent();
+        return super.getOverlayElement();
     }
 
     /**

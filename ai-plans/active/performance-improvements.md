@@ -857,14 +857,18 @@ The core of the plan. It's big enough that it's being done in **slices**, each v
 so that the ones with no API risk land first: a fault in the primitives would otherwise be
 misattributed once the later work sat on top of them.
 
-**Status: A and B done 2026-09-16. C and D not started, and both need a decision first.**
+**Status: 2026-09-16. A, B and C done. D done apart from O-1 and O-10.**
+443 tests passing, `tsc --noEmit` clean, `eslint ./src` clean.
 
 | Slice | Covers | State |
 |---|---|---|
 | A — core primitives | C-3, C-7, C-12, C-13, M11 | **Done** |
 | B — lazy `Evented` containers | C-2, C-8 | **Done** |
 | C — Marker and DataFeature laziness | M-1, M-2, M-6, M-13, §6.3 | **Done** — M-3/M-4 deferred |
-| D — Overlay, Tooltip, Popup | O-1, O-2, O-10, O-11 | Not started — 42 call sites |
+| D — Overlay, Tooltip, Popup | O-2, O-11 | **Done**. O-1 and O-10 deferred |
+
+**Left in Phase 3:** M-3 and M-4 (marker allocation, no API impact), O-1 (the full lazy DOM
+conversion) and O-10 (`InfoWindow` deferring its setup). None of them blocks a later phase.
 
 #### Slice A — core primitives (done)
 
@@ -982,7 +986,45 @@ The `Polyline` half is **already shipped and confirmed working in the browser** 
 existence proof for M-1: the same contract, applied to markers and data features, on a page that
 creates far more of them.
 
-#### Slice D — Overlay, Tooltip, Popup (not started)
+#### Slice D — Overlay, Tooltip, Popup (O-2 and O-11 done)
+
+**Done 2026-09-16.** Split as recommended below: O-2 and O-11 landed, O-1 deferred.
+
+| Item | What changed |
+|---|---|
+| O-2 | `Tooltip` and `Popup` hold their content and write it into the element the first time the element is used, instead of parsing it in the setter |
+| O-11 | `Overlay` no longer allocates a default 0,0 `Point` in its constructor. `getOffset()` builds one on first read |
+
+**O-2 flushes on access, so the public contract is unchanged.** `getOverlayElement()` is
+overridden in both classes to write any waiting content before handing the element back, so
+anything reading the element — inside the library or outside it — still sees the content.
+`add()` and `draw()` both go through that accessor, so the flush happens when the overlay is
+first shown.
+
+At the 2,595-segment scale in section 1, that is 2,595 `innerHTML` parses that no longer happen
+before anything is displayed. A tooltip attached to a layer that is never hovered now costs the
+`Tooltip` object and nothing else.
+
+**O-11 does not use a shared zero Point, and the plan's suggestion to freeze one would not have
+worked.** `Object.freeze` cannot protect a `Point`: its values live in `#private` fields, not
+properties, so a frozen instance is still mutable through `setLat`-style setters and two
+overlays would end up sharing one offset. Building it lazily per overlay gets the same saving
+with no aliasing risk — `Tooltip` and `Popup` each go from two `Point` allocations to one,
+because both replaced the base default immediately.
+
+**On testing the deferral.** Most of the existing O-2 tests read `getOverlayElement()`, which
+triggers the flush, so they verify the access contract rather than the laziness. The one thing
+observable without touching the overlay is **element** content: the node is only `appendChild`-ed
+during the flush, so `element.parentElement` stays `null` until then. `test/Tooltip.test.ts` uses
+that, including across 100 tooltips. String content has no equivalent observable, which is worth
+knowing if these are ever rewritten.
+
+**O-1 is still deferred, for the reason given below:** 42 `this.#overlay` references, most of the
+form `this.#overlay.style.x = …`, so a missed one fails at runtime rather than at compile time,
+and the drag and resize paths have no test cover. **O-10** (`InfoWindow` building its Google
+object as soon as content is set) was not part of this split and is untouched.
+
+**Background — the original notes for this slice, kept for the reasoning behind the split:**
 
 Lazy DOM (O-1), lazy content (O-2), defer `InfoWindow` setup (O-10), shared zero-offset (O-11).
 

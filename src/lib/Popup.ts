@@ -107,6 +107,14 @@ export class Popup extends Overlay {
     #content: string | HTMLElement | Text | undefined;
 
     /**
+     * Whether the content still needs to be written into the overlay element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isContentDirty: boolean = false;
+
+    /**
      * The event to trigger the popup
      *
      * @private
@@ -331,22 +339,52 @@ export class Popup extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the popup
      */
     set content(content: string | HTMLElement | Text) {
-        if (isStringWithValue(content)) {
+        if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
             // The old children are replaced, so anything the close handlers were bound to is gone
             this.#areCloseHandlersBound = false;
-            this.getOverlayElement().innerHTML = content;
+            // The content isn't written into the element here. Parsing it is the expensive part,
+            // and a popup attached to a layer that is never clicked would pay for it for nothing.
+            // #flushContent() writes it the first time the element is actually used.
+            this.#isContentDirty = true;
+        }
+    }
+
+    /**
+     * Write the content into the overlay element if it hasn't been written yet
+     *
+     * @private
+     */
+    #flushContent(): void {
+        if (!this.#isContentDirty) {
+            return;
+        }
+        this.#isContentDirty = false;
+        const element = super.getOverlayElement();
+        const content = this.#content;
+        if (isStringWithValue(content)) {
+            element.innerHTML = content;
         } else if (content instanceof HTMLElement || content instanceof Text) {
-            this.#content = content;
-            this.#areCloseHandlersBound = false;
-            const overlayElement = this.getOverlayElement();
             // First clear all existing children and their events
-            while (overlayElement.firstChild) {
-                overlayElement.removeChild(overlayElement.firstChild);
+            while (element.firstChild) {
+                element.removeChild(element.firstChild);
             }
             // Append the content as the first child
-            overlayElement.appendChild(content);
+            element.appendChild(content);
         }
+    }
+
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement {
+        this.#flushContent();
+        return super.getOverlayElement();
     }
 
     /**
