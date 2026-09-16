@@ -366,11 +366,18 @@ export class LatLngBounds extends Base {
         // Calculate the center manually
         const { northEast, southWest } = this.#getCorners();
         const lat = (northEast.latitude + southWest.latitude) / 2;
-        let lng = (northEast.longitude + southWest.longitude) / 2;
-
-        // If the bounds crosses the 180 degree meridian, adjust the longitude
+        let lng;
         if (northEast.longitude < southWest.longitude) {
-            lng = ((lng + 180) % 360) - 180;
+            // The bounds crosses the 180 degree meridian, so the east longitude is a smaller
+            // number than the west one. Add a full turn to it before averaging so that the
+            // middle is found across the meridian rather than the long way round the globe.
+            // Averaging them as they are gives the point on the opposite side of the world.
+            lng = (southWest.longitude + northEast.longitude + 360) / 2;
+            if (lng > 180) {
+                lng -= 360;
+            }
+        } else {
+            lng = (northEast.longitude + southWest.longitude) / 2;
         }
 
         return latLng([lat, lng]);
@@ -595,10 +602,9 @@ export class LatLngBounds extends Base {
      * @returns {string}
      */
     toUrlValue(precision?: number): string {
-        let prec = precision || 3;
-        if (!isNumber(prec)) {
-            prec = 3;
-        }
+        // A precision of 0 is valid, so test the type rather than whether the value is truthy.
+        // "precision || 3" turned 0 into 3.
+        const prec = isNumber(precision) ? precision : 3;
         if (this.#bounds) {
             return this.#bounds.toUrlValue(prec);
         }
