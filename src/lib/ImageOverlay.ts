@@ -1044,7 +1044,11 @@ export class ImageOverlay extends Overlay {
             const ne = this.#bounds.getNorthEast();
             const sw = this.#bounds.getSouthWest();
 
-            if (ne && sw) {
+            // Both corners have to be real latitude/longitude pairs, not just present. Resizing
+            // rebuilds the bounds from pixel positions, and those conversions hand back an empty
+            // LatLng when there's no projection - toGoogle() throws for one of those, and this
+            // runs on every frame while the map moves.
+            if (ne && sw && ne.isValid() && sw.isValid()) {
                 const nePixel = projection.fromLatLngToDivPixel(ne.toGoogle());
                 const swPixel = projection.fromLatLngToDivPixel(sw.toGoogle());
 

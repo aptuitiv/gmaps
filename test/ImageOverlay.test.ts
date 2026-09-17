@@ -115,6 +115,46 @@ describe('ImageOverlay', () => {
         });
     });
 
+    /* -----------------------------------------------------------------------
+        draw() runs on every frame while the map moves, and converts both corners of the bounds
+        with LatLng.toGoogle(), which throws for a corner that isn't a real latitude/longitude
+        pair. Resizing rebuilds the bounds from pixel positions, and those conversions hand back
+        an empty LatLng when there is no projection - so the corners are checked for being valid,
+        not just for being there.
+    ----------------------------------------------------------------------- */
+    describe('drawing with bounds that are not usable', () => {
+        /**
+         * A stand-in projection
+         *
+         * @param {object|null} result What fromLatLngToDivPixel should return
+         * @returns {any}
+         */
+        const projectionReturning = (result: { x: number; y: number } | null): any => ({
+            fromLatLngToDivPixel: () => result,
+        });
+
+        it('does not throw when a corner is an empty LatLng', () => {
+            const o = imageOverlay({ imageUrl, bounds });
+            // The shape that rebuilding the bounds from pixels produces with no projection
+            o.setBoundsFromResize(latLng(), latLng());
+
+            expect(() => o.draw(projectionReturning({ x: 10, y: 20 }))).not.toThrow();
+        });
+
+        it('does not throw when the projection cannot convert a corner', () => {
+            const o = imageOverlay({ imageUrl, bounds });
+
+            expect(() => o.draw(projectionReturning(null))).not.toThrow();
+        });
+
+        it('still sizes the overlay for real bounds', () => {
+            const o = imageOverlay({ imageUrl, bounds });
+
+            o.draw(projectionReturning({ x: 10, y: 20 }));
+            expect(o.getOverlayElement().style.left).toBe('10px');
+        });
+    });
+
     describe('resizing', () => {
         /**
          * Build an image overlay that is on a map and ready to be resized.

@@ -16,6 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Tooltip, tooltip } from '../src/lib/Tooltip';
+import { LatLng } from '../src/lib/LatLng';
 import { marker } from '../src/lib/Marker';
 import { polyline } from '../src/lib/Polyline';
 import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
@@ -329,6 +330,52 @@ describe('Tooltip', () => {
             const t = tooltip('x');
             // #applyTheme only runs from draw(), so nothing is set yet
             expect(t.styles).not.toHaveProperty('backgroundColor');
+        });
+    });
+
+    /* -----------------------------------------------------------------------
+        draw() is called by Google on every frame while the map is moved, and it converts the
+        tooltip's position to pixels with LatLng.toGoogle() - which throws for a position that
+        isn't a real latitude/longitude pair.
+
+        An empty LatLng is easy to end up with: Overlay.getContainerLatLngFromPixel() and
+        getDivLatLngFromPixel() both hand one back when there is no projection to work with, and
+        that value can be stored as a position. So draw() checks the position is valid, not just
+        that it is set.
+    ----------------------------------------------------------------------- */
+    describe('drawing with a position that is not usable', () => {
+        /**
+         * A stand-in projection that converts a position to pixels
+         *
+         * @param {object|null} result What fromLatLngToDivPixel should return
+         * @returns {any}
+         */
+        const projectionReturning = (result: { x: number; y: number } | null): any => ({
+            fromLatLngToDivPixel: () => result,
+        });
+
+        it('does not throw when the position is an empty LatLng', () => {
+            const t = tooltip('Content');
+            // The shape Overlay hands back when it has no projection to convert with
+            t.setPosition(new LatLng());
+
+            expect(() => t.draw(projectionReturning({ x: 10, y: 20 }))).not.toThrow();
+        });
+
+        it('does not throw when the projection cannot convert the position', () => {
+            const t = tooltip('Content');
+            t.setPosition([1, 2]);
+
+            // Google returns null when it can't work out the pixel position
+            expect(() => t.draw(projectionReturning(null))).not.toThrow();
+        });
+
+        it('still places the tooltip for a real position', () => {
+            const t = tooltip('Content');
+            t.setPosition([1, 2]);
+
+            t.draw(projectionReturning({ x: 10, y: 20 }));
+            expect(t.getOverlayElement().style.left).toBe('10px');
         });
     });
 

@@ -592,8 +592,18 @@ export class Tooltip extends Overlay {
         // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
         // up and the tooltip will be displayed.
         const position = this.getPosition();
-        if (position && typeof projection !== 'undefined') {
-            const divPosition = projection.fromLatLngToDivPixel(position.toGoogle())!;
+        // The position has to be a real latitude/longitude pair, not just present. The pixel to
+        // lat/lng conversions on Overlay hand back an empty LatLng when there's no projection to
+        // work with, and toGoogle() throws for one of those - inside draw(), which Google calls
+        // on every frame while the map moves.
+        if (position && position.isValid() && typeof projection !== 'undefined') {
+            const divPosition = projection.fromLatLngToDivPixel(position.toGoogle());
+            if (!divPosition) {
+                // The position couldn't be converted to pixel coordinates so the tooltip can't
+                // be placed. Popup.draw() has always checked this; this used to assert that it
+                // was never null and read x and y off it regardless.
+                return;
+            }
 
             // Hide the tooltip when it is far out of view.
             const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
