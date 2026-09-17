@@ -825,6 +825,12 @@ export class Overlay extends Layer {
         } else {
             this.#overlay.style.cursor = '';
             this.#overlay.style.pointerEvents = '';
+            // Take the outline away again. Resizing draws the same outline, so it's only
+            // removed when resizing isn't using it - otherwise turning dragging off would
+            // leave a resizable overlay with no handles visible around it.
+            if (!this.#resize) {
+                this.#overlay.style.border = 'none';
+            }
             this.#overlay.removeEventListener('mousedown', this.#handleDragStart);
             this.#overlay.removeEventListener('touchstart', this.#handleDragStart);
         }
@@ -925,7 +931,12 @@ export class Overlay extends Layer {
             }
         });
         this.#resizeHandles = [];
-        this.#overlay.style.border = 'none';
+        // Dragging draws the same outline, so leave it alone when dragging is still on.
+        // #createResizeHandles calls this before building new handles and then sets the border
+        // itself, so nothing is lost by skipping it here.
+        if (!this.#drag) {
+            this.#overlay.style.border = 'none';
+        }
     }
 
     /**
