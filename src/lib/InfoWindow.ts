@@ -691,7 +691,11 @@ export class InfoWindow extends Layer {
             const googleInfoWindow = this.#infoWindow;
             if (!googleInfoWindow) {
                 // The Google Maps library isn't loaded so the InfoWindow can't be shown.
-                reject(new Error('The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded.'));
+                reject(
+                    new Error(
+                        'The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded.',
+                    ),
+                );
                 return;
             }
             const collection = InfoWindowCollection.getInstance();
@@ -810,7 +814,7 @@ export class InfoWindow extends Layer {
                     InfoWindowCollection.getInstance().remove(this);
                 });
                 // Handle when the map changes.
-                // This is used to handle when the InfoWindow is closed programatically by another
+                // This is used to handle when the InfoWindow is closed programmatically by another
                 // Google InfoWindow. This can happen if one of our windows is open and then the
                 // user clicks on a map location ang Google shows their own info window.
                 // Without doing this, we can't track that our window was closed.

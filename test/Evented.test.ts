@@ -336,6 +336,77 @@ describe('Evented', () => {
             e.dispatch('click');
             expect(cb).toHaveBeenCalledTimes(1);
         });
+
+        /*
+            The type is marked as "spoken for" while an only() listener is registered, and that
+            marker is what makes a later on() for the same type do nothing. Removing listeners
+            used to clear the marker whatever happened, including when the removal matched
+            nothing - so off() with an unrelated callback left the only() listener in place but
+            took the marker away, and the next on() was accepted. The type then had the two
+            listeners that only() exists to prevent.
+
+            The three tests after the first one are the other half of it: the marker still has to
+            be cleared when the listener really has gone, or only() could never be used again for
+            that type.
+        */
+        it('keeps the only() listener alone when a different callback is removed', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const second = vi.fn();
+            e.only('click', first);
+
+            // Matches nothing, so the only() listener is still there afterwards
+            e.off('click', () => {});
+            e.on('click', second);
+            e.dispatch('click');
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(second).not.toHaveBeenCalled();
+        });
+
+        it('frees the type once the only() listener is removed by name', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const second = vi.fn();
+            e.only('click', first);
+
+            e.off('click', first);
+            e.on('click', second);
+            e.dispatch('click');
+
+            expect(first).not.toHaveBeenCalled();
+            expect(second).toHaveBeenCalledTimes(1);
+        });
+
+        it('frees the type when every listener for it is removed', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const second = vi.fn();
+            e.only('click', first);
+
+            e.off('click');
+            e.on('click', second);
+            e.dispatch('click');
+
+            expect(first).not.toHaveBeenCalled();
+            expect(second).toHaveBeenCalledTimes(1);
+        });
+
+        // The onlyOnce listener is removed by removeCalledOnceListeners() after it fires, which
+        // leaves the type with none - so the marker has to go as well.
+        it('frees the type after an onlyOnce listener has fired', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const second = vi.fn();
+            e.onlyOnce('click', first);
+            e.dispatch('click');
+
+            e.on('click', second);
+            e.dispatch('click');
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(second).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('Google event wiring', () => {

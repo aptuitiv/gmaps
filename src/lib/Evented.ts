@@ -336,7 +336,16 @@ export class Evented extends Base {
      * @param {string} type The event type
      */
     #afterListenersRemoved(type: string): void {
-        // Remove the event listener from the onlyEventListeners array
+        // Both of the things below are only true once the type has no listeners left. off() calls
+        // this after filtering the list, and the filter can match nothing - off('click', someOther)
+        // for a type registered with only() used to clear the marker while the only() listener was
+        // still registered, which let a second listener be added for that type and broke the one
+        // listener that only() promises.
+        if ((this.#eventListeners?.[type]?.length ?? 0) > 0) {
+            return;
+        }
+
+        // The type no longer has a listener, so only() is free to accept one again.
         const onlyEventListeners = this.#onlyEventListeners;
         if (onlyEventListeners) {
             const index = onlyEventListeners.indexOf(type);
@@ -345,16 +354,13 @@ export class Evented extends Base {
             }
         }
 
-        // If there are no more event listeners for the given type then remove the listener that
-        // this object added to the Google maps object. Only that one is removed - see the comment
-        // on #googleListeners for why. This also no longer needs #isGoogleObjectSet(), so it's
-        // safe to call before the Google Maps library has loaded.
-        if ((this.#eventListeners?.[type]?.length ?? 0) === 0) {
-            const googleListeners = this.#googleListeners;
-            if (googleListeners && googleListeners[type]) {
-                googleListeners[type].remove();
-                delete googleListeners[type];
-            }
+        // Remove the listener that this object added to the Google maps object. Only that one is
+        // removed - see the comment on #googleListeners for why. This also no longer needs
+        // #isGoogleObjectSet(), so it's safe to call before the Google Maps library has loaded.
+        const googleListeners = this.#googleListeners;
+        if (googleListeners && googleListeners[type]) {
+            googleListeners[type].remove();
+            delete googleListeners[type];
         }
     }
 
