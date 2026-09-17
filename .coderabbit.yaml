@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# .coderabbit.yaml configuration
+
+# Set the language for reviews by using the corresponding ISO language code
+language: 'en-US'
+# Set the tone of reviews and chat (empty string uses CodeRabbit defaults)
+tone_instructions: ''
+early_access: false
+enable_free_tier: true
+inheritance: false
+knowledge_base: {}
+code_generation: {}
+issue_enrichment: {}
+chat:
+    art: false
+reviews:
+    # Automatically apply labels to the review based on the changes.
+    auto_apply_labels: false
+    # Automatically assign reviewers to the review based on the changes.
+    auto_assign_reviewers: false
+    # Do not include a summary of the changed files in the walkthrough comment.
+    changed_files_summary: false
+    # Wrap the walkthrough in a Markdown collapsible section.
+    collapse_walkthrough: true
+    # Prompt for AI Agents | Include the '🤖 Prompt for AI Agents' section in inline review comments to provide codegen instructions for AI agents.
+    enable_prompt_for_ai_agents: true
+    # Include an estimated code review effort in the walkthrough.
+    estimate_code_review_effort: false
+    # Enable or disable the high-level summary of the changes.
+    high_level_summary: false
+    # Include the high-level summary in the walkthrough comment.
+    high_level_summary_in_walkthrough: false
+    # Post a fortune message while the review is running.
+    in_progress_fortune: false
+    # Generate a poem in the walkthrough comment.
+    poem: false
+    # Set the review profile: `chill` for lighter feedback, `assertive` for more feedback (which may feel nitpicky).
+    profile: 'chill'
+    # Specify file patterns to include or exclude in a review using glob patterns (e.g., `!dist/**`, `src/**`). These patterns also apply to 'git sparse-checkout', including specified patterns and ignoring excluded ones (starting with '!') when cloning the repository.
+    path_filters:
+        - '!dist/**'
+        - '!build/**'
+        - '!node_modules/**'
+        - '!package-lock.json'
+        - '!yarn.lock'
+        - '!**/*.min.js'
+        - '!**/*.map'
+        - '!app/public/ui/js/**'
+    # Whether to include related issues in the walkthrough comment.
+    related_issues: false
+    # Whether to include related pull requests in the walkthrough comment.
+    related_prs: false
+    # Post review details (ignored files, extra context used, suppressed comments, etc.).
+    review_details: false
+    # Post review status messages (e.g., when a review is skipped) in the walkthrough summary comment.
+    review_status: false
+    # Whether to include the sequence diagrams showing the updated flow in the walkthrough comment.
+    sequential_reviews: false
+    # Suggest labels based on the changes, and include them in the walkthrough.
+    suggested_labels: false
+    # Suggest reviewers based on the changes, and include them in the walkthrough.
+    suggested_reviewers: false
