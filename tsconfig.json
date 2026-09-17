@@ -21,6 +21,8 @@
         "types": ["google.maps", "node"],
         "rootDir": "src",
         "outDir": "dist",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        // Using a value that might be undefined without checking it first is an error.
+        "strictNullChecks": true
     }
 }
