@@ -3485,6 +3485,18 @@ var GeocodeResults = class extends Base_default {
 var Results_default = GeocodeResults;
 
 // src/lib/Geocode.ts
+var sharedGeocoder;
+var geocodeCache = /* @__PURE__ */ new Map();
+var geocodeCacheSize = 50;
+var trimGeocodeCache = () => {
+  while (geocodeCache.size > geocodeCacheSize) {
+    const oldest = geocodeCache.keys().next();
+    if (oldest.done) {
+      return;
+    }
+    geocodeCache.delete(oldest.value);
+  }
+};
 var Geocode = class extends Base_default {
   /**
    * The address to geocode
@@ -3500,6 +3512,13 @@ var Geocode = class extends Base_default {
    * @private
    */
   #bounds;
+  /**
+   * Whether this object uses the shared cache of results
+   *
+   * @type {boolean}
+   * @private
+   */
+  #cache = true;
   /**
    * Holds the component restrictions
    *
@@ -3546,6 +3565,35 @@ var Geocode = class extends Base_default {
     super("geocode");
     if (isObject(options)) {
       this.setOptions(options);
+    }
+  }
+  /**
+   * Empty the cache of geocode results.
+   *
+   * The shared Geocoder is dropped as well, so the next request builds a new one. Call this if
+   * the results for an address may have changed.
+   */
+  static clearCache() {
+    geocodeCache.clear();
+    sharedGeocoder = void 0;
+  }
+  /**
+   * How many results the cache holds before the oldest is dropped
+   *
+   * @returns {number}
+   */
+  static get cacheSize() {
+    return geocodeCacheSize;
+  }
+  /**
+   * Set how many results the cache holds. Set it to 0 to turn caching off everywhere.
+   *
+   * @param {number} size The number of results to hold
+   */
+  static set cacheSize(size2) {
+    if (typeof size2 === "number" && Number.isFinite(size2) && size2 >= 0) {
+      geocodeCacheSize = Math.floor(size2);
+      trimGeocodeCache();
     }
   }
   /**
@@ -3706,10 +3754,59 @@ var Geocode = class extends Base_default {
    * @returns {Promise<GeocodeResults>}
    */
   geocode(options) {
-    return new Promise((resolve, reject) => {
-      if (isObject(options)) {
-        this.setOptions(options);
+    if (isObject(options)) {
+      this.setOptions(options);
+    }
+    const useCache = this.#cache && geocodeCacheSize > 0;
+    const key = useCache ? this.#cacheKey() : "";
+    if (useCache) {
+      const cached = geocodeCache.get(key);
+      if (cached) {
+        return cached;
       }
+    }
+    const request = this.#requestResults();
+    if (useCache) {
+      geocodeCache.set(key, request);
+      request.catch(() => {
+        geocodeCache.delete(key);
+      });
+      trimGeocodeCache();
+    }
+    return request;
+  }
+  /**
+   * Build the key that this request is cached under.
+   *
+   * The key is built from this object's own values rather than from the Google request, because
+   * the Google request holds LatLng and LatLngBounds objects that don't serialise usefully. The
+   * bounds are read through getNorthEast()/getSouthWest(), which work before the Google library
+   * has loaded.
+   *
+   * @private
+   * @returns {string}
+   */
+  #cacheKey() {
+    const ne = this.#bounds?.getNorthEast();
+    const sw = this.#bounds?.getSouthWest();
+    return JSON.stringify({
+      address: this.#address,
+      bounds: ne && sw ? [ne.latitude, ne.longitude, sw.latitude, sw.longitude] : void 0,
+      componentRestrictions: this.#componentRestrictions,
+      language: this.#language,
+      location: this.#location ? [this.#location.latitude, this.#location.longitude] : void 0,
+      placeId: this.#placeId,
+      region: this.#region
+    });
+  }
+  /**
+   * Send the request, waiting for the Google library first if it isn't loaded yet
+   *
+   * @private
+   * @returns {Promise<GeocodeResults>}
+   */
+  #requestResults() {
+    return new Promise((resolve, reject) => {
       if (checkForGoogleMaps("Geocoder", "Geocoder", false)) {
         this.#runGeocode().then((results) => {
           resolve(results);
@@ -3762,8 +3859,8 @@ var Geocode = class extends Base_default {
       options.region = this.#region;
     }
     return new Promise((resolve, reject) => {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode(options, (results, status) => {
+      sharedGeocoder ??= new google.maps.Geocoder();
+      sharedGeocoder.geocode(options, (results, status) => {
         if (status === google.maps.GeocoderStatus.OK) {
           const resultsObj = new Results_default(results ?? void 0);
           resolve(resultsObj);
@@ -3856,6 +3953,9 @@ var Geocode = class extends Base_default {
     }
     if (options.bounds) {
       this.bounds = options.bounds;
+    }
+    if (typeof options.cache === "boolean") {
+      this.#cache = options.cache;
     }
     if (options.componentRestrictions) {
       this.componentRestrictions = options.componentRestrictions;
@@ -17426,14 +17526,42 @@ var Polyline = class _Polyline extends Layer_default {
     return config.tolerance;
   }
   /**
+   * Whether two drawn paths hold the same points.
+   *
+   * The point count is checked first because that alone separates most paths for almost
+   * nothing. Only paths that are the same length are compared point by point.
+   *
+   * @private
+   * @param {google.maps.LatLng[]} a The first path
+   * @param {google.maps.LatLng[]} b The second path
+   * @returns {boolean}
+   */
+  static #isSamePath(a, b) {
+    if (a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i += 1) {
+      if (a[i].lat() !== b[i].lat() || a[i].lng() !== b[i].lng()) {
+        return false;
+      }
+    }
+    return true;
+  }
+  /**
    * Update the path drawn on the map if the simplify tolerance to use has changed.
    *
    * If the polyline is hidden then the path isn't updated until the polyline is shown again.
    * This saves simplifying the paths of hidden polylines, for example ones hidden with PolylineCollection.hide(),
    * each time the zoom level changes.
    *
+   * A different tolerance often draws the same points. A short segment simplifies to its two
+   * end points at every tolerance, so moving between zoom buckets used to hand Google an
+   * identical path over and over. setPath is the expensive half of a tolerance change, so it's
+   * skipped when the path that would be drawn matches the one already drawn.
+   *
    * @private
-   * @returns {boolean} Whether the path drawn on the map was updated
+   * @returns {boolean} Whether the tolerance changed and was applied. The path may not have
+   *      been sent to Google, if the new tolerance draws the same points as the old one.
    */
   #applySimplify() {
     const tolerance = this.#getCurrentTolerance();
@@ -17446,9 +17574,13 @@ var Polyline = class _Polyline extends Layer_default {
       return false;
     }
     this.#isSimplifyOutOfDate = false;
+    const drawnPath = this.#simplifiedPaths[this.#simplifyTolerance];
     this.#simplifyTolerance = tolerance;
     if (this.#polyline) {
-      this.#polyline.setPath(this.#getGooglePath());
+      const googlePath = this.#getGooglePath();
+      if (!drawnPath || !_Polyline.#isSamePath(drawnPath, googlePath)) {
+        this.#polyline.setPath(googlePath);
+      }
     }
     if (this.#highlightPolyline && this.#highlightSetup) {
       this.#highlightPolyline.simplify = tolerance;
@@ -17688,10 +17820,15 @@ var Polyline = class _Polyline extends Layer_default {
       polylineOptions.path = this.#getGooglePath();
       const googlePolyline = new google.maps.Polyline(polylineOptions);
       this.#polyline = googlePolyline;
-      this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-        googlePolyline.setOptions(opts);
+      const hasIcons = Array.isArray(this.#options.icons) && this.#options.icons.length > 0;
+      if (this.#dashed || hasIcons) {
+        this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+          googlePolyline.setOptions(opts);
+          this.setEventGoogleObject(googlePolyline);
+        });
+      } else {
         this.setEventGoogleObject(googlePolyline);
-      });
+      }
       return googlePolyline;
     }
     return this.#polyline;
@@ -18978,7 +19115,23 @@ var PopupCollection = /* @__PURE__ */ (() => {
 })();
 
 // src/lib/Tooltip.ts
-var Tooltip = class extends Overlay {
+var sharedTooltipInstance;
+var sharedTooltipValues = /* @__PURE__ */ new WeakMap();
+var Tooltip = class _Tooltip extends Overlay {
+  static {
+    /**
+     * Whether attachTooltip() gives everything one shared Tooltip instead of one each.
+     *
+     * Defaults to true. Set it to false to go back to a Tooltip per layer, or pass
+     * { shared: false } to a single attachTooltip() call to opt just that one out.
+     *
+     * Passing an actual Tooltip object to attachTooltip() always uses that object, whatever
+     * this is set to.
+     *
+     * @type {boolean}
+     */
+    this.useShared = true;
+  }
   /**
    * Holds the tooltip that this one last showed for the object it's attached to.
    *
@@ -19026,12 +19179,18 @@ var Tooltip = class extends Overlay {
    */
   #event = "hover";
   /**
-   * Whether the tooltip is attached to an element
+   * The things that this tooltip is attached to.
+   *
+   * This used to be a single boolean, which was right while every layer had its own tooltip.
+   * The shared tooltip is attached to many things, and a boolean would have let it wire up its
+   * listeners for the first one and silently do nothing for all the rest.
+   *
+   * Built on first use, and a WeakSet so that it doesn't keep a layer alive.
    *
    * @private
-   * @type {boolean}
+   * @type {WeakSet<Map|Layer>|undefined}
    */
-  #isAttached = false;
+  #attachedTo;
   /**
    * Whether the default theme styles have been set on the tooltip element
    *
@@ -19061,6 +19220,33 @@ var Tooltip = class extends Overlay {
         this.content = options;
       }
       this.setClassName("tooltip");
+    }
+  }
+  /**
+   * Get the one Tooltip that everything shares, building it the first time it's needed.
+   *
+   * It's built with no options on purpose. A Tooltip built from an options object doesn't get
+   * the "tooltip" class name, only one built from a string or from nothing does, and the shared
+   * tooltip has to look like the per-layer ones it replaces.
+   *
+   * @returns {Tooltip}
+   */
+  static getShared() {
+    if (!sharedTooltipInstance) {
+      sharedTooltipInstance = new _Tooltip();
+    }
+    return sharedTooltipInstance;
+  }
+  /**
+   * Throw away the shared tooltip, hiding it first if it's showing.
+   *
+   * The next thing that needs it builds a new one. Each thing keeps its own value, so they
+   * carry on working after this.
+   */
+  static clearShared() {
+    if (sharedTooltipInstance) {
+      sharedTooltipInstance.hide();
+      sharedTooltipInstance = void 0;
     }
   }
   /**
@@ -19184,8 +19370,9 @@ var Tooltip = class extends Overlay {
    * @returns {Promise<Tooltip>}
    */
   async attachTo(element, event, callback) {
-    if (!this.#isAttached) {
-      this.#isAttached = true;
+    const attachedTo = this.#attachedTo ??= /* @__PURE__ */ new WeakSet();
+    if (!attachedTo.has(element)) {
+      attachedTo.add(element);
       if (isFunction(callback)) {
         this.#callback = callback;
       }
@@ -19248,10 +19435,26 @@ var Tooltip = class extends Overlay {
    * @returns {Tooltip}
    */
   #tooltipFor(target) {
+    const sharedValue = sharedTooltipValues.get(target);
+    if (typeof sharedValue !== "undefined") {
+      return this.#resolveFor(target, sharedValue);
+    }
     if (!isFunction(this.#callback)) {
       return this;
     }
-    const tooltipObject = overlayFromCallback(this, this.#callback(target), tooltipAdapter);
+    return this.#resolveFor(target, this.#callback);
+  }
+  /**
+   * Work out the tooltip to show for a value, calling it first if it's a callback.
+   *
+   * @private
+   * @param {Map|Layer} target The object that the tooltip is being shown for
+   * @param {AttachTooltipValue} value The value attached for that object
+   * @returns {Tooltip}
+   */
+  #resolveFor(target, value) {
+    const resolved = isFunction(value) ? value(target) : value;
+    const tooltipObject = overlayFromCallback(this, resolved, tooltipAdapter);
     if (this.#activeTooltip && this.#activeTooltip !== tooltipObject) {
       this.#activeTooltip.hide();
     }
@@ -19398,9 +19601,11 @@ var tooltipMixin = {
    * @param {AttachTooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the
    *      Tooltip object, or a function that returns one of those.
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+   * @param {AttachTooltipOptions} [attachOptions] Options for this call. Set "shared" to false
+   *      to give this object its own Tooltip instead of the shared one.
    * @returns {Tooltip}
    */
-  attachTooltip(tooltipValue, event) {
+  attachTooltip(tooltipValue, event, attachOptions) {
     let tooltipVal = tooltipValue;
     let tooltipEvent = event;
     if (isObject(tooltipValue) && objectHasValue(tooltipValue, "attachConfig") && objectHasValue(tooltipValue, "attachEvent")) {
@@ -19412,6 +19617,17 @@ var tooltipMixin = {
         attachConfig: tooltipVal,
         attachEvent: tooltipEvent
       };
+    }
+    const isOwnTooltip = tooltipVal instanceof Tooltip;
+    const useShared = !isOwnTooltip && (typeof attachOptions?.shared === "boolean" ? attachOptions.shared : Tooltip.useShared);
+    if (useShared) {
+      const sharedTooltip = Tooltip.getShared();
+      sharedTooltipValues.set(this, tooltipVal);
+      if (!isFunction(tooltipVal)) {
+        overlayFromCallback(sharedTooltip, tooltipVal, tooltipAdapter);
+      }
+      sharedTooltip.attachTo(this, tooltipEvent);
+      return sharedTooltip;
     }
     let t;
     let callback;

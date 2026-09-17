@@ -6485,11 +6485,40 @@ type TooltipOptions = {
 declare class Tooltip extends Overlay {
     #private;
     /**
+     * Whether attachTooltip() gives everything one shared Tooltip instead of one each.
+     *
+     * Defaults to true. Set it to false to go back to a Tooltip per layer, or pass
+     * { shared: false } to a single attachTooltip() call to opt just that one out.
+     *
+     * Passing an actual Tooltip object to attachTooltip() always uses that object, whatever
+     * this is set to.
+     *
+     * @type {boolean}
+     */
+    static useShared: boolean;
+    /**
      * Constructor
      *
      * @param {TooltipOptions | string | HTMLElement | Text} [options] Tooltip options
      */
     constructor(options?: TooltipOptions | string | HTMLElement | Text);
+    /**
+     * Get the one Tooltip that everything shares, building it the first time it's needed.
+     *
+     * It's built with no options on purpose. A Tooltip built from an options object doesn't get
+     * the "tooltip" class name, only one built from a string or from nothing does, and the shared
+     * tooltip has to look like the per-layer ones it replaces.
+     *
+     * @returns {Tooltip}
+     */
+    static getShared(): Tooltip;
+    /**
+     * Throw away the shared tooltip, hiding it first if it's showing.
+     *
+     * The next thing that needs it builds a new one. Each thing keeps its own value, so they
+     * carry on working after this.
+     */
+    static clearShared(): void;
     /**
      * Returns whether to center the tooltip horizontally on the element.
      *
