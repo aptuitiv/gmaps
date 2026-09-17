@@ -246,6 +246,26 @@ describe('equals and intersects', () => {
         await expect(latLngBounds({ ne: [10, 20], sw: [0, 10] }).equals(new LatLngBounds())).resolves.toBe(false);
     });
 
+    // equals() used to read this bounds' corners before checking whether it had any, and
+    // #getCorners() throws for a bounds with none. So asking whether two empty bounds were
+    // equal threw instead of answering. equals() returns a boolean, so it needs an answer
+    // for an empty bounds - and it already had one for an empty bounds on the other side.
+    it('two empty bounds are equal', async () => {
+        await expect(new LatLngBounds().equals(new LatLngBounds())).resolves.toBe(true);
+    });
+
+    it('an empty bounds compared with one that has values is not equal, either way round', async () => {
+        const empty = new LatLngBounds();
+        const full = latLngBounds({ ne: [10, 20], sw: [0, 10] });
+
+        await expect(empty.equals(full)).resolves.toBe(false);
+        await expect(full.equals(empty)).resolves.toBe(false);
+    });
+
+    it('answers rather than throwing when both bounds are empty', async () => {
+        await expect(new LatLngBounds().equals(new LatLngBounds())).resolves.not.toThrow();
+    });
+
     it('is false for anything that is not a LatLngBounds', async () => {
         await expect(latLngBounds([1, 2]).equals('nope' as never)).resolves.toBe(false);
     });

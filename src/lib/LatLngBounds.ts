@@ -183,11 +183,24 @@ export class LatLngBounds extends Base {
                         resolve(bounds.equals(googleLatLngBounds));
                     });
                 } else {
-                    // Calculate the equality manually
+                    // Calculate the equality manually.
+                    //
+                    // Both bounds are checked for being empty before their corners are read.
+                    // #getCorners() throws when the bounds has no corners, so asking this bounds
+                    // for them first meant comparing two empty bounds threw instead of answering
+                    // the question. equals() returns a boolean, so an empty bounds is something
+                    // it should have an answer for.
+                    const isThisEmpty = this.isEmpty();
+                    const isOtherEmpty = other.isEmpty();
+                    if (isThisEmpty || isOtherEmpty) {
+                        // Two empty bounds are the same as each other, and an empty bounds is
+                        // never the same as one with values.
+                        resolve(isThisEmpty && isOtherEmpty);
+                        return;
+                    }
                     const { northEast, southWest } = this.#getCorners();
                     const otherNorthEast = other.getNorthEast();
                     const otherSouthWest = other.getSouthWest();
-                    // An empty bounds doesn't equal a bounds with values
                     resolve(
                         typeof otherNorthEast !== 'undefined' &&
                             typeof otherSouthWest !== 'undefined' &&
