@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## [v0.29.0] - 2026-09-17
+
 ### Added
 
 - Added the `preventPageZoom` map option, which keeps a pinch on the map from zooming the whole page on iOS. It defaults to true. iOS ignores `user-scalable=no` in the viewport tag, so the gesture events that Safari fires on the map element are canceled instead. The map still zooms because the Google Maps API handles the pinch itself, and only the map element is covered so that the rest of the page can still be zoomed. Other browsers don't fire these events. It's also available as the `preventPageZoom` property so that it can be changed after the map has been rendered.
