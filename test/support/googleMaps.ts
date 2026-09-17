@@ -780,6 +780,67 @@ class GeocoderStub {
 }
 
 /**
+ * How many pixels the stand-in projection puts in one degree.
+ *
+ * Exported so that a test can work out the pixels it expects from a latitude and longitude, or
+ * the other way round, instead of copying a magic number.
+ */
+export const PIXELS_PER_DEGREE = 10;
+
+/**
+ * A stand-in for google.maps.MapCanvasProjection.
+ *
+ * The mapping is linear and has no notion of the map's centre or zoom: x is longitude times
+ * PIXELS_PER_DEGREE, and y is latitude times the same, negated so that moving up the screen
+ * increases the latitude the way it does on a real map. That makes every conversion reversible,
+ * which is what lets a test assert on the numbers that come back.
+ *
+ * Container pixels and div pixels are the same thing here. Google distinguishes them, but
+ * nothing in this library depends on the difference.
+ */
+const fakeProjection = {
+    /**
+     * Convert a latitude/longitude to a pixel position
+     *
+     * @param {any} latLngValue The Google LatLng object
+     * @returns {object} The pixel position
+     */
+    fromLatLngToContainerPixel(latLngValue: any) {
+        return new PointStub(latLngValue.lng() * PIXELS_PER_DEGREE, -latLngValue.lat() * PIXELS_PER_DEGREE);
+    },
+
+    /**
+     * Convert a pixel position to a latitude/longitude
+     *
+     * @param {any} pixel The Google Point object
+     * @returns {object} The latitude/longitude
+     */
+    fromContainerPixelToLatLng(pixel: any) {
+        return new LatLngStub(-pixel.y / PIXELS_PER_DEGREE, pixel.x / PIXELS_PER_DEGREE);
+    },
+
+    /**
+     * Convert a latitude/longitude to a pixel position within the map div
+     *
+     * @param {any} latLngValue The Google LatLng object
+     * @returns {object} The pixel position
+     */
+    fromLatLngToDivPixel(latLngValue: any) {
+        return new PointStub(latLngValue.lng() * PIXELS_PER_DEGREE, -latLngValue.lat() * PIXELS_PER_DEGREE);
+    },
+
+    /**
+     * Convert a pixel position within the map div to a latitude/longitude
+     *
+     * @param {any} pixel The Google Point object
+     * @returns {object} The latitude/longitude
+     */
+    fromDivPixelToLatLng(pixel: any) {
+        return new LatLngStub(-pixel.y / PIXELS_PER_DEGREE, pixel.x / PIXELS_PER_DEGREE);
+    },
+};
+
+/**
  * The google.maps.event namespace
  */
 const event = {
@@ -864,6 +925,14 @@ const buildMaps = () => ({
     Polyline: recorded('Polyline'),
     Polygon: recorded('Polygon'),
     InfoWindow: recorded('InfoWindow'),
+    // A stand-in for google.maps.MapCanvasProjection.
+    //
+    // Overlay reaches this through getProjection(), and without it the whole of #handleResize
+    // is skipped (Overlay.ts:1080) - so a resize test would pass without running any of the
+    // code it claims to test. The mapping is deliberately trivial and linear so that a test can
+    // work out what it expects: one degree of latitude or longitude is PIXELS_PER_DEGREE pixels,
+    // latitude increases upwards and longitude to the right, both measured from the map's
+    // top-left corner.
     OverlayView: class OverlayView extends MVCObject {
         constructor(...args: any[]) {
             super();
@@ -876,6 +945,19 @@ const buildMaps = () => ({
 
         static preventMapHitsAndGesturesFrom(): void {
             // Nothing to do in the stub
+        }
+
+        /**
+         * The projection that converts between pixels and latitude/longitude.
+         *
+         * Returned for every overlay view, so that the drag and resize code that asks for one
+         * finds it. Google only has a projection once the overlay has been drawn; the stub
+         * doesn't model that, because every test that wants a projection wants it straight away.
+         *
+         * @returns {object} A stand-in for google.maps.MapCanvasProjection
+         */
+        getProjection(): any {
+            return fakeProjection;
         }
 
         /**

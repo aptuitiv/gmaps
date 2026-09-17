@@ -1047,9 +1047,72 @@ during the flush, so `element.parentElement` stays `null` until then. `test/Tool
 that, including across 100 tooltips. String content has no equivalent observable, which is worth
 knowing if these are ever rewritten.
 
-**O-1 is still deferred, for the reason given below:** 42 `this.#overlay` references, most of the
+**O-1 was deferred for the reason given below:** 42 `this.#overlay` references, most of the
 form `this.#overlay.style.x = …`, so a missed one fails at runtime rather than at compile time,
 and the drag and resize paths have no test cover.
+
+**Both halves of that reason were addressed on 2026-09-16, at the user's direction, as groundwork.
+O-1 itself is still not done — but it is no longer blocked for the stated reason.**
+
+1. **`strictNullChecks` is on** (`tsconfig.json`). Turning it on produced **zero errors** — the
+   code was already written with optional fields and optional chaining throughout. This is the
+   part that changes the calculus: typing `#overlay` as `HTMLElement | undefined` now turns every
+   unchecked use into a **compile error**, so the compiler enumerates all 42 sites and proves the
+   conversion is complete. The original objection — "fails at runtime rather than at compile
+   time" — was correct when it was written and is no longer true.
+2. **Drag and resize have tests** (`test/Overlay.test.ts`, 19 added). Drag is covered end to end:
+   enable/disable, the styles written to the element, press/move/release, the movement maths, and
+   that a release detaches the document listeners. Resize is covered for its handle lifecycle:
+   four handles with the right classes and cursors, the outline, removal, and that enabling twice
+   doesn't double them.
+
+**The resize-movement gap was closed on 2026-09-16**, so every one of the 42 references now has
+both a compiler check and test cover — which is what O-1 was waiting for.
+
+It had been the one part of the drag and resize code tests couldn't reach: `#handleResizeStart`
+returns early without `getMap()?.getDiv()` (`Overlay.ts:1025`) and `#handleResize` does nothing
+without `getProjection()` (`Overlay.ts:1080`), and neither `fakeMap` nor the stub `OverlayView`
+provided those — so a test written against the old harness would have passed **without running
+the code it claimed to test**. Three additions closed it:
+
+- **`fakeMap.getDiv()`**, building its element on first use, because 13 of the 19 test files run
+  without a DOM and building it up front would break them.
+- **`getProjection()` on the stub `OverlayView`**, returning a stand-in `MapCanvasProjection`.
+  The mapping is deliberately linear — `PIXELS_PER_DEGREE` pixels to the degree, latitude
+  increasing upwards — so a test can work out the numbers it expects rather than copying them
+  from a run. It's exported for that reason.
+- **`test/ImageOverlay.test.ts`**, 20 tests for a class that had none. `ImageOverlay` is the only
+  sensible subject: base `Overlay.getBounds()` builds its bounds from two empty `latLng()` values,
+  so a plain `overlay()` can never clear the early return, while `ImageOverlay` returns the bounds
+  it was given and is the only class overriding `setBoundsFromResize()` and
+  `updateBoundsFromResize()`.
+
+**One harness detail to keep in mind before adding more overlay tests.** jsdom's
+`getBoundingClientRect()` returns zeros for everything, and `#handleResizeStart` measures both the
+overlay and the map div with it. The tests stub it on both. Without that the resize maths still
+runs, but every input is 0 — a test that executes the code and proves nothing.
+
+Note also that adding `getProjection()` changed what the *existing* tests exercise: overlays that
+previously found no projection now find one, so `draw()` paths that used to return early are now
+running. Nothing broke, but it means the suite covers more than it did.
+
+**Re-sized estimate for O-1 itself, measured 2026-09-16:**
+
+- **All 42 references are in `Overlay.ts` alone.** Every subclass already goes through
+  `getOverlayElement()` — Popup 7, Tooltip 6, ImageOverlay 9, InfoWindow 0. **No subclass
+  changes at all.**
+- **~28 are a mechanical rename** inside the drag and resize internals (`#setupDragHandlers`
+  through the resize movement handlers). They only run after `enableDrag()`/`enableResize()` and
+  all want the element to exist.
+- **~10 need judgement:** the 4 constructor lines move into the lazy creator; `get`/`set
+  className` (3) need a `#className` backing field, because `get className()` currently reads the
+  DOM; `removeClassName`, `style()` and `remove()` need to work without an element.
+- **`style()` is nearly free** — `#styles` (`Overlay.ts:173`) already records the value before
+  writing to the DOM, so the buffer exists.
+- **It applies to every `Overlay` subclass**, not just `Popup`, because the element is built in
+  the base constructor. The benefit is lopsided: Popup wins big (thousands per page, opened
+  rarely), InfoWindow gets a free win (0 element uses), ImageOverlay materialises immediately
+  anyway, and Tooltip saves exactly one div now that O-3 shares a single instance.
 
 **O-10 is also bigger than the audit implied, and was left alone deliberately.** The audit
 described it as the `content` setter calling `#setupGoogleInfoWindow()` eagerly. In fact **nine**
@@ -1125,7 +1188,7 @@ unchanged so that references elsewhere in this plan still resolve.
 | C-4 drop `#boundValues` | 4 |
 | P-4 `Promise.all` control conversions, P-5 setter batching | 5 |
 | L-2 chunked scheduler, L-6 O(n²) teardown, L-12 cache cap | 6 |
-| O-1 lazy overlay DOM, O-10 `InfoWindow` deferral | 3 |
+| O-1 lazy overlay DOM (**groundwork done 2026-09-16 — ready to reconsider, see Phase 3**), O-10 `InfoWindow` deferral | 3 |
 | L-1 viewport culling | 6 |
 
 Everything not listed above is **gated on a real-device profile**. Section 10.1 is the reason:
@@ -1864,6 +1927,16 @@ real verdict rather than a confirmation step.
   `map.getDiv()` on a configured-but-unrendered map returns nothing, and the element/selector
   forms are indistinguishable from outside. Noted because it cost a wrong assumption while
   writing `test/Map.test.ts`, and an `getElement()` accessor would be additive and cheap.
+- ~~**`disableDrag()` leaves the drag outline on the element.**~~ **Fixed 2026-09-16.** Enabling
+  dragging set `cursor`, `pointerEvents` and a `2px solid #007bff` border, but the disabled branch
+  only reset the first two, so an overlay kept a blue outline after `disableDrag()`. The fix turned
+  out to be two changes rather than one, because **resizing draws the same outline**:
+  `#setupDragHandlers` now clears the border only when resizing isn't using it, and
+  `#removeResizeHandles` only when dragging isn't. The second half was a mirror of the same bug
+  that nobody had noticed — `disableResize()` used to take the outline off an overlay that could
+  still be dragged. Both directions have tests.
+- ~~**The test harness can't reach resize movement.**~~ **Fixed 2026-09-16** — see the O-1 notes
+  in Phase 3.
 
 ---
 

@@ -279,6 +279,268 @@ describe('Overlay', () => {
             expect(() => overlay().remove()).not.toThrow();
         });
     });
+
+    /* -----------------------------------------------------------------------
+        Dragging and resizing.
+
+        These had no test cover at all before. They matter because between them they hold
+        about 28 of the 42 `this.#overlay` references in Overlay.ts, which is most of the
+        work in making the element lazy (O-1).
+
+        Only the mouse paths are covered. jsdom doesn't implement TouchEvent, so the
+        `e.touches[0]` branches can't be driven from here.
+    ----------------------------------------------------------------------- */
+
+    describe('dragging', () => {
+        /**
+         * Dispatch a mouse event at a position
+         *
+         * @param {EventTarget} target The element or document to dispatch on
+         * @param {string} type The event type
+         * @param {number} x The clientX value
+         * @param {number} y The clientY value
+         */
+        const mouse = (target: EventTarget, type: string, x: number, y: number): void => {
+            target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true }));
+        };
+
+        it('is off until it is turned on', () => {
+            const o = overlay();
+            expect(o.drag).toBe(false);
+            o.enableDrag();
+            expect(o.drag).toBe(true);
+            o.disableDrag();
+            expect(o.drag).toBe(false);
+        });
+
+        it('sets the cursor and pointer events on the element when enabled', () => {
+            const o = overlay();
+            o.enableDrag();
+            const element = o.getOverlayElement();
+            expect(element.style.cursor).toBe('move');
+            expect(element.style.pointerEvents).toBe('auto');
+        });
+
+        it('clears the cursor and pointer events when disabled', () => {
+            const o = overlay();
+            o.enableDrag();
+            o.disableDrag();
+            const element = o.getOverlayElement();
+            expect(element.style.cursor).toBe('');
+            expect(element.style.pointerEvents).toBe('');
+        });
+
+        // Enabling drag draws a blue outline around the overlay, and disabling it takes the
+        // outline away again. The outline used to be left behind, because #setupDragHandlers
+        // set the border when enabling but never cleared it when disabling.
+        it('draws an outline while it can be dragged, and takes it away again', () => {
+            const o = overlay();
+            o.enableDrag();
+            const element = o.getOverlayElement();
+            // borderStyle rather than border, because jsdom serialises the border shorthand
+            // back as "medium" once it is cleared, which makes "not none" true either way.
+            expect(element.style.borderStyle).toBe('solid');
+
+            o.disableDrag();
+            expect(element.style.borderStyle).toBe('none');
+        });
+
+        // Dragging and resizing draw the same outline, so whichever is turned off second is the
+        // one that removes it. Getting this wrong either leaves an outline on an overlay that
+        // can't be moved, or takes the outline off one that can still be resized.
+        it('keeps the outline when dragging is turned off but resizing is still on', () => {
+            const o = overlay();
+            o.enableDrag();
+            o.enableResize();
+
+            o.disableDrag();
+            expect(o.getOverlayElement().style.borderStyle).toBe('solid');
+
+            o.disableResize();
+            expect(o.getOverlayElement().style.borderStyle).toBe('none');
+        });
+
+        it('keeps the outline when resizing is turned off but dragging is still on', () => {
+            const o = overlay();
+            o.enableDrag();
+            o.enableResize();
+
+            o.disableResize();
+            expect(o.getOverlayElement().style.borderStyle).toBe('solid');
+
+            o.disableDrag();
+            expect(o.getOverlayElement().style.borderStyle).toBe('none');
+        });
+
+        it('says when the draggable state changed', () => {
+            const o = overlay();
+            const cb = vi.fn();
+            o.onDraggableChanged(cb);
+
+            o.enableDrag();
+            o.disableDrag();
+            expect(cb).toHaveBeenCalledTimes(2);
+        });
+
+        it('starts a drag when the element is pressed', () => {
+            const o = overlay();
+            const cb = vi.fn();
+            o.onDragStart(cb);
+            o.enableDrag();
+
+            mouse(o.getOverlayElement(), 'mousedown', 100, 50);
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+
+        it('starts nothing when dragging is off', () => {
+            const o = overlay();
+            const cb = vi.fn();
+            o.onDragStart(cb);
+
+            mouse(o.getOverlayElement(), 'mousedown', 100, 50);
+            expect(cb).not.toHaveBeenCalled();
+        });
+
+        it('moves the element by however far the mouse moved', () => {
+            const o = overlay();
+            o.enableDrag();
+            const element = o.getOverlayElement();
+
+            mouse(element, 'mousedown', 100, 50);
+            mouse(document, 'mousemove', 130, 70);
+
+            // 30 right and 20 down from a starting position of 0, 0
+            expect(element.style.left).toBe('30px');
+            expect(element.style.top).toBe('20px');
+        });
+
+        it('moves from wherever the element already was', () => {
+            const o = overlay();
+            o.enableDrag();
+            const element = o.getOverlayElement();
+            element.style.left = '10px';
+            element.style.top = '5px';
+
+            mouse(element, 'mousedown', 100, 50);
+            mouse(document, 'mousemove', 130, 70);
+
+            expect(element.style.left).toBe('40px');
+            expect(element.style.top).toBe('25px');
+        });
+
+        it('says that it is being dragged', () => {
+            const o = overlay();
+            const cb = vi.fn();
+            o.onDrag(cb);
+            o.enableDrag();
+
+            mouse(o.getOverlayElement(), 'mousedown', 100, 50);
+            mouse(document, 'mousemove', 110, 60);
+            mouse(document, 'mousemove', 120, 70);
+            expect(cb).toHaveBeenCalledTimes(2);
+        });
+
+        it('stops when the mouse is let go, and ignores anything after that', () => {
+            const o = overlay();
+            const end = vi.fn();
+            o.onDragEnd(end);
+            o.enableDrag();
+            const element = o.getOverlayElement();
+
+            mouse(element, 'mousedown', 100, 50);
+            mouse(document, 'mousemove', 130, 70);
+            mouse(document, 'mouseup', 130, 70);
+            expect(end).toHaveBeenCalledTimes(1);
+
+            // The document listeners are gone, so this moves nothing
+            mouse(document, 'mousemove', 300, 300);
+            expect(element.style.left).toBe('30px');
+        });
+
+        it('does not move anything when the mouse moves without a press first', () => {
+            const o = overlay();
+            o.enableDrag();
+            const element = o.getOverlayElement();
+
+            mouse(document, 'mousemove', 300, 300);
+            expect(element.style.left).toBe('');
+        });
+    });
+
+    describe('resizing', () => {
+        it('is off until it is turned on', () => {
+            const o = overlay();
+            expect(o.resize).toBe(false);
+            o.enableResize();
+            expect(o.resize).toBe(true);
+            o.disableResize();
+            expect(o.resize).toBe(false);
+        });
+
+        it('adds one handle for each corner', () => {
+            const o = overlay();
+            o.enableResize();
+
+            const handles = o.getOverlayElement().querySelectorAll('.resize-handle');
+            expect(handles).toHaveLength(4);
+            ['nw', 'ne', 'sw', 'se'].forEach((corner) => {
+                expect(o.getOverlayElement().querySelectorAll(`.resize-${corner}`)).toHaveLength(1);
+            });
+        });
+
+        it('gives each corner the cursor for its direction', () => {
+            const o = overlay();
+            o.enableResize();
+            const element = o.getOverlayElement();
+
+            const cursorFor = (corner: string) =>
+                (element.querySelector(`.resize-${corner}`) as HTMLElement).style.cursor;
+            expect(cursorFor('nw')).toBe('nwse-resize');
+            expect(cursorFor('se')).toBe('nwse-resize');
+            expect(cursorFor('ne')).toBe('nesw-resize');
+            expect(cursorFor('sw')).toBe('nesw-resize');
+        });
+
+        it('outlines the element while it can be resized', () => {
+            const o = overlay();
+            o.enableResize();
+            expect(o.getOverlayElement().style.borderStyle).toBe('solid');
+        });
+
+        it('takes the handles and the outline away again', () => {
+            const o = overlay();
+            o.enableResize();
+            o.disableResize();
+
+            expect(o.getOverlayElement().querySelectorAll('.resize-handle')).toHaveLength(0);
+            expect(o.getOverlayElement().style.borderStyle).toBe('none');
+        });
+
+        // #createResizeHandles removes the old handles before building new ones, so turning
+        // resizing on twice must not leave eight handles behind.
+        it('does not build a second set of handles when turned on twice', () => {
+            const o = overlay();
+            o.enableResize();
+            o.enableResize();
+            expect(o.getOverlayElement().querySelectorAll('.resize-handle')).toHaveLength(4);
+        });
+
+        // Resizing needs the map div and the overlay's bounds, so pressing a handle on an
+        // overlay that isn't on a map does nothing at all. This is worth pinning down because
+        // it's also the reason the resize *movement* isn't covered here - see the note at the
+        // end of this file.
+        it('starts no resize when the overlay is not on a map', () => {
+            const o = overlay();
+            const cb = vi.fn();
+            o.onResizeStart(cb);
+            o.enableResize();
+
+            const handle = o.getOverlayElement().querySelector('.resize-nw') as HTMLElement;
+            handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+
+            expect(cb).not.toHaveBeenCalled();
+        });
+    });
 });
 
 /*
@@ -290,4 +552,33 @@ describe('Overlay', () => {
     field with no accessor, so the distinct classes cannot be compared from outside. Hoisting
     the class to module scope is still worth doing - it just needs a different kind of check
     than a unit test, or a small internal accessor added alongside the fix.
+
+    Touch dragging and touch resizing. jsdom doesn't implement TouchEvent, so the
+    `e.touches[0]` branches of #handleDragStart, #handleDrag, #handleResizeStart and
+    #handleResize can't be driven from a test. They are the same shape as the mouse branches
+    that are covered.
+
+    Resize MOVEMENT is covered in test/ImageOverlay.test.ts rather than here, because it can't
+    be reached from a plain overlay(). #handleResizeStart gives up unless the overlay has a map
+    div and valid bounds (Overlay.ts:1025), and base Overlay.getBounds() builds its bounds from
+    two empty latLng() values, so it never gets past that check. ImageOverlay overrides
+    getBounds() to return the bounds it was given, and is the only class that overrides
+    setBoundsFromResize() and updateBoundsFromResize(). The "starts no resize when the overlay
+    is not on a map" test above pins that early return from this side.
+
+    Reaching it needed two additions to the harness, both made on 2026-09-16: getDiv() on
+    fakeMap, and getProjection() on the stub OverlayView returning a stand-in
+    MapCanvasProjection. Before those, a resize-drag test would have passed without executing
+    any of the code it claimed to test - a green test that proves nothing, which is worse than
+    no test at all.
+
+    A bug found while writing these tests, since fixed:
+
+      #setupDragHandlers set cursor, pointerEvents and a `2px solid #007bff` border when
+      dragging was enabled (Overlay.ts:815-817), but the disabled branch only reset the first
+      two, so an overlay kept its blue outline after disableDrag(). Fixing it needed two
+      changes rather than one, because resizing draws the same outline: each side now clears
+      the border only when the other isn't using it. The mirror of the bug was real as well -
+      disableResize() used to take the outline off an overlay that could still be dragged.
+      Both directions are covered by the tests above.
 */

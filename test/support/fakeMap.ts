@@ -50,6 +50,9 @@ export class FakeMap {
     /** The zoom level */
     #zoom: number;
 
+    /** The element the map is drawn in, built the first time getDiv() is asked for it */
+    #div: HTMLElement | undefined;
+
     /**
      * Constructor
      *
@@ -86,6 +89,25 @@ export class FakeMap {
      */
     getIsReady(): boolean {
         return this.#isReady;
+    }
+
+    /**
+     * The element the map is drawn in.
+     *
+     * Overlay needs this for dragging and resizing - #handleResizeStart gives up without it -
+     * and it measures the element with getBoundingClientRect(), which returns zeros in jsdom.
+     * A test that cares about the geometry should replace that on the element this returns.
+     *
+     * The element is built on first use rather than in the constructor because most test files
+     * run without a DOM, and building it up front would break them.
+     *
+     * @returns {HTMLElement}
+     */
+    getDiv(): HTMLElement {
+        if (!this.#div) {
+            this.#div = document.createElement('div');
+        }
+        return this.#div;
     }
 
     /**
