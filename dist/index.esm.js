@@ -13427,6 +13427,16 @@ var Overlay = class extends Layer_default {
      */
     this.#isResizing = false;
     /**
+     * The class names for the overlay element, held here until the element is built.
+     *
+     * The element used to be the only place this lived, so reading className meant reading the
+     * DOM. Keeping it here as well means asking for the class name doesn't build an element.
+     *
+     * @private
+     * @type {string}
+     */
+    this.#className = "";
+    /**
      * Whether resizing is enabled for this overlay
      *
      * @private
@@ -13475,10 +13485,8 @@ var Overlay = class extends Layer_default {
       this.#dragStart = point(
         e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY]
       );
-      this.#overlayStart = point(
-        parseInt(this.#overlay.style.left, 10) || 0,
-        parseInt(this.#overlay.style.top, 10) || 0
-      );
+      const element = this.#element();
+      this.#overlayStart = point(parseInt(element.style.left, 10) || 0, parseInt(element.style.top, 10) || 0);
       document.addEventListener("mousemove", this.#handleDrag);
       document.addEventListener("mouseup", this.#handleDragEnd);
       document.addEventListener("touchmove", this.#handleDrag);
@@ -13500,8 +13508,9 @@ var Overlay = class extends Layer_default {
       const delta = currentPos.subtract(this.#dragStart);
       const newLeft = this.#overlayStart.getX() + delta.getX();
       const newTop = this.#overlayStart.getY() + delta.getY();
-      this.#overlay.style.left = `${newLeft}px`;
-      this.#overlay.style.top = `${newTop}px`;
+      const element = this.#element();
+      element.style.left = `${newLeft}px`;
+      element.style.top = `${newTop}px`;
       this.updateBoundsFromPosition();
       this.dispatch(OverlayEvents.DRAG, { event: e, delta });
     };
@@ -13539,7 +13548,8 @@ var Overlay = class extends Layer_default {
       this.#isResizing = true;
       this.resizeCorner = corner;
       const containerRect = mapContainer.getBoundingClientRect();
-      const currentSize = this.#overlay.getBoundingClientRect();
+      const element = this.#element();
+      const currentSize = element.getBoundingClientRect();
       this.resizeStart = {
         // Northeast lat/lng
         neBounds,
@@ -13552,9 +13562,9 @@ var Overlay = class extends Layer_default {
         // This is used to calculate the new position of the overlay after resizing from the bottom right.
         sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
         // Current left position within the overlay container
-        left: parseInt(this.#overlay.style.left, 10) || 0,
+        left: parseInt(element.style.left, 10) || 0,
         // Current top position within the overlay container
-        top: parseInt(this.#overlay.style.top, 10) || 0,
+        top: parseInt(element.style.top, 10) || 0,
         // Current width of the overlay container
         width: currentSize.width,
         // Current height of the overlay container
@@ -13635,12 +13645,13 @@ var Overlay = class extends Layer_default {
           return;
         }
         const constrained = calculateDimensions(this.#resizeAspectRatio, newWidth, newHeight);
-        this.#overlay.style.width = `${constrained.width}px`;
-        this.#overlay.style.height = `${constrained.height}px`;
-        this.#overlay.style.left = `${newLeft}px`;
-        this.#overlay.style.top = `${newTop}px`;
+        const element = this.#element();
+        element.style.width = `${constrained.width}px`;
+        element.style.height = `${constrained.height}px`;
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
         if (this.#resizeAspectRatio > 0) {
-          const newContainerRect = this.#overlay.getBoundingClientRect();
+          const newContainerRect = element.getBoundingClientRect();
           const mapContainerRect = mapContainer.getBoundingClientRect();
           const nePos = {
             x: newContainerRect.right - mapContainerRect.left,
@@ -13676,10 +13687,6 @@ var Overlay = class extends Layer_default {
       document.removeEventListener("touchend", this.#handleResizeEnd);
       this.dispatch(OverlayEvents.RESIZE_END, { event: e });
     };
-    this.#overlay = document.createElement("div");
-    this.#overlay.style.position = "absolute";
-    this.#overlay.style.pointerEvents = "auto";
-    this.#overlay.style.zIndex = "1000";
   }
   #drag;
   /**
@@ -13707,11 +13714,18 @@ var Overlay = class extends Layer_default {
    * content for the overlay will get displayed in.
    * That could be a tooltip, a custom info window (popup), or a map overlay.
    *
+   * It is built the first time something actually needs it, not in the constructor. A popup
+   * attached to every one of 2,595 trail segments used to build 2,595 detached divs before
+   * anything was shown, and popups open on a click, so almost none of them are ever needed.
+   * Read it through #element() or getOverlayElement(), never directly, so that it exists by
+   * the time it's used.
+   *
    * private
    *
-   * @type {HTMLElement}
+   * @type {HTMLElement|undefined}
    */
   #overlay;
+  #className;
   /**
    * The starting overlay position when dragging begins
    *
@@ -13738,12 +13752,55 @@ var Overlay = class extends Layer_default {
   #resizeHandles;
   #styles;
   /**
+   * Get the overlay element, building it the first time it's asked for.
+   *
+   * Everything inside this class reads the element through here. Anything set before the
+   * element existed - class names and styles - is written onto it as it's built, so the
+   * element ends up in the same state it would have been in if it had been built up front.
+   *
+   * @private
+   * @returns {HTMLElement}
+   */
+  #element() {
+    if (!this.#overlay) {
+      const element = document.createElement("div");
+      element.style.position = "absolute";
+      element.style.pointerEvents = "auto";
+      element.style.zIndex = "1000";
+      if (this.#className.length > 0) {
+        this.#className.split(" ").forEach((cn) => {
+          const name = cn.trim();
+          if (name.length > 0) {
+            element.classList.add(name);
+          }
+        });
+      }
+      Object.keys(this.#styles).forEach((name) => {
+        element.style[name] = this.#styles[name];
+      });
+      this.#overlay = element;
+    }
+    return this.#overlay;
+  }
+  /**
+   * Whether the overlay element has been built yet.
+   *
+   * Used by the few places that shouldn't build one just to look at it - removing a class
+   * name that was never added, or taking an element off a parent it was never on.
+   *
+   * @private
+   * @returns {boolean}
+   */
+  #hasElement() {
+    return typeof this.#overlay !== "undefined";
+  }
+  /**
    * Get the class name for the overlay element
    *
    * @returns {string}
    */
   get className() {
-    return this.#overlay.className;
+    return this.#className;
   }
   /**
    * Set the class name(s) for the overlay element
@@ -13755,12 +13812,24 @@ var Overlay = class extends Layer_default {
    */
   set className(className) {
     if (isString(className)) {
-      const classes = className.split(" ");
-      classes.forEach((cn) => {
-        this.#overlay.classList.add(cn.trim());
+      const current = this.#className.length > 0 ? this.#className.split(" ") : [];
+      className.split(" ").forEach((cn) => {
+        const name = cn.trim();
+        if (name.length > 0 && !current.includes(name)) {
+          current.push(name);
+        }
       });
+      this.#className = current.join(" ");
+      if (this.#hasElement()) {
+        current.forEach((name) => {
+          this.#element().classList.add(name);
+        });
+      }
     } else if (isNullOrUndefined(className)) {
-      this.#overlay.className = "";
+      this.#className = "";
+      if (this.#hasElement()) {
+        this.#element().className = "";
+      }
     }
   }
   /**
@@ -13985,7 +14054,7 @@ var Overlay = class extends Layer_default {
    * @returns {HTMLElement}
    */
   getOverlayElement() {
-    return this.#overlay;
+    return this.#element();
   }
   /**
    * Get the position of the overlay
@@ -14151,10 +14220,16 @@ var Overlay = class extends Layer_default {
    * @returns {Overlay}
    */
   removeClassName(className) {
-    const classes = className.split(" ");
-    classes.forEach((cn) => {
-      this.#overlay.classList.remove(cn.trim());
-    });
+    const classes = className.split(" ").map((cn) => cn.trim());
+    if (this.#className.length > 0) {
+      this.#className = this.#className.split(" ").filter((name) => !classes.includes(name)).join(" ");
+    }
+    if (this.#hasElement()) {
+      const element = this.#element();
+      classes.forEach((cn) => {
+        element.classList.remove(cn);
+      });
+    }
     return this;
   }
   /**
@@ -14275,7 +14350,9 @@ var Overlay = class extends Layer_default {
         return this;
       }
       this.#styles[name] = value;
-      this.#overlay.style[name] = value;
+      if (this.#hasElement()) {
+        this.#element().style[name] = value;
+      }
     }
     return this;
   }
@@ -14298,20 +14375,24 @@ var Overlay = class extends Layer_default {
    * @private
    */
   #setupDragHandlers() {
+    const element = this.#element();
     if (this.#drag) {
-      this.#overlay.style.cursor = "move";
-      this.#overlay.style.pointerEvents = "auto";
-      this.#overlay.style.border = "2px solid #007bff";
-      this.#overlay.addEventListener("mousedown", this.#handleDragStart);
-      this.#overlay.addEventListener("touchstart", this.#handleDragStart);
+      element.style.cursor = "move";
+      element.style.pointerEvents = "auto";
+      element.style.border = "2px solid #007bff";
+      element.addEventListener("mousedown", this.#handleDragStart);
+      element.addEventListener("touchstart", this.#handleDragStart);
       if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
-        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+        google.maps.OverlayView.preventMapHitsAndGesturesFrom(element);
       }
     } else {
-      this.#overlay.style.cursor = "";
-      this.#overlay.style.pointerEvents = "";
-      this.#overlay.removeEventListener("mousedown", this.#handleDragStart);
-      this.#overlay.removeEventListener("touchstart", this.#handleDragStart);
+      element.style.cursor = "";
+      element.style.pointerEvents = "";
+      if (!this.#resize) {
+        element.style.border = "none";
+      }
+      element.removeEventListener("mousedown", this.#handleDragStart);
+      element.removeEventListener("touchstart", this.#handleDragStart);
     }
   }
   /**
@@ -14333,7 +14414,8 @@ var Overlay = class extends Layer_default {
    */
   #createResizeHandles() {
     this.#removeResizeHandles();
-    this.#overlay.style.border = "2px solid #007bff";
+    const element = this.#element();
+    element.style.border = "2px solid #007bff";
     const corners = ["nw", "ne", "sw", "se"];
     const cursors = {
       nw: "nwse-resize",
@@ -14382,7 +14464,7 @@ var Overlay = class extends Layer_default {
       if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
         google.maps.OverlayView.preventMapHitsAndGesturesFrom(handle);
       }
-      this.#overlay.appendChild(handle);
+      element.appendChild(handle);
       this.#resizeHandles.push(handle);
     });
   }
@@ -14398,7 +14480,9 @@ var Overlay = class extends Layer_default {
       }
     });
     this.#resizeHandles = [];
-    this.#overlay.style.border = "none";
+    if (!this.#drag && this.#hasElement()) {
+      this.#element().style.border = "none";
+    }
   }
   #handleDragStart;
   #handleDrag;
@@ -14442,7 +14526,7 @@ var Overlay = class extends Layer_default {
     if (!isObject(this.#overlayView)) {
       if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
         this.#overlayView = getOverlayViewClass(this);
-        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#element());
       }
     }
   }
@@ -14477,8 +14561,12 @@ var Overlay = class extends Layer_default {
    * @internal
    */
   remove() {
-    if (this.#overlay.parentElement) {
-      this.#overlay.parentElement.removeChild(this.#overlay);
+    if (!this.#hasElement()) {
+      return;
+    }
+    const element = this.#element();
+    if (element.parentElement) {
+      element.parentElement.removeChild(element);
     }
   }
 };
