@@ -345,6 +345,52 @@ export class LatLngBounds extends Base {
     }
 
     /**
+     * Returns whether the longitude spans of two bounds share any points.
+     *
+     * A bounds whose west longitude is greater than its east longitude crosses the 180 degree
+     * meridian, so its span is the two arms either side of the meridian rather than the numbers
+     * in between. Comparing those numbers directly says a bounds running 170 to -170 starts to
+     * the east of one running -175 to -160 and misses it, when in fact they overlap across the
+     * meridian. This is the same wrap that #containsLongitude() handles for a single longitude.
+     *
+     * Two wrapped spans always share points, because both of them contain the meridian itself.
+     * A wrapped span and an ordinary one share points when the ordinary one reaches either arm
+     * of the wrapped one.
+     *
+     * @private
+     * @param {LatLng} southWest This bounds' south-west corner
+     * @param {LatLng} northEast This bounds' north-east corner
+     * @param {LatLng} otherSouthWest The other bounds' south-west corner
+     * @param {LatLng} otherNorthEast The other bounds' north-east corner
+     * @returns {boolean}
+     */
+    // eslint-disable-next-line class-methods-use-this -- Kept with the other bounds calculations
+    #longitudesOverlap(
+        southWest: LatLng,
+        northEast: LatLng,
+        otherSouthWest: LatLng,
+        otherNorthEast: LatLng,
+    ): boolean {
+        const wraps = southWest.longitude > northEast.longitude;
+        const otherWraps = otherSouthWest.longitude > otherNorthEast.longitude;
+        if (wraps && otherWraps) {
+            // Both cross the meridian, so both contain it, so they share at least that
+            return true;
+        }
+        if (wraps) {
+            // Either arm of this bounds is enough
+            return (
+                otherSouthWest.longitude <= northEast.longitude || otherNorthEast.longitude >= southWest.longitude
+            );
+        }
+        if (otherWraps) {
+            return southWest.longitude <= otherNorthEast.longitude || northEast.longitude >= otherSouthWest.longitude;
+        }
+        // Neither wraps, so this is the ordinary overlap test
+        return southWest.longitude <= otherNorthEast.longitude && northEast.longitude >= otherSouthWest.longitude;
+    }
+
+    /**
      * Set the bounds from its north-east and south-west corners.
      *
      * Nothing is set unless both corners are valid.
@@ -507,10 +553,11 @@ export class LatLngBounds extends Base {
                         return;
                     }
                     resolve(
+                        // Latitude doesn't wrap, so this is the ordinary overlap test
                         sw.latitude <= otherNe.latitude &&
                             ne.latitude >= otherSw.latitude &&
-                            sw.longitude <= otherNe.longitude &&
-                            ne.longitude >= otherSw.longitude,
+                            // Longitude does wrap, so it needs the meridian-aware test below
+                            this.#longitudesOverlap(sw, ne, otherSw, otherNe),
                     );
                 }
             } else {

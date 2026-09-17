@@ -189,6 +189,60 @@ describe('crossing the 180 degree meridian', () => {
         expect(center.lng).toBe(180);
     });
 
+    /*
+        intersects() compared the longitudes as plain numbers, which is wrong for a bounds that
+        crosses the meridian. A bounds running 170 east to -170 has a west edge that is
+        numerically greater than its east edge, so it looked like it started to the east of
+        anything near the meridian and missed it. The class already handles this wrap for a
+        single longitude in #containsLongitude(), and for extend(); intersects() was the one
+        place that didn't.
+
+        Both directions are asserted everywhere below. The wrapped-against-normal case is
+        written as two separate arms in the source, so a mistake in one of them would show up
+        as the two bounds disagreeing about whether they touch.
+    */
+    it('a wrapped bounds intersects one that overlaps it across the meridian', async () => {
+        const wrapped = latLngBounds({ ne: [10, -170], sw: [-10, 170] });
+        const other = latLngBounds({ ne: [10, -160], sw: [-10, -175] });
+
+        await expect(wrapped.intersects(other)).resolves.toBe(true);
+        await expect(other.intersects(wrapped)).resolves.toBe(true);
+    });
+
+    it('a wrapped bounds intersects one on its eastern arm', async () => {
+        const wrapped = latLngBounds({ ne: [10, -170], sw: [-10, 170] });
+        const other = latLngBounds({ ne: [10, 179], sw: [-10, 175] });
+
+        await expect(wrapped.intersects(other)).resolves.toBe(true);
+        await expect(other.intersects(wrapped)).resolves.toBe(true);
+    });
+
+    it('a wrapped bounds does not intersect one on the far side of the globe', async () => {
+        const wrapped = latLngBounds({ ne: [10, -170], sw: [-10, 170] });
+        const other = latLngBounds({ ne: [10, 20], sw: [-10, 0] });
+
+        await expect(wrapped.intersects(other)).resolves.toBe(false);
+        await expect(other.intersects(wrapped)).resolves.toBe(false);
+    });
+
+    // Two wrapped bounds both contain the meridian, so they always share at least that
+    it('two wrapped bounds always intersect', async () => {
+        const first = latLngBounds({ ne: [10, -170], sw: [-10, 170] });
+        const second = latLngBounds({ ne: [10, -150], sw: [-10, 160] });
+
+        await expect(first.intersects(second)).resolves.toBe(true);
+        await expect(second.intersects(first)).resolves.toBe(true);
+    });
+
+    // The longitudes overlap across the meridian but the latitudes are nowhere near each other
+    it('still answers no when the longitudes wrap but the latitudes miss', async () => {
+        const wrapped = latLngBounds({ ne: [10, -170], sw: [-10, 170] });
+        const other = latLngBounds({ ne: [80, -160], sw: [70, -175] });
+
+        await expect(wrapped.intersects(other)).resolves.toBe(false);
+        await expect(other.intersects(wrapped)).resolves.toBe(false);
+    });
+
     it('gets the centre right for a wrapped bounds that is not symmetrical', () => {
         const bounds = new LatLngBounds();
         bounds.extend([0, 170]);
