@@ -3,7 +3,7 @@
 
 # MapRestriction
 
-The MapRestriction object is used restrict the Google map bounds. It allows you to prevent the map from panning or zooming beyond the constrains that are set.
+The MapRestriction object is used to restrict the Google map bounds. It prevents the map from panning or zooming beyond the configured constraints.
 
 This is done by setting [Latitude/Longitude bounds](/api-reference/utilities/latlng-bounds).
 
