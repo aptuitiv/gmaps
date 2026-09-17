@@ -515,6 +515,34 @@ describe('attaching a tooltip (M-1)', () => {
         expect(p.tooltipConfig).toMatchObject({ attachConfig: 'Trail 12', attachEvent: 'click' });
     });
 
+    /*
+        The same gap that Popup had. A callback can return a whole Tooltip to show instead of the
+        one it belongs to, and that one is held in #activeTooltip. Tooltip had no hide() of its
+        own, so hiding it went straight to Overlay.hide(), which knows nothing about
+        #activeTooltip and left the other tooltip on the map. Only the hover wiring took it down,
+        by hiding `#activeTooltip || this` on mouseout, so a tooltip hidden any other way stayed.
+
+        This needs { shared: false }: the shared tooltip is handled by its own branch in
+        #tooltipFor(), which returns before #activeTooltip is ever set.
+    */
+    it('hiding a callback tooltip takes the one it showed down as well', async () => {
+        const other = tooltip('Other');
+        const line = polyline({ path });
+        const base = line.attachTooltip(() => other, 'hover', { shared: false });
+        await line.setMap(fakeMap());
+        await tick();
+
+        line.dispatch('mouseover', { latLng: { lat: 48.85, lng: 2.35 } });
+        await tick();
+        // Proves it really was shown, so the assertion after hide() means something
+        expect(other.isVisible).toBe(true);
+
+        base.hide();
+        await tick();
+
+        expect(other.isVisible).toBe(false);
+    });
+
     it('a callback tooltip starts with no content and is worked out when shown', async () => {
         const p = polyline({ path });
         const callback = vi.fn(() => 'worked out later');

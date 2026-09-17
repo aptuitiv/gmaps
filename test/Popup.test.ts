@@ -360,6 +360,64 @@ describe('attaching a popup (M-1)', () => {
     timers, which nothing else here uses. The two branches are the same three lines, and the
     layer branch pins them.
 */
+/*
+    Hiding a popup when a callback returned a different one.
+
+    A callback can return a whole Popup object to show instead of the one it belongs to, and that
+    one is held in #activePopup. hide() only ever took down the popup it was called on, so the
+    other one was left on the map with nothing referring to it. close() and Layer.closePopup()
+    both come through hide(), so there was no way to get rid of it except by clicking the layer
+    again. It isn't in the popup collection either - only the "clickon" branch adds it - so
+    closeAllPopups() couldn't reach it.
+
+    The second test is the one that would fail loudly rather than silently. A callback that
+    returns content or options is applied to the base popup, and #activePopup is then set to the
+    base popup itself, so hiding it without checking would call hide() again and never stop.
+*/
+describe('hiding a popup that a callback replaced', () => {
+    beforeEach(() => {
+        installGoogleMaps();
+    });
+
+    afterEach(() => {
+        uninstallGoogleMaps();
+    });
+
+    it('takes the callback popup down as well', async () => {
+        const other = popup('Other');
+        const line = polyline({ path });
+        const base = line.attachPopup(() => other);
+        await line.setMap(fakeMap());
+        await tick();
+
+        line.dispatch('click', { latLng: { lat: 48.85, lng: 2.35 } });
+        await tick();
+        // Proves the popup really was shown, so the assertion after hide() means something
+        expect(other.isVisible).toBe(true);
+
+        base.hide();
+        await tick();
+
+        expect(other.isVisible).toBe(false);
+        expect(other.isOpen()).toBe(false);
+    });
+
+    // #activePopup is the base popup itself whenever the callback returns content or options,
+    // which is the common case. Hiding it must not call hide() again.
+    it('does not call itself forever when the callback returned content', async () => {
+        const line = polyline({ path });
+        const base = line.attachPopup(() => 'just content');
+        await line.setMap(fakeMap());
+        await tick();
+
+        line.dispatch('click', { latLng: { lat: 48.85, lng: 2.35 } });
+        await tick();
+
+        expect(() => base.hide()).not.toThrow();
+        expect(base.isVisible).toBe(false);
+    });
+});
+
 describe('showing a popup on a layer that is not on a map', () => {
     beforeEach(() => {
         installGoogleMaps();

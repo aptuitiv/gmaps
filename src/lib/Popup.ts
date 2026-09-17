@@ -608,6 +608,20 @@ export class Popup extends Overlay {
      * @returns {Popup}
      */
     hide(): Popup {
+        // A callback can return a different Popup to show, which is held in #activePopup. Hiding
+        // this one used to leave that one on the map with nothing referring to it - closePopup()
+        // and close() both come through here, so the only way to get rid of it was to hover or
+        // click the layer again. It's hidden and forgotten here instead.
+        //
+        // The check against this one matters rather than being tidiness: a callback that returns
+        // content or an options object is applied to this popup and #activePopup is then set to
+        // this popup, so calling hide() on it without the check would call this method again and
+        // never stop.
+        const active = this.#activePopup;
+        this.#activePopup = undefined;
+        if (active && active !== this) {
+            active.hide();
+        }
         super.hide();
         this.#firstDraw = false;
         this.#isOpen = false;
