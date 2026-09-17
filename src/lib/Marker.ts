@@ -171,6 +171,22 @@ export class Marker extends Layer {
     #isSettingUp: boolean = false;
 
     /**
+     * The marker creation that is currently running, if there is one.
+     *
+     * Anything that has to wait for the marker waits on this rather than on the "ready" event.
+     * They aren't the same thing: init() dispatches "ready" without creating a marker, so that a
+     * tooltip or popup can set up its events without forcing one to be built. A waiter that
+     * listened for "ready" could therefore be woken by that early event and carry on to use
+     * #marker while it was still undefined.
+     *
+     * Cleared once creation settles, so that a later call takes the normal path.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #creationPromise: Promise<void> | undefined;
+
+    /**
      * Holds if the "ready" event has been dispatched
      *
      * @private
@@ -1526,6 +1542,39 @@ export class Marker extends Layer {
         if (isObject(this.#marker)) {
             return RESOLVED;
         }
+        const creation = this.#startGoogleMarkerSetup(map);
+        // Held so that anything else asking for the marker while this is running waits on this
+        // same creation. Forgotten once it settles, whether or not a marker came out of it, so
+        // that a later call starts again rather than getting a stale answer.
+        this.#creationPromise = creation;
+        creation.then(
+            () => {
+                this.#creationPromise = undefined;
+            },
+            () => {
+                this.#creationPromise = undefined;
+            },
+        );
+        return creation;
+    }
+
+    /**
+     * Start setting up the Google maps marker object
+     *
+     * @private
+     * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
+     * @returns {Promise<void>}
+     */
+    #startGoogleMarkerSetup(map?: Map): Promise<void> {
+        // A creation is already running, so wait for that one to finish rather than starting
+        // another. This used to wait for the "ready" event instead, which is not the same thing:
+        // init() dispatches "ready" with no marker, and onceImmediate() fires straight away for
+        // an event that has already been dispatched. So a setter could be woken by that early
+        // event and then use #marker while it was still undefined. Waiting on the creation
+        // itself means it can only continue once there really is a marker.
+        if (this.#creationPromise) {
+            return this.#creationPromise;
+        }
         return new Promise((resolve) => {
             if (!this.#isSettingUp && !isObject(this.#marker)) {
                 this.#isSettingUp = true;
@@ -1561,12 +1610,11 @@ export class Marker extends Layer {
                         });
                     });
                 }
-            } else if (this.#isSettingUp && !isObject(this.#marker)) {
-                // The marker is already being set up. Wait for it to finish.
-                this.onceImmediate(MarkerEvents.READY, () => {
-                    resolve();
-                });
             } else {
+                // Only reached when the marker already exists. #isSettingUp is set in the branch
+                // above and #creationPromise is assigned in the same synchronous step, so there
+                // is no point at which a setup is running but unguarded - a caller in that state
+                // gets the creation promise back before reaching here.
                 resolve();
             }
         });
@@ -1577,12 +1625,31 @@ export class Marker extends Layer {
      */
     #setupGoogleMarkerSync(): void {
         if (!isObject(this.#marker)) {
+            if (this.#creationPromise) {
+                // A creation is already running, so let it finish rather than starting a second
+                // one. Creating the marker isn't always immediate - when the map isn't ready yet
+                // it waits for the map first - so this is reachable, and without it the marker
+                // was built twice.
+                return;
+            }
             if (checkForGoogleMaps('Marker', 'Marker', false)) {
                 // Dispatch the "ready" event once the marker exists, the same as #setupGoogleMarker() does.
                 // Tooltips and popups wait for it before they add their event listeners to the marker.
-                this.#createMarkerObject().then(() => {
+                const creation = this.#createMarkerObject().then(() => {
                     this.#dispatchReady();
                 });
+                // Recorded for the same reason as in #setupGoogleMarker(): anything asking for
+                // the marker while this is still running waits on this creation instead of
+                // starting its own. This path used to record nothing at all.
+                this.#creationPromise = creation;
+                creation.then(
+                    () => {
+                        this.#creationPromise = undefined;
+                    },
+                    () => {
+                        this.#creationPromise = undefined;
+                    },
+                );
             } else {
                 throw new Error(
                     'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.',

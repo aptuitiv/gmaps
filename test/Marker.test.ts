@@ -381,6 +381,76 @@ describe('Marker', () => {
             expect(cb).not.toHaveBeenCalled();
         });
     });
+
+    /* -----------------------------------------------------------------------
+        init() dispatches "ready" without creating a marker, which is what lets a tooltip or a
+        popup attach to a marker that is never shown (M-1). Anything waiting for the marker
+        itself therefore has to wait for the creation, not for that event.
+
+        Setters used to wait on "ready" when a creation was already running. onceImmediate()
+        fires straight away for an event that has already been dispatched, so after init() had
+        dispatched it, such a setter resolved immediately and then used the Google marker while
+        it was still undefined.
+    ----------------------------------------------------------------------- */
+    describe('setters that run while the marker is being created', () => {
+        it('wait for the marker itself, not for the early ready event', async () => {
+            const m = marker({ position: [1, 2] });
+            // Dispatches "ready" and creates nothing, the same as attaching a tooltip does
+            await m.init();
+            expect(m.hasGoogleMarker()).toBe(false);
+
+            // Several setters at once: the first starts the creation, the rest have to wait
+            await Promise.all([m.setTitle('One'), m.setLabel('Two'), m.setCursor('pointer')]);
+
+            expect(m.hasGoogleMarker()).toBe(true);
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+
+        it('build one marker between them', async () => {
+            const m = marker({ position: [1, 2] });
+            await m.init();
+
+            await Promise.all([m.setTitle('One'), m.setTitle('Two'), m.setTitle('Three')]);
+
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+
+        it('all reach Google once the marker exists', async () => {
+            const m = marker({ position: [1, 2] });
+            await m.init();
+
+            await Promise.all([m.setTitle('A title'), m.setLabel('A label')]);
+
+            expect(mapsStats.callsTo('Marker', 'setLabel')).toHaveLength(1);
+            expect(m.title).toBe('A title');
+        });
+
+        it('still works when nothing dispatched ready first', async () => {
+            const m = marker({ position: [1, 2] });
+
+            await Promise.all([m.setTitle('One'), m.setLabel('Two')]);
+
+            expect(m.hasGoogleMarker()).toBe(true);
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+
+        // The synchronous setup doesn't record that a creation is running, so this checks that
+        // a synchronous call followed by an asynchronous one still only builds one marker. It
+        // matters most when the map isn't ready yet, because then creating the marker waits for
+        // the map and there is a window where neither call has a marker to work with.
+        it('build one marker when a sync call is followed by an async one', async () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+
+            m.toGoogleSync();
+            const pending = m.setTitle('A title');
+            asFakeMap(map).makeReady();
+            await pending;
+            await tick();
+
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+    });
 });
 
 describe('Marker with a map', () => {
