@@ -36,6 +36,7 @@ __export(index_exports, {
   GeocoderErrorStatus: () => GeocoderErrorStatus,
   GeocoderLocationType: () => GeocoderLocationType,
   GeometryType: () => GeometryType,
+  INTERNAL_EVENTS: () => INTERNAL_EVENTS,
   Icon: () => Icon,
   ImageOverlay: () => ImageOverlay,
   ImageOverlayEvents: () => ImageOverlayEvents,
@@ -281,6 +282,12 @@ var Base_default = Base;
 
 // src/lib/constants.ts
 var READY_EVENT = "ready";
+var INTERNAL_EVENTS = Object.freeze([
+  READY_EVENT,
+  "locationfound",
+  "locationerror",
+  "initialized"
+]);
 var AutocompleteSearchBoxEvents = Object.freeze({
   // Called when the user selects a Place.
   PLACE_CHANGED: "place_changed"
@@ -10285,40 +10292,57 @@ var DataLayer = class _DataLayer extends Layer_default {
     return features;
   }
   /**
-   * Convert an array of positions to Google maps LatLng objects
+   * Convert an array of positions to plain latitude/longitude literals.
+   *
+   * Google's Data.LineString, Data.LinearRing and Data.Polygon all take either LatLng objects
+   * or LatLngLiteral objects, so the literals are handed straight over. This used to be
+   * map(latLng).filter(isValid).map(toGoogle), which built three intermediate arrays and two
+   * objects per point - a LatLng wrapper and then a google.maps.LatLng - on paths that can
+   * hold tens of thousands of points.
    *
    * @private
    * @param {LatLngValue[]} path The positions to convert
-   * @returns {google.maps.LatLng[]}
+   * @returns {google.maps.LatLngLiteral[]}
    */
   static #toPositions(path) {
     if (!Array.isArray(path)) {
       return [];
     }
-    return path.map((value) => latLng(value)).filter((value) => value.isValid()).map((value) => value.toGoogle());
+    const positions = [];
+    for (let i = 0; i < path.length; i += 1) {
+      const value = latLng(path[i]);
+      if (value.isValid()) {
+        positions.push({ lat: value.latitude, lng: value.longitude });
+      }
+    }
+    return positions;
   }
   /**
-   * Convert the positions for one ring of a polygon to Google maps LatLng objects.
+   * Convert the positions for one ring of a polygon to plain latitude/longitude literals.
    *
    * GeoJson repeats the first position at the end of a ring to close it. Google's LinearRing
    * closes itself, so the repeated position is dropped to avoid a duplicate corner.
    *
    * @private
    * @param {LatLngValue[]} ring The positions for the ring
-   * @returns {google.maps.LatLng[]}
+   * @returns {google.maps.LatLngLiteral[]}
    */
   static #toRingPositions(ring) {
-    const positions = Array.isArray(ring) ? ring.map((value) => latLng(value)).filter((value) => value.isValid()) : [];
-    if (positions.length > 2 && positions[0].equals(positions[positions.length - 1])) {
+    const positions = _DataLayer.#toPositions(ring);
+    const last = positions.length - 1;
+    if (positions.length > 2 && positions[0].lat === positions[last].lat && positions[0].lng === positions[last].lng) {
       positions.pop();
     }
-    return positions.map((value) => value.toGoogle());
+    return positions;
   }
   /**
    * Work out whether the paths value is one ring of positions or an array of rings.
    *
-   * A single position can itself be an array ([lat, lng]) so the first value is tested to
-   * see if it's a valid position. If it is then this is one ring of positions.
+   * A single position can itself be an array ([lat, lng]), so the first value is checked to
+   * see whether it looks like a position rather than like another ring.
+   *
+   * This used to build a throwaway LatLng purely to ask that question, which ran the whole of
+   * LatLng's type dispatch on every call to addPolygon().
    *
    * @private
    * @param {LatLngValue[]|LatLngValue[][]} paths The path, or array of paths, for a polygon
@@ -10328,10 +10352,14 @@ var DataLayer = class _DataLayer extends Layer_default {
     if (!Array.isArray(paths) || paths.length === 0) {
       return [];
     }
-    if (latLng(paths[0]).isValid()) {
-      return [paths];
+    const first = paths[0];
+    if (Array.isArray(first)) {
+      if (first.length === 2 && isNumberOrNumberString(first[0]) && isNumberOrNumberString(first[1])) {
+        return [paths];
+      }
+      return paths;
     }
-    return paths;
+    return [paths];
   }
 };
 var dataLayer = (options) => {
@@ -10395,12 +10423,15 @@ var Marker = class extends Layer_default {
   /**
    * Holds the marker options
    *
-   * The position always has a value. It defaults to 0,0 and is only replaced with a valid position.
+   * The position is only set once there is a real one. It used to default to a 0,0 LatLng,
+   * which meant every marker built a LatLng object that was thrown away as soon as a position
+   * was set - and almost every marker has one. The position getter creates the 0,0 default if
+   * something asks for a position that was never set.
    *
    * @private
-   * @type {GMMarkerOptions & { position: LatLng }}
+   * @type {GMMarkerOptions}
    */
-  #options = { position: latLng([0, 0]) };
+  #options = {};
   /**
    * Constructor
    *
@@ -10560,14 +10591,13 @@ var Marker = class extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
-    let returnValue = this.#options.position;
-    if (this.#marker) {
-      returnValue = latLng(this.#marker.getPosition() ?? void 0);
+    if (this.#drag && this.#marker) {
+      return latLng(this.#marker.getPosition() ?? void 0);
     }
-    if (isNullOrUndefined(returnValue)) {
-      returnValue = latLng([0, 0]);
+    if (isNullOrUndefined(this.#options.position)) {
+      this.#options.position = latLng([0, 0]);
     }
-    return returnValue;
+    return this.#options.position;
   }
   /**
    * Set the latitude and longitude value for the marker
@@ -11413,7 +11443,7 @@ var Marker = class extends Layer_default {
    * Set the position for the marker on the Google marker object
    */
   #setGoogleMarkerPosition() {
-    this.#marker.setPosition(this.#options.position.toGoogle());
+    this.#marker.setPosition(this.position.toGoogle());
   }
   /**
    *Set the title for the marker
@@ -19600,6 +19630,7 @@ DataFeature.include(dataFeatureTooltipMixin);
   GeocoderErrorStatus,
   GeocoderLocationType,
   GeometryType,
+  INTERNAL_EVENTS,
   Icon,
   ImageOverlay,
   ImageOverlayEvents,
