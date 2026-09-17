@@ -728,6 +728,58 @@ class DataStub extends MVCObject {
 }
 
 /**
+ * What the stub Geocoder answers with. Replaced by tests with setGeocoderHandler().
+ *
+ * The default answers one result for anything, so that a test that only cares about how many
+ * calls were made doesn't have to set one up.
+ */
+const defaultGeocoderHandler = (): { results?: any[]; status: string } => ({
+    results: [{ formatted_address: 'Somewhere', address_components: [], geometry: {}, place_id: 'test' }],
+    status: 'OK',
+});
+
+let geocoderHandler: (request: any) => { results?: any[]; status: string } = defaultGeocoderHandler;
+
+/**
+ * Decide what the stub Geocoder answers with.
+ *
+ * @param {Function} fn Called with the request, returns { results, status }
+ */
+export const setGeocoderHandler = (fn: (request: any) => { results?: any[]; status: string }): void => {
+    geocoderHandler = fn;
+};
+
+/**
+ * The geocoding service.
+ *
+ * geocode() answers on a microtask rather than synchronously, because Google's is asynchronous
+ * and because two identical requests made before the first answers is exactly the case the
+ * in-flight dedupe has to handle.
+ */
+class GeocoderStub {
+    /**
+     * Constructor
+     */
+    constructor() {
+        mapsStats.construct('Geocoder');
+    }
+
+    /**
+     * Run a geocode request
+     *
+     * @param {object} request The request
+     * @param {Function} callback Called with the results and the status
+     */
+    geocode(request: any, callback: (results: any[] | null, status: string) => void): void {
+        mapsStats.call('Geocoder', 'geocode', [request]);
+        const answer = geocoderHandler(request);
+        Promise.resolve().then(() => {
+            callback(answer.results ?? null, answer.status);
+        });
+    }
+}
+
+/**
  * The google.maps.event namespace
  */
 const event = {
@@ -837,6 +889,17 @@ const buildMaps = () => ({
         }
     },
     event,
+    // The geocoding service. checkForGoogleMaps('Geocoder', 'Geocoder', false) looks for this key.
+    Geocoder: GeocoderStub,
+    GeocoderStatus: {
+        ERROR: 'ERROR',
+        INVALID_REQUEST: 'INVALID_REQUEST',
+        OK: 'OK',
+        OVER_QUERY_LIMIT: 'OVER_QUERY_LIMIT',
+        REQUEST_DENIED: 'REQUEST_DENIED',
+        UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+        ZERO_RESULTS: 'ZERO_RESULTS',
+    },
     // The data layer. checkForGoogleMaps('DataLayer', 'Data', false) looks for this key, and
     // finding it is what lets DataLayer build its Data object without waiting on the loader.
     Data: DataStub,
@@ -874,6 +937,8 @@ const buildMaps = () => ({
  */
 export const installGoogleMaps = () => {
     mapsStats.reset();
+    // Otherwise a handler set by one test answers the next one's requests
+    geocoderHandler = defaultGeocoderHandler;
     const maps = buildMaps();
     (globalThis as any).google = { maps };
     return maps;

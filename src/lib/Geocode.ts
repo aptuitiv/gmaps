@@ -26,11 +26,52 @@ export type GeocodeComponentRestrictions = {
 export type GeocodeOptions = {
     address?: string;
     bounds?: LatLngBoundsValue;
+    // Whether to use the shared cache of results. Defaults to true. Set it to false for a
+    // request that has to reach Google, for example when a result is expected to have changed.
+    cache?: boolean;
     componentRestrictions?: GeocodeComponentRestrictions;
     language?: string; // See https://developers.google.com/maps/faq#languagesupport for the list of supported languages
     location?: LatLngValue;
     placeId?: string;
     region?: string;
+};
+
+/**
+ * The shared Geocoder, built the first time one is needed.
+ *
+ * A new google.maps.Geocoder used to be built for every request. One is enough - it holds no
+ * per-request state - and building it lazily means that simply importing this file doesn't
+ * reach for the Google library.
+ */
+let sharedGeocoder: google.maps.Geocoder | undefined;
+
+/**
+ * The cache of geocode requests, keyed on the request.
+ *
+ * The value is the *promise*, not the result. That is what makes this dedupe concurrent calls
+ * as well as repeat ones: the second of two identical requests made before the first comes back
+ * gets the same promise, so Google is called - and billed - once instead of twice.
+ */
+const geocodeCache: Map<string, Promise<GeocodeResults>> = new Map();
+
+// How many entries the cache holds before the oldest is dropped. Geocode results can
+// legitimately change, so this is a cap rather than a permanent store.
+// Reassigned by the Geocode.cacheSize setter.
+let geocodeCacheSize = 50;
+
+/**
+ * Drop the oldest entries until the cache is within its cap.
+ *
+ * Map iterates in insertion order, so the first key is the oldest.
+ */
+const trimGeocodeCache = (): void => {
+    while (geocodeCache.size > geocodeCacheSize) {
+        const oldest = geocodeCache.keys().next();
+        if (oldest.done) {
+            return;
+        }
+        geocodeCache.delete(oldest.value);
+    }
 };
 
 /**
@@ -52,6 +93,14 @@ export class Geocode extends Base {
      * @private
      */
     #bounds?: LatLngBounds;
+
+    /**
+     * Whether this object uses the shared cache of results
+     *
+     * @type {boolean}
+     * @private
+     */
+    #cache: boolean = true;
 
     /**
      * Holds the component restrictions
@@ -105,6 +154,38 @@ export class Geocode extends Base {
 
         if (isObject(options)) {
             this.setOptions(options);
+        }
+    }
+
+    /**
+     * Empty the cache of geocode results.
+     *
+     * The shared Geocoder is dropped as well, so the next request builds a new one. Call this if
+     * the results for an address may have changed.
+     */
+    static clearCache(): void {
+        geocodeCache.clear();
+        sharedGeocoder = undefined;
+    }
+
+    /**
+     * How many results the cache holds before the oldest is dropped
+     *
+     * @returns {number}
+     */
+    static get cacheSize(): number {
+        return geocodeCacheSize;
+    }
+
+    /**
+     * Set how many results the cache holds. Set it to 0 to turn caching off everywhere.
+     *
+     * @param {number} size The number of results to hold
+     */
+    static set cacheSize(size: number) {
+        if (typeof size === 'number' && Number.isFinite(size) && size >= 0) {
+            geocodeCacheSize = Math.floor(size);
+            trimGeocodeCache();
         }
     }
 
@@ -281,10 +362,68 @@ export class Geocode extends Base {
      * @returns {Promise<GeocodeResults>}
      */
     geocode(options?: GeocodeOptions): Promise<GeocodeResults> {
-        return new Promise((resolve, reject) => {
-            if (isObject(options)) {
-                this.setOptions(options);
+        if (isObject(options)) {
+            this.setOptions(options);
+        }
+
+        // A cache size of 0 turns caching off for everyone; the "cache" option turns it off for
+        // this object alone.
+        const useCache = this.#cache && geocodeCacheSize > 0;
+        const key = useCache ? this.#cacheKey() : '';
+        if (useCache) {
+            const cached = geocodeCache.get(key);
+            if (cached) {
+                return cached;
             }
+        }
+
+        const request = this.#requestResults();
+        if (useCache) {
+            geocodeCache.set(key, request);
+            // A failed lookup must not stay cached, or one bad response would be remembered for
+            // the life of the page. The caller still gets the rejection from the promise it was
+            // handed, so nothing is swallowed here.
+            request.catch(() => {
+                geocodeCache.delete(key);
+            });
+            trimGeocodeCache();
+        }
+        return request;
+    }
+
+    /**
+     * Build the key that this request is cached under.
+     *
+     * The key is built from this object's own values rather than from the Google request, because
+     * the Google request holds LatLng and LatLngBounds objects that don't serialise usefully. The
+     * bounds are read through getNorthEast()/getSouthWest(), which work before the Google library
+     * has loaded.
+     *
+     * @private
+     * @returns {string}
+     */
+    #cacheKey(): string {
+        const ne = this.#bounds?.getNorthEast();
+        const sw = this.#bounds?.getSouthWest();
+        return JSON.stringify({
+            address: this.#address,
+            bounds: ne && sw ? [ne.latitude, ne.longitude, sw.latitude, sw.longitude] : undefined,
+            componentRestrictions: this.#componentRestrictions,
+            language: this.#language,
+            location: this.#location ? [this.#location.latitude, this.#location.longitude] : undefined,
+            placeId: this.#placeId,
+            region: this.#region,
+        });
+    }
+
+    /**
+     * Send the request, waiting for the Google library first if it isn't loaded yet
+     *
+     * @private
+     * @returns {Promise<GeocodeResults>}
+     */
+    #requestResults(): Promise<GeocodeResults> {
+        return new Promise((resolve, reject) => {
             if (checkForGoogleMaps('Geocoder', 'Geocoder', false)) {
                 this.#runGeocode()
                     .then((results) => {
@@ -349,8 +488,9 @@ export class Geocode extends Base {
         }
 
         return new Promise((resolve, reject) => {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode(options, (results, status) => {
+            // One shared Geocoder instead of one per request. It holds no per-request state.
+            sharedGeocoder ??= new google.maps.Geocoder();
+            sharedGeocoder.geocode(options, (results, status) => {
                 if (status === google.maps.GeocoderStatus.OK) {
                     const resultsObj = new GeocodeResults(results ?? undefined);
                     resolve(resultsObj);
@@ -451,6 +591,9 @@ export class Geocode extends Base {
         }
         if (options.bounds) {
             this.bounds = options.bounds;
+        }
+        if (typeof options.cache === 'boolean') {
+            this.#cache = options.cache;
         }
         if (options.componentRestrictions) {
             this.componentRestrictions = options.componentRestrictions;
