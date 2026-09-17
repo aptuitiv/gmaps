@@ -371,6 +371,11 @@ export class LatLngBounds extends Base {
      * @returns {LatLng}
      */
     getCenter(): LatLng {
+        // Checked before the Google object is used, not only in the manual path below.
+        // #getCorners() throws for a bounds with no points, but Google answers for one - so
+        // whether this threw or handed back a meaningless value used to depend on whether the
+        // Google library happened to have loaded yet. It throws either way now.
+        this.#throwIfEmpty('getCenter');
         if (this.#bounds) {
             // Get the center from the Google Maps object
             // Convert the center to a LatLngValue
@@ -433,6 +438,26 @@ export class LatLngBounds extends Base {
      * @private
      * @returns {{northEast: LatLng, southWest: LatLng}}
      */
+    /**
+     * Throw if the bounds has no points in it.
+     *
+     * The methods that describe a bounds - its middle, or its value as a string or an object -
+     * have nothing to describe when it's empty, so they say so rather than handing back a value
+     * that looks real. This is checked separately from #getCorners() because those methods ask
+     * Google for the answer when the Google object exists, and Google answers for an empty
+     * bounds instead of complaining, which made the behaviour depend on load timing.
+     *
+     * @private
+     * @param {string} method The method name, so that the error says what was called
+     */
+    #throwIfEmpty(method: string): void {
+        if (this.isEmpty()) {
+            throw new Error(
+                `The LatLngBounds object is empty so LatLngBounds.${method}() has nothing to return. Add a latitude/longitude value to it first.`,
+            );
+        }
+    }
+
     #getCorners(): { northEast: LatLng; southWest: LatLng } {
         if (!this.#northEast || !this.#southWest) {
             throw new Error('The LatLngBounds object is empty. Add a latitude/longitude value to it first.');
@@ -583,6 +608,7 @@ export class LatLngBounds extends Base {
      * @returns {google.maps.LatLngBoundsLiteral}
      */
     toJson(): google.maps.LatLngBoundsLiteral {
+        this.#throwIfEmpty('toJson');
         if (this.#bounds) {
             return this.#bounds.toJSON();
         }
@@ -601,6 +627,7 @@ export class LatLngBounds extends Base {
      * @returns {string}
      */
     toString(): string {
+        this.#throwIfEmpty('toString');
         if (this.#bounds) {
             return this.#bounds.toString();
         }
@@ -618,6 +645,7 @@ export class LatLngBounds extends Base {
         // A precision of 0 is valid, so test the type rather than whether the value is truthy.
         // "precision || 3" turned 0 into 3.
         const prec = isNumber(precision) ? precision : 3;
+        this.#throwIfEmpty('toUrlValue');
         if (this.#bounds) {
             return this.#bounds.toUrlValue(prec);
         }

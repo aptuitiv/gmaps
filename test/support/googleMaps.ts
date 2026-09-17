@@ -436,6 +436,62 @@ class LatLngBoundsStub {
     isEmpty(): boolean {
         return !this.#sw || !this.#ne;
     }
+
+    /**
+     * The middle of the bounds.
+     *
+     * Google answers for an empty bounds rather than complaining about it, and so does this.
+     * That difference is the point: the library throws for an empty bounds when it works the
+     * corners out itself, so without this the two paths couldn't be compared.
+     *
+     * @returns {LatLngStub}
+     */
+    getCenter(): LatLngStub {
+        if (!this.#sw || !this.#ne) {
+            return new LatLngStub(0, 0);
+        }
+        return new LatLngStub((this.#sw.lat() + this.#ne.lat()) / 2, (this.#sw.lng() + this.#ne.lng()) / 2);
+    }
+
+    /**
+     * The bounds as a literal, using the compass names that Google uses
+     *
+     * @returns {object}
+     */
+    toJSON(): { east: number; north: number; south: number; west: number } {
+        if (!this.#sw || !this.#ne) {
+            return { east: 0, north: 0, south: 0, west: 0 };
+        }
+        return { east: this.#ne.lng(), north: this.#ne.lat(), south: this.#sw.lat(), west: this.#sw.lng() };
+    }
+
+    /**
+     * The bounds as a string
+     *
+     * @returns {string}
+     */
+    toString(): string {
+        if (!this.#sw || !this.#ne) {
+            return '((0, 0), (0, 0))';
+        }
+        return `((${this.#sw.lat()}, ${this.#sw.lng()}), (${this.#ne.lat()}, ${this.#ne.lng()}))`;
+    }
+
+    /**
+     * The bounds as a string for a url
+     *
+     * @param {number} [precision] How many decimal places to use
+     * @returns {string}
+     */
+    toUrlValue(precision?: number): string {
+        const prec = typeof precision === 'number' ? precision : 6;
+        if (!this.#sw || !this.#ne) {
+            return `${(0).toFixed(prec)},${(0).toFixed(prec)},${(0).toFixed(prec)},${(0).toFixed(prec)}`;
+        }
+        return `${this.#sw.lat().toFixed(prec)},${this.#sw.lng().toFixed(prec)},${this.#ne
+            .lat()
+            .toFixed(prec)},${this.#ne.lng().toFixed(prec)}`;
+    }
 }
 
 /**

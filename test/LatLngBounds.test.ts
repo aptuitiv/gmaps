@@ -17,9 +17,12 @@
     the library's own manual arithmetic rather than Google's.
 =========================================================================== */
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LatLngBounds, latLngBounds } from '../src/lib/LatLngBounds';
 import { LatLng } from '../src/lib/LatLng';
+// Only the last describe in this file needs these. Everything above it runs without the Google
+// Maps library on purpose, so that it exercises the library's own arithmetic.
+import { installGoogleMaps, uninstallGoogleMaps } from './support/googleMaps';
 
 describe('building a bounds', () => {
     it('starts empty', () => {
@@ -330,5 +333,53 @@ describe('output formats', () => {
         expect(() => bounds.toJson()).toThrow(/empty/);
         expect(() => bounds.toString()).toThrow(/empty/);
         expect(() => bounds.getCenter()).toThrow(/empty/);
+        expect(() => bounds.toUrlValue()).toThrow(/empty/);
+    });
+
+    it('the error says which method was called', () => {
+        const bounds = new LatLngBounds();
+        expect(() => bounds.getCenter()).toThrow(/getCenter/);
+        expect(() => bounds.toJson()).toThrow(/toJson/);
+    });
+});
+
+/* ===========================================================================
+    The same four methods, once the Google bounds object exists.
+
+    Each of them asks Google for the answer when the Google object has been built, and only
+    works the corners out itself otherwise. Google answers for an empty bounds rather than
+    complaining - its getCenter() hands back a position, its toJSON() a literal of zeros - so
+    these used to throw before the Google library had loaded and return a meaningless value
+    afterwards. The same call on the same empty bounds, with the answer depending on timing.
+
+    They are checked for being empty before the Google object is used now, so both paths agree.
+=========================================================================== */
+describe('the output formats on an empty bounds that has a Google object', () => {
+    beforeEach(() => {
+        installGoogleMaps();
+    });
+
+    afterEach(() => {
+        uninstallGoogleMaps();
+    });
+
+    it('still throws once the Google bounds has been built', async () => {
+        const bounds = new LatLngBounds();
+        // Builds the Google object, which is what used to change the answer
+        await bounds.toGoogle();
+
+        expect(() => bounds.getCenter()).toThrow(/empty/);
+        expect(() => bounds.toJson()).toThrow(/empty/);
+        expect(() => bounds.toString()).toThrow(/empty/);
+        expect(() => bounds.toUrlValue()).toThrow(/empty/);
+    });
+
+    it('still answers normally for a bounds that has points', async () => {
+        const bounds = latLngBounds({ ne: [10, 20], sw: [0, 5] });
+        await bounds.toGoogle();
+
+        expect(() => bounds.getCenter()).not.toThrow();
+        expect(bounds.getCenter().lat).toBe(5);
+        expect(bounds.toJson()).toEqual({ east: 20, north: 10, south: 0, west: 5 });
     });
 });
