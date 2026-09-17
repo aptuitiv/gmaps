@@ -47,6 +47,112 @@ describe('Tooltip', () => {
         uninstallGoogleMaps();
     });
 
+    describe('the shared tooltip (O-3)', () => {
+        afterEach(() => {
+            Tooltip.clearShared();
+            Tooltip.useShared = true;
+        });
+
+        it('gives everything one Tooltip by default', () => {
+            const first = polyline({ path }).attachTooltip('Segment 1');
+            const second = polyline({ path }).attachTooltip('Segment 2');
+            expect(second).toBe(first);
+        });
+
+        // The point of O-3. One object and one div instead of 100 of each.
+        //
+        // The div count is 1 rather than 0 because Overlay still builds its element in the
+        // constructor - that's O-1, which was deferred. O-3 doesn't make the element lazy, it
+        // makes there be one element instead of 100, which is most of the same win.
+        it('builds one Tooltip, and one div, for 100 polylines', () => {
+            const created = vi.spyOn(document, 'createElement');
+            const tooltips = new Set();
+            for (let i = 0; i < 100; i += 1) {
+                tooltips.add(polyline({ path }).attachTooltip(`Segment ${i}`));
+            }
+            expect(tooltips.size).toBe(1);
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(1);
+        });
+
+        // Markers and polylines share the same one. Only one tooltip is ever visible, so there
+        // is nothing to be gained by keeping a separate one per type.
+        it('shares one Tooltip between markers and polylines', () => {
+            const onPolyline = polyline({ path }).attachTooltip('Segment');
+            const onMarker = marker({ position: [1, 2] }).attachTooltip('Marker');
+            expect(onMarker).toBe(onPolyline);
+        });
+
+        it('holds the value that was just attached', () => {
+            const t = marker({ position: [1, 2] }).attachTooltip('Marker 1');
+            expect(t.content).toBe('Marker 1');
+        });
+
+        // The guard that matters most. attachTo() used to have a single boolean, which would
+        // have wired the listeners up for the first thing only.
+        it('attaches its listeners for every object, not just the first', async () => {
+            const first = polyline({ path });
+            const second = polyline({ path });
+            first.attachTooltip('First');
+            second.attachTooltip('Second');
+            await tick();
+
+            const map = fakeMap();
+            await first.setMap(map);
+            await second.setMap(map);
+            await tick();
+
+            // Each polyline put its own value back when it was hovered
+            second.dispatch('mouseover', { latLng: { lat: 48.85, lng: 2.35 } });
+            expect(Tooltip.getShared().content).toBe('Second');
+
+            first.dispatch('mouseover', { latLng: { lat: 48.85, lng: 2.35 } });
+            expect(Tooltip.getShared().content).toBe('First');
+        });
+
+        it('gives an object its own Tooltip when the call opts out', () => {
+            const shared = polyline({ path }).attachTooltip('Shared');
+            const own = polyline({ path }).attachTooltip('Own', 'hover', { shared: false });
+            expect(own).not.toBe(shared);
+            expect(own.content).toBe('Own');
+        });
+
+        it('gives everything its own Tooltip when sharing is turned off', () => {
+            Tooltip.useShared = false;
+            const first = polyline({ path }).attachTooltip('Segment 1');
+            const second = polyline({ path }).attachTooltip('Segment 2');
+            expect(second).not.toBe(first);
+        });
+
+        it('shares one when a single call opts in while sharing is off', () => {
+            Tooltip.useShared = false;
+            const first = polyline({ path }).attachTooltip('One', 'hover', { shared: true });
+            const second = polyline({ path }).attachTooltip('Two', 'hover', { shared: true });
+            expect(second).toBe(first);
+        });
+
+        // Passing a Tooltip object means that object is wanted, whatever the default is.
+        it('never replaces a Tooltip object that was passed in', () => {
+            const own = tooltip('Mine');
+            const returned = polyline({ path }).attachTooltip(own);
+            expect(returned).toBe(own);
+            expect(returned).not.toBe(Tooltip.getShared());
+        });
+
+        it('builds no shared tooltip until something attaches one', () => {
+            Tooltip.clearShared();
+            const created = vi.spyOn(document, 'createElement');
+            polyline({ path });
+            expect(created).not.toHaveBeenCalled();
+        });
+
+        it('clearShared lets the next attach build a fresh one', () => {
+            const first = polyline({ path }).attachTooltip('First');
+            Tooltip.clearShared();
+            const second = polyline({ path }).attachTooltip('Second');
+            expect(second).not.toBe(first);
+        });
+    });
+
     describe('building a tooltip', () => {
         it('takes a plain string as the content', () => {
             const t = tooltip('Trail 12');
@@ -251,6 +357,9 @@ describe('attaching a tooltip (M-1)', () => {
     });
 
     afterEach(() => {
+        // The shared tooltip lives at module scope, so without this one test's content would
+        // still be on it for the next one.
+        Tooltip.clearShared();
         uninstallGoogleMaps();
     });
 

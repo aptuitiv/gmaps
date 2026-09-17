@@ -118,16 +118,19 @@ marker.attachPopup(() => ({
 
 ### attachTooltip
 
-`attachTooltip(tooltipValue: AttachTooltipValue, event?: string): Tooltip`
+`attachTooltip(tooltipValue: AttachTooltipValue, event?: string, options?: AttachTooltipOptions): Tooltip`
 
 Attach a [Tooltip](/api-reference/tooltip) to the layer. This makes it easy to show a tooltip when the element is hovered.
 
 An example usage is attaching a tooltip to a marker.
 
+By default this returns the [shared tooltip](/api-reference/tooltip#sharing-one-tooltip) that every layer uses, rather than one of its own. Pass `{ shared: false }` for a layer that needs its own.
+
 | Parameter | Type | Default | Required | Description |
 |-----------|------|---------|----------|-------------|
 | tooltipValue | [TooltipValue](/api-reference/tooltip#tooltipvalue-type) or [TooltipCallback](/api-reference/tooltip#tooltip-callback-type) | | Yes | The tooltip value, or a function that returns one. |
 | event | string | 'hover' | | The event to trigger the tooltip. |
+| options | object | | | Options for this call. Set `shared` to `false` to give this layer its own tooltip instead of the shared one, or to `true` to use the shared one when [Tooltip.useShared](/api-reference/tooltip#static-properties) is off. |
 
 Allowed `event` values include:
 

@@ -324,7 +324,7 @@ divs, up to 5,190 `innerHTML` parses, ~13,000 coordinate objects, ~15–20k prom
 | # | Finding | Evidence | Impact |
 |---|---|---|---|
 | B-1 | **Tree-shaking is effectively broken.** Importing only `latLng` pulls 100.6 KB (75% of the library), including `MarkerClusterer`, `DataLayer`, `Tooltip`, `Popup` | measured with esbuild | High |
-| B-2 | `@googlemaps/markerclusterer` is unconditionally in the browser bundle — 29,835 B (18%) for consumers who never cluster | measured; string-literal proof | High |
+| B-2 | `@googlemaps/markerclusterer` is unconditionally in the browser bundle — **re-measured 2026-09-16: 24,226 B (14.3%)**, not the 29,835 B (18%) first recorded | re-measured by bundling with and without it | High — **skipped by decision** |
 | B-3 | The eslint plugin runs on **both** entries, linting every file twice — ~9.6s of lint against ~2.7s of build, roughly 4× the build time. It also has `fix: true`, so the build mutates source on disk | measured | Medium |
 | B-4 | `lib: ["es2017"]` while `target: es2022` — blocks `Object.hasOwn`, `.at()`, `.flat()`. Nothing uses them today, but it is why `DataFeature.ts:375` cannot drop its O(n²) `reduce(concat)` | grepped: 0 usages | Medium |
 | B-5 | `minify: false` on ESM/CJS is **correct for a library** — keep it. gzip already takes 529 KB → 91 KB | — | Keep |
@@ -562,7 +562,7 @@ comment, so fixing it turns that test red and forces a deliberate update.
 | `isObject()` fast path | New name for the strict version; audit the ~40 call sites | `typeof` returns `true` for `Date`/`Map`/`Set` where `toString` returns `false` — a real semantic change |
 | `latLng()` returning its argument | **No** — add a private internal helper instead | The exported factory must keep copying; `LatLngBounds.#extend` already hit this aliasing bug once |
 | Primitive immutability / interning | **Not now** — major version | `LatLng`, `Point`, `Size` are all mutable today; making them immutable unlocks interning but breaks `setLat()`/`ceil()`/`subtract()` callers |
-| Shared tooltip instance (O-3) | **Opt-in flag** — confirmed 2026-09-16 | `attachTooltip()` returns a `Tooltip`; sharing it by default would let one layer's `setContent` change every layer's |
+| Shared tooltip instance (O-3) | **On by default** — changed 2026-09-16, was opt-in | Each object keeps its own value and it's put back on every show, so one layer's content can't be left showing for another. `Tooltip.useShared = false` or `{ shared: false }` opts out |
 | Shared **popup** instance | **No** | `Layer.setPopup`/`getPopup`/`openPopup`/`togglePopup` all assume a per-layer instance |
 | `package.json` `"sideEffects"` | Explicit **array**, never `false` | See 8.1 — `false` would be silently breaking |
 | `getBounds()` | Add `getBoundsSync()`, do not change the existing signature | Changing async → sync is a public break |
@@ -620,9 +620,9 @@ better idea: it would look correct right up until the build emits separate modul
 | P-5 | Map setters batch into one microtask | Set-then-immediately-read-back through `map.toGoogle().get(...)` would see the old value |
 | L-3 | `simplifyPath()` output may differ by a point or two at coarse tolerances | Public exported helper; same signature, same tolerance guarantee |
 | L-8 | `polyline.highlightPolyline` would return `undefined` before first hover | Mitigate by keeping the getter eager-constructing while the internal path stays lazy |
-| O-3 | Shared tooltip changes `attachTooltip()`'s return value | Opt-in only; default change is a major version |
+| O-3 | Shared tooltip changes `attachTooltip()`'s return value | **Shipped on by default 2026-09-16** at the user's direction. Three changes, listed in Phase 7. Appropriate for a 0.x minor bump |
 | C-6 | `latLng()` returning its argument | Rejected above — internal helper instead |
-| B-2 | Making `markerCluster()` lazy-load would change its signature | A separate `browser-cluster.js` bundle avoids this |
+| B-2 | Making `markerCluster()` lazy-load would change its signature | **Skipped 2026-09-16.** A separate add-on bundle does *not* avoid this — see Phase 7 |
 
 ---
 
@@ -1096,10 +1096,12 @@ and per-object allocation falls across the whole library.
 
 Phases 0-3 are done. From Phase 4, D-2 landed on 2026-09-16 and **the rest of Phase 4 was skipped
 by decision on the same day** — see the Phase 4 section. P-1 from Phase 5 landed on 2026-09-16,
-and L-4 and L-7 from Phase 6 landed on 2026-09-16.
+and L-4 and L-7 from Phase 6 landed on 2026-09-16. O-3 from Phase 7 landed on 2026-09-16 and is
+**on by default**, which is a change from the opt-in-only decision recorded in section 7.
 From Phase 7, D-8 landed on 2026-09-16, and B-1 was **measured and found to buy nothing in this
 build** — the declaration was added as a safeguard, but the tree-shaking win it promised is not
-available without a build change. See the Phase 7 section.
+available without a build change. **B-2 was skipped by decision on 2026-09-16**, but only after its
+measurement was corrected and a flaw in its prescribed approach was found. See the Phase 7 section.
 Phases 4-7 were re-examined on 2026-09-16 after Phases 0-3 landed, and each item was re-tested
 against one question: **is this worth doing, and what is the evidence?** The phase numbers are
 unchanged so that references elsewhere in this plan still resolve.
@@ -1115,8 +1117,8 @@ unchanged so that references elsewhere in this plan still resolve.
 |---|---|---|
 | ~~L-4 skip redundant `setPath`~~ **done 2026-09-16** | 6 | `setPath` is the expensive half of a tolerance change |
 | ~~L-7 skip the dashed/icon pass~~ **done 2026-09-16** | 6 | A promise, a microtask and a no-op Google call per polyline |
-| O-3 opt-in shared tooltip | 7 | 2,595 divs to one, and it largely obviates O-1 |
-| B-2 split out `markerclusterer` | 7 | Measured: 18% of the browser bundle |
+| ~~O-3 shared tooltip~~ **done 2026-09-16, on by default** | 7 | 2,595 divs to one, and it largely obviates O-1 |
+| ~~B-2 split out `markerclusterer`~~ **skipped 2026-09-16** | 7 | Re-measured: 14.3% of the browser bundle |
 
 | Struck, with reasons | Phase |
 |---|---|
@@ -1509,16 +1511,86 @@ theoretical — and it should be decided on its own, not smuggled in under B-1.
 *today*, which makes it more dangerous rather than less: it would sit in the file looking correct
 until the day the build starts emitting separate modules.
 
-**Worth doing, moderate effort — O-3 and B-2.**
+**O-3 — DONE 2026-09-16, and on by default. B-2 skipped.**
 
-- **O-3 opt-in shared tooltip. Not for popups.** This now ranks *above* O-1. Every `Tooltip` still
-  builds a div in its constructor, so 2,595 segments means 2,595 detached divs plus objects and
-  offsets. One shared tooltip collapses that to one — capturing most of O-1's benefit for the
-  dominant case, while being additive and opt-in rather than a 42-site conversion with
-  runtime-only failure modes. **O-3 largely obviates O-1.**
-- **B-2** — split `markerclusterer` out of the browser bundle. Measured at 29,835 bytes, 18% of
-  `browser.js`, paid by every consumer who never clusters. A second bundle avoids changing
-  `markerCluster()`'s signature, which lazy-loading would not.
+- **O-3 shared tooltip. Not for popups.** Every `Tooltip` still builds a div in its constructor, so
+  2,595 segments meant 2,595 detached divs plus objects and offsets. One shared tooltip collapses
+  that to one. **O-3 largely obviates O-1** — but note what it does and doesn't do: it does *not*
+  make the element lazy, it makes there be **one element instead of 2,595**. O-1 would still be
+  needed to build that one element lazily, and is worth much less now.
+
+  **What changed** (`src/lib/Tooltip.ts`):
+
+  - A module-scope shared `Tooltip`, built on first use by `Tooltip.getShared()`, with
+    `Tooltip.clearShared()` to drop it.
+  - `Tooltip.useShared` (**default true**) and a third `attachTooltip()` parameter,
+    `{ shared: false }`, to opt a single call out. Both, not one or the other — see the settled
+    question in section 13. The global is what makes it usable, since the common call form is a
+    bare string with nowhere to put a flag.
+  - A `WeakMap` of per-object values, applied on **every show** through `#tooltipFor()`. This is
+    what answers the hazard recorded in section 7: one object's content can't be left showing for
+    another, because each object's own value is put back before it's shown.
+  - **`#isAttached` became a per-target `WeakSet`.** This was the load-bearing change. It was a
+    single boolean, so one shared tooltip attached to 2,595 polylines would have wired its
+    listeners for the **first one only** and silently done nothing for the rest — a runtime-only
+    failure with no error. There is a dedicated test for it.
+  - Passing an actual `Tooltip` object to `attachTooltip()` bypasses sharing entirely, whatever
+    `useShared` says. The caller clearly meant that object.
+
+  **The default flip, and why it broke less than section 8.2 expected.** The value is applied at
+  *attach* time as well as on every show, so `attachTooltip('Marker 1').content` is still
+  `'Marker 1'` and the documented single-object contract survives — the existing test asserting it
+  passes unchanged. Three real behaviour changes remain:
+
+  1. **`clickon` can only keep one tooltip open at a time.** Previously each object held its own
+     open. This is a functional change, not just a return-value one, and is the one most likely to
+     surprise someone.
+  2. `attachTooltip()` returns the shared tooltip, so changing it changes every sharer.
+  3. Option stickiness: `setOptions` only replaces the keys it's given, so a `className` set by one
+     object persists for the next. This is inherent to sharing and is **not** fixed by keeping a
+     separate tooltip per type — it happens between two markers just as readily as between a marker
+     and a polyline, which is why sharing is global rather than per type.
+
+  **Testing.** 11 tests, including the per-target listener guard above, markers and polylines
+  sharing one instance, both opt-out routes, the `Tooltip`-object bypass, and lazy construction.
+  One harness note: the shared instance lives at module scope, so `Tooltip.clearShared()` belongs
+  in `afterEach` or one test's content bleeds into the next.
+
+  **Gates:** 510 tests pass (499 before, +11), `tsc --noEmit` exit 0, `eslint ./src` exit 0.
+- **B-2 — SKIPPED by decision on 2026-09-16.** Two things were established before it was dropped,
+  and both should be read before anyone reopens it.
+
+  **The size was overstated.** Re-measured by bundling `src/browser.ts` with esbuild exactly as
+  `tsup` does, once normally and once with `@googlemaps/markerclusterer` left out:
+
+  | bundle | bytes |
+  |---|---|
+  | full, as shipped | 169,946 |
+  | without `markerclusterer` | 145,720 |
+
+  That is **24,226 bytes, 14.3%** of the browser bundle — not the 29,835 bytes / 18% recorded
+  earlier, which came from counting minified string literals and could not be reproduced (the
+  bundle is minified, so `MarkerClusterer`, `GridAlgorithm` and `markerclusterer` appear zero
+  times in it). The item was still real: 24 KB is genuine weight on every consumer who never
+  clusters.
+
+  **The prescribed approach does not work.** "A second bundle avoids changing `markerCluster()`'s
+  signature" is true only for a bundle that *replaces* `browser.js`, not one loaded alongside it.
+  `MarkerCluster.ts` uses `Map`, `Marker`, `Base` and `loader` at runtime, so an add-on IIFE would
+  bundle its own copies of them. The page would then hold **two different `Map` classes**, and
+  every `instanceof` check across the boundary would fail. Any future attempt needs one of:
+
+  1. **Two alternative full bundles** sharing a common `browserGlobal.ts`, so only one is ever
+     loaded. Works, but changes which file clustering consumers load.
+  2. **A registration hook**, where `MarkerCluster.ts` stops importing `markerclusterer`
+     statically and a second script injects it. This keeps one bundle but leaks into the ESM
+     build, where npm consumers would have to register it too — a breaking change for them.
+  3. **Dynamic `import()`**, which makes `markerCluster()` async. That is the signature change the
+     original note was trying to avoid.
+
+  The blocker was never technical. It is that every workable shape moves a cost onto somebody:
+  existing clustering consumers, npm consumers, or the API. That is a packaging decision, not a
+  performance one.
 
 **Gated on the profile — D-4 to D-7.** Feature-array caching, the `#enqueue` fast path and chunked
 post-load all scale with feature count, and no data-layer workload has been profiled. D-4's
@@ -1810,8 +1882,9 @@ All four open questions were answered on 2026-09-16. Recorded here so the reason
    also fixes the existing inconsistency where the async control setters land out of order
    relative to the synchronous ones.
 
-3. **Shared tooltip (O-3) — opt-in flag.** Not the default. `attachTooltip()` keeps returning a
-   per-layer `Tooltip` unless the caller opts in.
+3. **Shared tooltip (O-3) — ~~opt-in flag~~ on by default.** Revised 2026-09-16 when the work was
+   done: the default was flipped to shared at the user's direction, with `Tooltip.useShared` and a
+   per-call `{ shared: false }` to opt out. See Phase 7 for what that changes.
 
 4. **Viewport culling (L-1) — dropped.** Attempted in a separate session the same day and
    abandoned; that conclusion is correct and the plan now agrees with it rather than
@@ -1819,8 +1892,11 @@ All four open questions were answered on 2026-09-16. Recorded here so the reason
 
 ### Still worth deciding, but not blocking
 
-- **Where the shared-tooltip opt-in lives** — a per-call option on `attachTooltip()`, a global
-  default, or both. Worth settling when Phase 7 starts, not now.
+- ~~**Where the shared-tooltip opt-in lives**~~ — **settled 2026-09-16: both.** A global
+  `Tooltip.useShared` (default true) plus a per-call `{ shared: false }` override. The global is
+  what makes it usable, because the common call form is a bare string — `attachTooltip('Trail 12')`
+  — which has nowhere to put a per-call flag, so a per-call-only option would have meant editing
+  every call site to get the win.
 - **Whether `polyline.path` should keep caching forever** (L-10). The additive
   `getPathCoords()`/`pathLength` accessors are safe and planned; changing the caching behavior of
   `.path` itself is the part that needs a call.

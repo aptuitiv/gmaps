@@ -783,14 +783,17 @@ map.attachPopup((map) => `The zoom level is ${map.getZoom()}`, 'clickon');
 
 ### attachTooltip
 
-`attachTooltip(tooltipValue: AttachTooltipValue, event?: string): Tooltip`
+`attachTooltip(tooltipValue: AttachTooltipValue, event?: string, options?: AttachTooltipOptions): Tooltip`
 
 Attach a [Tooltip](/api-reference/tooltip) to the map. This makes it easy to show a tooltip when the map is hovered or clicked.
+
+By default this returns the [shared tooltip](/api-reference/tooltip#sharing-one-tooltip) that the map shares with every marker and polyline, rather than one of its own. Pass `{ shared: false }` for a tooltip that's only used by the map.
 
 | Parameter | Type | Default | Required | Description |
 |-----------|------|---------|----------|-------------|
 | tooltipValue | [TooltipValue](/api-reference/tooltip#tooltipvalue-type) or [TooltipCallback](/api-reference/tooltip#tooltip-callback-type) | | Yes | The tooltip value, or a function that returns one. |
 | event | string | 'hover' | | The event to trigger the tooltip. |
+| options | object | | | Options for this call. Set `shared` to `false` to give the map its own tooltip instead of the shared one, or to `true` to use the shared one when [Tooltip.useShared](/api-reference/tooltip#static-properties) is off. |
 
 Allowed `event` values include:
 
