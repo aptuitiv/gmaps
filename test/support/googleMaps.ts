@@ -1192,17 +1192,27 @@ const buildMaps = () => ({
     // getPlaces() and getPlace() hand back whatever a test put on the instance with
     // __setPlaces() / __setPlace(). They are only called from inside the places_changed and
     // place_changed listeners, which a test drives with __fire() after reaching the instance
-    // through mapsStats.lastInstanceOf(). getPlaces() defaults to an empty array, which is
-    // what Google gives back for a search that matched nothing.
+    // through mapsStats.lastInstanceOf().
+    //
+    // getPlaces() returns the stored value exactly as it was set, including undefined. It used
+    // to fall back to an empty array, which quietly made a test useless: PlacesSearchBox has its
+    // own "not an array" normalisation for the older API versions that returned nothing, and
+    // __setPlaces(undefined) never reached it because the stub had already turned it into [].
+    // The test asserted an answer the stub produced rather than one the library produced. A
+    // double that fixes up its own return value can only hide the code it stands in for.
+    //
+    // A search box that no test has touched starts with an empty array, which is what Google
+    // gives back for a search that matched nothing.
     places: {
         SearchBox: recorded('SearchBox', {
+            __places: [] as any[],
             /**
-             * The places for the current search
+             * The places for the current search, exactly as the test set them
              *
              * @returns {any[]}
              */
             getPlaces(this: any): any[] {
-                return this.__places ?? [];
+                return this.__places;
             },
             /**
              * Set what the next search finds
