@@ -2468,6 +2468,41 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
     return longitude >= southWest.longitude || longitude <= northEast.longitude;
   }
   /**
+   * Returns whether the longitude spans of two bounds share any points.
+   *
+   * A bounds whose west longitude is greater than its east longitude crosses the 180 degree
+   * meridian, so its span is the two arms either side of the meridian rather than the numbers
+   * in between. Comparing those numbers directly says a bounds running 170 to -170 starts to
+   * the east of one running -175 to -160 and misses it, when in fact they overlap across the
+   * meridian. This is the same wrap that #containsLongitude() handles for a single longitude.
+   *
+   * Two wrapped spans always share points, because both of them contain the meridian itself.
+   * A wrapped span and an ordinary one share points when the ordinary one reaches either arm
+   * of the wrapped one.
+   *
+   * @private
+   * @param {LatLng} southWest This bounds' south-west corner
+   * @param {LatLng} northEast This bounds' north-east corner
+   * @param {LatLng} otherSouthWest The other bounds' south-west corner
+   * @param {LatLng} otherNorthEast The other bounds' north-east corner
+   * @returns {boolean}
+   */
+  // eslint-disable-next-line class-methods-use-this -- Kept with the other bounds calculations
+  #longitudesOverlap(southWest, northEast, otherSouthWest, otherNorthEast) {
+    const wraps = southWest.longitude > northEast.longitude;
+    const otherWraps = otherSouthWest.longitude > otherNorthEast.longitude;
+    if (wraps && otherWraps) {
+      return true;
+    }
+    if (wraps) {
+      return otherSouthWest.longitude <= northEast.longitude || otherNorthEast.longitude >= southWest.longitude;
+    }
+    if (otherWraps) {
+      return southWest.longitude <= otherNorthEast.longitude || northEast.longitude >= otherSouthWest.longitude;
+    }
+    return southWest.longitude <= otherNorthEast.longitude && northEast.longitude >= otherSouthWest.longitude;
+  }
+  /**
    * Set the bounds from its north-east and south-west corners.
    *
    * Nothing is set unless both corners are valid.
@@ -2608,7 +2643,9 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
             return;
           }
           resolve(
-            sw.latitude <= otherNe.latitude && ne.latitude >= otherSw.latitude && sw.longitude <= otherNe.longitude && ne.longitude >= otherSw.longitude
+            // Latitude doesn't wrap, so this is the ordinary overlap test
+            sw.latitude <= otherNe.latitude && ne.latitude >= otherSw.latitude && // Longitude does wrap, so it needs the meridian-aware test below
+            this.#longitudesOverlap(sw, ne, otherSw, otherNe)
           );
         }
       } else {
@@ -12439,7 +12476,11 @@ var InfoWindow = class extends Layer_default {
       this.#setupGoogleInfoWindow();
       const googleInfoWindow = this.#infoWindow;
       if (!googleInfoWindow) {
-        reject(new Error("The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded."));
+        reject(
+          new Error(
+            "The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded."
+          )
+        );
         return;
       }
       const collection = InfoWindowCollection.getInstance();
@@ -16097,12 +16138,8 @@ var PlacesSearchBox = class extends Evented {
       const searchBox = new google.maps.places.SearchBox(this.#input, options);
       this.#searchBox = searchBox;
       searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-        const places = searchBox.getPlaces();
-        if (!Array.isArray(places) || places.length === 0) {
-          this.#places = [];
-          this.#placesBounds = void 0;
-          return;
-        }
+        const found = searchBox.getPlaces();
+        const places = Array.isArray(found) ? found : [];
         const bounds = latLngBounds();
         places.forEach((place) => {
           if (place.geometry) {
@@ -18993,6 +19030,11 @@ var Popup = class extends Overlay {
    * @returns {Popup}
    */
   hide() {
+    const active = this.#activePopup;
+    this.#activePopup = void 0;
+    if (active && active !== this) {
+      active.hide();
+    }
     super.hide();
     this.#firstDraw = false;
     this.#isOpen = false;
@@ -19138,6 +19180,8 @@ var Popup = class extends Overlay {
                   resolve(this);
                 });
               } else {
+                this.#isOpen = false;
+                collection.remove(this);
                 resolve(this);
               }
             };
@@ -19151,6 +19195,8 @@ var Popup = class extends Overlay {
               resolve(this);
             });
           } else {
+            this.#isOpen = false;
+            collection.remove(this);
             resolve(this);
           }
         }
@@ -19881,6 +19927,31 @@ var Tooltip = class _Tooltip extends Overlay {
       }
     });
     this.#isThemeApplied = true;
+  }
+  /**
+   * Hide the tooltip
+   *
+   * A callback can return a different Tooltip to show, which is held in #activeTooltip. Hiding
+   * this one used to leave that one on the map with nothing referring to it. Only the hover
+   * wiring took it down, by hiding `#activeTooltip || this` on mouseout, so a tooltip shown by
+   * a click and then hidden directly stayed on the map. It's hidden and forgotten here instead,
+   * which is what Popup.hide() does for the same reason.
+   *
+   * The check against this one matters rather than being tidiness: a callback that returns
+   * content or an options object is applied to this tooltip and #activeTooltip is then set to
+   * this tooltip, so calling hide() on it without the check would call this method again and
+   * never stop.
+   *
+   * @returns {Tooltip}
+   */
+  hide() {
+    const active = this.#activeTooltip;
+    this.#activeTooltip = void 0;
+    if (active && active !== this) {
+      active.hide();
+    }
+    super.hide();
+    return this;
   }
   /**
    * Returns whether the tooltip already has content
