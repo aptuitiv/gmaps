@@ -1981,6 +1981,22 @@ real verdict rather than a confirmation step.
   still be dragged. Both directions have tests.
 - ~~**The test harness can't reach resize movement.**~~ **Fixed 2026-09-16** — see the O-1 notes
   in Phase 3.
+- **`SvgSymbol.anchor` and `SvgSymbol.labelOrigin` disagree about an unset value.** `anchor`
+  (`SvgSymbol.ts:108`) returns `point(this.#options.anchor ?? undefined)`, so a symbol that never
+  had an anchor gets back a `Point` with no `x` and no `y` — `isValid()` is false, but the object
+  is truthy, so `if (symbol.anchor)` says yes for a symbol with no anchor. `labelOrigin`
+  (`:168`) returns the stored value, so it reads as `undefined`. A review asked for `labelOrigin`
+  to be routed through `point()` to match `anchor`, and for its return type to be narrowed to
+  `PointValue`. **Not done, 2026-09-17, by decision.** `anchor` is the wrong one of the pair, so
+  matching it would put the same fake value on a second property, and dropping `| null |
+  undefined` from the type would take away a `strictNullChecks` guarantee — the same shape as the
+  `!` assertions removed from `Marker`, `Overlay` and `AdvancedMarker`. Nothing is broken today:
+  `toGoogle()` (`:473-478`) guards both with `typeof … !== 'undefined'`, `setOptions()` (`:327`)
+  only stores a point for a truthy value, and nothing outside the class reads either getter —
+  `Icon.ts` only writes. Worth knowing if either is ever aligned: `anchor`'s getter builds a new
+  `Point` per call, so `symbol.anchor === symbol.anchor` is false and mutating the result changes
+  nothing, while `labelOrigin` hands back the stored object. There is no `test/SvgSymbol.test.ts`,
+  so either direction needs coverage written first.
 
 ---
 
