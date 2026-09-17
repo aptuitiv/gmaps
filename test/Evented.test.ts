@@ -368,6 +368,106 @@ describe('Evented', () => {
             expect(cb).toHaveBeenCalledTimes(1);
         });
     });
+
+    // P-1. Every event type used to be wired through to the Google object, including the ones
+    // this library dispatches itself. Google never fires "ready", so that listener could never
+    // be called - and because objects listen for "ready" before their Google object exists, it
+    // was usually queued as a pending listener first and turned into a dead one later.
+    describe("the library's own events are not wired to Google (P-1)", () => {
+        /**
+         * The listeners of a type that were added to a stub Google object
+         *
+         * @param {unknown} googleObject The stub Google object
+         * @param {string} type The event type
+         * @returns {unknown[]|undefined}
+         */
+        const listenersOn = (googleObject: unknown, type: string): unknown[] | undefined =>
+            (googleObject as { __listeners: Record<string, unknown[]> }).__listeners[type];
+
+        /**
+         * Make a stub Google object
+         *
+         * @returns {object}
+         */
+        const makeGoogleObject = () => {
+            const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
+            return new google.maps.MVCObject();
+        };
+
+        it('adds no Google listener for ready when the Google object is already set', () => {
+            const e = makeEvented();
+            const googleObject = makeGoogleObject();
+            e.setEventGoogleObject(googleObject);
+
+            e.on('ready', vi.fn());
+            expect(listenersOn(googleObject, 'ready')).toBeUndefined();
+        });
+
+        // The common case: an object waits for "ready" long before it has a Google object.
+        it('queues nothing pending for ready, so none appears when the Google object arrives', () => {
+            const e = makeEvented();
+            e.on('ready', vi.fn());
+
+            const googleObject = makeGoogleObject();
+            e.setEventGoogleObject(googleObject);
+            expect(listenersOn(googleObject, 'ready')).toBeUndefined();
+        });
+
+        // The load-bearing check. Skipping the wiring must not stop the event working, because
+        // "ready" is dispatched by this library rather than by Google.
+        it('still calls a ready listener when the event is dispatched', () => {
+            const e = makeEvented();
+            const cb = vi.fn();
+            e.on('ready', cb);
+            e.dispatch('ready');
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+
+        it('skips every one of the library\'s own event types', () => {
+            const e = makeEvented();
+            const googleObject = makeGoogleObject();
+            e.setEventGoogleObject(googleObject);
+
+            ['ready', 'locationfound', 'locationerror', 'initialized'].forEach((type) => {
+                e.on(type, vi.fn());
+                expect(listenersOn(googleObject, type)).toBeUndefined();
+            });
+        });
+
+        it('still dispatches those types to their listeners', () => {
+            const e = makeEvented();
+            const cb = vi.fn();
+            e.on('locationfound', cb);
+            e.dispatch('locationfound');
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+
+        // The guard must not be greedy. These are real Google event names, and "dragstart" is the
+        // one that matters most: the overlay dispatches its own "dragstart", so it was tempting to
+        // treat it as internal - but Marker and Map get theirs from Google, and this list can't
+        // tell which kind of object it belongs to. Excluding it here would stop markers dragging.
+        it('still wires real Google events, including the drag events an overlay also uses', () => {
+            const e = makeEvented();
+            const googleObject = makeGoogleObject();
+            e.setEventGoogleObject(googleObject);
+
+            ['click', 'dragstart', 'drag', 'dragend', 'bounds_changed'].forEach((type) => {
+                e.on(type, vi.fn());
+                expect(listenersOn(googleObject, type)).toHaveLength(1);
+            });
+        });
+
+        it('a Google event still reaches its listener after the guard', () => {
+            const e = makeEvented();
+            const googleObject = makeGoogleObject();
+            e.setEventGoogleObject(googleObject);
+
+            const cb = vi.fn();
+            e.on('dragstart', cb);
+            (googleObject as unknown as { __fire(type: string): void }).__fire('dragstart');
+            expect(cb).toHaveBeenCalledTimes(1);
+        });
+    });
 });
 
 describe('Evented without the Google Maps library loaded', () => {

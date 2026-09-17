@@ -15,6 +15,30 @@
 export const READY_EVENT = 'ready';
 
 /**
+ * The events that this library dispatches itself, which the Google Maps API knows nothing about.
+ *
+ * Evented wires each event type it's asked to listen for through to the Google object, so that a
+ * Google event reaches the library's own listeners. Google never fires these types, so that wiring
+ * is dead weight: a native listener that can't ever be called, held for as long as the object
+ * lives. Every marker, polyline, overlay and data layer that waits for "ready" registered one.
+ *
+ * Only names that no Google object uses belong here. The overlay drag and resize events are
+ * deliberately left out, even though the overlay dispatches them itself, because "drag",
+ * "dragstart" and "dragend" are real Google events on Marker and Map and this list can't tell
+ * which kind of object it's being asked about. Leaving them out costs a dead listener on overlays;
+ * putting them in would stop markers being draggable. The data layer's "load" is left out for the
+ * same reason.
+ *
+ * The type is widened to string[] so that includes() can be called with any event type.
+ */
+export const INTERNAL_EVENTS: readonly string[] = Object.freeze([
+    READY_EVENT,
+    'locationfound',
+    'locationerror',
+    'initialized',
+]);
+
+/**
  * Events that can be fired by the Autocomplete search box.
  *
  * https://aptuitiv.github.io/gmaps/api-reference/autocomplete-search-box#events

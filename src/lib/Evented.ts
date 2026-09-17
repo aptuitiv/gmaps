@@ -13,6 +13,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* global google */
 
+import { INTERNAL_EVENTS } from './constants';
 import { checkForGoogleMaps, isFunction, isObject, isObjectWithValues, isString, objectEquals } from './helpers';
 import Base from './Base';
 import { latLng, LatLng } from './LatLng';
@@ -514,7 +515,13 @@ export class Evented extends Base {
             // internal event listeners, but because we are handling the event listener internally,
             // we only need to add it to the Google Maps object once.
             const existingListeners = this.#eventListeners?.[type];
-            if (!existingListeners || existingListeners.length === 0) {
+            // Only wire the type through to the Google object if Google can actually fire it.
+            // The library's own events (INTERNAL_EVENTS) are dispatched from this code, so a
+            // native listener for one can never be called. Skipping them also keeps them out of
+            // #pendingMapObjectEventListeners, which is where they ended up most of the time:
+            // objects listen for "ready" before the Google object exists, so every one of them
+            // queued an entry that setEventGoogleObject() then turned into a dead listener.
+            if ((!existingListeners || existingListeners.length === 0) && !INTERNAL_EVENTS.includes(type)) {
                 let setupPending = false;
                 if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
                     if (this.#isGoogleObjectSet()) {

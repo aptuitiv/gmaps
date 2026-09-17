@@ -1080,17 +1080,18 @@ and per-object allocation falls across the whole library.
 
 ### What is left, in one table
 
-Phases 0-3 are done, and D-2 from Phase 4 landed on 2026-09-16. Phases 4-7 were re-examined on
-2026-09-16 after Phases 0-3 landed, and each item was re-tested against one question: **is this
-worth doing, and what is the evidence?** The phase numbers are unchanged so that references
-elsewhere in this plan still resolve.
+Phases 0-3 are done. From Phase 4, D-2 landed on 2026-09-16 and **the rest of Phase 4 was skipped
+by decision on the same day** — see the Phase 4 section. P-1 from Phase 5 landed on 2026-09-16.
+Phases 4-7 were re-examined on 2026-09-16 after Phases 0-3 landed, and each item was re-tested
+against one question: **is this worth doing, and what is the evidence?** The phase numbers are
+unchanged so that references elsewhere in this plan still resolve.
 
 | Do now — no measurement needed | Phase | Why |
 |---|---|---|
 | D-8 geocode caching and dedupe | 7 | Costs **money**, not milliseconds |
 | ~~D-2 data-layer coordinate conversion~~ **done 2026-09-16** | 4 | Bad code, not slow code |
 | B-1 `sideEffects` array (never `false`) | 7 | Measured: 100 KB pulled by one import |
-| P-1 skip Google wiring for internal events | 5 | Pure waste; a five-line guard |
+| ~~P-1 skip Google wiring for internal events~~ **done 2026-09-16** | 5 | Pure waste; a five-line guard |
 
 | Worth doing, moderate effort | Phase | Why |
 |---|---|---|
@@ -1253,22 +1254,63 @@ a 400 ms operation is irrelevant if only 3 ms of it is recoverable:
 **Run it on the iPhone, not the Mac.** Per §10.1, a desktop number decides nothing for the device
 that motivated this plan.
 
+**Decision, 2026-09-16: the rest of Phase 4 is skipped.** C-5, C-15, C-17 and D-3 are not being
+done. The benchmark page stays in the repository, so if a data layer ever feels slow on a real
+device the measurement is one page load away rather than a fresh investigation. Nothing else in
+the plan depends on these items.
+
 ### Phase 5 — Map ready/init machinery
 
 **This phase shrank the most on re-examination.** Its headline finding was already fixed as a side
 effect of Phase 2, and several items turned out to be per-*map* costs rather than per-object ones
 — and there is only ever one map.
 
-**Do now — the surviving half of P-1.**
+**P-1 — DONE 2026-09-16.**
 
 P-1's main claim was that every `onReady()` re-runs `google.maps.event.hasListeners`, a real call
 across the Google API boundary, once per marker. **That call no longer exists.** Phase 2 removed
 it when scoping `clearListeners`: `#on()` now checks its own `#googleListeners[type]` instead.
 
-What survives is small and still worth doing: **skip the Google-wiring block for the library's own
-event types.** `ready`, `locationfound` and `locationerror` are not Google events, so registering
-a native listener for them is pure waste — and `Map.ts:59` already declares exactly that list.
-Today every object that listens for `ready` gets a dead native listener. A five-line guard.
+What survived, and what shipped: **skip the Google-wiring block for the library's own event types.**
+
+**What changed:**
+
+- `constants.ts` gained `INTERNAL_EVENTS`, a frozen list of the event names this library dispatches
+  itself: `ready`, `locationfound`, `locationerror`, `initialized`.
+- `Evented.#on()` skips the whole Google/pending block for those types — one added condition.
+
+**Three corrections to the item as written:**
+
+1. **`Map.ts:59` could not be reused.** The plan said it "already declares exactly that list". It
+   declares `type InternalEvent = 'locationerror' | 'locationfound' | 'ready'` — a **TypeScript
+   type, with no runtime value**. A real constant had to be added. It lives in `constants.ts` beside
+   `READY_EVENT`, which imports nothing, so there is no cycle.
+2. **`initialized` was missing from the list.** `AdvancedMarker.ts:916` dispatches it and line 852
+   listens for it. It is not a Google event, so it belongs with the other three.
+3. **The waste was usually worse than a dead listener.** Objects listen for `ready` *before* their
+   Google object exists, so the entry went into `#pendingMapObjectEventListeners` and
+   `setEventGoogleObject()` later turned it into the dead native listener. The guard removes both
+   the queue entry and the listener.
+
+**The scoping hazard, and why the list is short.** It is tempting to add every event the library
+dispatches itself — the overlay's `dragstart`, `drag`, `dragend`, `resize*`, `open`, and the data
+layer's `load`. **That would be a correctness bug.** `INTERNAL_EVENTS` is consulted by `Evented`,
+which has no idea what kind of object it belongs to, and `dragstart`/`drag`/`dragend` are *real
+Google events on Marker and Map*. Excluding them globally would stop markers being draggable. The
+list therefore holds only names that no Google object fires. The cost of that choice is a dead
+listener on overlays; the cost of the alternative is broken marker dragging.
+
+**Also checked:** `Loader` is out of scope entirely — it extends `EventTarget`, not `Evented`
+(`Loader.ts:28`), so `LoaderEvents.LOAD`/`MAP_LOAD` never reach this code path.
+
+**Testing.** Seven tests added to `test/Evented.test.ts`, covering: no Google listener for `ready`
+when the Google object is already set; nothing queued when it is not, and none appearing when it
+arrives; `ready` still reaching its callback through `dispatch()`; all four internal types skipped;
+and — the regression guard for the hazard above — `click`, `dragstart`, `drag`, `dragend` and
+`bounds_changed` still wiring, with a Google event still reaching its listener.
+
+**Gates:** 470 tests pass (463 before, +7), `tsc --noEmit` exit 0, `eslint ./src` exit 0.
+Per §10.1 this proves work was *avoided*, not that anything got faster.
 
 **Gated on the profile.**
 
