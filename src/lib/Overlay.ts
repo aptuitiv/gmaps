@@ -630,7 +630,7 @@ export class Overlay extends Layer {
             if (mapObject instanceof Map) {
                 if (this.#overlayView) {
                     // Setting the map will trigger the redraw
-                    this.#overlayView.setMap(mapObject.toGoogle() ?? null);
+                    this.#attachToGoogleMap(mapObject);
                     this.isVisible = true;
                     super.setMap(mapObject);
                     this.dispatch(OverlayEvents.OPEN);
@@ -832,20 +832,20 @@ export class Overlay extends Layer {
             if (map instanceof Map) {
                 this.#setupGoogleOverlay();
                 if (this.#overlayView) {
-                    this.#overlayView.setMap(map.toGoogle() ?? null);
-                    this.isVisible = true;
                     super.setMap(map);
+                    this.#attachToGoogleMap(map);
+                    this.isVisible = true;
                     this.dispatch(OverlayEvents.OPEN);
                     resolve(this);
                 } else {
                     // The Google maps library isn't loaded yet. Wait for it to load.
                     loader().onMapLoad(() => {
                         this.#setupGoogleOverlay();
+                        super.setMap(map);
                         if (this.#overlayView) {
-                            this.#overlayView.setMap(map.toGoogle() ?? null);
+                            this.#attachToGoogleMap(map);
                             this.isVisible = true;
                         }
-                        super.setMap(map);
                         this.dispatch(OverlayEvents.OPEN);
                         resolve(this);
                     });
@@ -1374,6 +1374,45 @@ export class Overlay extends Layer {
      *
      * @private
      */
+    /**
+     * Attach the overlay to the Google map object.
+     *
+     * The Google map object doesn't exist until the map has been initialized, so toGoogle()
+     * returns undefined until then. Passing that on as null attached the overlay to nothing,
+     * which left it silently off the map even though it reported itself as visible.
+     *
+     * When the map isn't set up yet it's told to initialize and the overlay is attached once
+     * it's ready. The promise that show() and move() return is deliberately not tied to
+     * init(): the map waits on an IntersectionObserver when its element is hidden, so init()
+     * can take a long time to settle, or never settle at all. Marker and Polyline trigger the
+     * map the same way.
+     *
+     * @private
+     * @param {Map} map The map to attach the overlay to
+     */
+    #attachToGoogleMap(map: Map): void {
+        const overlayView = this.#overlayView;
+        if (!overlayView) {
+            return;
+        }
+        const googleMap = map.toGoogle();
+        if (googleMap) {
+            overlayView.setMap(googleMap);
+        } else {
+            map.init();
+            map.onReady(() => {
+                // The overlay could have been hidden, or moved to another map, while the map
+                // was being set up, so only attach it if it's still waiting for this one.
+                if (this.getMap() === map) {
+                    const readyMap = map.toGoogle();
+                    if (readyMap) {
+                        overlayView.setMap(readyMap);
+                    }
+                }
+            });
+        }
+    }
+
     #setupGoogleOverlay() {
         if (!isObject(this.#overlayView)) {
             if (checkForGoogleMaps('Overlay', 'OverlayView', false)) {

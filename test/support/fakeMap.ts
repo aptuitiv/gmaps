@@ -29,6 +29,11 @@ export type FakeMapOptions = {
     ready?: boolean;
     // The zoom level the map reports. Defaults to 10.
     zoom?: number;
+    // Whether toGoogle() has a stand-in Google map to hand back. Defaults to true. Set it to
+    // false to model a map that hasn't been initialized yet: the real Map only builds its
+    // Google map object while it's being rendered, and test/Map.test.ts pins toGoogle() as
+    // undefined before that. makeReady() builds it, the way initializing the real map does.
+    googleMap?: boolean;
 };
 
 /**
@@ -38,8 +43,8 @@ export class FakeMap {
     /** Whether the map is ready */
     #isReady: boolean;
 
-    /** The object handed back by toGoogle() */
-    #google: Record<string, unknown>;
+    /** The object handed back by toGoogle(). Undefined until the map has been initialized. */
+    #google: Record<string, unknown> | undefined;
 
     /** Event listeners added through on() */
     #listeners: Record<string, Listener[]> = {};
@@ -61,7 +66,7 @@ export class FakeMap {
     constructor(options: FakeMapOptions = {}) {
         this.#isReady = options.ready !== false;
         this.#zoom = typeof options.zoom === 'number' ? options.zoom : 10;
-        this.#google = { __fakeGoogleMap: true };
+        this.#google = options.googleMap === false ? undefined : { __fakeGoogleMap: true };
     }
 
     /**
@@ -113,9 +118,9 @@ export class FakeMap {
     /**
      * The stand-in for the Google map object
      *
-     * @returns {object}
+     * @returns {object|undefined}
      */
-    toGoogle(): Record<string, unknown> {
+    toGoogle(): Record<string, unknown> | undefined {
         return this.#google;
     }
 
@@ -148,6 +153,9 @@ export class FakeMap {
      */
     makeReady(): void {
         this.#isReady = true;
+        // Initializing the real map is what builds its Google map object, so a map that was
+        // made with googleMap: false gets one here.
+        this.#google ??= { __fakeGoogleMap: true };
         const callbacks = this.#readyCallbacks;
         this.#readyCallbacks = [];
         callbacks.forEach((callback) => callback({ type: 'ready' }));

@@ -15,7 +15,7 @@ import { Overlay, overlay } from '../src/lib/Overlay';
 import { LatLng } from '../src/lib/LatLng';
 import { point, PointValue } from '../src/lib/Point';
 import { installGoogleMaps, mapsStats, PIXELS_PER_DEGREE, uninstallGoogleMaps } from './support/googleMaps';
-import { fakeMap } from './support/fakeMap';
+import { asFakeMap, fakeMap } from './support/fakeMap';
 
 describe('Overlay', () => {
     beforeEach(() => {
@@ -364,6 +364,79 @@ describe('Overlay', () => {
             await o.show(map);
             // One view, attached three times
             expect(mapsStats.callsTo('OverlayView', 'setMap')).toHaveLength(3);
+        });
+    });
+
+    /* -----------------------------------------------------------------------
+        Attaching to a map that hasn't been rendered yet.
+
+        Map.toGoogle() has nothing to hand back until the map has been initialized - there is a
+        test in test/Map.test.ts that pins it as undefined before then. show() and move() passed
+        that straight on as `map.toGoogle() ?? null`, and setting an overlay's map to null is how
+        the Google API is told to take it off the map. So the overlay was attached to nothing,
+        while isVisible said it was on the map, and it silently never appeared.
+
+        The map is told to initialize and the overlay is attached when it's ready. The promise
+        show() returns is deliberately NOT tied to init(): the map waits on an
+        IntersectionObserver when its element is hidden (Map.ts:2246), so init() may settle much
+        later, or never. Awaiting it here would turn a silent bug into a hung promise, which is
+        why Marker and Polyline trigger the map the same way instead of waiting on it.
+    ----------------------------------------------------------------------- */
+    describe('attaching to a map that has not been rendered yet', () => {
+        it('does not attach the overlay to nothing', async () => {
+            const o = overlay();
+            await o.show(fakeMap({ ready: false, googleMap: false }));
+
+            expect(mapsStats.callsTo('OverlayView', 'setMap')).toHaveLength(0);
+        });
+
+        it('attaches it once the map is ready', async () => {
+            const o = overlay();
+            const map = fakeMap({ ready: false, googleMap: false });
+            await o.show(map);
+            asFakeMap(map).makeReady();
+
+            const attached = mapsStats.callsTo('OverlayView', 'setMap');
+            expect(attached).toHaveLength(1);
+            expect(attached[0].args[0]).toEqual({ __fakeGoogleMap: true });
+        });
+
+        it('tells the map to initialize', async () => {
+            const map = fakeMap({ ready: false, googleMap: false });
+            const init = vi.spyOn(asFakeMap(map), 'init');
+            await overlay().show(map);
+
+            expect(init).toHaveBeenCalled();
+        });
+
+        // The guard against the fix that the review suggested. The map below is never made
+        // ready, so this test hangs and times out if show() ever waits on init().
+        it('resolves without waiting for the map to be ready', async () => {
+            const o = overlay();
+            await o.show(fakeMap({ ready: false, googleMap: false }));
+
+            expect(o.isVisible).toBe(true);
+        });
+
+        it('does not attach it if it was hidden before the map became ready', async () => {
+            const o = overlay();
+            const map = fakeMap({ ready: false, googleMap: false });
+            await o.show(map);
+            o.hide();
+            asFakeMap(map).makeReady();
+
+            // hide() detaches with null, and nothing attaches it again afterwards
+            const attached = mapsStats.callsTo('OverlayView', 'setMap').filter((c) => c.args[0] !== null);
+            expect(attached).toHaveLength(0);
+        });
+
+        it('move() does not attach it to nothing either', async () => {
+            const o = overlay();
+            const map = fakeMap({ ready: false, googleMap: false });
+            await o.show(map);
+            await o.move([1, 2], map);
+
+            expect(mapsStats.callsTo('OverlayView', 'setMap')).toHaveLength(0);
         });
     });
 
