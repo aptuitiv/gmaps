@@ -4367,7 +4367,7 @@ declare class Overlay extends Layer {
      * @protected
      * @type {object}
      */
-    resizeStart: ResizeStart;
+    resizeStart?: ResizeStart;
     /**
      * Constructor
      *

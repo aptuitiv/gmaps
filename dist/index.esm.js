@@ -1655,8 +1655,9 @@ var Evented = class extends Base_default {
         if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
           if (this.#isGoogleObjectSet()) {
             const googleListeners = this.#googleListeners ??= {};
-            if (!googleListeners[type]) {
-              googleListeners[type] = this.#googleObject.addListener(
+            const googleObject = this.#googleObject;
+            if (googleObject && !googleListeners[type]) {
+              googleListeners[type] = googleObject.addListener(
                 type,
                 (e) => {
                   this.dispatch(type, e);
@@ -1734,8 +1735,8 @@ var Evented = class extends Base_default {
     if (pending) {
       const googleListeners = this.#googleListeners ??= {};
       Object.keys(pending).forEach((type) => {
-        if (!googleListeners[type]) {
-          googleListeners[type] = this.#googleObject.addListener(
+        if (googleObject && !googleListeners[type]) {
+          googleListeners[type] = googleObject.addListener(
             type,
             (e) => {
               this.dispatch(type, e);
@@ -2200,6 +2201,12 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
             resolve(bounds.equals(googleLatLngBounds));
           });
         } else {
+          const isThisEmpty = this.isEmpty();
+          const isOtherEmpty = other.isEmpty();
+          if (isThisEmpty || isOtherEmpty) {
+            resolve(isThisEmpty && isOtherEmpty);
+            return;
+          }
           const { northEast, southWest } = this.#getCorners();
           const otherNorthEast = other.getNorthEast();
           const otherSouthWest = other.getSouthWest();
@@ -4301,7 +4308,7 @@ var AutocompleteSearchBox = class extends Evented {
    */
   async init() {
     if (!this.#initPromise) {
-      this.#initPromise = new Promise((resolve, reject) => {
+      const initPromise = new Promise((resolve, reject) => {
         if (checkForGoogleMaps("AutocompleteSearchBox", "places", false)) {
           this.#createAutocompleteSearchBox().then(resolve).catch(reject);
         } else {
@@ -4310,6 +4317,13 @@ var AutocompleteSearchBox = class extends Evented {
           });
         }
       });
+      const tracked = initPromise.catch((error) => {
+        if (this.#initPromise === tracked) {
+          this.#initPromise = void 0;
+        }
+        throw error;
+      });
+      this.#initPromise = tracked;
     }
     return this.#initPromise;
   }
@@ -10360,6 +10374,21 @@ var Marker = class extends Layer_default {
    */
   #isSettingUp = false;
   /**
+   * The marker creation that is currently running, if there is one.
+   *
+   * Anything that has to wait for the marker waits on this rather than on the "ready" event.
+   * They aren't the same thing: init() dispatches "ready" without creating a marker, so that a
+   * tooltip or popup can set up its events without forcing one to be built. A waiter that
+   * listened for "ready" could therefore be woken by that early event and carry on to use
+   * #marker while it was still undefined.
+   *
+   * Cleared once creation settles, so that a later call takes the normal path.
+   *
+   * @private
+   * @type {Promise<void>|undefined}
+   */
+  #creationPromise;
+  /**
    * Holds if the "ready" event has been dispatched
    *
    * @private
@@ -11515,6 +11544,29 @@ var Marker = class extends Layer_default {
     if (isObject(this.#marker)) {
       return RESOLVED;
     }
+    const creation = this.#startGoogleMarkerSetup(map2);
+    this.#creationPromise = creation;
+    creation.then(
+      () => {
+        this.#creationPromise = void 0;
+      },
+      () => {
+        this.#creationPromise = void 0;
+      }
+    );
+    return creation;
+  }
+  /**
+   * Start setting up the Google maps marker object
+   *
+   * @private
+   * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
+   * @returns {Promise<void>}
+   */
+  #startGoogleMarkerSetup(map2) {
+    if (this.#creationPromise) {
+      return this.#creationPromise;
+    }
     return new Promise((resolve) => {
       if (!this.#isSettingUp && !isObject(this.#marker)) {
         this.#isSettingUp = true;
@@ -11541,10 +11593,6 @@ var Marker = class extends Layer_default {
             });
           });
         }
-      } else if (this.#isSettingUp && !isObject(this.#marker)) {
-        this.onceImmediate(MarkerEvents.READY, () => {
-          resolve();
-        });
       } else {
         resolve();
       }
@@ -11556,9 +11604,18 @@ var Marker = class extends Layer_default {
   #setupGoogleMarkerSync() {
     if (!isObject(this.#marker)) {
       if (checkForGoogleMaps("Marker", "Marker", false)) {
-        this.#createMarkerObject().then(() => {
+        const creation = this.#createMarkerObject(true).then(() => {
           this.#dispatchReady();
         });
+        this.#creationPromise = creation;
+        creation.then(
+          () => {
+            this.#creationPromise = void 0;
+          },
+          () => {
+            this.#creationPromise = void 0;
+          }
+        );
       } else {
         throw new Error(
           "The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first."
@@ -11583,9 +11640,12 @@ var Marker = class extends Layer_default {
    * Create the marker object
    *
    * @private
+   * @param {boolean} [createNow] Whether to build the marker straight away instead of waiting
+   *      for the map to be ready. Used by the synchronous methods, which have to hand back a
+   *      marker by the time they return. The marker is put on the map once the map is ready.
    * @returns {Promise<void>}
    */
-  #createMarkerObject() {
+  #createMarkerObject(createNow = false) {
     return new Promise((resolve) => {
       if (!this.#marker) {
         (async () => {
@@ -11625,15 +11685,23 @@ var Marker = class extends Layer_default {
           if (this.#options.label) {
             markerOptions.label = this.#options.label;
           }
-          if (this.#options.map) {
+          if (this.#options.map && !createNow) {
             this.#options.map.onReady(() => {
               if (this.#options.map) {
                 markerOptions.map = this.#options.map.toGoogle();
               }
-              this.#marker = new google.maps.Marker(markerOptions);
-              this.setEventGoogleObject(this.#marker);
+              if (this.#marker) {
+                this.#marker.setMap(markerOptions.map ?? null);
+              } else {
+                this.#marker = new google.maps.Marker(markerOptions);
+                this.setEventGoogleObject(this.#marker);
+              }
               resolve();
             });
+          } else if (this.#options.map) {
+            this.#marker = new google.maps.Marker(markerOptions);
+            this.setEventGoogleObject(this.#marker);
+            resolve();
           } else {
             this.#marker = new google.maps.Marker(markerOptions);
             this.setEventGoogleObject(this.#marker);
@@ -13587,15 +13655,16 @@ var Overlay = class extends Layer_default {
       e.preventDefault();
       const projection = this.getProjection();
       const mapContainer = this.getMap()?.getDiv();
-      if (projection && mapContainer) {
+      const start = this.resizeStart;
+      if (projection && mapContainer && start) {
         const containerRect = mapContainer.getBoundingClientRect();
         const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
         const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
         const mouseX = eventX - containerRect.left;
         const mouseY = eventY - containerRect.top;
-        const neGoogle = this.resizeStart.neBounds.toGoogle();
+        const neGoogle = start.neBounds.toGoogle();
         const topRight = neGoogle ? projection.fromLatLngToContainerPixel(neGoogle) : null;
-        const swGoogle = this.resizeStart.swBounds.toGoogle();
+        const swGoogle = start.swBounds.toGoogle();
         const bottomLeft = swGoogle ? projection.fromLatLngToContainerPixel(swGoogle) : null;
         let newWidth;
         let newHeight;
@@ -13605,42 +13674,42 @@ var Overlay = class extends Layer_default {
           if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX > topRight.x) {
             return;
           }
-          const diffX = this.resizeStart.nwPos.x - mouseX;
-          const diffY = this.resizeStart.nwPos.y - mouseY;
-          newWidth = this.resizeStart.width + diffX;
-          newHeight = this.resizeStart.height + diffY;
-          newLeft = this.resizeStart.left - diffX;
-          newTop = this.resizeStart.top - diffY;
+          const diffX = start.nwPos.x - mouseX;
+          const diffY = start.nwPos.y - mouseY;
+          newWidth = start.width + diffX;
+          newHeight = start.height + diffY;
+          newLeft = start.left - diffX;
+          newTop = start.top - diffY;
         } else if (this.resizeCorner === "ne") {
           if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
             return;
           }
           const diffX = topRight.x - mouseX;
           const diffY = topRight.y - mouseY;
-          newWidth = this.resizeStart.width - diffX;
-          newHeight = this.resizeStart.height + diffY;
-          newLeft = this.resizeStart.left;
-          newTop = this.resizeStart.top - diffY;
+          newWidth = start.width - diffX;
+          newHeight = start.height + diffY;
+          newLeft = start.left;
+          newTop = start.top - diffY;
         } else if (this.resizeCorner === "sw") {
-          if (!bottomLeft || !topRight || mouseY < this.resizeStart.top || mouseX > topRight.x) {
+          if (!bottomLeft || !topRight || mouseY < start.top || mouseX > topRight.x) {
             return;
           }
           const diffX = bottomLeft.x - mouseX;
           const diffY = bottomLeft.y - mouseY;
-          newWidth = this.resizeStart.width + diffX;
-          newHeight = this.resizeStart.height - diffY;
-          newLeft = this.resizeStart.left - diffX;
-          newTop = this.resizeStart.top;
+          newWidth = start.width + diffX;
+          newHeight = start.height - diffY;
+          newLeft = start.left - diffX;
+          newTop = start.top;
         } else if (this.resizeCorner === "se") {
-          if (mouseY < this.resizeStart.top || mouseX < this.resizeStart.left) {
+          if (mouseY < start.top || mouseX < start.left) {
             return;
           }
-          const diffX = this.resizeStart.sePos.x - mouseX;
-          const diffY = this.resizeStart.sePos.y - mouseY;
-          newWidth = this.resizeStart.width - diffX;
-          newHeight = this.resizeStart.height - diffY;
-          newLeft = this.resizeStart.left;
-          newTop = this.resizeStart.top;
+          const diffX = start.sePos.x - mouseX;
+          const diffY = start.sePos.y - mouseY;
+          newWidth = start.width - diffX;
+          newHeight = start.height - diffY;
+          newLeft = start.left;
+          newTop = start.top;
         } else {
           return;
         }
@@ -15793,7 +15862,7 @@ var PlacesSearchBox = class extends Evented {
    */
   async init() {
     if (!this.#initPromise) {
-      this.#initPromise = new Promise((resolve, reject) => {
+      const initPromise = new Promise((resolve, reject) => {
         if (checkForGoogleMaps("PlacesSearchBox", "places", false)) {
           this.#createPlacesSearchBox().then(resolve).catch(reject);
         } else {
@@ -15802,6 +15871,13 @@ var PlacesSearchBox = class extends Evented {
           });
         }
       });
+      const tracked = initPromise.catch((error) => {
+        if (this.#initPromise === tracked) {
+          this.#initPromise = void 0;
+        }
+        throw error;
+      });
+      this.#initPromise = tracked;
     }
     return this.#initPromise;
   }
