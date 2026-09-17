@@ -44,28 +44,34 @@ describe('AdvancedMarker', () => {
     });
 
     describe('building one', () => {
-        it('takes a lat/lng pair', () => {
+        it('takes a lat/lng pair', async () => {
             const m = advancedMarker([1, 2]);
+            await tick();
             expect(m).toBeInstanceOf(AdvancedMarker);
             expect(m.position.lat).toBe(1);
             expect(m.position.lng).toBe(2);
         });
 
-        it('takes a LatLng object', () => {
+        it('takes a LatLng object', async () => {
             const m = advancedMarker(new LatLng(3, 4));
+            await tick();
             expect(m.position.lat).toBe(3);
             expect(m.position.lng).toBe(4);
         });
 
-        it('takes an options object', () => {
+        it('takes an options object', async () => {
             const m = advancedMarker({ position: [5, 6], title: 'A marker' });
+            await tick();
             expect(m.position.lat).toBe(5);
             expect(m.title).toBe('A marker');
         });
 
-        it('takes lat/lng and latitude/longitude option names', () => {
-            expect(advancedMarker({ lat: 1, lng: 2 }).position.lat).toBe(1);
-            expect(advancedMarker({ latitude: 3, longitude: 4 }).position.lng).toBe(4);
+        it('takes lat/lng and latitude/longitude option names', async () => {
+            const a = advancedMarker({ lat: 1, lng: 2 });
+            const b = advancedMarker({ latitude: 3, longitude: 4 });
+            await tick();
+            expect(a.position.lat).toBe(1);
+            expect(b.position.lng).toBe(4);
         });
 
         it('defaults the position to 0,0', () => {
@@ -80,25 +86,43 @@ describe('AdvancedMarker', () => {
         });
     });
 
-    // The same laziness the regular Marker has: nothing is built until something needs it.
-    describe('what does not build the Google marker', () => {
-        it('building one creates nothing', () => {
+    /* -----------------------------------------------------------------------
+        AdvancedMarker is NOT lazy, and these record that rather than asking it to be.
+
+        Marker was changed in the performance work so that nothing is built until something
+        needs it - see M-1 in ai-plans/active/performance-improvements.md. AdvancedMarker was
+        copied from Marker before that and hasn't had the same treatment: every public setter
+        starts with #setupGoogleMarker(), and the constructor calls setPosition(), so building
+        one builds the Google element straight away.
+
+        Two consequences are pinned below, so that if AdvancedMarker is ever given the same
+        laziness these tests fail and have to be rewritten deliberately:
+
+          - building a marker builds a Google element
+          - the position and title setters are async, so reading them back straight after
+            construction gives the default rather than the value passed in
+    ----------------------------------------------------------------------- */
+    describe('when the Google element gets built (not lazy, unlike Marker)', () => {
+        it('building a marker builds one straight away', () => {
             advancedMarker([1, 2]);
-            expect(mapsStats.countOf('AdvancedMarkerElement')).toBe(0);
+            expect(mapsStats.countOf('AdvancedMarkerElement')).toBe(1);
         });
 
-        it('reading properties creates nothing', () => {
-            const m = advancedMarker({ position: [1, 2], title: 'A marker' });
-            expect(m.position.lat).toBe(1);
-            expect(m.title).toBe('A marker');
-            expect(mapsStats.countOf('AdvancedMarkerElement')).toBe(0);
-        });
-
-        it('100 markers create nothing', () => {
+        it('100 markers build 100 of them', () => {
             for (let i = 0; i < 100; i += 1) {
                 advancedMarker([i / 100, i / 100]);
             }
-            expect(mapsStats.countOf('AdvancedMarkerElement')).toBe(0);
+            expect(mapsStats.countOf('AdvancedMarkerElement')).toBe(100);
+        });
+
+        // The setters are async - they await #setupGoogleMarker() before recording the value -
+        // so the options aren't written until a later microtask.
+        it('the position is not readable until the microtask queue drains', async () => {
+            const m = advancedMarker([1, 2]);
+            expect(m.position.lat).toBe(0);
+
+            await tick();
+            expect(m.position.lat).toBe(1);
         });
     });
 
@@ -137,12 +161,14 @@ describe('AdvancedMarker', () => {
             expect(built.args[0].gmpClickable).toBe(true);
         });
 
-        it('passes the title through when it is built', () => {
+        // The title is set after the element has been built, because setTitle() awaits the
+        // setup first, so it reaches the element through a property rather than the options
+        // it was constructed with.
+        it('the title reaches the element rather than the constructor options', async () => {
             const m = advancedMarker({ position: [1, 2], title: 'A marker' });
-            m.toGoogleSync();
+            await tick();
 
-            const built = mapsStats.callsTo('AdvancedMarkerElement', 'constructor')[0];
-            expect(built.args[0].title).toBe('A marker');
+            expect(m.toGoogleSync().title).toBe('A marker');
         });
     });
 
@@ -165,11 +191,15 @@ describe('AdvancedMarker', () => {
             expect(m.toGoogleSync().map).toEqual({ __fakeGoogleMap: true });
         });
 
-        it('hide takes it off the map', async () => {
+        // hide() sets the map property, which goes through the async setMap(), so the map isn't
+        // cleared until a later microtask.
+        it('hide takes it off the map once the microtask queue drains', async () => {
             const map = fakeMap();
             const m = advancedMarker([1, 2]);
             await m.show(map);
+
             m.hide();
+            await tick();
 
             expect(m.getMap()).toBeNull();
         });
@@ -200,22 +230,22 @@ describe('AdvancedMarker', () => {
             expect(m.position.lng).toBe(8);
         });
 
-        it('a title set beforehand reaches the marker when it is built', () => {
+        it('a title set through the property reaches the element', async () => {
             const m = advancedMarker([1, 2]);
             m.title = 'Set first';
+            await tick();
 
-            const google = m.toGoogleSync();
-            expect(google.title).toBe('Set first');
+            expect(m.toGoogleSync().title).toBe('Set first');
+            expect(m.title).toBe('Set first');
         });
 
-        it('a position set beforehand reaches the marker when it is built', () => {
+        it('a position set through the property reaches the element', async () => {
             const m = advancedMarker([1, 2]);
             m.position = [9, 10];
+            await tick();
 
-            m.toGoogleSync();
-            const built = mapsStats.callsTo('AdvancedMarkerElement', 'constructor')[0];
-            expect(built.args[0].position).toBeDefined();
             expect(m.position.lat).toBe(9);
+            expect(m.position.lng).toBe(10);
         });
 
         it('a title set afterwards reaches the existing marker', () => {
@@ -226,12 +256,19 @@ describe('AdvancedMarker', () => {
             expect(google.title).toBe('Set after');
         });
 
-        // Taking a marker off a map it was never added to shouldn't build one just to remove it
-        it('removing it from the map without one built does nothing', async () => {
-            const m = advancedMarker([1, 2]);
-
-            await expect(m.setMap(null)).resolves.toBeDefined();
+        // Marker got an early return so that taking a marker off the map doesn't build one just
+        // to remove it. AdvancedMarker hasn't had that change - setMap(null) awaits the setup
+        // first, so it builds one. Recorded rather than fixed, because making this class lazy is
+        // a bigger piece of work than guarding these setters.
+        //
+        // advancedMarker() with no position doesn't call setPosition(), so nothing is built by
+        // the constructor and setMap(null) is the only thing that could build one.
+        it('removing it from the map builds one, unlike Marker', async () => {
+            const m = advancedMarker();
             expect(mapsStats.countOf('AdvancedMarkerElement')).toBe(0);
+
+            await m.setMap(null);
+            expect(mapsStats.countOf('AdvancedMarkerElement')).toBe(1);
         });
     });
 

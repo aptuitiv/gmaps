@@ -365,6 +365,26 @@ class LatLngStub {
 }
 
 /**
+ * Read the latitude from either shape a corner can be in.
+ *
+ * A corner can be a LatLngStub, which has lat() and lng() methods, or a plain {lat, lng}
+ * literal, because the constructor stores whatever it was handed and extend() accepts both.
+ * Reading it the wrong way gives "lat is not a function" rather than a number.
+ *
+ * @param {any} value The corner
+ * @returns {number}
+ */
+const latOf = (value: any): number => (typeof value.lat === 'function' ? value.lat() : Number(value.lat));
+
+/**
+ * Read the longitude from either shape a corner can be in
+ *
+ * @param {any} value The corner
+ * @returns {number}
+ */
+const lngOf = (value: any): number => (typeof value.lng === 'function' ? value.lng() : Number(value.lng));
+
+/**
  * A bounding box
  */
 class LatLngBoundsStub {
@@ -450,7 +470,10 @@ class LatLngBoundsStub {
         if (!this.#sw || !this.#ne) {
             return new LatLngStub(0, 0);
         }
-        return new LatLngStub((this.#sw.lat() + this.#ne.lat()) / 2, (this.#sw.lng() + this.#ne.lng()) / 2);
+        return new LatLngStub(
+            (latOf(this.#sw) + latOf(this.#ne)) / 2,
+            (lngOf(this.#sw) + lngOf(this.#ne)) / 2,
+        );
     }
 
     /**
@@ -462,7 +485,12 @@ class LatLngBoundsStub {
         if (!this.#sw || !this.#ne) {
             return { east: 0, north: 0, south: 0, west: 0 };
         }
-        return { east: this.#ne.lng(), north: this.#ne.lat(), south: this.#sw.lat(), west: this.#sw.lng() };
+        return {
+            east: lngOf(this.#ne),
+            north: latOf(this.#ne),
+            south: latOf(this.#sw),
+            west: lngOf(this.#sw),
+        };
     }
 
     /**
@@ -474,7 +502,7 @@ class LatLngBoundsStub {
         if (!this.#sw || !this.#ne) {
             return '((0, 0), (0, 0))';
         }
-        return `((${this.#sw.lat()}, ${this.#sw.lng()}), (${this.#ne.lat()}, ${this.#ne.lng()}))`;
+        return `((${latOf(this.#sw)}, ${lngOf(this.#sw)}), (${latOf(this.#ne)}, ${lngOf(this.#ne)}))`;
     }
 
     /**
@@ -488,9 +516,9 @@ class LatLngBoundsStub {
         if (!this.#sw || !this.#ne) {
             return `${(0).toFixed(prec)},${(0).toFixed(prec)},${(0).toFixed(prec)},${(0).toFixed(prec)}`;
         }
-        return `${this.#sw.lat().toFixed(prec)},${this.#sw.lng().toFixed(prec)},${this.#ne
-            .lat()
-            .toFixed(prec)},${this.#ne.lng().toFixed(prec)}`;
+        return `${latOf(this.#sw).toFixed(prec)},${lngOf(this.#sw).toFixed(prec)},${latOf(this.#ne).toFixed(
+            prec,
+        )},${lngOf(this.#ne).toFixed(prec)}`;
     }
 }
 
