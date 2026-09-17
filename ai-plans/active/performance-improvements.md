@@ -585,16 +585,30 @@ Nothing in phases 1–5 breaks the public API. These are the items that need a d
 This is the most dangerous single line anyone could add to this repo while "fixing
 tree-shaking".
 
-`Popup.ts:1029`, `Popup.ts:1103`, `Tooltip.ts:580`, `Tooltip.ts:654` and `InfoWindow.ts:874`
-call `Layer.include(...)` / `Map.include(...)` / `DataLayer.include(...)` at **module scope**.
+**Corrected 2026-09-16.** This section named five call sites. There are **ten**, all inside the
+same three files, so the recommended globs still cover them — but the count matters if anyone ever
+tries to enumerate them by hand:
+
+- `InfoWindow.ts:874` `Layer.include`, `:875` `Map.include`
+- `Popup.ts:1112` `Layer.include`, `:1113` `Map.include`, `:1186` `DataLayer.include`,
+  `:1187` `DataFeature.include`
+- `Tooltip.ts:622` `Layer.include`, `:623` `Map.include`, `:696` `DataLayer.include`,
+  `:697` `DataFeature.include`
+
 These are load-bearing prototype mutations. With `"sideEffects": false`, a bundler that sees
 `Popup` as unused will drop the module, and `attachPopup()` / `attachTooltip()` /
 `attachInfoWindow()` will silently vanish from `Layer`, `Map`, `DataLayer` and `DataFeature` at
 runtime — **with no build error**.
 
 Use the explicit array form: `"sideEffects": ["**/Popup.*", "**/Tooltip.*", "**/InfoWindow.*"]`.
-That still lets bundlers drop `Geocode`, `AutocompleteSearchBox`, `ImageOverlay` and
-`MarkerCluster`, which were confirmed droppable.
+It was added on 2026-09-16.
+
+**Second correction: the claimed benefit does not exist in this build.** The array does *not* let
+bundlers drop `Geocode`, `AutocompleteSearchBox`, `ImageOverlay` or `MarkerCluster`. Measured in
+Phase 7: the published ESM is a single bundled module, so `sideEffects` — which works at module
+granularity — has no effect at all, and `false`, the array, and no field at all produce
+byte-identical output. `false` is therefore harmless *today*, which makes it a worse trap, not a
+better idea: it would look correct right up until the build emits separate modules.
 
 ### 8.2 Behavior changes to raise with the user
 
@@ -1082,15 +1096,18 @@ and per-object allocation falls across the whole library.
 
 Phases 0-3 are done. From Phase 4, D-2 landed on 2026-09-16 and **the rest of Phase 4 was skipped
 by decision on the same day** — see the Phase 4 section. P-1 from Phase 5 landed on 2026-09-16.
+From Phase 7, D-8 landed on 2026-09-16, and B-1 was **measured and found to buy nothing in this
+build** — the declaration was added as a safeguard, but the tree-shaking win it promised is not
+available without a build change. See the Phase 7 section.
 Phases 4-7 were re-examined on 2026-09-16 after Phases 0-3 landed, and each item was re-tested
 against one question: **is this worth doing, and what is the evidence?** The phase numbers are
 unchanged so that references elsewhere in this plan still resolve.
 
 | Do now — no measurement needed | Phase | Why |
 |---|---|---|
-| D-8 geocode caching and dedupe | 7 | Costs **money**, not milliseconds |
+| ~~D-8 geocode caching and dedupe~~ **done 2026-09-16** | 7 | Costs **money**, not milliseconds |
 | ~~D-2 data-layer coordinate conversion~~ **done 2026-09-16** | 4 | Bad code, not slow code |
-| B-1 `sideEffects` array (never `false`) | 7 | Measured: 100 KB pulled by one import |
+| ~~B-1 `sideEffects` array (never `false`)~~ **added 2026-09-16, buys 0 bytes** | 7 | Re-measured: the field changes nothing in a single-file build |
 | ~~P-1 skip Google wiring for internal events~~ **done 2026-09-16** | 5 | Pure waste; a five-line guard |
 
 | Worth doing, moderate effort | Phase | Why |
@@ -1374,25 +1391,82 @@ per-tolerance cache along with the recomputation — but it is not the top of th
 
 ### Phase 7 — Structural, plan deliberately
 
-**Do now — D-8, and it should arguably never have been in a performance plan.**
+**D-8 — DONE 2026-09-16.**
 
-`Geocode` builds a new `google.maps.Geocoder` per request, caches nothing, and does not dedupe
-identical concurrent lookups. Geocoding a list with duplicates bills for every one of them. This
-is the only item in the plan that costs **money** rather than milliseconds, and it needs no
-profile to justify. Add a lazily-created shared `Geocoder`, a result cache keyed on the request,
-and the in-flight promise stored in the same map so concurrent identical requests share one call.
-Give it an opt-out and a size cap, since geocode results can legitimately change.
+`Geocode` built a new `google.maps.Geocoder` per request, cached nothing, and did not dedupe
+identical concurrent lookups. Geocoding a list with duplicates billed for every one of them. This
+is the only item in the plan that costs **money** rather than milliseconds, and it needed no
+profile to justify.
 
-**Do now — B-1, the safe form only.**
+**What changed** (`src/lib/Geocode.ts`):
 
-Add `"sideEffects": ["**/Popup.*", "**/Tooltip.*", "**/InfoWindow.*"]` to `package.json`.
-Measured: importing only `latLng` currently pulls 100.6 KB, about 75% of the library. This lets
-bundlers drop `Geocode`, `AutocompleteSearchBox`, `ImageOverlay` and `MarkerCluster`, which were
-confirmed droppable.
+- **One shared `Geocoder`**, built lazily at module scope. It holds no per-request state, and
+  building it lazily means importing the file doesn't reach for the Google library.
+- **A cache holding the promise, not the result.** That single choice covers both halves of the
+  item: a repeat request gets the settled promise, and a request made while an identical one is
+  still in flight gets that same pending promise. Google is called once either way.
+- **`cache: false`** per request, **`Geocode.cacheSize`** (default 50, `0` disables caching
+  everywhere) and **`Geocode.clearCache()`**, which also drops the shared `Geocoder`.
+- **Failed lookups are evicted.** `request.catch()` removes the entry, so one bad response isn't
+  remembered for the life of the page. The caller still receives the rejection from the promise it
+  was handed, so nothing is swallowed. `ZERO_RESULTS` is *not* treated as a failure — it is a real
+  answer and stays cached.
 
-**Never `"sideEffects": false`** — see 8.1. Those three files mutate prototypes at module scope,
-so dropping them would make `attachTooltip`/`attachPopup`/`attachInfoWindow` vanish at runtime
-with no build error.
+**The cache key** is built from the object's own values, not from the Google request, because the
+Google request holds `LatLng` and `LatLngBounds` objects that don't serialise usefully. Bounds are
+read through `getNorthEast()`/`getSouthWest()`, which work before the Google library has loaded.
+The key distinguishes address, place id, location, language, region, component restrictions and
+bounds; the same location written `[1, 2]` and `{lat: 1, lng: 2}` produces one key, which is the
+intended behaviour.
+
+**Known sharp edge, not fixed:** cached callers receive the *same* `GeocodeResults` object, and
+`getResults()` returns its internal array by reference. A caller that mutates it affects everyone.
+Results are read-only in practice, so this is recorded rather than defended against.
+
+**Testing.** `test/Geocode.test.ts` — 22 tests, none of which measure time. Every assertion on
+`callsTo('Geocoder', 'geocode')` is an assertion about a bill: one `Geocoder` across many
+requests; repeat and concurrent dedupe; separate `Geocode` objects sharing one lookup; the key
+discriminating language, region, restrictions and bounds; `cache: false`; `cacheSize = 0`; cap
+eviction and lowering the cap; `clearCache()`; and a rejected lookup not staying cached while
+`ZERO_RESULTS` does. The stub gained a `Geocoder` that answers on a microtask, because a
+synchronous answer would not exercise the in-flight case, plus `GeocoderStatus` and a settable
+response handler that resets on install.
+
+**Gates:** 492 tests pass (470 before, +22), `tsc --noEmit` exit 0, `eslint ./src` exit 0.
+
+**B-1 — the declaration was added on 2026-09-16, and it buys nothing. The original claim was
+wrong.**
+
+`"sideEffects": ["**/Popup.*", "**/Tooltip.*", "**/InfoWindow.*"]` is now in `package.json`. It
+does **not** recover the 100.6 KB, and the plan was wrong to say it would.
+
+**The measurement.** An entry importing only `latLng` from `dist/index.esm.js`, bundled with
+esbuild under three variants:
+
+| `sideEffects` | bundle | `attachPopup` present | `MarkerClusterer` present |
+|---|---|---|---|
+| absent | 105,021 B | yes | yes |
+| the array above | 105,021 B | yes | yes |
+| `false` | 105,021 B | yes | yes |
+
+**Byte-identical.** The reason is the build, not the field: `tsup.config.js` uses `splitting: false`
+with a single entry, so the published ESM is **one module**. `sideEffects` works at *module*
+granularity — it tells a bundler which modules are safe to drop whole. There is only one module
+and it is imported, so nothing is dropped and the field is never consulted meaningfully. The
+100.6 KB is a consequence of single-file bundling.
+
+**Why the declaration was added anyway.** It is free, it is forward-correct (the globs match
+`dist/lib/Popup.js` if per-module output ever lands), and it makes the §8.1 hazard explicit in the
+file where someone would otherwise type `"sideEffects": false`.
+
+**The real fix, not done:** emit per-module ESM (tsup `splitting` with multiple entries, or
+`preserveModules`) so the field has something to act on. That is a structural build change with
+its own risks — `dist/` shape, `exports` map, and the §8.1 breakage becoming live rather than
+theoretical — and it should be decided on its own, not smuggled in under B-1.
+
+**Never `"sideEffects": false`** — see 8.1. Note the measurement above shows `false` is harmless
+*today*, which makes it more dangerous rather than less: it would sit in the file looking correct
+until the day the build starts emitting separate modules.
 
 **Worth doing, moderate effort — O-3 and B-2.**
 

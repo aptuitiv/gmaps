@@ -22,6 +22,11 @@
         "dist",
         "CHANGELOG.md"
     ],
+    "sideEffects": [
+        "**/Popup.*",
+        "**/Tooltip.*",
+        "**/InfoWindow.*"
+    ],
     "engines": {
         "node": ">=20.0.0"
     },
