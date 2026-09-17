@@ -179,7 +179,7 @@ export class Overlay extends Layer {
      * @protected
      * @type {object}
      */
-    resizeStart!: ResizeStart;
+    resizeStart?: ResizeStart;
 
     /**
      * Holds the styles for the overlay.
@@ -1192,7 +1192,12 @@ export class Overlay extends Layer {
         // Get the map container and its bounding client rectangle to get the mouse position relative to the map
         const mapContainer = this.getMap()?.getDiv();
 
-        if (projection && mapContainer) {
+        // The values recorded when the resize started. They only exist once a resize has begun,
+        // and this only runs during one, so there is normally something here - but the field is
+        // public, so it can't be taken on trust.
+        const start = this.resizeStart;
+
+        if (projection && mapContainer && start) {
             const containerRect = mapContainer.getBoundingClientRect();
             const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
             const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
@@ -1200,10 +1205,10 @@ export class Overlay extends Layer {
             const mouseY = eventY - containerRect.top;
 
             // Get the top right x/y coordinates
-            const neGoogle = this.resizeStart.neBounds.toGoogle();
+            const neGoogle = start.neBounds.toGoogle();
             const topRight = neGoogle ? projection.fromLatLngToContainerPixel(neGoogle) : null;
             // Get the bottom left x/y coordinates
-            const swGoogle = this.resizeStart.swBounds.toGoogle();
+            const swGoogle = start.swBounds.toGoogle();
             const bottomLeft = swGoogle ? projection.fromLatLngToContainerPixel(swGoogle) : null;
 
             let newWidth: number;
@@ -1218,13 +1223,13 @@ export class Overlay extends Layer {
                     return;
                 }
                 // Calculate the difference between the current position and the top right
-                const diffX = this.resizeStart.nwPos.x - mouseX;
-                const diffY = this.resizeStart.nwPos.y - mouseY;
+                const diffX = start.nwPos.x - mouseX;
+                const diffY = start.nwPos.y - mouseY;
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width + diffX;
-                newHeight = this.resizeStart.height + diffY;
-                newLeft = this.resizeStart.left - diffX;
-                newTop = this.resizeStart.top - diffY;
+                newWidth = start.width + diffX;
+                newHeight = start.height + diffY;
+                newLeft = start.left - diffX;
+                newTop = start.top - diffY;
             } else if (this.resizeCorner === 'ne') {
                 // If the current position is below the bottom left corner or to the left of the bottom left corner,
                 // then do not continue with the resize
@@ -1235,14 +1240,14 @@ export class Overlay extends Layer {
                 const diffX = topRight.x - mouseX;
                 const diffY = topRight.y - mouseY;
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width - diffX;
-                newHeight = this.resizeStart.height + diffY;
-                newLeft = this.resizeStart.left;
-                newTop = this.resizeStart.top - diffY;
+                newWidth = start.width - diffX;
+                newHeight = start.height + diffY;
+                newLeft = start.left;
+                newTop = start.top - diffY;
             } else if (this.resizeCorner === 'sw') {
                 // If the current position is above the top left corner or to the right of the top right corner,
                 // then do not continue with the resize
-                if (!bottomLeft || !topRight || mouseY < this.resizeStart.top || mouseX > topRight.x) {
+                if (!bottomLeft || !topRight || mouseY < start.top || mouseX > topRight.x) {
                     return;
                 }
 
@@ -1251,26 +1256,26 @@ export class Overlay extends Layer {
                 const diffY = bottomLeft.y - mouseY;
 
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width + diffX;
-                newHeight = this.resizeStart.height - diffY;
-                newLeft = this.resizeStart.left - diffX;
-                newTop = this.resizeStart.top;
+                newWidth = start.width + diffX;
+                newHeight = start.height - diffY;
+                newLeft = start.left - diffX;
+                newTop = start.top;
             } else if (this.resizeCorner === 'se') {
                 // If the current position is above the top left corner or to the left of the top left corner,
                 // then do not continue with the resize
-                if (mouseY < this.resizeStart.top || mouseX < this.resizeStart.left) {
+                if (mouseY < start.top || mouseX < start.left) {
                     return;
                 }
 
                 // Calculate the difference between the current position and the bottom right
-                const diffX = this.resizeStart.sePos.x - mouseX;
-                const diffY = this.resizeStart.sePos.y - mouseY;
+                const diffX = start.sePos.x - mouseX;
+                const diffY = start.sePos.y - mouseY;
 
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width - diffX;
-                newHeight = this.resizeStart.height - diffY;
-                newLeft = this.resizeStart.left;
-                newTop = this.resizeStart.top;
+                newWidth = start.width - diffX;
+                newHeight = start.height - diffY;
+                newLeft = start.left;
+                newTop = start.top;
             } else {
                 // Not a known corner so there is nothing to resize
                 return;
