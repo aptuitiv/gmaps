@@ -33,6 +33,25 @@ import { LatLngBounds } from '../src/lib/LatLngBounds';
 import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
 
 /**
+ * Drive the places_changed event that Google fires when a search finishes.
+ *
+ * PlacesSearchBox keeps its SearchBox in a #private field with no accessor, so the stub is
+ * reached through the harness rather than through the class.
+ *
+ * @param {any[]} places What the search found
+ */
+const search = (places: any[]): void => {
+    const searchBox = mapsStats.lastInstanceOf('SearchBox');
+    searchBox.__setPlaces(places);
+    searchBox.__fire('places_changed');
+};
+
+// A place with a location, which is what the handler builds its bounds from
+const placeAt = (lat: number, lng: number) => ({
+    geometry: { location: { lat: () => lat, lng: () => lng } },
+});
+
+/**
  * Put an input on the page for the search box to attach to
  *
  * @param {string} id The element id
@@ -231,6 +250,92 @@ describe('PlacesSearchBox', () => {
             await Promise.all([box.init(), box.init()]);
             expect(mapsStats.countOf('SearchBox')).toBe(1);
             expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(1);
+        });
+    });
+
+    /* -----------------------------------------------------------------------
+        What listeners are told when a search finds nothing.
+
+        The event used to not be dispatched at all in that case. The previous results were
+        cleared behind the listener's back, so anything showing them had no way to know that it
+        should clear its own - the only sign that a search had happened was that nothing
+        happened. AutocompleteSearchBox has always dispatched for a place it couldn't place,
+        so the two classes disagreed.
+
+        The bounds in the event is a real LatLngBounds with nothing in it rather than undefined,
+        because the event object declares it as a LatLngBounds and listeners read it as one.
+    ----------------------------------------------------------------------- */
+    describe('a search that finds nothing', () => {
+        it('dispatches places_changed with an empty list', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            const seen: any[] = [];
+            box.onPlacesChanged((places, placesBounds) => {
+                seen.push({ places, placesBounds });
+            });
+
+            search([]);
+
+            expect(seen).toHaveLength(1);
+            expect(seen[0].places).toEqual([]);
+        });
+
+        it('gives listeners a bounds object rather than undefined', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            let received: LatLngBounds | undefined;
+            box.onPlacesChanged((places, placesBounds) => {
+                received = placesBounds;
+            });
+
+            search([]);
+
+            expect(received).toBeInstanceOf(LatLngBounds);
+            expect(received!.isEmpty()).toBe(true);
+        });
+
+        it('clears the places from the search before it', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+
+            search([placeAt(48.85, 2.35)]);
+            expect(box.getPlaces()).toHaveLength(1);
+
+            search([]);
+            expect(box.getPlaces()).toEqual([]);
+            expect(box.getPlace()).toBeUndefined();
+            expect(box.getPlacesBounds()!.isEmpty()).toBe(true);
+        });
+
+        // Older versions of the API could hand back nothing at all rather than an empty array
+        it('treats no array at all the same way', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            const seen: any[] = [];
+            box.onPlacesChanged((places) => {
+                seen.push(places);
+            });
+
+            search(undefined as unknown as any[]);
+
+            expect(seen).toHaveLength(1);
+            expect(seen[0]).toEqual([]);
+        });
+
+        it('still reports the places when a search does find something', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            const seen: any[] = [];
+            box.onPlacesChanged((places, placesBounds) => {
+                seen.push({ places, placesBounds });
+            });
+
+            search([placeAt(48.85, 2.35)]);
+
+            expect(seen).toHaveLength(1);
+            expect(seen[0].places).toHaveLength(1);
+            expect(seen[0].placesBounds.isEmpty()).toBe(false);
+            expect(box.getPlace()).toBe(box.getPlaces()[0]);
         });
     });
 

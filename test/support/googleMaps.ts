@@ -30,12 +30,16 @@ class MapsStats {
     /** Every recorded method call, in order */
     calls: CallRecord[] = [];
 
+    /** The instances that were constructed, keyed by class name, in order */
+    instances: Record<string, any[]> = {};
+
     /**
      * Forget everything. Call this between tests.
      */
     reset(): void {
         this.constructed = {};
         this.calls = [];
+        this.instances = {};
     }
 
     /**
@@ -43,8 +47,14 @@ class MapsStats {
      *
      * @param {string} name The class name
      */
-    construct(name: string): void {
+    construct(name: string, instance?: any): void {
         this.constructed[name] = (this.constructed[name] ?? 0) + 1;
+        if (typeof instance !== 'undefined') {
+            if (!this.instances[name]) {
+                this.instances[name] = [];
+            }
+            this.instances[name].push(instance);
+        }
     }
 
     /**
@@ -77,6 +87,21 @@ class MapsStats {
      */
     callsTo(target: string, method?: string): CallRecord[] {
         return this.calls.filter((c) => c.target === target && (typeof method === 'undefined' || c.method === method));
+    }
+
+    /**
+     * The last instance of the given class that was constructed.
+     *
+     * This is how a test reaches an object the library built and kept to itself, so that the
+     * listeners it added can be fired. PlacesSearchBox holds its SearchBox in a #private field
+     * with no accessor, so there is no way to it from the outside otherwise.
+     *
+     * @param {string} name The class name
+     * @returns {any} The instance, or undefined if none was built
+     */
+    lastInstanceOf(name: string): any {
+        const built = this.instances[name];
+        return built && built.length > 0 ? built[built.length - 1] : undefined;
     }
 }
 
@@ -159,14 +184,14 @@ class MVCObject {
  * @param {string} name The class name to record under
  * @returns {any} The class
  */
-const recorded = (name: string) =>
-    class extends MVCObject {
+const recorded = (name: string, methods?: Record<string, (...args: any[]) => any>) => {
+    const cls = class extends MVCObject {
         constructor(...args: any[]) {
             super();
             // So that inherited methods like addListener() are recorded under this class's
             // name rather than the empty name of this anonymous class expression.
             this.__recordedName = name;
-            mapsStats.construct(name);
+            mapsStats.construct(name, this);
             mapsStats.call(name, 'constructor', args);
             if (args[0]) {
                 this.__values = { ...args[0] };
@@ -300,6 +325,13 @@ const recorded = (name: string) =>
             this.__values.visible = value;
         }
     };
+    // Extra methods for one particular stub, like getPlaces() on the search box. They go on the
+    // prototype so that every instance has them, the same as the ones declared above.
+    if (methods) {
+        Object.assign(cls.prototype, methods);
+    }
+    return cls;
+};
 
 /**
  * A latitude/longitude pair
@@ -1156,11 +1188,49 @@ const buildMaps = () => ({
     Data: DataStub,
     // The places library. checkForGoogleMaps('PlacesSearchBox', 'places') looks for this key,
     // so it has to exist for the search box classes to get past their library check.
-    // Note: getPlaces() is not provided, because it is only called from inside the
-    // places_changed listener, which these tests never fire.
+    //
+    // getPlaces() and getPlace() hand back whatever a test put on the instance with
+    // __setPlaces() / __setPlace(). They are only called from inside the places_changed and
+    // place_changed listeners, which a test drives with __fire() after reaching the instance
+    // through mapsStats.lastInstanceOf(). getPlaces() defaults to an empty array, which is
+    // what Google gives back for a search that matched nothing.
     places: {
-        SearchBox: recorded('SearchBox'),
-        Autocomplete: recorded('Autocomplete'),
+        SearchBox: recorded('SearchBox', {
+            /**
+             * The places for the current search
+             *
+             * @returns {any[]}
+             */
+            getPlaces(this: any): any[] {
+                return this.__places ?? [];
+            },
+            /**
+             * Set what the next search finds
+             *
+             * @param {any[]} places The places
+             */
+            __setPlaces(this: any, places: any[]): void {
+                this.__places = places;
+            },
+        }),
+        Autocomplete: recorded('Autocomplete', {
+            /**
+             * The place for the current search
+             *
+             * @returns {object}
+             */
+            getPlace(this: any): any {
+                return this.__place ?? {};
+            },
+            /**
+             * Set what the next search finds
+             *
+             * @param {any} place The place
+             */
+            __setPlace(this: any, place: any): void {
+                this.__place = place;
+            },
+        }),
     },
     SymbolPath: {
         BACKWARD_CLOSED_ARROW: 3,

@@ -287,14 +287,18 @@ export class PlacesSearchBox extends Evented {
             this.#searchBox = searchBox;
             // Add the listener for when the user selects a place
             searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-                const places = searchBox.getPlaces();
-                if (!Array.isArray(places) || places.length === 0) {
-                    // No places were found. Clear the previous results so that they don't look like they
-                    // belong to this search, and don't dispatch the event because there is nothing to report.
-                    this.#places = [];
-                    this.#placesBounds = undefined;
-                    return;
-                }
+                // A search that matched nothing gives back an empty array, and older versions of
+                // the API could give back nothing at all.
+                const found = searchBox.getPlaces();
+                const places = Array.isArray(found) ? found : [];
+                // The event used to not be dispatched at all when nothing was found, which left
+                // listeners with no way to know that a search had come back empty - the previous
+                // results were cleared behind their back and nothing told them to clear theirs.
+                // It's now always dispatched, with an empty array and an empty bounds, which is
+                // how AutocompleteSearchBox has always behaved for a place it couldn't place.
+                //
+                // The bounds is a real LatLngBounds with nothing in it rather than undefined,
+                // because the event object says it's a LatLngBounds and listeners read it as one.
                 const bounds = latLngBounds();
                 places.forEach((place) => {
                     // Set up the map bounds based on the place
