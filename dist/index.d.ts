@@ -1767,6 +1767,7 @@ type GeocodeComponentRestrictions = {
 type GeocodeOptions = {
     address?: string;
     bounds?: LatLngBoundsValue;
+    cache?: boolean;
     componentRestrictions?: GeocodeComponentRestrictions;
     language?: string;
     location?: LatLngValue;
@@ -1784,6 +1785,25 @@ declare class Geocode extends Base {
      * @param {GeocodeOptions} [options] The Geocode options
      */
     constructor(options?: GeocodeOptions);
+    /**
+     * Empty the cache of geocode results.
+     *
+     * The shared Geocoder is dropped as well, so the next request builds a new one. Call this if
+     * the results for an address may have changed.
+     */
+    static clearCache(): void;
+    /**
+     * How many results the cache holds before the oldest is dropped
+     *
+     * @returns {number}
+     */
+    static get cacheSize(): number;
+    /**
+     * Set how many results the cache holds. Set it to 0 to turn caching off everywhere.
+     *
+     * @param {number} size The number of results to hold
+     */
+    static set cacheSize(size: number);
     /**
      * Returns the address
      *

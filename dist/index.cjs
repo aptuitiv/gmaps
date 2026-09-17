@@ -48,7 +48,7 @@ __export(index_exports, {
   LayerEvents: () => LayerEvents,
   Loader: () => Loader,
   LoaderEvents: () => LoaderEvents,
-  Map: () => Map,
+  Map: () => Map2,
   MapEvents: () => MapEvents,
   MapRestriction: () => MapRestriction,
   MapStyle: () => MapStyle,
@@ -1797,7 +1797,7 @@ var Evented = class extends Base_default {
   #on(type, callback, config) {
     if (isFunction(callback)) {
       const existingListeners = this.#eventListeners?.[type];
-      if (!existingListeners || existingListeners.length === 0) {
+      if ((!existingListeners || existingListeners.length === 0) && !INTERNAL_EVENTS.includes(type)) {
         let setupPending = false;
         if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
           if (this.#isGoogleObjectSet()) {
@@ -6793,7 +6793,7 @@ var hideFeatureTypes = {
   hidePointsOfInterest: "poi",
   hideTransit: "transit"
 };
-var Map = class extends Evented {
+var Map2 = class extends Evented {
   /**
    * Class constructor
    *
@@ -8841,7 +8841,7 @@ var Map = class extends Evented {
     return this.#map;
   }
 };
-var map = (selector, config) => new Map(selector, config);
+var map = (selector, config) => new Map2(selector, config);
 
 // src/lib/SvgSymbol.ts
 var NUMBER_OPTIONS = [
@@ -9326,7 +9326,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    */
   constructor(options, defaultLayerMap) {
     super("datalayer", "Data");
-    if (defaultLayerMap instanceof Map) {
+    if (defaultLayerMap instanceof Map2) {
       this.#defaultLayerMap = defaultLayerMap;
       super.setMap(defaultLayerMap);
     }
@@ -9801,7 +9801,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    * @returns {Promise<DataLayer>}
    */
   async setMap(value) {
-    if (value instanceof Map) {
+    if (value instanceof Map2) {
       super.setMap(value);
       this.#options.map = value;
       value.init();
@@ -9884,7 +9884,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    */
   async show(map2) {
     this.isVisible = true;
-    if (map2 instanceof Map) {
+    if (map2 instanceof Map2) {
       return this.setMap(map2);
     }
     const mapObject = this.#mapObject();
@@ -10139,7 +10139,7 @@ var DataLayer = class _DataLayer extends Layer_default {
     if (!this.#setupPromise) {
       this.#setupPromise = new Promise((resolve, reject) => {
         const defaultLayerMap = this.#defaultLayerMap;
-        if (defaultLayerMap instanceof Map) {
+        if (defaultLayerMap instanceof Map2) {
           defaultLayerMap.init().then(() => {
             const googleMap = defaultLayerMap.toGoogle();
             if (!googleMap) {
@@ -10209,7 +10209,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    */
   #mapObject() {
     const map2 = this.getMap();
-    if (map2 instanceof Map) {
+    if (map2 instanceof Map2) {
       return map2;
     }
     return this.#defaultLayerMap ?? null;
@@ -11228,7 +11228,7 @@ var Marker = class extends Layer_default {
    * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
    */
   #setMap(value) {
-    if (value instanceof Map) {
+    if (value instanceof Map2) {
       this.#options.map = value;
       super.setMap(value);
       if (value.getIsReady()) {
@@ -11572,7 +11572,7 @@ var Marker = class extends Layer_default {
             resolve();
           });
         } else {
-          if (map2 instanceof Map) {
+          if (map2 instanceof Map2) {
             map2.init();
           }
           loader().onMapLoad(() => {
@@ -12016,7 +12016,7 @@ var InfoWindow = class extends Layer_default {
               }
               this.show(element);
             });
-            if (element instanceof Map) {
+            if (element instanceof Map2) {
               element.on("mousemove", (e) => {
                 if (e.latLng) {
                   this.position = e.latLng;
@@ -12029,14 +12029,14 @@ var InfoWindow = class extends Layer_default {
             });
           } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
-              if (element instanceof Map && e.latLng) {
+              if (element instanceof Map2 && e.latLng) {
                 this.position = e.latLng;
               }
               this.show(element);
             });
           } else {
             element.on("click", (e) => {
-              if (element instanceof Map && e.latLng) {
+              if (element instanceof Map2 && e.latLng) {
                 this.position = e.latLng;
               }
               this.show(element);
@@ -12264,7 +12264,7 @@ var InfoWindow = class extends Layer_default {
         }
         this.#isOpen = true;
         collection.add(this);
-        if (element instanceof Map) {
+        if (element instanceof Map2) {
           googleInfoWindow.open({
             map: element.toGoogle(),
             shouldFocus: this.#focus
@@ -12387,7 +12387,7 @@ var infoWindowMixin = {
   }
 };
 Layer_default.include(infoWindowMixin);
-Map.include(infoWindowMixin);
+Map2.include(infoWindowMixin);
 var InfoWindowCollection = /* @__PURE__ */ (() => {
   let instance;
   function createInstance() {
@@ -13004,7 +13004,7 @@ var MarkerCluster = class extends Base_default {
    */
   constructor(map2, markers, options) {
     super("markercluster");
-    if (!(map2 instanceof Map)) {
+    if (!(map2 instanceof Map2)) {
       throw new Error("You must pass a valid map object to the MarkerCluster object.");
     }
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
@@ -14104,7 +14104,7 @@ var Overlay = class extends Layer_default {
         mapObject = this.getMap() ?? void 0;
       }
       this.position = position;
-      if (mapObject instanceof Map) {
+      if (mapObject instanceof Map2) {
         if (this.#overlayView) {
           this.#overlayView.setMap(mapObject.toGoogle() ?? null);
           this.isVisible = true;
@@ -14278,7 +14278,7 @@ var Overlay = class extends Layer_default {
    */
   show(map2) {
     return new Promise((resolve) => {
-      if (map2 instanceof Map) {
+      if (map2 instanceof Map2) {
         this.#setupGoogleOverlay();
         if (this.#overlayView) {
           this.#overlayView.setMap(map2.toGoogle() ?? null);
@@ -14630,7 +14630,7 @@ var getOverlay = (config, feature, adapter) => {
 };
 var showOverlay = (config, feature, position, adapter, openOverlay) => {
   const { map: map2 } = feature.getLayer();
-  if (!(map2 instanceof Map) || !position) {
+  if (!(map2 instanceof Map2) || !position) {
     return void 0;
   }
   const overlay2 = getOverlay(config, feature, adapter);
@@ -17220,13 +17220,13 @@ var Polyline = class _Polyline extends Layer_default {
    * @returns {Promise<Polyline>}
    */
   async setMap(value, isVisible = true) {
-    this.#requestedMap = value instanceof Map ? value : null;
+    this.#requestedMap = value instanceof Map2 ? value : null;
     this.#updateZoomListener();
     this.#applySimplify();
     if (this.#highlightPolyline && this.#highlightSetup) {
       this.#highlightPolyline.setMap(value, false);
     }
-    if (value instanceof Map) {
+    if (value instanceof Map2) {
       if (!this.#polyline && isVisible === false) {
         this.visible = isVisible;
         this.#options.map = value;
@@ -17764,7 +17764,7 @@ var Polyline = class _Polyline extends Layer_default {
             this.#dispatchReady();
             resolve(googlePolyline);
           });
-          if (map2 instanceof Map) {
+          if (map2 instanceof Map2) {
             map2.init();
           }
         }
@@ -18564,7 +18564,7 @@ var Popup = class extends Overlay {
           }
           const triggerEvent = event || this.#event;
           this.event = triggerEvent;
-          const elementMap = () => element instanceof Map ? element : element.getMap();
+          const elementMap = () => element instanceof Map2 ? element : element.getMap();
           if (triggerEvent === "hover") {
             element.on("mouseover", (e) => {
               const popupObject = this.#popupFor(element);
@@ -18573,7 +18573,7 @@ var Popup = class extends Overlay {
                 popupObject.move(e.latLng, map2);
               }
             });
-            if (element instanceof Map) {
+            if (element instanceof Map2) {
               element.on("mousemove", (e) => {
                 (this.#activePopup || this).move(e.latLng, element);
               });
@@ -18600,7 +18600,7 @@ var Popup = class extends Overlay {
           } else {
             element.on("click", (e) => {
               const popupObject = this.#popupFor(element);
-              if (element instanceof Map || element instanceof Polyline) {
+              if (element instanceof Map2 || element instanceof Polyline) {
                 popupObject.position = e.latLng;
               }
               popupObject.toggle(element);
@@ -18751,7 +18751,7 @@ var Popup = class extends Overlay {
         }
         this.#isOpen = true;
         collection.add(this);
-        if (element instanceof Map) {
+        if (element instanceof Map2) {
           this.#popupOffset = this.getOffset().clone();
           super.show(element).then(() => {
             resolve(this);
@@ -18996,7 +18996,7 @@ var popupMixin = {
   }
 };
 Layer_default.include(popupMixin);
-Map.include(popupMixin);
+Map2.include(popupMixin);
 var popupAdapter = {
   create: (value) => popup(value),
   defaultEvent: "click",
@@ -19334,7 +19334,7 @@ var Tooltip = class extends Overlay {
       await element.init().then(() => {
         element.onceImmediate(READY_EVENT, () => {
           const triggerEvent = event || this.#event;
-          const elementMap = () => element instanceof Map ? element : element.getMap();
+          const elementMap = () => element instanceof Map2 ? element : element.getMap();
           if (triggerEvent === "click") {
             element.on("click", (e) => {
               const tooltipObject = this.#tooltipFor(element);
@@ -19362,7 +19362,7 @@ var Tooltip = class extends Overlay {
                 tooltipObject.show(map2);
               }
             });
-            if (element instanceof Map) {
+            if (element instanceof Map2) {
               element.on("mousemove", (e) => {
                 const tooltipObject = this.#activeTooltip || this;
                 tooltipObject.setPosition(e.latLng);
@@ -19568,7 +19568,7 @@ var tooltipMixin = {
   }
 };
 Layer_default.include(tooltipMixin);
-Map.include(tooltipMixin);
+Map2.include(tooltipMixin);
 var tooltipAdapter = {
   create: (value) => tooltip(value),
   defaultEvent: "hover",
