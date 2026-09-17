@@ -10,7 +10,7 @@
     should be included in the libraries array to properly load.
     https://developers.google.com/maps/documentation/javascript/places
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/map for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/map for documentation.
 =========================================================================== */
 
 /* global google, HTMLElement */
@@ -23,6 +23,8 @@ import {
     MapTypeId,
     MapTypeIdValue,
 } from './constants';
+import { DataFeature } from './DataFeature';
+import { DataLayer, LoadOptions } from './DataLayer';
 import { loader } from './Loader';
 import { LatLngBounds, latLngBounds, LatLngBoundsValue } from './LatLngBounds';
 import {
@@ -87,6 +89,21 @@ type CustomControl = {
     element: HTMLElement;
 };
 
+// The feature types that are hidden by the shortcut options, like hideBusinesses.
+// https://developers.google.com/maps/documentation/javascript/style-reference#style-features
+const hideFeatureTypes = {
+    hideBusinesses: 'poi.business',
+    hidePointsOfInterest: 'poi',
+    hideTransit: 'transit',
+};
+
+// The shortcut options to hide features on the map
+type HideFeatureOption = keyof typeof hideFeatureTypes;
+
+// The map options that are held internally. The center, mapTypeId, and zoom options
+// are always set because they have default values.
+type MapOptionsWithDefaults = GMMapOptions & Required<Pick<GMMapOptions, 'center' | 'mapTypeId' | 'zoom'>>;
+
 /**
  * The map class
  */
@@ -95,9 +112,9 @@ export class Map extends Evented {
      * The bounds to fit the map to
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds|undefined}
      */
-    #bounds: LatLngBounds;
+    #bounds: LatLngBounds | undefined;
 
     /**
      * Holds the custom controls that need to be added to the map
@@ -106,6 +123,18 @@ export class Map extends Evented {
      * @type {CustomControl[]}
      */
     #customControls: CustomControl[] = [];
+
+    /**
+     * Holds the data layer for the map.
+     *
+     * This is created the first time that the data getter is used so that maps that don't
+     * use the data layer don't pay for it. It's then held so that map.data is always the
+     * same object.
+     *
+     * @private
+     * @type {DataLayer|undefined}
+     */
+    #data: DataLayer | undefined;
 
     /**
      * Holds the HTML element that the map will be rendered in.
@@ -122,6 +151,18 @@ export class Map extends Evented {
      * @type {FullscreenControl}
      */
     #fullscreenControl: FullscreenControl;
+
+    /**
+     * Holds whether each of the shortcut options to hide features on the map is enabled
+     *
+     * @private
+     * @type {Record<HideFeatureOption, boolean>}
+     */
+    #hiddenFeatures: Record<HideFeatureOption, boolean> = {
+        hideBusinesses: false,
+        hidePointsOfInterest: false,
+        hideTransit: false,
+    };
 
     /**
      * Holds the latitude portion of the center point for the map
@@ -172,12 +213,14 @@ export class Map extends Evented {
     #isReady: boolean = false;
 
     /**
-     * Holds the Google map object
+     * Holds the Google map object.
+     *
+     * This is undefined until the map is set up when it's shown.
      *
      * @private
-     * @type {google.maps.Map}
+     * @type {google.maps.Map|undefined}
      */
-    #map: google.maps.Map;
+    #map: google.maps.Map | undefined;
 
     /**
      * Holds the map type control object
@@ -193,7 +236,7 @@ export class Map extends Evented {
      * @private
      * @type {number|null}
      */
-    #maxFitBoundsZoom: number | null;
+    #maxFitBoundsZoom: number | null = null;
 
     /**
      * Holds the minimum zoom level for the map when fitting to bounds
@@ -201,23 +244,46 @@ export class Map extends Evented {
      * @private
      * @type {number|null}
      */
-    #minFitBoundsZoom: number | null;
+    #minFitBoundsZoom: number | null = null;
 
     /**
      * Holds the map options
      *
+     * The center, mapTypeId, and zoom options are set to their default values.
+     *
      * @private
-     * @type {GMMapOptions}
+     * @type {MapOptionsWithDefaults}
      */
-    #options: GMMapOptions = {};
+    #options: MapOptionsWithDefaults = {
+        center: latLng(0, 0),
+        mapTypeId: MapTypeId.ROADMAP,
+        zoom: 6,
+    };
+
+    /**
+     * Holds the listener that cancels the gesture events, or null if it hasn't been added.
+     * It's held so that it can be removed if the preventPageZoom option is turned off.
+     *
+     * @private
+     * @type {null|((event: Event) => void)}
+     */
+    #pageZoomHandler: null | ((event: Event) => void) = null;
+
+    /**
+     * Holds whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @private
+     * @type {boolean}
+     */
+    #preventPageZoom: boolean = true;
 
     /**
      * Holds the map restriction object to restrict the map to a certain area
      *
      * @private
-     * @type {MapRestriction}
+     * @type {MapRestriction|undefined}
      */
-    #restriction: MapRestriction;
+    #restriction: MapRestriction | undefined;
 
     /**
      * Holds the rotate control object
@@ -249,15 +315,17 @@ export class Map extends Evented {
      * @private
      * @type {MapStyle[]}
      */
-    #styles?: MapStyle[] = [];
+    #styles: MapStyle[] = [];
 
     /**
      * Holds the watchId for the watchPosition() function
      *
+     * This is undefined until locate() starts watching the user's location.
+     *
      * @private
-     * @type {number}
+     * @type {number|undefined}
      */
-    #watchId: number;
+    #watchId: number | undefined;
 
     /**
      * Holds the zoom control object
@@ -278,9 +346,6 @@ export class Map extends Evented {
         super('map', 'Map');
 
         // Set some default values
-        this.#options.mapTypeId = MapTypeId.ROADMAP;
-        this.#options.center = latLng(0, 0);
-        this.#options.zoom = 6;
         this.#fullscreenControl = fullscreenControl();
         this.#mapTypeControl = mapTypeControl();
         this.#rotateControl = rotateControl();
@@ -307,7 +372,9 @@ export class Map extends Evented {
         let { center } = this.#options;
         if (this.#map) {
             const mapCenter = this.#map.getCenter();
-            center = latLng(mapCenter.lat(), mapCenter.lng());
+            if (mapCenter) {
+                center = latLng(mapCenter.lat(), mapCenter.lng());
+            }
         }
         if (!center.equals(this.#options.center)) {
             this.#options.center = center;
@@ -330,6 +397,26 @@ export class Map extends Evented {
                 this.#map.setCenter(this.#options.center.toGoogle());
             }
         }
+    }
+
+    /**
+     * Get the data layer for the map.
+     *
+     * This is the map's own data layer, which every map has. Use the dataLayer() function if
+     * you need a separate layer that only holds your own data.
+     *
+     * The layer is created the first time that this is used, and the same layer object is
+     * returned after that.
+     *
+     * https://developers.google.com/maps/documentation/javascript/datalayer
+     *
+     * @returns {DataLayer}
+     */
+    get data(): DataLayer {
+        if (!this.#data) {
+            this.#data = new DataLayer(undefined, this);
+        }
+        return this.#data;
     }
 
     /**
@@ -376,14 +463,78 @@ export class Map extends Evented {
             this.#fullscreenControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#fullscreenControl.toGoogle().then((fullscreenControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     fullscreenControl: this.#fullscreenControl.enabled,
                     fullscreenControlOptions,
                 });
             });
         }
+    }
+
+    /**
+     * Get whether businesses are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hideBusinesses(): boolean {
+        return this.#hiddenFeatures.hideBusinesses;
+    }
+
+    /**
+     * Set whether to hide businesses on the map.
+     *
+     * This hides the "poi.business" feature type, which includes things like stores, restaurants, and hotels.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide businesses
+     */
+    set hideBusinesses(value: boolean) {
+        this.#setHideFeature('hideBusinesses', value);
+    }
+
+    /**
+     * Get whether all points of interest are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hidePointsOfInterest(): boolean {
+        return this.#hiddenFeatures.hidePointsOfInterest;
+    }
+
+    /**
+     * Set whether to hide all points of interest on the map.
+     *
+     * This hides the "poi" feature type, which includes businesses, parks, schools, attractions, and places of worship.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide all points of interest
+     */
+    set hidePointsOfInterest(value: boolean) {
+        this.#setHideFeature('hidePointsOfInterest', value);
+    }
+
+    /**
+     * Get whether transit lines and stations are hidden on the map
+     *
+     * @returns {boolean}
+     */
+    get hideTransit(): boolean {
+        return this.#hiddenFeatures.hideTransit;
+    }
+
+    /**
+     * Set whether to hide transit lines and stations on the map.
+     *
+     * This hides the "transit" feature type, which includes things like bus stops, train stations, and rail lines.
+     * If the map has already been rendered then it's updated right away.
+     *
+     * @param {boolean} value Whether to hide transit lines and stations
+     */
+    set hideTransit(value: boolean) {
+        this.#setHideFeature('hideTransit', value);
     }
 
     /**
@@ -457,9 +608,10 @@ export class Map extends Evented {
             this.#mapTypeControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#mapTypeControl.toGoogle().then((mapTypeControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     mapTypeControl: this.#mapTypeControl.enabled,
                     mapTypeControlOptions,
                 });
@@ -473,10 +625,7 @@ export class Map extends Evented {
      * @returns {string}
      */
     get mapTypeId(): string {
-        let { mapTypeId } = this.#options;
-        if (this.#map) {
-            mapTypeId = this.#map.getMapTypeId();
-        }
+        const mapTypeId = this.#map ? this.#map.getMapTypeId() : this.#options.mapTypeId;
         if (isStringWithValue(mapTypeId) && mapTypeId !== this.#options.mapTypeId) {
             this.#options.mapTypeId = mapTypeId;
         }
@@ -533,7 +682,8 @@ export class Map extends Evented {
      */
     set maxZoom(value: null | number) {
         if (isNumber(value) || isNull(value)) {
-            this.#options.maxZoom = value;
+            // Null is stored as undefined in the options. Both mean that there is no max zoom.
+            this.#options.maxZoom = value ?? undefined;
             if (this.#map) {
                 this.#map.setOptions({ maxZoom: value });
             }
@@ -576,9 +726,35 @@ export class Map extends Evented {
      */
     set minZoom(value: null | number) {
         if (isNumber(value) || isNull(value)) {
-            this.#options.minZoom = value;
+            // Null is stored as undefined in the options. Both mean that there is no min zoom.
+            this.#options.minZoom = value ?? undefined;
             if (this.#map) {
                 this.#map.setOptions({ minZoom: value });
+            }
+        }
+    }
+
+    /**
+     * Get whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @returns {boolean}
+     */
+    get preventPageZoom(): boolean {
+        return this.#preventPageZoom;
+    }
+
+    /**
+     * Set whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @param {boolean} value Whether to keep a pinch on the map from zooming the page
+     */
+    set preventPageZoom(value: boolean) {
+        if (isBoolean(value)) {
+            this.#preventPageZoom = value;
+            if (value) {
+                this.#setupPreventPageZoom();
+            } else {
+                this.#removePreventPageZoom();
             }
         }
     }
@@ -599,9 +775,10 @@ export class Map extends Evented {
      */
     set restriction(value: MapRestrictionValue) {
         this.#restriction = mapRestriction(value);
-        if (this.#map && this.#restriction.isValid() && this.#restriction.isEnabled()) {
+        const map = this.#map;
+        if (map && this.#restriction.isValid() && this.#restriction.isEnabled()) {
             this.#restriction.toGoogle().then((restriction) => {
-                this.#map.setOptions({ restriction });
+                map.setOptions({ restriction });
             });
         }
     }
@@ -627,9 +804,10 @@ export class Map extends Evented {
             this.#rotateControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#rotateControl.toGoogle().then((rotateControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     rotateControl: this.#rotateControl.enabled,
                     rotateControlOptions,
                 });
@@ -658,9 +836,10 @@ export class Map extends Evented {
             this.#scaleControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#scaleControl.toGoogle().then((scaleControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     scaleControl: this.#scaleControl.enabled,
                     scaleControlOptions,
                 });
@@ -689,9 +868,10 @@ export class Map extends Evented {
             this.#streetViewControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#streetViewControl.toGoogle().then((streetViewControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     streetViewControl: this.#streetViewControl.enabled,
                     streetViewControlOptions,
                 });
@@ -705,10 +885,7 @@ export class Map extends Evented {
      * @returns {number}
      */
     get zoom(): number {
-        let { zoom } = this.#options;
-        if (this.#map) {
-            zoom = this.#map.getZoom();
-        }
+        const zoom = this.#map ? this.#map.getZoom() : this.#options.zoom;
         if (isNumber(zoom) && zoom !== this.#options.zoom) {
             this.#options.zoom = zoom;
         }
@@ -753,9 +930,10 @@ export class Map extends Evented {
             this.#zoomControl = value;
         }
 
-        if (this.#map) {
+        const map = this.#map;
+        if (map) {
             this.#zoomControl.toGoogle().then((zoomControlOptions) => {
-                this.#map.setOptions({
+                map.setOptions({
                     zoomControl: this.#zoomControl.enabled,
                     zoomControlOptions,
                 });
@@ -777,6 +955,19 @@ export class Map extends Evented {
             this.#customControls.push({ position, element });
         }
         return this;
+    }
+
+    /**
+     * Add GeoJson data to the map's data layer.
+     *
+     * This is the same as calling map.data.addGeoJson().
+     *
+     * @param {object} geoJson The GeoJson object to add
+     * @param {LoadOptions} [options] The options for adding the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    addGeoJson(geoJson: object, options?: LoadOptions): Promise<DataFeature[]> {
+        return this.data.addGeoJson(geoJson, options);
     }
 
     /**
@@ -882,19 +1073,21 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     #fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<void> {
+        // This is only called after the map has been set up, so the Google map object exists.
+        // The non-null assertions below rely on that.
         return new Promise((resolve) => {
             if (bounds) {
                 latLngBounds(bounds)
                     .toGoogle()
                     .then((googleBounds) => {
                         this.#handleZoomAfterFitBounds(maxZoom, minZoom);
-                        this.#map.fitBounds(googleBounds);
+                        this.#map!.fitBounds(googleBounds);
                         resolve();
                     });
             } else if (this.#bounds) {
                 this.#bounds.toGoogle().then((googleBounds) => {
                     this.#handleZoomAfterFitBounds(maxZoom, minZoom);
-                    this.#map.fitBounds(googleBounds);
+                    this.#map!.fitBounds(googleBounds);
                     resolve();
                 });
             } else {
@@ -1000,30 +1193,33 @@ export class Map extends Evented {
                 'scrollwheel',
                 'tiltInteractionEnabled',
             ];
+            // The option keys below are copied as-is, so index both objects by the key name.
+            const options = this.#options as Record<string, unknown>;
+            const googleOptions = mapOptions as Record<string, unknown>;
             booleanOptions.forEach((key) => {
-                if (isBoolean(this.#options[key])) {
-                    mapOptions[key] = this.#options[key];
+                if (isBoolean(options[key])) {
+                    googleOptions[key] = options[key];
                 }
             });
             // Number options that can be set on the map without any modification
             const numberOptions = ['controlSize', 'heading', 'maxZoom', 'minZoom', 'tilt', 'zoom'];
             numberOptions.forEach((key) => {
-                if (isNumberOrNumberString(this.#options[key])) {
-                    mapOptions[key] = this.#options[key];
+                if (isNumberOrNumberString(options[key])) {
+                    googleOptions[key] = options[key];
                 }
             });
             // String options that can be set on the map without any modification
             const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling', 'mapId'];
             stringOptions.forEach((key) => {
-                if (isStringWithValue(this.#options[key])) {
-                    mapOptions[key] = this.#options[key];
+                if (isStringWithValue(options[key])) {
+                    googleOptions[key] = options[key];
                 }
             });
             // Other options that can be set on the map without any modification
             const optionsToSet = ['renderingType', 'streetView'];
             optionsToSet.forEach((key) => {
-                if (typeof this.#options[key] !== 'undefined') {
-                    mapOptions[key] = this.#options[key];
+                if (typeof options[key] !== 'undefined') {
+                    googleOptions[key] = options[key];
                 }
             });
 
@@ -1075,13 +1271,55 @@ export class Map extends Evented {
                 mapOptions.zoomControl = this.#zoomControl.enabled;
                 const zoomControlOptions = await this.#zoomControl.toGoogle();
                 mapOptions.zoomControlOptions = zoomControlOptions;
-                // Map styles
-                if (this.#styles.length > 0) {
-                    mapOptions.styles = this.#styles.map((style) => style.toGoogle());
+                // Map styles, including the styles for the shortcut options to hide features
+                const styles = this.#getGoogleStyles();
+                if (styles.length > 0) {
+                    mapOptions.styles = styles;
                 }
                 resolve(mapOptions);
             })();
         });
+    }
+
+    /**
+     * Get the styles to send to Google Maps.
+     *
+     * This combines the styles set with the "styles" option with the styles for the shortcut options
+     * to hide features, like hideBusinesses. The shortcut styles are added last so that they take
+     * precedence over any other styles for the same feature type.
+     *
+     * @private
+     * @returns {google.maps.MapTypeStyle[]}
+     */
+    #getGoogleStyles(): google.maps.MapTypeStyle[] {
+        const styles = this.#styles.map((style) => style.toGoogle());
+        (Object.keys(hideFeatureTypes) as HideFeatureOption[]).forEach((key) => {
+            if (this.#hiddenFeatures[key]) {
+                styles.push(
+                    mapStyle({ featureType: hideFeatureTypes[key], stylers: [{ visibility: 'off' }] }).toGoogle(),
+                );
+            }
+        });
+        return styles;
+    }
+
+    /**
+     * Set whether a feature type is hidden by one of the shortcut options, like hideBusinesses.
+     *
+     * If the map has already been rendered then the styles are updated on it right away.
+     *
+     * @private
+     * @param {HideFeatureOption} key The shortcut option
+     * @param {boolean} value Whether to hide the feature type
+     */
+    #setHideFeature(key: HideFeatureOption, value: boolean): void {
+        if (isBoolean(value)) {
+            this.#hiddenFeatures[key] = value;
+            if (this.#map) {
+                // Always set the styles, even if the array is empty, so that turning an option off removes its style.
+                this.#map.setOptions({ styles: this.#getGoogleStyles() });
+            }
+        }
     }
 
     /**
@@ -1093,12 +1331,15 @@ export class Map extends Evented {
      */
     getBounds(): Promise<LatLngBounds | undefined> {
         return new Promise((resolve) => {
-            if (this.#map) {
+            const googleBounds = this.#map?.getBounds();
+            if (googleBounds) {
                 const bounds = new LatLngBounds();
-                bounds.union(this.#map.getBounds()).then(() => {
+                bounds.union(googleBounds).then(() => {
                     resolve(bounds);
                 });
             } else {
+                // The map isn't set up yet, or it doesn't have bounds yet
+                // (Google returns undefined for the bounds until the map has been sized and positioned).
                 resolve(undefined);
             }
         });
@@ -1156,6 +1397,19 @@ export class Map extends Evented {
      */
     getZoom(): number {
         return this.zoom;
+    }
+
+    /**
+     * Load GeoJson data into the map's data layer from a url.
+     *
+     * This is the same as calling map.data.loadGeoJson(). More than one url can be passed.
+     *
+     * @param {string|string[]} url The url to load the GeoJson from, or an array of urls
+     * @param {LoadOptions} [options] The options for loading the data
+     * @returns {Promise<DataFeature[]>}
+     */
+    loadGeoJson(url: string | string[], options?: LoadOptions): Promise<DataFeature[]> {
+        return this.data.loadGeoJson(url, options);
     }
 
     /**
@@ -1250,9 +1504,13 @@ export class Map extends Evented {
                     latLng: latLng(latitude, longitude),
                     timestamp: position.timestamp,
                 };
-                Object.keys(position.coords).forEach((key) => {
-                    if (typeof position.coords[key] === 'number') {
-                        data[key] = position.coords[key];
+                // Copy the other coordinate values by name. They are getters on the GeolocationCoordinates
+                // prototype, so Object.keys(position.coords) would not find them.
+                const coordinateKeys = ['accuracy', 'altitude', 'altitudeAccuracy', 'heading', 'speed'] as const;
+                coordinateKeys.forEach((key) => {
+                    const value = position.coords[key];
+                    if (typeof value === 'number') {
+                        data[key] = value;
                     }
                 });
                 this.dispatch('locationfound', data);
@@ -1263,7 +1521,9 @@ export class Map extends Evented {
                 }
             };
             const error = (err: GeolocationPositionError) => {
-                this.dispatch('locationerror', err);
+                // Pass the values as a plain object. The GeolocationPositionError values are getters on
+                // its prototype so they would be lost when the event data is merged.
+                this.dispatch('locationerror', { code: err.code, message: err.message });
                 // eslint-disable-next-line no-console
                 console.error(err);
             };
@@ -1564,7 +1824,8 @@ export class Map extends Evented {
             this.#map.panBy(x, y);
         } else {
             this.init().then(() => {
-                this.#map.panBy(x, y);
+                // init() resolves after the Google map object is set up
+                this.#map!.panBy(x, y);
             });
         }
     }
@@ -1581,7 +1842,8 @@ export class Map extends Evented {
             this.#map.panTo(latLng(value).toGoogle());
         } else {
             this.init().then(() => {
-                this.#map.panTo(latLng(value).toGoogle());
+                // init() resolves after the Google map object is set up
+                this.#map!.panTo(latLng(value).toGoogle());
             });
         }
     }
@@ -1597,7 +1859,7 @@ export class Map extends Evented {
      * @param {HTMLElement|string} [element] The HTML element to resize if it needs to be different from the map element. This can be an HTMLElement or a CSS selector.
      */
     resize = (element?: HTMLElement | string): void => {
-        let el: HTMLElement;
+        let el: HTMLElement | null;
         if (typeof element === 'string') {
             el = document.querySelector(element);
         } else if (element instanceof HTMLElement) {
@@ -1650,6 +1912,45 @@ export class Map extends Evented {
                 this.#map.setCenter(this.#options.center.toGoogle());
             }
         }
+        return this;
+    }
+
+    /**
+     * Set whether to hide businesses on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide businesses. Defaults to true.
+     * @returns {Map}
+     */
+    setHideBusinesses(value: boolean = true): Map {
+        this.hideBusinesses = value;
+        return this;
+    }
+
+    /**
+     * Set whether to hide all points of interest on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide all points of interest. Defaults to true.
+     * @returns {Map}
+     */
+    setHidePointsOfInterest(value: boolean = true): Map {
+        this.hidePointsOfInterest = value;
+        return this;
+    }
+
+    /**
+     * Set whether to hide transit lines and stations on the map.
+     *
+     * This can be called after the map has been rendered.
+     *
+     * @param {boolean} [value] Whether to hide transit lines and stations. Defaults to true.
+     * @returns {Map}
+     */
+    setHideTransit(value: boolean = true): Map {
+        this.hideTransit = value;
         return this;
     }
 
@@ -1760,6 +2061,10 @@ export class Map extends Evented {
                 this.minZoom = options.minZoom;
             }
 
+            if (isBoolean(options.preventPageZoom)) {
+                this.preventPageZoom = options.preventPageZoom;
+            }
+
             if (typeof options.restriction !== 'undefined') {
                 this.restriction = options.restriction;
             }
@@ -1803,6 +2108,13 @@ export class Map extends Evented {
                 this.#styles = [options.styles];
             }
 
+            // Set the shortcut options to hide features on the map
+            (Object.keys(hideFeatureTypes) as HideFeatureOption[]).forEach((key) => {
+                if (isBoolean(options[key])) {
+                    this.#setHideFeature(key, options[key]);
+                }
+            });
+
             // Set the zoom level for the map
             if (options.zoom) {
                 this.zoom = options.zoom;
@@ -1818,33 +2130,37 @@ export class Map extends Evented {
                 'scrollwheel',
                 'tiltInteractionEnabled',
             ];
+            // The option keys below are copied as-is, so index both objects by the key name.
+            const newOptions = options as Record<string, unknown>;
+            const currentOptions = this.#options as Record<string, unknown>;
             booleanOptions.forEach((key) => {
-                if (isBoolean(options[key])) {
-                    this.#options[key] = options[key];
+                if (isBoolean(newOptions[key])) {
+                    currentOptions[key] = newOptions[key];
                 }
             });
             const numberOptions = ['controlSize', 'heading', 'tilt'];
             numberOptions.forEach((key) => {
-                if (isNumberOrNumberString(options[key])) {
-                    this.#options[key] = options[key];
+                if (isNumberOrNumberString(newOptions[key])) {
+                    currentOptions[key] = newOptions[key];
                 }
             });
             const stringOptions = ['backgroundColor', 'draggableCursor', 'draggingCursor', 'gestureHandling'];
             stringOptions.forEach((key) => {
-                if (isStringWithValue(options[key])) {
-                    this.#options[key] = options[key];
+                if (isStringWithValue(newOptions[key])) {
+                    currentOptions[key] = newOptions[key];
                 }
             });
             const otherOptions = ['mapTypeId', 'renderingType', 'streetView'];
             otherOptions.forEach((key) => {
-                if (typeof options[key] !== 'undefined') {
-                    this.#options[key] = options[key];
+                if (typeof newOptions[key] !== 'undefined') {
+                    currentOptions[key] = newOptions[key];
                 }
             });
 
-            if (this.#map) {
+            const map = this.#map;
+            if (map) {
                 this.#getMapOptions().then((mapOptions) => {
-                    this.#map.setOptions(mapOptions);
+                    map.setOptions(mapOptions);
                 });
             }
         }
@@ -1968,6 +2284,49 @@ export class Map extends Evented {
     }
 
     /**
+     * Keep a pinch on the map from zooming the whole page on iOS.
+     *
+     * iOS ignores "user-scalable=no" in the viewport tag, so the gesture events that Safari fires
+     * are canceled instead. The map still zooms because the Google Maps API handles the pinch
+     * itself. Only the map element is covered so that the rest of the page can still be zoomed by
+     * people who need to. Other browsers don't fire these events, so this does nothing in them.
+     *
+     * @private
+     */
+    #setupPreventPageZoom = () => {
+        const element = this.#element;
+        // Don't add the listener if it's turned off, if there's no element to add it to,
+        // or if it has already been added.
+        if (!this.#preventPageZoom || !element || this.#pageZoomHandler) {
+            return;
+        }
+        const handler = (event: Event) => {
+            event.preventDefault();
+        };
+        this.#pageZoomHandler = handler;
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach((eventName) => {
+            element.addEventListener(eventName, handler, { passive: false });
+        });
+    };
+
+    /**
+     * Stop keeping a pinch on the map from zooming the whole page
+     *
+     * @private
+     */
+    #removePreventPageZoom = () => {
+        const element = this.#element;
+        const handler = this.#pageZoomHandler;
+        if (!element || !handler) {
+            return;
+        }
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach((eventName) => {
+            element.removeEventListener(eventName, handler);
+        });
+        this.#pageZoomHandler = null;
+    };
+
+    /**
      * Set up the map object
      *
      * @param {HTMLElement} element THe HTML elemen to attach the map to
@@ -1977,13 +2336,17 @@ export class Map extends Evented {
         new Promise((resolve) => {
             // Get the map options
             this.#getMapOptions().then((mapOptions) => {
-                this.#map = new google.maps.Map(element, mapOptions);
-                this.setEventGoogleObject(this.#map);
+                const map = new google.maps.Map(element, mapOptions);
+                this.#map = map;
+                this.setEventGoogleObject(map);
+
+                // Keep a pinch on the map from zooming the whole page on iOS
+                this.#setupPreventPageZoom();
 
                 // Add any custom controls to the map
                 if (this.#customControls.length > 0) {
                     this.#customControls.forEach((control) => {
-                        this.#map.controls[convertControlPosition(control.position)].push(control.element);
+                        map.controls[convertControlPosition(control.position)].push(control.element);
                     });
                 }
                 this.#customControls = [];
@@ -1996,18 +2359,22 @@ export class Map extends Evented {
      * Set the map as ready
      */
     #setMapAsReady = () => {
+        // Set the flags before dispatching, not after. Anything running inside a "ready" handler
+        // asks the map whether it's ready - Marker.#setMap() branches on getIsReady() - and used
+        // to be told that it wasn't, so it took the slow path of waiting for a ready event that
+        // had already been dispatched.
+        this.#isInitialized = true;
+        this.#isReady = true;
+        // The map is set up, so it's no longer being set up. This was never cleared, which left
+        // the flag true for the life of the map.
+        this.#isGettingMapOptions = false;
+
         // Dispatch the event to say that the map is visible and ready
         this.dispatch(MapEvents.READY);
         // Dispatch the event on the loader to say that the map is fully loaded.
         // This is done because the map is loaded after the loader's "load" event is dispatched
         // and some objects depend on the map being loaded before they can be set up.
         loader().dispatch(LoaderEvents.MAP_LOAD);
-
-        // Set that the map is initialized
-        this.#isInitialized = true;
-
-        // Set that the map is visible
-        this.#isReady = true;
     };
 
     /**
@@ -2016,18 +2383,22 @@ export class Map extends Evented {
      * @returns {Map}
      */
     stopLocate(): Map {
-        if (navigator.geolocation) {
+        // There is only a watch to clear if locate() started watching the user's location
+        if (navigator.geolocation && typeof this.#watchId !== 'undefined') {
             navigator.geolocation.clearWatch(this.#watchId);
         }
         return this;
     }
 
     /**
-     * Returns the Google map object
+     * Returns the Google map object.
      *
-     * @returns {google.maps.Map}
+     * The Google map object is set up when the map is shown. Before that this returns undefined.
+     * Use init(), load(), or show() and wait for them to resolve before calling this.
+     *
+     * @returns {google.maps.Map|undefined}
      */
-    toGoogle(): google.maps.Map {
+    toGoogle(): google.maps.Map | undefined {
         return this.#map;
     }
 }

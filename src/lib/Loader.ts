@@ -1,6 +1,6 @@
 /* ===========================================================================
     Google Maps Loader
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/loader for documentation
+    See https://aptuitiv.github.io/gmaps/api-reference/loader for documentation
 =========================================================================== */
 
 import { Loader as GoogleLoader, Libraries } from '@googlemaps/js-api-loader';
@@ -30,9 +30,9 @@ export class Loader extends EventTarget {
      * Holds the Google Maps API key
      *
      * @private
-     * @type {string}
+     * @type {string | undefined}
      */
-    #apiKey: string;
+    #apiKey: string | undefined;
 
     /**
      * Holds the loading state
@@ -51,6 +51,17 @@ export class Loader extends EventTarget {
     #isLoaded: boolean = false;
 
     /**
+     * Holds whether the map has finished loading.
+     *
+     * This is set when the "map_load" event is dispatched so that a listener added after that
+     * point can still be called.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isMapLoaded: boolean = false;
+
+    /**
      * Holds the libraries to load with Google maps
      *
      * @private
@@ -62,9 +73,9 @@ export class Loader extends EventTarget {
      * Holds the Google maps loader object
      *
      * @private
-     * @type {GoogleLoader}
+     * @type {GoogleLoader | undefined}
      */
-    #loader: GoogleLoader;
+    #loader: GoogleLoader | undefined;
 
     /**
      * Holds the version of the Google Maps API to load
@@ -89,9 +100,9 @@ export class Loader extends EventTarget {
     /**
      * Get the Google Maps API key
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get apiKey(): string {
+    get apiKey(): string | undefined {
         return this.#apiKey;
     }
 
@@ -270,6 +281,10 @@ export class Loader extends EventTarget {
      * @param {string} event The event to dispatch
      */
     dispatch(event: string) {
+        // Remember that the map has loaded so that a listener added later can still be called
+        if (event === LoaderEvents.MAP_LOAD) {
+            this.#isMapLoaded = true;
+        }
         super.dispatchEvent(new CustomEvent(event));
     }
 
@@ -280,13 +295,21 @@ export class Loader extends EventTarget {
      * load event is only dispatched one time when the Google maps API is loaded.
      *
      * @param {string} type The event type
-     * @param {Function} callback The event listener function
+     * @param {Function} callback The event listener function. An error is thrown if this isn't a function.
      */
-    on(type: string, callback: EventListenerOrEventListenerObject): void {
+    on(type: string, callback: EventListenerOrEventListenerObject | null): void {
         if (isFunction(callback)) {
             this.addEventListener(type, callback, { once: true });
-            if (this.#isLoaded) {
+            // If the event being listened for has already happened then dispatch it now so that
+            // the new listener is called.
+            //
+            // This used to dispatch the "load" event whatever type was asked for. A "map_load"
+            // listener added after the map had loaded was therefore never called, and anything
+            // waiting on it - Marker, Polyline and MarkerCluster all do - never finished.
+            if (type === LoaderEvents.LOAD && this.#isLoaded) {
                 this.dispatch(LoaderEvents.LOAD);
+            } else if (type === LoaderEvents.MAP_LOAD && this.#isMapLoaded) {
+                this.dispatch(LoaderEvents.MAP_LOAD);
             }
         } else {
             throw new Error('the event handler needs a callback function');
@@ -365,7 +388,7 @@ let loaderInstance: Loader;
 export const loader = (config?: LoaderOptions): Loader => {
     if (!loaderInstance) {
         loaderInstance = new Loader(config);
-    } else {
+    } else if (config) {
         loaderInstance.setOptions(config);
     }
     return loaderInstance;

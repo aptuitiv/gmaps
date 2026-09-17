@@ -20,7 +20,9 @@ import { autocompleteSearchBox, AutocompleteSearchBox } from './lib/Autocomplete
 import {
     AutocompleteSearchBoxEvents,
     ControlPosition,
+    DataLayerEvents,
     GeocoderErrorStatus,
+    GeometryType,
     GeocoderLocationType,
     ImageOverlayEvents,
     InfoWindowEvents,
@@ -39,6 +41,8 @@ import {
     SymbolPath,
     READY_EVENT,
 } from './lib/constants';
+import { DataFeature } from './lib/DataFeature';
+import { dataLayer, DataLayer } from './lib/DataLayer';
 import { geocode, Geocode } from './lib/Geocode';
 import { icon, Icon } from './lib/Icon';
 import { infoWindow, InfoWindow } from './lib/InfoWindow';
@@ -65,6 +69,7 @@ import { polyline, Polyline } from './lib/Polyline';
 import { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
 import { polylineIcon, PolylineIcon } from './lib/PolylineIcon';
 import { closeAllPopups, popup, Popup } from './lib/Popup';
+import { simplifyPath } from './lib/simplifyPath';
 import { size, Size } from './lib/Size';
 import { svgSymbol, SvgSymbol } from './lib/SvgSymbol';
 import { tooltip, Tooltip } from './lib/Tooltip';
@@ -73,7 +78,9 @@ import { tooltip, Tooltip } from './lib/Tooltip';
 type GlobalObj = {
     AutocompleteSearchBoxEvents: typeof AutocompleteSearchBoxEvents;
     ControlPosition: typeof ControlPosition;
+    DataLayerEvents: typeof DataLayerEvents;
     GeocoderErrorStatus: typeof GeocoderErrorStatus;
+    GeometryType: typeof GeometryType;
     GeocoderLocationType: typeof GeocoderLocationType;
     ImageOverlayEvents: typeof ImageOverlayEvents;
     InfoWindowEvents: typeof InfoWindowEvents;
@@ -92,6 +99,9 @@ type GlobalObj = {
     SymbolPath: typeof SymbolPath;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
+    dataLayer: typeof dataLayer;
+    DataLayer: typeof DataLayer;
+    DataFeature: typeof DataFeature;
     fullscreenControl: typeof fullscreenControl;
     FullscreenControl: typeof FullscreenControl;
     geocode: typeof geocode;
@@ -142,6 +152,7 @@ type GlobalObj = {
     READY_EVENT: typeof READY_EVENT;
     scaleControl: typeof scaleControl;
     ScaleControl: typeof ScaleControl;
+    simplifyPath: typeof simplifyPath;
     size: typeof size;
     Size: typeof Size;
     streetViewControl: typeof streetViewControl;
@@ -158,8 +169,10 @@ type GlobalObj = {
 const G: GlobalObj = {
     AutocompleteSearchBoxEvents,
     ControlPosition,
+    DataLayerEvents,
     GeocoderErrorStatus,
     GeocoderLocationType,
+    GeometryType,
     ImageOverlayEvents,
     InfoWindowEvents,
     LayerEvents,
@@ -177,6 +190,9 @@ const G: GlobalObj = {
     SymbolPath,
     autocompleteSearchBox,
     AutocompleteSearchBox,
+    dataLayer,
+    DataLayer,
+    DataFeature,
     fullscreenControl,
     FullscreenControl,
     geocode,
@@ -227,6 +243,7 @@ const G: GlobalObj = {
     READY_EVENT,
     scaleControl,
     ScaleControl,
+    simplifyPath,
     size,
     Size,
     streetViewControl,
@@ -269,4 +286,4 @@ function getGlobalObject() {
 
 // Set up the global namespace object for the library.
 // All functions are available via the G object.
-getGlobalObject().G = G;
+(getGlobalObject() as typeof globalThis & { G: typeof G }).G = G;

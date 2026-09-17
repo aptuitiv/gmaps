@@ -99,6 +99,15 @@ export type MapOptions = {
     // Whether the map should allow user control of the camera heading (rotation).
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.headingInteractionEnabled
     headingInteractionEnabled?: boolean;
+    // Whether to hide businesses (the "poi.business" feature type) on the map. Defaults to false.
+    // This and the other hide options add a style to the map, so they have no effect when a mapId is set
+    // because Google ignores styles when a map ID is used.
+    hideBusinesses?: boolean;
+    // Whether to hide all points of interest (the "poi" feature type), like businesses, parks, schools, and attractions.
+    // Defaults to false.
+    hidePointsOfInterest?: boolean;
+    // Whether to hide transit lines and stations (the "transit" feature type). Defaults to false.
+    hideTransit?: boolean;
     // Whether the map should allow fractional zoom levels.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.isFractionalZoomEnabled
     isFractionalZoomEnabled?: boolean;
@@ -140,6 +149,12 @@ export type MapOptions = {
     // Whether to clear the contents of the map div. If true, then the map div contents will not be cleared.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.noClear
     noClear?: boolean;
+    // Whether to keep a pinch on the map from zooming the whole page on iOS. Defaults to true.
+    // iOS ignores "user-scalable=no" in the viewport tag, so the only way to stop the page from
+    // zooming is to cancel the gesture events that Safari fires on the map element. The map still
+    // zooms because the Google Maps API handles the pinch itself. Only the map element is covered
+    // so that the rest of the page can still be zoomed. Other browsers don't fire these events.
+    preventPageZoom?: boolean;
     // The rendering type for the map. This sets if it should be a raster or vector map.
     // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions.renderingType
     renderingType?: RenderingTypeValue;

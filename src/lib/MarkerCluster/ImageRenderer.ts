@@ -41,7 +41,8 @@
 
 /* global google */
 
-import { Cluster, Renderer } from '@googlemaps/markerclusterer';
+import { Cluster, ClusterStats, Renderer } from '@googlemaps/markerclusterer';
+import { DefaultRenderer } from './DefaultRender';
 import { getBoolean, isObject, isStringOrNumber } from '../helpers';
 import { marker, MarkerLabel } from '../Marker';
 import { icon } from '../Icon';
@@ -93,6 +94,16 @@ export type ClusterImages = {
  */
 export class ImageRenderer implements Renderer {
     /**
+     * Holds the renderer that's used if no valid images were set.
+     *
+     * This is created the first time that a cluster is rendered without an image.
+     *
+     * @private
+     * @type {DefaultRenderer|undefined}
+     */
+    #fallbackRenderer: DefaultRenderer | undefined;
+
+    /**
      * Holds the images that can be used for the marker cluster icons
      *
      * @private
@@ -104,25 +115,25 @@ export class ImageRenderer implements Renderer {
      * A CSS class name to be added to the label element
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelClassName: string;
+    #labelClassName: string | undefined;
 
     /**
      * The color of the label text. Default color is black.
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelColor: string;
+    #labelColor: string | undefined;
 
     /**
      * Holds the font family for the cluster marker label.
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelFontFamily: string;
+    #labelFontFamily: string | undefined;
 
     /**
      * Holds the font size for the cluster marker
@@ -136,17 +147,17 @@ export class ImageRenderer implements Renderer {
      * The font weight of the label text (equivalent to the CSS font-weight property).
      *
      * @private
-     * @type {string}
+     * @type {string|undefined}
      */
-    #labelFontWeight: string;
+    #labelFontWeight: string | undefined;
 
     /**
      * The map object
      *
      * @private
-     * @type {Map}
+     * @type {Map|undefined}
      */
-    #map: Map;
+    #map: Map | undefined;
 
     /**
      * Holds if the number of markers in the cluster should be displayed
@@ -183,7 +194,7 @@ export class ImageRenderer implements Renderer {
                             (isObject(images[k]) && typeof (images[k] as ClusterImage).url === 'string'))
                 )
                 .sort((a, b) => a - b)
-                .reduce((acc, k) => {
+                .reduce<ClusterImages>((acc, k) => {
                     acc[k] = images[k];
                     return acc;
                 }, {});
@@ -266,16 +277,18 @@ export class ImageRenderer implements Renderer {
     /**
      * Get the image for the cluster.
      *
+     * This returns undefined if no valid images were set.
+     *
      * @param {number} count The number of markers in the cluster.
-     * @returns {ClusterImage}
+     * @returns {ClusterImageValue|undefined}
      */
-    getImage(count: number): ClusterImage {
-        const keys = Object.keys(this.#images);
+    getImage(count: number): ClusterImageValue | undefined {
+        const keys = Object.keys(this.#images).map((k) => parseInt(k, 10));
         let image = this.#images[keys[0]];
 
         for (let i = 0; i < keys.length; i += 1) {
             const k = keys[i];
-            if (count >= parseInt(k, 10)) {
+            if (count >= k) {
                 image = this.#images[k];
             } else {
                 break;
@@ -288,16 +301,29 @@ export class ImageRenderer implements Renderer {
     /**
      * Renders the cluster marker
      *
+     * If no valid images were set then the cluster is rendered with the default renderer instead.
+     *
      * @param {Cluster} cluster The cluster information
-     * @returns {google.maps.Marker}
+     * @param {ClusterStats} stats The stats for all of the clusters
+     * @param {google.maps.Map} map The map object
+     * @returns {google.maps.Marker | google.maps.marker.AdvancedMarkerElement}
      */
-    public render(cluster: Cluster): google.maps.Marker {
+    public render(
+        cluster: Cluster,
+        stats: ClusterStats,
+        map: google.maps.Map,
+    ): google.maps.Marker | google.maps.marker.AdvancedMarkerElement {
         const { count, position } = cluster;
         // Get the image based on the number of markers in the cluster
-        const image = this.getImage(count);
+        const imageValue = this.getImage(count);
+        if (!imageValue) {
+            return this.#getFallbackRenderer().render(cluster, stats, map);
+        }
+        // A string value is just the image URL
+        const image: ClusterImage = typeof imageValue === 'string' ? { url: imageValue } : imageValue;
 
         // Set the marker image
-        const markerImage = icon(typeof image === 'string' ? image : image.url);
+        const markerImage = icon(image.url);
         if (image.width && image.height) {
             markerImage.setSize([image.width, image.height]);
         } else if (image.size) {
@@ -341,7 +367,35 @@ export class ImageRenderer implements Renderer {
         const clusterMarker = marker();
         clusterMarker.setPositionSync({ lat: position.lat(), lng: position.lng() });
         clusterMarker.setIconSync(markerImage);
-        clusterMarker.setLabelSync(this.#showNumber ? label : undefined);
+        // The new marker doesn't have a label, so only set it if the number should be shown
+        if (this.#showNumber) {
+            clusterMarker.setLabelSync(label);
+        }
         return clusterMarker.toGoogleSync();
+    }
+
+    /**
+     * Get the renderer to use when no valid images were set.
+     *
+     * The label settings that apply to both renderers are passed on to it.
+     *
+     * @private
+     * @returns {DefaultRenderer}
+     */
+    #getFallbackRenderer(): DefaultRenderer {
+        if (!this.#fallbackRenderer) {
+            // eslint-disable-next-line no-console
+            console.warn(
+                'No valid images were set for the marker cluster image renderer. The default cluster marker is being used instead.',
+            );
+            const renderer = new DefaultRenderer();
+            renderer.setShowNumber(this.#showNumber);
+            if (this.#labelFontFamily) {
+                renderer.setFontFamily(this.#labelFontFamily);
+            }
+            renderer.setFontSize(this.#labelFontSize);
+            this.#fallbackRenderer = renderer;
+        }
+        return this.#fallbackRenderer;
     }
 }

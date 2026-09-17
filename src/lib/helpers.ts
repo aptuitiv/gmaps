@@ -160,7 +160,13 @@ export const getBoolean = (thing: any): boolean => {
  * @returns {boolean}
  */
 export const isObject = <T = object>(thing: any): thing is T =>
-    Object.prototype.toString.call(thing) === '[object Object]';
+    // The typeof test costs almost nothing and rules out every primitive, which is most of what
+    // this is called with - option arguments that weren't passed, strings, numbers, functions.
+    // Only a value that could actually be an object reaches the slower toString call.
+    //
+    // The answers are exactly the same as before. Arrays, null, Date, Map and Set are all still
+    // not objects by this test, which a plain typeof check would have got wrong.
+    typeof thing === 'object' && thing !== null && Object.prototype.toString.call(thing) === '[object Object]';
 
 /**
  * Returns if the value is an object
@@ -171,7 +177,9 @@ export const isObject = <T = object>(thing: any): thing is T =>
  * @returns {boolean}
  */
 export const isObjectWithValues = <T = object>(thing: any): thing is T =>
-    Object.prototype.toString.call(thing) === '[object Object]' && Object.keys(thing).length > 0;
+    // Reuses isObject so that the cheap typeof test runs first and the keys are only listed for
+    // something that is actually an object
+    isObject(thing) && Object.keys(thing).length > 0;
 
 /**
  * Returns if the thing is a Promise function
@@ -193,10 +201,17 @@ export const isPromise = <T = any>(thing: any): thing is Promise<T> => !!thing &
 export const getPixelsFromLatLng = (map: google.maps.Map, position: google.maps.LatLng): google.maps.Point => {
     const projection = map.getProjection();
     const bounds = map.getBounds();
+    const zoom = map.getZoom();
+    if (!projection || !bounds || typeof zoom === 'undefined') {
+        throw new Error('The map must be initialized before getting the pixel location.');
+    }
     const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
     const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-    const scale = 2 ** map.getZoom();
     const worldPoint = projection.fromLatLngToPoint(position);
+    if (!topRight || !bottomLeft || !worldPoint) {
+        throw new Error('Unable to get the pixel location from the map projection.');
+    }
+    const scale = 2 ** zoom;
     return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
 };
 
@@ -213,7 +228,7 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
     const doError = typeof throwError === 'boolean' ? throwError : true;
     if (typeof google !== 'undefined' && isObject(google) && isObject(google.maps)) {
         if (library) {
-            passed = typeof google.maps[library] !== 'undefined';
+            passed = typeof (google.maps as Record<string, unknown>)[library] !== 'undefined';
         } else {
             passed = true;
         }
@@ -224,7 +239,7 @@ export const checkForGoogleMaps = (object: string, library?: string, throwError?
             msg = ` The google.maps.${library} class is not available. Did you load the Google Maps Javascript API?`;
         }
         msg += ` You must wait to run the ${object} code until the Google map library is loaded.`;
-        msg += ' See https://aptuitiv.github.io/gmaps-docs/guides/load for more information.';
+        msg += ' See https://aptuitiv.github.io/gmaps/guides/load for more information.';
         if (doError) {
             throw new Error(msg);
         }
@@ -267,8 +282,10 @@ export const getSizeWithUnit = (
             }
         }
         if (pass) {
-            // Remove theunits from the value
-            const val = parseFloat((value as string).replace(`${allowedUnits.join('|')}/g`, ''));
+            // parseFloat reads the number from the front of the string and stops at the unit,
+            // so "50px" and "50%" both give 50. This used to call replace() with the string
+            // "%|px/g" as the pattern, which matched nothing and did nothing.
+            const val = parseFloat(value as string);
             if (val >= 0) {
                 returnValue = value;
             }
@@ -322,6 +339,22 @@ export const objectHasValue = (obj: any, key: string): boolean => isObject(obj) 
  * @param {Function|undefined} callback The callback function to call
  * @param {any[]} args The arguments to pass to the callback function
  */
+/**
+ * Replace the {placeholder} values in a string with values looked up for each one.
+ *
+ * A placeholder that the lookup has no value for is replaced with an empty string so that
+ * "undefined" doesn't end up in the output.
+ *
+ * @param {string} template The string holding the placeholders
+ * @param {Function} getValue Called with each placeholder name and returns the value for it
+ * @returns {string}
+ */
+export const renderTemplate = (template: string, getValue: (key: string) => any): string =>
+    template.replace(/\{\s*([^{}\s]+)\s*\}/g, (match, key) => {
+        const value = getValue(key);
+        return isNullOrUndefined(value) ? '' : String(value);
+    });
+
 export const callCallback = (callback: Function | undefined, ...args: any[]): void => {
     if (isFunction(callback)) {
         callback(...args);

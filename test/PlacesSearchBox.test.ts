@@ -1,0 +1,353 @@
+// @vitest-environment jsdom
+
+/* ===========================================================================
+    Tests for PlacesSearchBox, and for the init() race described in section 6.6.
+
+    The race is narrower than the audit stated, and the two tests below pin down both
+    halves of it.
+
+    init() guards with `if (!isObject(this.#searchBox))`, then calls
+    #createPlacesSearchBox(). That method has exactly one await before it assigns
+    this.#searchBox:
+
+        if (this.#options.bounds) { options.bounds = await this.#options.bounds.toGoogle(); }
+        ...
+        this.#searchBox = new google.maps.places.SearchBox(this.#input, options);
+
+    So the outcome depends on whether a bounds option was set:
+
+    - WITH bounds, the await yields. Two concurrent init() calls both pass the guard, both
+      yield, and both then construct a SearchBox. Two widgets on one input, two sets of
+      listeners, and duplicate billed Places requests.
+    - WITHOUT bounds there is no await before the assignment, so the first call assigns
+      synchronously and the second call's guard catches it.
+
+    AutocompleteSearchBox has the same shape (it awaits its bounds the same way), so fixing
+    one should fix both. The fix is to memoize the creation promise, which DataLayer already
+    does correctly in #getGoogleData().
+=========================================================================== */
+
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PlacesSearchBox, placesSearchBox } from '../src/lib/PlacesSearchBox';
+import { LatLngBounds } from '../src/lib/LatLngBounds';
+import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
+
+/**
+ * Drive the places_changed event that Google fires when a search finishes.
+ *
+ * PlacesSearchBox keeps its SearchBox in a #private field with no accessor, so the stub is
+ * reached through the harness rather than through the class.
+ *
+ * @param {any[]} places What the search found
+ */
+const search = (places: any[]): void => {
+    const searchBox = mapsStats.lastInstanceOf('SearchBox');
+    searchBox.__setPlaces(places);
+    searchBox.__fire('places_changed');
+};
+
+// A place with a location, which is what the handler builds its bounds from
+const placeAt = (lat: number, lng: number) => ({
+    geometry: { location: { lat: () => lat, lng: () => lng } },
+});
+
+/**
+ * Put an input on the page for the search box to attach to
+ *
+ * @param {string} id The element id
+ * @returns {HTMLInputElement}
+ */
+const searchInput = (id = 'search'): HTMLInputElement => {
+    const input = document.createElement('input');
+    input.id = id;
+    document.body.appendChild(input);
+    return input;
+};
+
+const bounds: [number, number][] = [
+    [48.8, 2.3],
+    [48.9, 2.4],
+];
+
+describe('PlacesSearchBox', () => {
+    beforeEach(() => {
+        installGoogleMaps();
+        document.body.innerHTML = '';
+    });
+
+    afterEach(() => {
+        uninstallGoogleMaps();
+        document.body.innerHTML = '';
+    });
+
+    describe('building one', () => {
+        it('takes an input element', () => {
+            const input = searchInput();
+            expect(new PlacesSearchBox(input).input).toBe(input);
+        });
+
+        it('takes a selector for the input', () => {
+            const input = searchInput('search');
+            expect(new PlacesSearchBox('#search').input).toBe(input);
+        });
+
+        it('throws when the selector matches nothing', () => {
+            expect(() => new PlacesSearchBox('#not-on-the-page')).toThrow(/was not found/);
+        });
+
+        it('takes an options object', () => {
+            const input = searchInput();
+            const box = new PlacesSearchBox({ input, bounds });
+            expect(box.input).toBe(input);
+            expect(box.getBounds()).toBeInstanceOf(LatLngBounds);
+        });
+
+        it('the factory builds one too', () => {
+            const input = searchInput();
+            expect(placesSearchBox(input)).toBeInstanceOf(PlacesSearchBox);
+        });
+
+        it('creates no Google object until init() is called', () => {
+            const input = searchInput();
+            const box = new PlacesSearchBox(input);
+            expect(box.isInitialized()).toBe(false);
+            expect(mapsStats.countOf('SearchBox')).toBe(0);
+        });
+    });
+
+    describe('init', () => {
+        it('creates one SearchBox', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+
+            expect(box.isInitialized()).toBe(true);
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+        });
+
+        it('creates nothing more when called again after it has finished', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            await box.init();
+            await box.init();
+
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+        });
+
+        it('passes the input to Google', async () => {
+            const input = searchInput();
+            const box = new PlacesSearchBox(input);
+            await box.init();
+
+            const created = mapsStats.callsTo('SearchBox', 'constructor')[0];
+            expect(created.args[0]).toBe(input);
+        });
+
+        // Fixed in Phase 2. init() used to wrap its work in a promise with no reject path and
+        // no .catch, so a failure escaped as an unhandled rejection and the promise never
+        // settled - awaiting it hung forever rather than throwing.
+        it('rejects when there is no input element', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+        });
+    });
+
+    // A failed init() is not remembered, so the search box can be set up properly and tried
+    // again. The rejected promise used to be kept, so every later init() failed the same way
+    // however the input was fixed in between.
+    describe('trying again after init() failed', () => {
+        it('works once the input has been set', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+
+            box.setInput(searchInput());
+            await expect(box.init()).resolves.toBeUndefined();
+
+            expect(box.isInitialized()).toBe(true);
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+        });
+
+        it('fails the same way again while the input is still missing', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+
+            expect(mapsStats.countOf('SearchBox')).toBe(0);
+        });
+
+        it('builds nothing more when a call is made after a successful one', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+
+            box.setInput(searchInput());
+            await box.init();
+            await box.init();
+
+            // Clearing the remembered failure must not let a second widget be built
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+            expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(1);
+        });
+
+        it('lets several calls made together fail without building anything', async () => {
+            const box = new PlacesSearchBox();
+
+            const results = await Promise.allSettled([box.init(), box.init(), box.init()]);
+            results.forEach((result) => {
+                expect(result.status).toBe('rejected');
+            });
+
+            expect(mapsStats.countOf('SearchBox')).toBe(0);
+        });
+    });
+
+    // Section 6.6, fixed in Phase 2. init() now memoizes its promise, so the work starts once
+    // and every caller waits on the same promise however many times it is called.
+    describe('two concurrent init() calls (6.6)', () => {
+        it('build one SearchBox when a bounds option is set', async () => {
+            const box = new PlacesSearchBox({ input: searchInput(), bounds });
+
+            await Promise.all([box.init(), box.init()]);
+
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+        });
+
+        it('build one when called three times', async () => {
+            const box = new PlacesSearchBox({ input: searchInput(), bounds });
+
+            await Promise.all([box.init(), box.init(), box.init()]);
+
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+        });
+
+        it('build one when no bounds option is set', async () => {
+            const box = new PlacesSearchBox(searchInput());
+
+            await Promise.all([box.init(), box.init(), box.init()]);
+
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+        });
+
+        // One widget means one set of listeners, which is what stops the duplicate billed
+        // Places requests.
+        it('register a single places_changed listener', async () => {
+            const box = new PlacesSearchBox({ input: searchInput(), bounds });
+
+            await Promise.all([box.init(), box.init()]);
+
+            expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(1);
+        });
+
+        // init() is declared async, so it wraps the memoized promise in a fresh one on every
+        // call and the returned objects are never identical. What matters is that the work
+        // behind them happens once, so that is what's asserted.
+        it('start the work once however late the calls come in', async () => {
+            const box = new PlacesSearchBox({ input: searchInput(), bounds });
+
+            await box.init();
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+
+            // A call made well after the first one has finished still builds nothing more
+            await box.init();
+            await Promise.all([box.init(), box.init()]);
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+            expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(1);
+        });
+    });
+
+    /* -----------------------------------------------------------------------
+        What listeners are told when a search finds nothing.
+
+        The event used to not be dispatched at all in that case. The previous results were
+        cleared behind the listener's back, so anything showing them had no way to know that it
+        should clear its own - the only sign that a search had happened was that nothing
+        happened. AutocompleteSearchBox has always dispatched for a place it couldn't place,
+        so the two classes disagreed.
+
+        The bounds in the event is a real LatLngBounds with nothing in it rather than undefined,
+        because the event object declares it as a LatLngBounds and listeners read it as one.
+    ----------------------------------------------------------------------- */
+    describe('a search that finds nothing', () => {
+        it('dispatches places_changed with an empty list', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            const seen: any[] = [];
+            box.onPlacesChanged((places, placesBounds) => {
+                seen.push({ places, placesBounds });
+            });
+
+            search([]);
+
+            expect(seen).toHaveLength(1);
+            expect(seen[0].places).toEqual([]);
+        });
+
+        it('gives listeners a bounds object rather than undefined', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            let received: LatLngBounds | undefined;
+            box.onPlacesChanged((places, placesBounds) => {
+                received = placesBounds;
+            });
+
+            search([]);
+
+            expect(received).toBeInstanceOf(LatLngBounds);
+            expect(received!.isEmpty()).toBe(true);
+        });
+
+        it('clears the places from the search before it', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+
+            search([placeAt(48.85, 2.35)]);
+            expect(box.getPlaces()).toHaveLength(1);
+
+            search([]);
+            expect(box.getPlaces()).toEqual([]);
+            expect(box.getPlace()).toBeUndefined();
+            expect(box.getPlacesBounds()!.isEmpty()).toBe(true);
+        });
+
+        // Older versions of the API could hand back nothing at all rather than an empty array
+        it('treats no array at all the same way', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            const seen: any[] = [];
+            box.onPlacesChanged((places) => {
+                seen.push(places);
+            });
+
+            search(undefined as unknown as any[]);
+
+            expect(seen).toHaveLength(1);
+            expect(seen[0]).toEqual([]);
+        });
+
+        it('still reports the places when a search does find something', async () => {
+            const box = new PlacesSearchBox(searchInput());
+            await box.init();
+            const seen: any[] = [];
+            box.onPlacesChanged((places, placesBounds) => {
+                seen.push({ places, placesBounds });
+            });
+
+            search([placeAt(48.85, 2.35)]);
+
+            expect(seen).toHaveLength(1);
+            expect(seen[0].places).toHaveLength(1);
+            expect(seen[0].placesBounds.isEmpty()).toBe(false);
+            expect(box.getPlace()).toBe(box.getPlaces()[0]);
+        });
+    });
+
+    describe('bounds', () => {
+        it('is undefined until it is set', () => {
+            expect(new PlacesSearchBox(searchInput()).getBounds()).toBeUndefined();
+        });
+
+        it('is stored as a LatLngBounds', () => {
+            const box = new PlacesSearchBox(searchInput());
+            box.bounds = bounds;
+            expect(box.getBounds()).toBeInstanceOf(LatLngBounds);
+        });
+    });
+});

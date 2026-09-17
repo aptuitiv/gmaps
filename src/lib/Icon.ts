@@ -3,7 +3,7 @@
 
     See: https://developers.google.com/maps/documentation/javascript/reference/marker#Icon
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/icon for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/icon for documentation.
 =========================================================================== */
 
 /* global google */
@@ -32,6 +32,13 @@ export type IconOptions = {
     url?: string;
 };
 
+// The option keys grouped by how they're converted. These are held here instead of inside
+// setOptions() so that the arrays aren't rebuilt every time an icon is set up. An icon is
+// often shared by a lot of markers, and setOptions() runs for each one.
+const POINT_OPTIONS: ('anchor' | 'labelOrigin' | 'origin')[] = ['anchor', 'labelOrigin', 'origin'];
+const SIZE_OPTIONS: ('scaledSize' | 'size')[] = ['scaledSize', 'size'];
+const STRING_OPTIONS: 'url'[] = ['url'];
+
 /**
  * Icon class to set up an icon options for a marker
  */
@@ -54,8 +61,10 @@ export class Icon extends Base {
             this.#options = {
                 url,
             };
-            this.setOptions(options);
-        } else if (isObject(url)) {
+            if (options) {
+                this.setOptions(options);
+            }
+        } else if (isObject<IconOptions>(url)) {
             this.setOptions(url);
         }
     }
@@ -68,22 +77,22 @@ export class Icon extends Base {
      */
     setOptions(options: IconOptions): Icon {
         if (isObject(options)) {
-            const pointValues = ['anchor', 'labelOrigin', 'origin'];
-            const sizeValues = ['scaledSize', 'size'];
-            const stringValues = ['url'];
-            pointValues.forEach((key) => {
-                if (options[key]) {
-                    this.#options[key] = point(options[key]).toGoogle();
+            POINT_OPTIONS.forEach((key) => {
+                const value = options[key];
+                if (value) {
+                    this.#options[key] = point(value).toGoogle();
                 }
             });
-            sizeValues.forEach((key) => {
-                if (options[key]) {
-                    this.#options[key] = size(options[key]).toGoogle();
+            SIZE_OPTIONS.forEach((key) => {
+                const value = options[key];
+                if (value) {
+                    this.#options[key] = size(value).toGoogle();
                 }
             });
-            stringValues.forEach((key) => {
-                if (options[key] && isStringWithValue(options[key])) {
-                    this.#options[key] = options[key];
+            STRING_OPTIONS.forEach((key) => {
+                const value = options[key];
+                if (value && isStringWithValue(value)) {
+                    this.#options[key] = value;
                 }
             });
         }

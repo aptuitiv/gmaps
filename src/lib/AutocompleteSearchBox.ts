@@ -6,7 +6,7 @@
 /* global google, HTMLInputElement */
 
 import { AutocompleteSearchBoxEvents } from './constants';
-import { Evented, EventConfig, EventListenerOptions } from './Evented';
+import { Event, Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { checkForGoogleMaps, isBoolean, isObject, isObjectWithValues, isString } from './helpers';
 import { latLng } from './LatLng';
 import { latLngBounds, LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
@@ -47,7 +47,10 @@ type AutocompleteSearchBoxEventObject = Event & {
     place: google.maps.places.PlaceResult;
     bounds: LatLngBounds;
 };
-// The callback function for the AutocompleteSearchBox class events
+// The callback function for the AutocompleteSearchBox class events.
+// The base Evented class types callbacks with the generic Event object, so the event listener methods
+// below cast this callback to EventCallback when passing it on. That's safe because this class
+// dispatches the place_changed event with the place and bounds values added to the event object.
 type AutocompleteSearchBoxEventCallback = (event: AutocompleteSearchBoxEventObject) => void;
 
 /**
@@ -84,33 +87,44 @@ export class AutocompleteSearchBox extends Evented {
      * Holds the reference to the input element
      *
      * @private
-     * @type {HTMLInputElement}
+     * @type {HTMLInputElement | undefined}
      */
-    #input: HTMLInputElement;
+    #input: HTMLInputElement | undefined;
+
+    /**
+     * Holds the promise for setting up the search box.
+     *
+     * Every call to init() waits on this same promise so that the search box is only built once,
+     * however many times init() is called and whenever those calls are made.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #initPromise: Promise<void> | undefined;
 
     /**
      * Holds the place that has been found.
      *
      * @private
-     * @type {google.maps.places.PlaceResult}
+     * @type {google.maps.places.PlaceResult | undefined}
      */
-    #place: google.maps.places.PlaceResult;
+    #place: google.maps.places.PlaceResult | undefined;
 
     /**
      * Holds the map bounds based on the place that has been found
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
-    #placeBounds: LatLngBounds;
+    #placeBounds: LatLngBounds | undefined;
 
     /**
      * Holds the reference to the Google Maps SearchBox object
      *
      * @private
-     * @type {google.maps.places.Autocomplete}
+     * @type {google.maps.places.Autocomplete | undefined}
      */
-    #searchBox: google.maps.places.Autocomplete;
+    #searchBox: google.maps.places.Autocomplete | undefined;
 
     /**
      * Sets whether the Autocomplete widget should only return those places that are inside the bounds of the Autocomplete widget at the time the query is sent.
@@ -124,18 +138,18 @@ export class AutocompleteSearchBox extends Evented {
      * Holds the types of predictions to be returned.
      *
      * @private
-     * @type {string[]}
+     * @type {string[] | undefined}
      */
-    #types: string[];
+    #types: string[] | undefined;
 
     /**
      * Constructor
      *
-     * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} input The input reference or the options
+     * @param {string | HTMLInputElement | AutocompleteSearchBoxOptions} [input] The input reference or the options
      * @param {AutocompleteSearchBoxOptions} [options] The places autocomplete search box options if the input is reference to the input element
      */
     constructor(
-        input: string | HTMLInputElement | AutocompleteSearchBoxOptions,
+        input?: string | HTMLInputElement | AutocompleteSearchBoxOptions,
         options?: AutocompleteSearchBoxOptions,
     ) {
         super('placesSearchBox', 'places');
@@ -143,14 +157,18 @@ export class AutocompleteSearchBox extends Evented {
         if (input instanceof HTMLInputElement) {
             // An HTMLInputElement was passed
             this.#input = input;
-            this.setOptions(options);
+            if (options) {
+                this.setOptions(options);
+            }
         } else if (isString(input)) {
             // A string selector for the HTMLInputElement was passed
-            this.#input = document.querySelector(input);
+            this.#input = document.querySelector<HTMLInputElement>(input) ?? undefined;
             if (!this.#input) {
                 throw new Error(`The input element with the selector "${input}" was not found.`);
             }
-            this.setOptions(options);
+            if (options) {
+                this.setOptions(options);
+            }
         } else if (isObjectWithValues(input)) {
             // An object of options was passed.
             this.setOptions(input);
@@ -176,9 +194,10 @@ export class AutocompleteSearchBox extends Evented {
     set bounds(value: LatLngBoundsValue) {
         const boundsValue = latLngBounds(value);
         this.#bounds = boundsValue;
-        if (this.#searchBox) {
+        const searchBox = this.#searchBox;
+        if (searchBox) {
             boundsValue.toGoogle().then((bounds) => {
-                this.#searchBox.setBounds(bounds);
+                searchBox.setBounds(bounds);
             });
         }
     }
@@ -249,7 +268,7 @@ export class AutocompleteSearchBox extends Evented {
         if (value instanceof HTMLInputElement) {
             this.#input = value;
         } else if (isString(value)) {
-            this.#input = document.querySelector(value);
+            this.#input = document.querySelector<HTMLInputElement>(value) ?? undefined;
             if (!this.#input) {
                 throw new Error(`The input element with the selector "${value}" was not found.`);
             }
@@ -392,25 +411,42 @@ export class AutocompleteSearchBox extends Evented {
      * @returns {Promise<void>}
      */
     async init(): Promise<void> {
-        return new Promise((resolve) => {
-            if (!isObject(this.#searchBox)) {
+        // The work is only started once and every caller waits on the same promise. See the
+        // comment on PlacesSearchBox.init() - this class had the same problem, because it also
+        // awaits the bounds before assigning #searchBox.
+        if (!this.#initPromise) {
+            const initPromise = new Promise<void>((resolve, reject) => {
                 if (checkForGoogleMaps('AutocompleteSearchBox', 'places', false)) {
-                    this.#createAutocompleteSearchBox().then(() => {
-                        resolve();
-                    });
+                    this.#createAutocompleteSearchBox().then(resolve).catch(reject);
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().onMapLoad(() => {
-                        this.#createAutocompleteSearchBox().then(() => {
-                            resolve();
-                        });
+                        this.#createAutocompleteSearchBox().then(resolve).catch(reject);
                     });
                 }
-            } else {
-                resolve();
-            }
-        });
+            });
+            // A failure is not remembered. Initializing throws when there's no input element, and
+            // holding on to the rejected promise meant every later init() got that same failure
+            // back - so setting the input afterwards and calling init() again could never work.
+            // Clearing it lets a later call start again. The promise is only forgotten once it
+            // has actually failed, so calls made while it's still running share it as before.
+            //
+            // Nothing is built twice by this: #createAutocompleteSearchBox() returns early when
+            // #searchBox is already set, so a retry after a successful init still creates nothing.
+            // The check is against the promise that gets stored below, not the one being
+            // wrapped, so that a call which has already started a new attempt isn't undone.
+            // The callback only runs once the promise has rejected, which is always after the
+            // assignment below it.
+            const tracked: Promise<void> = initPromise.catch((error) => {
+                if (this.#initPromise === tracked) {
+                    this.#initPromise = undefined;
+                }
+                throw error;
+            });
+            this.#initPromise = tracked;
+        }
+        return this.#initPromise;
     }
 
     /**
@@ -435,20 +471,25 @@ export class AutocompleteSearchBox extends Evented {
             if (this.#types) {
                 options.types = this.#types;
             }
-            this.#searchBox = new google.maps.places.Autocomplete(this.#input, options);
+            if (!this.#input) {
+                throw new Error('The input element must be set before the autocomplete search box can be initialized.');
+            }
+            const searchBox = new google.maps.places.Autocomplete(this.#input, options);
+            this.#searchBox = searchBox;
             // Add the listener for when the user selects a place
-            this.#searchBox.addListener(AutocompleteSearchBoxEvents.PLACE_CHANGED, () => {
-                const place = this.#searchBox.getPlace();
+            searchBox.addListener(AutocompleteSearchBoxEvents.PLACE_CHANGED, () => {
+                const place = searchBox.getPlace();
                 const bounds = latLngBounds();
                 // Set up the map bounds based on the place
                 // https://developers.google.com/maps/documentation/javascript/reference/places-service#PlaceGeometry
+                // A place may not have geometry, for example if the user pressed Enter without picking a suggestion.
                 if (place.geometry) {
                     if (place.geometry.viewport) {
                         // Only geocodes have viewport.
                         bounds.union(place.geometry.viewport);
+                    } else if (place.geometry.location) {
+                        bounds.extend(latLng(place.geometry.location));
                     }
-                } else if (place.geometry.location) {
-                    bounds.extend(latLng(place.geometry.location));
                 }
                 this.#place = place;
                 this.#placeBounds = bounds;
@@ -470,7 +511,7 @@ export class AutocompleteSearchBox extends Evented {
      * @inheritdoc
      */
     hasListener(type: AutocompleteSearchBoxEvent, callback?: AutocompleteSearchBoxEventCallback): boolean {
-        return super.hasListener(type, callback);
+        return super.hasListener(type, callback as EventCallback | undefined);
     }
 
     /**
@@ -481,14 +522,14 @@ export class AutocompleteSearchBox extends Evented {
         callback?: AutocompleteSearchBoxEventCallback,
         options?: EventListenerOptions,
     ): void {
-        super.off(type, callback, options);
+        super.off(type, callback as EventCallback | undefined, options);
     }
 
     /**
      * @inheritdoc
      */
     on(type: AutocompleteSearchBoxEvent, callback: AutocompleteSearchBoxEventCallback, config?: EventConfig): void {
-        super.on(type, callback, config);
+        super.on(type, callback as EventCallback, config);
     }
 
     /**
@@ -499,7 +540,7 @@ export class AutocompleteSearchBox extends Evented {
         callback: AutocompleteSearchBoxEventCallback,
         config?: EventConfig,
     ): void {
-        super.onImmediate(type, callback, config);
+        super.onImmediate(type, callback as EventCallback, config);
     }
 
     /**
@@ -523,7 +564,7 @@ export class AutocompleteSearchBox extends Evented {
      * @inheritdoc
      */
     once(type: AutocompleteSearchBoxEvent, callback?: AutocompleteSearchBoxEventCallback, config?: EventConfig): void {
-        super.once(type, callback, config);
+        super.once(type, callback as EventCallback | undefined, config);
     }
 
     /**
@@ -534,14 +575,14 @@ export class AutocompleteSearchBox extends Evented {
         callback?: AutocompleteSearchBoxEventCallback,
         config?: EventConfig,
     ): void {
-        super.onceImmediate(type, callback, config);
+        super.onceImmediate(type, callback as EventCallback | undefined, config);
     }
 
     /**
      * @inheritdoc
      */
     only(type: AutocompleteSearchBoxEvent, callback: AutocompleteSearchBoxEventCallback, config?: EventConfig): void {
-        super.only(type, callback, config);
+        super.only(type, callback as EventCallback, config);
     }
 
     /**
@@ -552,7 +593,7 @@ export class AutocompleteSearchBox extends Evented {
         callback: AutocompleteSearchBoxEventCallback,
         config?: EventConfig,
     ): void {
-        super.onlyOnce(type, callback, config);
+        super.onlyOnce(type, callback as EventCallback, config);
     }
 
     /**
@@ -616,7 +657,7 @@ export class AutocompleteSearchBox extends Evented {
                 if (options.input instanceof HTMLInputElement) {
                     this.#input = options.input;
                 } else if (isString(options.input)) {
-                    this.#input = document.querySelector(options.input);
+                    this.#input = document.querySelector<HTMLInputElement>(options.input) ?? undefined;
                     if (!this.#input) {
                         throw new Error(`The input element with the selector "${options.input}" was not found.`);
                     }

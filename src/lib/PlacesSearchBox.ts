@@ -7,7 +7,7 @@
 /* global google, HTMLInputElement */
 
 import { PlacesSearchBoxEvents } from './constants';
-import { Evented, EventConfig, EventListenerOptions } from './Evented';
+import { Event, Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
 import { checkForGoogleMaps, isObject, isObjectWithValues, isString } from './helpers';
 import { latLng } from './LatLng';
 import { latLngBounds, LatLngBounds, LatLngBoundsValue } from './LatLngBounds';
@@ -32,7 +32,10 @@ type PlacesSearchBoxEventObject = Event & {
     places: google.maps.places.PlaceResult[];
     bounds: LatLngBounds;
 };
-// The callback function for the PlacesSearchBox class events
+// The callback function for the PlacesSearchBox class events.
+// The base Evented class types callbacks with the generic Event object, so the event listener methods
+// below cast this callback to EventCallback when passing it on. That's safe because this class
+// dispatches the places_changed event with the places and bounds values added to the event object.
 type PlacesSearchBoxEventCallback = (event: PlacesSearchBoxEventObject) => void;
 
 /**
@@ -43,9 +46,9 @@ export class PlacesSearchBox extends Evented {
      * Holds the reference to the input element
      *
      * @private
-     * @type {HTMLInputElement}
+     * @type {HTMLInputElement | undefined}
      */
-    #input: HTMLInputElement;
+    #input: HTMLInputElement | undefined;
 
     /**
      * Holds the array of places that have been found.
@@ -61,17 +64,28 @@ export class PlacesSearchBox extends Evented {
      * Holds the map bounds based on the places that have been found
      *
      * @private
-     * @type {LatLngBounds}
+     * @type {LatLngBounds | undefined}
      */
-    #placesBounds: LatLngBounds;
+    #placesBounds: LatLngBounds | undefined;
 
     /**
      * Holds the reference to the Google Maps SearchBox object
      *
      * @private
-     * @type {google.maps.places.SearchBox}
+     * @type {google.maps.places.SearchBox | undefined}
      */
-    #searchBox: google.maps.places.SearchBox;
+    #searchBox: google.maps.places.SearchBox | undefined;
+
+    /**
+     * Holds the promise for setting up the search box.
+     *
+     * Every call to init() waits on this same promise so that the search box is only built once,
+     * however many times init() is called and whenever those calls are made.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #initPromise: Promise<void> | undefined;
 
     /**
      * Holds the options for the places search box
@@ -84,23 +98,27 @@ export class PlacesSearchBox extends Evented {
     /**
      * Constructor
      *
-     * @param {string | HTMLInputElement | PlacesSearchBoxOptions} input The input reference or the options
+     * @param {string | HTMLInputElement | PlacesSearchBoxOptions} [input] The input reference or the options
      * @param {PlacesSearchBoxOptions} [options] The places search box options if the input is reference to the input element
      */
-    constructor(input: string | HTMLInputElement | PlacesSearchBoxOptions, options?: PlacesSearchBoxOptions) {
+    constructor(input?: string | HTMLInputElement | PlacesSearchBoxOptions, options?: PlacesSearchBoxOptions) {
         super('placesSearchBox', 'places');
 
         if (input instanceof HTMLInputElement) {
             // An HTMLInputElement was passed
             this.#input = input;
-            this.setOptions(options);
+            if (options) {
+                this.setOptions(options);
+            }
         } else if (isString(input)) {
             // A string selector for the HTMLInputElement was passed
-            this.#input = document.querySelector(input);
+            this.#input = document.querySelector<HTMLInputElement>(input) ?? undefined;
             if (!this.#input) {
                 throw new Error(`The input element with the selector "${input}" was not found.`);
             }
-            this.setOptions(options);
+            if (options) {
+                this.setOptions(options);
+            }
         } else if (isObjectWithValues(input)) {
             // An object of options was passed.
             this.setOptions(input);
@@ -126,9 +144,10 @@ export class PlacesSearchBox extends Evented {
     set bounds(value: LatLngBoundsValue) {
         const boundsValue = latLngBounds(value);
         this.#options.bounds = boundsValue;
-        if (this.#searchBox) {
+        const searchBox = this.#searchBox;
+        if (searchBox) {
             boundsValue.toGoogle().then((bounds) => {
-                this.#searchBox.setBounds(bounds);
+                searchBox.setBounds(bounds);
             });
         }
     }
@@ -151,7 +170,7 @@ export class PlacesSearchBox extends Evented {
         if (value instanceof HTMLInputElement) {
             this.#input = value;
         } else if (isString(value)) {
-            this.#input = document.querySelector(value);
+            this.#input = document.querySelector<HTMLInputElement>(value) ?? undefined;
             if (!this.#input) {
                 throw new Error(`The input element with the selector "${value}" was not found.`);
             }
@@ -206,25 +225,48 @@ export class PlacesSearchBox extends Evented {
      * @returns {Promise<void>}
      */
     async init(): Promise<void> {
-        return new Promise((resolve) => {
-            if (!isObject(this.#searchBox)) {
+        // The work is only started once and every caller waits on the same promise.
+        //
+        // This used to guard on whether #searchBox was set, which isn't enough: creating the
+        // search box awaits the bounds before it assigns #searchBox, so two calls made before
+        // that await finished both got past the guard and both built a search box on the same
+        // input. That meant two sets of listeners and two lots of billed Places requests.
+        //
+        // The promise also used to have no reject path, so a failure - no input element, for
+        // example - left it unsettled forever and anything awaiting init() hung.
+        if (!this.#initPromise) {
+            const initPromise = new Promise<void>((resolve, reject) => {
                 if (checkForGoogleMaps('PlacesSearchBox', 'places', false)) {
-                    this.#createPlacesSearchBox().then(() => {
-                        resolve();
-                    });
+                    this.#createPlacesSearchBox().then(resolve).catch(reject);
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().onMapLoad(() => {
-                        this.#createPlacesSearchBox().then(() => {
-                            resolve();
-                        });
+                        this.#createPlacesSearchBox().then(resolve).catch(reject);
                     });
                 }
-            } else {
-                resolve();
-            }
-        });
+            });
+            // A failure is not remembered. Initializing throws when there's no input element, and
+            // holding on to the rejected promise meant every later init() got that same failure
+            // back - so setting the input afterwards and calling init() again could never work.
+            // Clearing it lets a later call start again. The promise is only forgotten once it
+            // has actually failed, so calls made while it's still running share it as before.
+            //
+            // Nothing is built twice by this: #createPlacesSearchBox() returns early when
+            // #searchBox is already set, so a retry after a successful init still creates nothing.
+            //
+            // The check is against the promise that gets stored below, not the one being wrapped,
+            // so that a call which has already started a new attempt isn't undone. The callback
+            // only runs once the promise has rejected, which is always after the assignment.
+            const tracked: Promise<void> = initPromise.catch((error) => {
+                if (this.#initPromise === tracked) {
+                    this.#initPromise = undefined;
+                }
+                throw error;
+            });
+            this.#initPromise = tracked;
+        }
+        return this.#initPromise;
     }
 
     /**
@@ -235,24 +277,40 @@ export class PlacesSearchBox extends Evented {
     #createPlacesSearchBox = async () => {
         if (!this.#searchBox) {
             const options: google.maps.places.SearchBoxOptions = {};
-            if (options.bounds) {
+            if (this.#options.bounds) {
                 options.bounds = await this.#options.bounds.toGoogle();
             }
-            this.#searchBox = new google.maps.places.SearchBox(this.#input, options);
+            if (!this.#input) {
+                throw new Error('The input element must be set before the places search box can be initialized.');
+            }
+            const searchBox = new google.maps.places.SearchBox(this.#input, options);
+            this.#searchBox = searchBox;
             // Add the listener for when the user selects a place
-            this.#searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-                const places = this.#searchBox.getPlaces();
+            searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
+                // A search that matched nothing gives back an empty array, and older versions of
+                // the API could give back nothing at all.
+                const found = searchBox.getPlaces();
+                const places = Array.isArray(found) ? found : [];
+                // The event used to not be dispatched at all when nothing was found, which left
+                // listeners with no way to know that a search had come back empty - the previous
+                // results were cleared behind their back and nothing told them to clear theirs.
+                // It's now always dispatched, with an empty array and an empty bounds, which is
+                // how AutocompleteSearchBox has always behaved for a place it couldn't place.
+                //
+                // The bounds is a real LatLngBounds with nothing in it rather than undefined,
+                // because the event object says it's a LatLngBounds and listeners read it as one.
                 const bounds = latLngBounds();
                 places.forEach((place) => {
                     // Set up the map bounds based on the place
                     // https://developers.google.com/maps/documentation/javascript/reference/places-service#PlaceGeometry
+                    // A place may not have geometry, for example if the user entered text that didn't match a place.
                     if (place.geometry) {
                         if (place.geometry.viewport) {
                             // Only geocodes have viewport.
                             bounds.union(place.geometry.viewport);
+                        } else if (place.geometry.location) {
+                            bounds.extend(latLng(place.geometry.location));
                         }
-                    } else if (place.geometry.location) {
-                        bounds.extend(latLng(place.geometry.location));
                     }
                 });
                 this.#places = places;
@@ -275,28 +333,28 @@ export class PlacesSearchBox extends Evented {
      * @inheritdoc
      */
     hasListener(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback): boolean {
-        return super.hasListener(type, callback);
+        return super.hasListener(type, callback as EventCallback | undefined);
     }
 
     /**
      * @inheritdoc
      */
     off(type?: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, options?: EventListenerOptions): void {
-        super.off(type, callback, options);
+        super.off(type, callback as EventCallback | undefined, options);
     }
 
     /**
      * @inheritdoc
      */
     on(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.on(type, callback, config);
+        super.on(type, callback as EventCallback, config);
     }
 
     /**
      * @inheritdoc
      */
     onImmediate(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.onImmediate(type, callback, config);
+        super.onImmediate(type, callback as EventCallback, config);
     }
 
     /**
@@ -320,28 +378,28 @@ export class PlacesSearchBox extends Evented {
      * @inheritdoc
      */
     once(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.once(type, callback, config);
+        super.once(type, callback as EventCallback | undefined, config);
     }
 
     /**
      * @inheritdoc
      */
     onceImmediate(type: PlacesSearchBoxEvent, callback?: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.onceImmediate(type, callback, config);
+        super.onceImmediate(type, callback as EventCallback | undefined, config);
     }
 
     /**
      * @inheritdoc
      */
     only(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.only(type, callback, config);
+        super.only(type, callback as EventCallback, config);
     }
 
     /**
      * @inheritdoc
      */
     onlyOnce(type: PlacesSearchBoxEvent, callback: PlacesSearchBoxEventCallback, config?: EventConfig): void {
-        super.onlyOnce(type, callback, config);
+        super.onlyOnce(type, callback as EventCallback, config);
     }
 
     /**
@@ -383,7 +441,7 @@ export class PlacesSearchBox extends Evented {
                 if (options.input instanceof HTMLInputElement) {
                     this.#input = options.input;
                 } else if (isString(options.input)) {
-                    this.#input = document.querySelector(options.input);
+                    this.#input = document.querySelector<HTMLInputElement>(options.input) ?? undefined;
                     if (!this.#input) {
                         throw new Error(`The input element with the selector "${options.input}" was not found.`);
                     }

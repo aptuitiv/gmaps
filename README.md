@@ -10,6 +10,21 @@ Download from NPM.
 npm install @aptuitiv/gmaps
 ```
 
+## Browser support
+
+The library is built for ES2022 so that it can use private class fields, which are much faster and use less memory than the WeakMaps that older builds needed to replace them with. This matters most on phones and on maps with a lot of markers or polylines.
+
+This needs one of the following, all released in 2021 or earlier.
+
+| Browser | Version |
+|---------|---------|
+| Safari (including iOS) | 15 |
+| Chrome | 84 |
+| Edge | 84 |
+| Firefox | 90 |
+
+If you need to support older browsers, the library can be converted for them with your own build tools.
+
 ## Documentation
 
 [View the documentation](https://aptuitiv.github.io/gmaps-docs/).

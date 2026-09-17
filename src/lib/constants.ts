@@ -15,9 +15,33 @@
 export const READY_EVENT = 'ready';
 
 /**
+ * The events that this library dispatches itself, which the Google Maps API knows nothing about.
+ *
+ * Evented wires each event type it's asked to listen for through to the Google object, so that a
+ * Google event reaches the library's own listeners. Google never fires these types, so that wiring
+ * is dead weight: a native listener that can't ever be called, held for as long as the object
+ * lives. Every marker, polyline, overlay and data layer that waits for "ready" registered one.
+ *
+ * Only names that no Google object uses belong here. The overlay drag and resize events are
+ * deliberately left out, even though the overlay dispatches them itself, because "drag",
+ * "dragstart" and "dragend" are real Google events on Marker and Map and this list can't tell
+ * which kind of object it's being asked about. Leaving them out costs a dead listener on overlays;
+ * putting them in would stop markers being draggable. The data layer's "load" is left out for the
+ * same reason.
+ *
+ * The type is widened to string[] so that includes() can be called with any event type.
+ */
+export const INTERNAL_EVENTS: readonly string[] = Object.freeze([
+    READY_EVENT,
+    'locationfound',
+    'locationerror',
+    'initialized',
+]);
+
+/**
  * Events that can be fired by the Autocomplete search box.
  *
- * https://aptuitiv.github.io/gmaps-docs/api-reference/autocomplete-search-box#events
+ * https://aptuitiv.github.io/gmaps/api-reference/autocomplete-search-box#events
  */
 export const AutocompleteSearchBoxEvents = Object.freeze({
     // Called when the user selects a Place.
@@ -157,11 +181,57 @@ export const convertControlPosition = (value: string): google.maps.ControlPositi
     let returnValue = google.maps.ControlPosition.BLOCK_START_INLINE_START;
     Object.entries(ControlPosition).forEach((item) => {
         if (item[1] === value) {
-            returnValue = google.maps.ControlPosition[item[0]];
+            returnValue = google.maps.ControlPosition[item[0] as keyof typeof google.maps.ControlPosition];
         }
     });
     return returnValue;
 };
+
+/**
+ * Events that can be fired by the DataLayer.
+ */
+export const DataLayerEvents = Object.freeze({
+    // Google Maps events
+    // https://developers.google.com/maps/documentation/javascript/reference/data#Data-Events
+    ADD_FEATURE: 'addfeature',
+    CLICK: 'click',
+    CONTEXT_MENU: 'contextmenu',
+    DBLCLICK: 'dblclick',
+    MOUSE_DOWN: 'mousedown',
+    MOUSE_OUT: 'mouseout',
+    MOUSE_OVER: 'mouseover',
+    MOUSE_UP: 'mouseup',
+    REMOVE_FEATURE: 'removefeature',
+    REMOVE_PROPERTY: 'removeproperty',
+    RIGHT_CLICK: 'rightclick',
+    SET_GEOMETRY: 'setgeometry',
+    SET_PROPERTY: 'setproperty',
+
+    // Custom events for this library
+    // Called when the data layer is ready
+    READY: READY_EVENT,
+    // Called when a loadGeoJson() or addGeoJson() call has finished loading its features
+    LOAD: 'load',
+});
+
+/**
+ * The GeoJson geometry types that the data layer supports.
+ *
+ * https://developers.google.com/maps/documentation/javascript/reference/data#Data.Geometry
+ */
+export const GeometryType = Object.freeze({
+    GEOMETRY_COLLECTION: 'GeometryCollection',
+    LINE_STRING: 'LineString',
+    LINEAR_RING: 'LinearRing',
+    MULTI_LINE_STRING: 'MultiLineString',
+    MULTI_POINT: 'MultiPoint',
+    MULTI_POLYGON: 'MultiPolygon',
+    POINT: 'Point',
+    POLYGON: 'Polygon',
+});
+
+// Type for the GeometryType values
+export type GeometryTypeValue = (typeof GeometryType)[keyof typeof GeometryType];
 
 /**
  * Error status value for the Geocode object.
@@ -238,7 +308,7 @@ export const LayerEvents = Object.freeze({
 /**
  * Events that can be fired by the Loader.
  *
- * https://aptuitiv.github.io/gmaps-docs/api-reference/loader#events
+ * https://aptuitiv.github.io/gmaps/api-reference/loader#events
  */
 export const LoaderEvents = Object.freeze({
     // The API library is loaded.
@@ -279,7 +349,7 @@ export const MapEvents = Object.freeze({
     ZOOM_CHANGED: 'zoom_changed',
 
     // Custom events for this library
-    // https://aptuitiv.github.io/gmaps-docs/api-reference/map#events
+    // https://aptuitiv.github.io/gmaps/api-reference/map#events
 
     // There was an error getting the user's location.
     LOCATION_ERROR: 'locationerror',
@@ -327,7 +397,7 @@ export const convertMapTypeControlStyle = (value: string): google.maps.MapTypeCo
     let returnValue = google.maps.MapTypeControlStyle.DEFAULT;
     Object.entries(MapTypeControlStyle).forEach((item) => {
         if (item[1] === value) {
-            returnValue = google.maps.MapTypeControlStyle[item[0]];
+            returnValue = google.maps.MapTypeControlStyle[item[0] as keyof typeof google.maps.MapTypeControlStyle];
         }
     });
     return returnValue;
@@ -394,7 +464,7 @@ export const MarkerEvents = Object.freeze({
     ZINDEX_CHANGED: 'zindex_changed',
 
     // Custom events for this library
-    // https://aptuitiv.github.io/gmaps-docs/api-reference/marker#events
+    // https://aptuitiv.github.io/gmaps/api-reference/marker#events
 
     // The marker is loaded and ready for use.
     READY: READY_EVENT,
@@ -527,7 +597,7 @@ export const convertSymbolPath = (value: string): string => {
     let returnValue = '';
     Object.entries(SymbolPath).forEach((item) => {
         if (item[1] === value) {
-            returnValue = google.maps.SymbolPath[item[0]];
+            returnValue = String(google.maps.SymbolPath[item[0] as keyof typeof google.maps.SymbolPath]);
         }
     });
     return returnValue;

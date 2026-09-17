@@ -1,0 +1,21 @@
+---
+title: "Data Layer Test Page"
+layout: "base.njk"
+---
+<!-- Tutorial https://www.freecodecamp.org/news/learn-eleventy/ -->
+
+<h1>Data layer test</h1>
+
+<h2>The map's own data layer</h2>
+<p>A polygon with two holes in it, added with <code>map.data.addPolygon()</code>.</p>
+<div id="map1" class="mapContainer"></div>
+
+<h2>A separate data layer</h2>
+<p>GeoJson added to a layer created with <code>G.dataLayer()</code>, styled by a property. Click a shape.</p>
+<div id="map2" class="mapContainer"></div>
+
+<h2>Showing a popup by hand</h2>
+<p>Shows a popup from the layer's click event, panning the map so that the popup is in view.</p>
+<div id="map3" class="mapContainer"></div>
+
+<script src="{{ '/js/datalayer.js'|url|safe}}"></script>

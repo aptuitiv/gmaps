@@ -128,7 +128,7 @@ export class DefaultRenderer implements Renderer {
         if (isStringWithValue(color)) {
             this.#colorRangeTop = color;
         } else if (isObject(color) && isStringWithValue(color.bgColor)) {
-            this.#colorRangeBottom = color;
+            this.#colorRangeTop = color;
         }
     }
 
@@ -150,7 +150,7 @@ export class DefaultRenderer implements Renderer {
                             (isObject(colors[k]) && typeof (colors[k] as ClusterColor).bgColor === 'string'))
                 )
                 .sort((a, b) => a - b)
-                .reduce((acc, k) => {
+                .reduce<ClusterColors>((acc, k) => {
                     acc[k] = colors[k];
                     return acc;
                 }, {});
@@ -242,8 +242,8 @@ export class DefaultRenderer implements Renderer {
         if (Object.keys(this.#colors).length > 0) {
             // Find the color whose key is less than or equal to the count
             for (let i = 0; i < keys.length; i += 1) {
-                const k = keys[i];
-                if (count >= parseInt(k, 10)) {
+                const k = parseInt(keys[i], 10);
+                if (count >= k) {
                     color = this.#colors[k];
                 } else {
                     break;
@@ -255,7 +255,8 @@ export class DefaultRenderer implements Renderer {
         }
 
         // Set the background and text color
-        let bgColor: string;
+        // Only stays empty if a color object has an empty bgColor, which isn't a valid fill color either way.
+        let bgColor: string = '';
         let textColor: string = '#ffffff';
         if (typeof color === 'string') {
             bgColor = color;

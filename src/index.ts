@@ -20,6 +20,19 @@ export {
     AutocompleteSearchBoxOptions,
     AutocompleteSearchBoxValue,
 } from './lib/AutocompleteSearchBox';
+export { DataFeature, DataFeatureValue, FeatureProperties } from './lib/DataFeature';
+export {
+    dataLayer,
+    DataLayer,
+    DataLayerEventCallback,
+    DataLayerEventObject,
+    DataLayerOptions,
+    DataLayerValue,
+    DataStyleOptions,
+    DataStyleValue,
+    FeatureOptions,
+    LoadOptions,
+} from './lib/DataLayer';
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
 export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
 export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';
@@ -52,13 +65,34 @@ export {
 } from './lib/MarkerCluster';
 export { markerCollection, MarkerCollection } from './lib/MarkerCollection';
 export { overlay, Overlay } from './lib/Overlay';
+export { AttachEventValue } from './lib/OverlayAttachment';
 export { imageOverlay, ImageOverlay, ImageOverlayOptions, ImageOverlayValue } from './lib/ImageOverlay';
 export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchBoxValue } from './lib/PlacesSearchBox';
 export { point, Point, PointObject, PointValue } from './lib/Point';
-export { polyline, Polyline, PolylineOptions, PolylineValue } from './lib/Polyline';
+export { polyline, Polyline, PolylineOptions, PolylineSimplifyOptions, PolylineValue } from './lib/Polyline';
 export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
 export { polylineIcon, PolylineIcon, PolylineIconOptions, PolylineIconValue } from './lib/PolylineIcon';
-export { closeAllPopups, popup, Popup, PopupOptions, PopupValue } from './lib/Popup';
+export { DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, simplifyPath } from './lib/simplifyPath';
+export {
+    AttachPopupValue,
+    closeAllPopups,
+    DataPopupCallback,
+    DataPopupValue,
+    popup,
+    Popup,
+    PopupCallback,
+    PopupOptions,
+    PopupValue,
+} from './lib/Popup';
 export { size, Size, SizeObject, SizeValue } from './lib/Size';
 export { svgSymbol, SvgSymbol, SvgSymbolOptions, SvgSymbolValue } from './lib/SvgSymbol';
-export { tooltip, Tooltip, TooltipOptions, TooltipValue } from './lib/Tooltip';
+export {
+    AttachTooltipValue,
+    DataTooltipCallback,
+    DataTooltipValue,
+    tooltip,
+    Tooltip,
+    TooltipCallback,
+    TooltipOptions,
+    TooltipValue,
+} from './lib/Tooltip';

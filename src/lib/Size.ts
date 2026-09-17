@@ -9,7 +9,7 @@
     icon.origin([10, 32]);
     icon.origin({width: 10, height: 32});
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/size for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/size for documentation.
 =========================================================================== */
 
 /* global google */
@@ -32,12 +32,14 @@ type WidthSize = number | number[] | string | string[] | SizeObject;
  */
 export class Size extends Base {
     /**
-     * Holds the Google maps size object
+     * Holds the Google maps size object.
+     *
+     * This is created the first time that toGoogle() is called.
      *
      * @private
-     * @type {google.maps.Size}
+     * @type {google.maps.Size|undefined}
      */
-    #sizeObject: google.maps.Size;
+    #sizeObject: google.maps.Size | undefined;
 
     /**
      * The width value
@@ -64,7 +66,12 @@ export class Size extends Base {
         super('size');
         this.#height = 0;
         this.#width = 0;
-        if (typeof width !== 'undefined') {
+        if (isNumber(width) && isNumber(height)) {
+            // Two plain numbers is the common case, so it skips set() and its type dispatch.
+            // See the comment in the LatLng constructor.
+            this.#width = width;
+            this.#height = height;
+        } else if (typeof width !== 'undefined') {
             this.set(width, height);
         }
     }
@@ -89,7 +96,9 @@ export class Size extends Base {
         } else if (isNumber(height)) {
             this.#height = height;
         }
-        if (isObject(this.#sizeObject)) {
+        // A plain undefined check. isObject() was doing a toString call to answer "has the cache
+        // been built yet", which runs on every size write.
+        if (this.#sizeObject !== undefined) {
             this.#sizeObject.height = this.#height;
         }
     }
@@ -114,7 +123,8 @@ export class Size extends Base {
         } else if (isNumber(width)) {
             this.#width = width;
         }
-        if (isObject(this.#sizeObject)) {
+        // See the comment in the height setter
+        if (this.#sizeObject !== undefined) {
             this.#sizeObject.width = this.#width;
         }
     }
@@ -181,7 +191,10 @@ export class Size extends Base {
             this.height = (width as any).getHeight();
         } else {
             this.width = width;
-            this.height = height;
+            // The height setter ignores an undefined value, so only call it when there is a value.
+            if (typeof height !== 'undefined') {
+                this.height = height;
+            }
         }
         /* eslint-enable @typescript-eslint/no-explicit-any */
         return this;
@@ -218,7 +231,7 @@ export class Size extends Base {
      */
     toGoogle(): google.maps.Size | null {
         if (checkForGoogleMaps('Size', 'Size')) {
-            if (!isObject(this.#sizeObject)) {
+            if (this.#sizeObject === undefined) {
                 this.#sizeObject = new google.maps.Size(this.#width, this.#height);
             }
             return this.#sizeObject;

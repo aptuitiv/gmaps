@@ -9,7 +9,7 @@
     Or create the circle path yourself with
     https://www.smashingmagazine.com/2019/03/svg-circle-decomposition-paths/
 
-    See https://aptuitiv.github.io/gmaps-docs/api-reference/utilities/svgsymbol for documentation.
+    See https://aptuitiv.github.io/gmaps/api-reference/utilities/svgsymbol for documentation.
 =========================================================================== */
 
 /* global google */
@@ -45,6 +45,27 @@ export type SvgSymbolOptions = {
     strokeWeight?: number;
 };
 
+// The Google Maps symbol options, except that the anchor and labelOrigin values may be stored as Point
+// objects until they are converted in toGoogle(). This allows the options to be set before the
+// Google Maps library is loaded.
+type SymbolOptions = Omit<google.maps.Symbol, 'anchor' | 'labelOrigin'> & {
+    anchor?: google.maps.Point | Point | null;
+    labelOrigin?: google.maps.Point | Point | null;
+};
+
+// The option keys grouped by how they're converted. These are held here instead of inside
+// setOptions() so that the arrays aren't rebuilt every time a symbol is set up. One symbol is
+// often shared by a lot of markers or polylines, and setOptions() runs for each one.
+const NUMBER_OPTIONS: ('fillOpacity' | 'rotation' | 'scale' | 'strokeOpacity' | 'strokeWeight')[] = [
+    'fillOpacity',
+    'rotation',
+    'scale',
+    'strokeOpacity',
+    'strokeWeight',
+];
+const POINT_OPTIONS: ('anchor' | 'labelOrigin')[] = ['anchor', 'labelOrigin'];
+const STRING_OPTIONS: ('fillColor' | 'path' | 'strokeColor')[] = ['fillColor', 'path', 'strokeColor'];
+
 /**
  * Class to set up an SVG icon for a marker
  */
@@ -53,9 +74,9 @@ export class SvgSymbol extends Base {
      * Holds the icon options
      *
      * @private
-     * @type {google.maps.Symbol}
+     * @type {SymbolOptions}
      */
-    #options: google.maps.Symbol;
+    #options: SymbolOptions;
 
     /**
      * Constructor
@@ -71,8 +92,10 @@ export class SvgSymbol extends Base {
         };
         if (typeof path === 'string') {
             this.#options.path = path;
-            this.setOptions(options);
-        } else if (isObject(path)) {
+            if (options) {
+                this.setOptions(options);
+            }
+        } else if (isObject<SvgSymbolOptions>(path)) {
             this.setOptions(path);
         }
     }
@@ -83,7 +106,7 @@ export class SvgSymbol extends Base {
      * @returns {PointValue}
      */
     get anchor(): PointValue {
-        return point(this.#options.anchor);
+        return point(this.#options.anchor ?? undefined);
     }
 
     /**
@@ -98,9 +121,9 @@ export class SvgSymbol extends Base {
     /**
      * Get the SVG fill color
      *
-     * @returns {string}
+     * @returns {string|null|undefined}
      */
-    get fillColor(): string {
+    get fillColor(): string | null | undefined {
         return this.#options.fillColor;
     }
 
@@ -118,9 +141,9 @@ export class SvgSymbol extends Base {
     /**
      * Get the opacity for the fill
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get fillOpacity(): number {
+    get fillOpacity(): number | null | undefined {
         return this.#options.fillOpacity;
     }
 
@@ -140,9 +163,9 @@ export class SvgSymbol extends Base {
     /**
      * Get the origin of the label relative to the top-left corner of the icon image, if a label is supplied by the marker.
      *
-     * @returns {PointValue}
+     * @returns {PointValue|null|undefined}
      */
-    get labelOrigin(): PointValue {
+    get labelOrigin(): PointValue | null | undefined {
         return this.#options.labelOrigin;
     }
 
@@ -178,9 +201,9 @@ export class SvgSymbol extends Base {
     /**
      * Get the rotation of the icon in degrees clockwise about the anchor point.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get rotation(): number {
+    get rotation(): number | null | undefined {
         return this.#options.rotation;
     }
 
@@ -200,9 +223,9 @@ export class SvgSymbol extends Base {
     /**
      * Get the amount by which the icon is scaled.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get scale(): number {
+    get scale(): number | null | undefined {
         return this.#options.scale;
     }
 
@@ -222,9 +245,9 @@ export class SvgSymbol extends Base {
     /**
      * Get the SVG stroke color
      *
-     * @returns {string}
+     * @returns {string|null|undefined}
      */
-    get strokeColor(): string {
+    get strokeColor(): string | null | undefined {
         return this.#options.strokeColor;
     }
 
@@ -243,9 +266,9 @@ export class SvgSymbol extends Base {
      * Get the opacity of the stroke.
      * The opacity of the stroke, where 0 is fully transparent and 1 is fully opaque.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get strokeOpacity(): number {
+    get strokeOpacity(): number | null | undefined {
         return this.#options.strokeOpacity;
     }
 
@@ -265,9 +288,9 @@ export class SvgSymbol extends Base {
     /**
      * Get the weight of the stroke in pixels.
      *
-     * @returns {number}
+     * @returns {number|null|undefined}
      */
-    get strokeWeight(): number {
+    get strokeWeight(): number | null | undefined {
         return this.#options.strokeWeight;
     }
 
@@ -292,10 +315,7 @@ export class SvgSymbol extends Base {
      */
     setOptions(options: SvgSymbolOptions): SvgSymbol {
         if (isObject(options)) {
-            const numberValues = ['fillOpacity', 'rotation', 'scale', 'strokeOpacity', 'strokeWeight'];
-            const pointValues = ['anchor', 'labelOrigin'];
-            const stringValues = ['fillColor', 'path', 'strokeColor'];
-            numberValues.forEach((key) => {
+            NUMBER_OPTIONS.forEach((key) => {
                 if ((typeof options[key] !== 'undefined' && isNumber(options[key])) || isNumberString(options[key])) {
                     if (isNumberString(options[key])) {
                         this.#options[key] = Number(options[key]);
@@ -304,12 +324,12 @@ export class SvgSymbol extends Base {
                     }
                 }
             });
-            pointValues.forEach((key) => {
+            POINT_OPTIONS.forEach((key) => {
                 if (options[key]) {
                     this.#options[key] = point(options[key]);
                 }
             });
-            stringValues.forEach((key) => {
+            STRING_OPTIONS.forEach((key) => {
                 if (options[key] && isStringWithValue(options[key])) {
                     this.#options[key] = options[key];
                 }
@@ -449,12 +469,13 @@ export class SvgSymbol extends Base {
     toGoogle(): Promise<google.maps.Symbol> {
         return new Promise((resolve) => {
             loader().onLoad(() => {
-                const options = { ...this.#options };
-                if (options.anchor instanceof Point) {
-                    options.anchor = options.anchor.toGoogle();
+                const { anchor, labelOrigin, ...rest } = this.#options;
+                const options: google.maps.Symbol = { ...rest };
+                if (typeof anchor !== 'undefined') {
+                    options.anchor = anchor instanceof Point ? anchor.toGoogle() : anchor;
                 }
-                if (options.labelOrigin instanceof Point) {
-                    options.labelOrigin = options.labelOrigin.toGoogle();
+                if (typeof labelOrigin !== 'undefined') {
+                    options.labelOrigin = labelOrigin instanceof Point ? labelOrigin.toGoogle() : labelOrigin;
                 }
                 if (isStringWithValue(options.path) && Object.keys(SymbolPath).includes(options.path as string)) {
                     options.path = convertSymbolPath(options.path as string);

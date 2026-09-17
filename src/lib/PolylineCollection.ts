@@ -64,7 +64,19 @@ export class PolylineCollection {
      * This also hides all the polylines in the collection.
      */
     clear(): void {
-        this.hideAll();
+        /**
+         * Detach each polyline from the map, do not merely hide it.
+         *
+         * Polyline.hide() sets visible = false and leaves the polyline on the map - unlike
+         * Marker.hide(), which sets map = null. So clearing a collection used to leave every
+         * Google polyline attached, each still holding its full path and its event listeners, with
+         * nothing referring to them. Redrawing a map from new data leaked the whole previous set.
+         */
+        Object.keys(this.polylines).forEach((tag) => {
+            this.polylines[tag].forEach((p) => {
+                p.setMap(null);
+            });
+        });
         this.polylines = {};
     }
 
@@ -196,7 +208,7 @@ export class PolylineCollection {
      *
      * @returns {boolean}
      */
-    isEmtpy(): boolean {
+    isEmpty(): boolean {
         return Object.keys(this.polylines).length === 0;
     }
 

@@ -1,11 +1,18 @@
 /* ===========================================================================
     Styles for this site
 =========================================================================== */
+
+:root {
+    --sidebar-width: 220px;
+    --link-color: #0000ee;
+    --border-color: #ddd;
+}
+
 body {
     color: #333;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue',
         sans-serif;
-    margin: 40px;
+    margin: 0;
 }
 
 h1 {
@@ -20,34 +27,114 @@ h2 {
     aspect-ratio: 3/1;
 }
 
-.Nav {
-    list-style: none;
-    display: flex;
-    padding-left: 0;
-    margin-bottom: 20px;
-}
-
-.Nav a {
-    text-decoration: none;
-    color: #0000ee;
-}
-
-.Nav li {
-    border-right: 1px solid #0000ee;
-    line-height: 1;
-    padding: 0 10px;
-}
-
-.Nav li:first-child {
-    padding-left: 0;
-}
-
-.Nav li:last-child {
-    border-right: none;
-}
-
 code {
     background-color: #f4f4f4;
     padding: 2px 4px;
     border-radius: 4px;
+}
+
+/* ==========================================================================
+    Layout
+========================================================================== */
+
+.Layout {
+    display: flex;
+    align-items: flex-start;
+}
+
+.Content {
+    flex: 1;
+    /* Keeps wide content (like the maps) from blowing out the flex layout */
+    min-width: 0;
+    padding: 40px;
+}
+
+/* ==========================================================================
+    Sidebar
+========================================================================== */
+
+.Sidebar {
+    flex: 0 0 var(--sidebar-width);
+    width: var(--sidebar-width);
+    align-self: stretch;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 20px 0;
+    border-right: 1px solid var(--border-color);
+    background-color: #fafafa;
+}
+
+.Sidebar-title {
+    margin: 0 0 12px;
+    padding: 0 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #777;
+}
+
+.Nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.Nav-link {
+    display: block;
+    padding: 7px 20px;
+    text-decoration: none;
+    line-height: 1.3;
+    color: var(--link-color);
+    border-left: 3px solid transparent;
+}
+
+.Nav-link:hover,
+.Nav-link:focus-visible {
+    background-color: #eee;
+}
+
+.Nav-link[aria-current='page'] {
+    font-weight: 700;
+    color: #333;
+    background-color: #eaeaea;
+    border-left-color: var(--link-color);
+}
+
+/* Stack the sidebar above the content on narrow screens */
+@media (max-width: 700px) {
+    .Layout {
+        display: block;
+    }
+
+    .Sidebar {
+        width: auto;
+        max-height: none;
+        position: static;
+        padding: 16px 0;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .Nav-list {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .Nav-link {
+        padding: 6px 12px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .Nav-link[aria-current='page'] {
+        border-left-color: transparent;
+        border-bottom-color: var(--link-color);
+    }
+
+    .Content {
+        padding: 20px;
+    }
 }

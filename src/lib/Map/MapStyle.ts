@@ -25,6 +25,9 @@ export type MapStyleOptions = {
     featureType?: string;
     // The styles to apply to the map
     styles?: Style[];
+    // Alias of "styles" that matches the Google Maps MapTypeStyle property name.
+    // This allows Google's style JSON to be used as is.
+    stylers?: Style[];
 };
 
 /**
@@ -65,7 +68,8 @@ export class MapStyle {
             if (
                 isDefined((options as MapStyleOptions).elementType) ||
                 isDefined((options as MapStyleOptions).featureType) ||
-                isDefined((options as MapStyleOptions).styles)
+                isDefined((options as MapStyleOptions).styles) ||
+                isDefined((options as MapStyleOptions).stylers)
             ) {
                 const opts = options as MapStyleOptions;
                 if (opts.elementType) {
@@ -75,7 +79,9 @@ export class MapStyle {
                     this.featureType = opts.featureType;
                 }
                 if (opts.styles) {
-                    this.#styles = opts.styles;
+                    this.styles = opts.styles;
+                } else if (opts.stylers) {
+                    this.styles = opts.stylers;
                 }
             } else {
                 this.styles = options as Style;

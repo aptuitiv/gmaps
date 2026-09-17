@@ -44,6 +44,10 @@ import {
 
 export type MarkerLabel = google.maps.MarkerLabel;
 
+// The option keys that are copied across as they are. Held here so that the array isn't
+// rebuilt every time a marker's options are set.
+const STRING_OPTIONS: 'cursor'[] = ['cursor'];
+
 // Options that will be passed to the Google maps marker object
 type GMMarkerOptions = {
     // The offset from the marker's position to the tip of an InfoWindow that has been opened with the marker as anchor.
@@ -54,8 +58,8 @@ type GMMarkerOptions = {
     icon?: Icon | SvgSymbol | string;
     // The label value for the marker
     label?: string | MarkerLabel;
-    // The map to add the marker to.
-    map?: Map;
+    // The map to add the marker to. This is null if the marker was removed from the map.
+    map?: Map | null;
     // The position for the marker.
     position?: LatLng;
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
@@ -108,15 +112,17 @@ export class AdvancedMarker extends Layer {
      * @private
      * @type {google.maps.marker.AdvancedMarkerElement}
      */
-    #marker: google.maps.marker.AdvancedMarkerElement;
+    #marker!: google.maps.marker.AdvancedMarkerElement;
 
     /**
      * Holds the marker options
      *
+     * The position always has a value. It defaults to 0,0 and is only replaced with a valid position.
+     *
      * @private
-     * @type {GMMarkerOptions}
+     * @type {GMMarkerOptions & { position: LatLng }}
      */
-    #options: GMMarkerOptions = {};
+    #options: GMMarkerOptions & { position: LatLng } = { position: latLng([0, 0]) };
 
     /**
      * Constructor
@@ -126,9 +132,6 @@ export class AdvancedMarker extends Layer {
      */
     constructor(position?: LatLngValue | MarkerOptions, options?: MarkerOptions) {
         super('marker', 'AdvancedMarker', 'marker');
-
-        // Set a default position
-        this.#options.position = latLng([0, 0]);
 
         // Set the marker latitude and longitude value
         if (position instanceof LatLng || Array.isArray(position)) {
@@ -147,9 +150,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the anchor point for the marker
      *
-     * @returns {Point}
+     * @returns {Point | undefined}
      */
-    get anchorPoint(): Point {
+    get anchorPoint(): Point | undefined {
         return this.#options.anchorPoint;
     }
 
@@ -165,9 +168,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the cursor type to show on hover
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get cursor(): string {
+    get cursor(): string | undefined {
         return this.#options.cursor;
     }
 
@@ -183,9 +186,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the icon for the marker
      *
-     * @returns {Icon | SvgSymbol | string}
+     * @returns {Icon | SvgSymbol | string | undefined}
      */
-    get icon(): Icon | SvgSymbol | string {
+    get icon(): Icon | SvgSymbol | string | undefined {
         return this.#options.icon;
     }
 
@@ -201,9 +204,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the label for the marker
      *
-     * @returns {string | number | MarkerLabel}
+     * @returns {string | number | MarkerLabel | undefined}
      */
-    get label(): string | number | MarkerLabel {
+    get label(): string | number | MarkerLabel | undefined {
         return this.#options.label;
     }
 
@@ -219,9 +222,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the map object
      *
-     * @returns {Map}
+     * @returns {Map | null | undefined}
      */
-    get map(): Map {
+    get map(): Map | null | undefined {
         return this.#options.map;
     }
 
@@ -255,9 +258,9 @@ export class AdvancedMarker extends Layer {
     /**
      * Get the title for the marker
      *
-     * @returns {string}
+     * @returns {string | undefined}
      */
-    get title(): string {
+    get title(): string | undefined {
         return this.#options.title;
     }
 
@@ -339,19 +342,11 @@ export class AdvancedMarker extends Layer {
         // if (eventType === 'click') {
         //     eventType = 'gmp-click';
         // }
-        if (type === 'mouseenter') {
-            // this.#marker.content.addEventListener('click', () => {
-            //     console.log('click');
-            // });
-            this.#marker.addListener('mouseover', () => {
-                console.log('mouseover');
-            });
-            this.#marker.content.addEventListener('mouseover', () => {
-                console.log('content mouseover');
-            });
-        } else {
-            super.on(type, callback, config);
-        }
+        // "mouseenter" used to take its own branch here that added two listeners which only
+        // logged to the console and never called the callback that was passed in, so
+        // on('mouseenter', fn) silently did nothing. It now goes through the normal path with
+        // every other event. The commented-out experiments above and below record what was tried.
+        super.on(type, callback, config);
         // if (eventType === 'click') {
         //     if (this.#marker) {
         //         console.log('Marker on: ', eventType, callback);
@@ -599,7 +594,12 @@ export class AdvancedMarker extends Layer {
             // Set the map
             this.#options.map = value;
             super.setMap(value);
-            this.#marker.map = value.toGoogle();
+            // Checked rather than assumed. The marker is only built when something needs it, so
+            // it isn't there yet if the Google marker library hasn't loaded. The branch below
+            // for removing the marker from the map has always checked; this one didn't.
+            if (this.#marker) {
+                this.#marker.map = value.toGoogle();
+            }
         } else if (isNullOrUndefined(value)) {
             // Remove the marker from the map
             this.#options.map = null;
@@ -614,7 +614,9 @@ export class AdvancedMarker extends Layer {
             value.then((map) => {
                 this.#options.map = map;
                 super.setMap(map);
-                this.#marker.map = map.toGoogle();
+                if (this.#marker) {
+                    this.#marker.map = map.toGoogle();
+                }
             });
         }
     }
@@ -626,7 +628,6 @@ export class AdvancedMarker extends Layer {
      * @returns {AdvancedMarker}
      */
     setOptions(options: MarkerOptions): AdvancedMarker {
-        console.log('Marker setOptions: ', options);
         // Set the anchor point
         if (options.anchorPoint) {
             this.anchorPoint = options.anchorPoint;
@@ -666,9 +667,7 @@ export class AdvancedMarker extends Layer {
             } else if (isNumberOrNumberString(options.longitude)) {
                 latLngValue.lng = options.longitude;
             }
-            console.log('options position: ', latLngValue);
             this.position = latLngValue;
-            console.log('this.position: ', this.position);
         } else if (options.position) {
             this.position = options.position;
         }
@@ -686,8 +685,7 @@ export class AdvancedMarker extends Layer {
         }
 
         // Set simple options
-        const stringOptions = ['cursor'];
-        stringOptions.forEach((key) => {
+        STRING_OPTIONS.forEach((key) => {
             if (options[key] && isStringWithValue(options[key])) {
                 this.#options[key] = options[key];
             }
@@ -736,11 +734,13 @@ export class AdvancedMarker extends Layer {
      */
     #setPosition(value: LatLngValue) {
         const position = latLng(value);
-        console.log('#setPosition: ', value, position);
         if (position.isValid()) {
-            console.log('#setPosition: ', position);
             this.#options.position = position;
-            this.#marker.position = this.#options.position.toGoogle();
+            // The position is kept in the options either way, so it reaches the marker when it
+            // is built. Only the write to an existing marker needs the check.
+            if (this.#marker) {
+                this.#marker.position = this.#options.position.toGoogle();
+            }
         }
     }
 
@@ -783,7 +783,11 @@ export class AdvancedMarker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.title = undefined;
         }
-        this.#marker.title = this.#options.title;
+        // Same as the position: the title is kept in the options and used when the marker is
+        // built, so only the write to an existing marker has to be checked.
+        if (this.#marker) {
+            this.#marker.title = this.#options.title ?? '';
+        }
     }
 
     /**
@@ -894,11 +898,13 @@ export class AdvancedMarker extends Layer {
     #createMarkerObject() {
         if (!this.#marker) {
             const markerOptions: AdvancedMarkerOptions = {};
-            // Options that can be set on the marker without any modification
-            const optionsToSet = ['cursor', 'title'];
+            // Options that can be set on the marker without any modification.
+            // "cursor" isn't part of the AdvancedMarkerElementOptions type, so index both objects generically.
+            const optionsToSet: ('cursor' | 'title')[] = ['cursor', 'title'];
+            const markerOptionsRecord = markerOptions as Record<string, unknown>;
             optionsToSet.forEach((key) => {
                 if (typeof this.#options[key] !== 'undefined') {
-                    markerOptions[key] = this.#options[key];
+                    markerOptionsRecord[key] = this.#options[key];
                 }
             });
 
