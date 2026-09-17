@@ -283,6 +283,11 @@ export class Tooltip extends Overlay {
         } else if (content instanceof HTMLElement || content instanceof Text) {
             element.innerHTML = '';
             element.appendChild(content);
+        } else {
+            // No content to write. This is how the shared tooltip empties itself between the
+            // things it's shown for - without it the last thing's text would be left in the
+            // element for the next one, which has none of its own.
+            element.innerHTML = '';
         }
     }
 
@@ -446,6 +451,9 @@ export class Tooltip extends Overlay {
         // time it's about to be shown.
         const sharedValue = sharedTooltipValues.get(target);
         if (typeof sharedValue !== 'undefined') {
+            // Everything shares this one object, so whatever the last thing left on it is put
+            // back to the built state before this thing's value goes on.
+            this.#resetToBaseline();
             return this.#resolveFor(target, sharedValue);
         }
         // Not shared and no callback. This is a tooltip with fixed content, which is always
@@ -455,6 +463,45 @@ export class Tooltip extends Overlay {
         }
         // Not shared, but a callback was given, so it decides what to show each time
         return this.#resolveFor(target, this.#callback);
+    }
+
+    /**
+     * Put the shared tooltip back to how it was built, before another object's value is applied.
+     *
+     * setOptions() only applies the options that are actually given, so anything it isn't told
+     * about is left as the last object set it. That's fine for a tooltip that belongs to one
+     * layer, but the shared tooltip is the same object for everything on the map: a marker that
+     * attached {content, className, theme} left its class name and theme on the tooltip, and the
+     * next marker along - whose value is only {content} - was then shown wearing them.
+     *
+     * The class name is the worst of it. setOptions() takes the "tooltip" class off before adding
+     * the one it was given, so once any object passed a className, every object after it lost the
+     * default class for good.
+     *
+     * Only the shared tooltip is reset, and only the values that a tooltip is built with. Styles
+     * are deliberately left alone: they're only carried over when an object passes a styles
+     * object of its own, and clearing them would mean reaching into Overlay's style record.
+     * The theme puts its own styles back, because setting the theme marks it for reapplying.
+     *
+     * @private
+     */
+    #resetToBaseline(): void {
+        this.center = true;
+        this.theme = 'default';
+        this.setOffset([0, 4]);
+        // Class names add to each other rather than replacing, so the current ones are taken off
+        // before the default goes back on. removeClassName('') would ask the element to remove an
+        // empty class, which throws, so there's nothing to do when there aren't any.
+        const current = this.className;
+        if (current.length > 0) {
+            this.removeClassName(current);
+        }
+        this.setClassName('tooltip');
+        // The content setter ignores an empty value on purpose, so this is set directly. Marking
+        // it dirty is what gets the old content out of the element - #flushContent() clears the
+        // element when there's nothing to put in it.
+        this.#content = undefined;
+        this.#isContentDirty = true;
     }
 
     /**

@@ -111,6 +111,61 @@ describe('Tooltip', () => {
             expect(Tooltip.getShared().content).toBe('First');
         });
 
+        /*
+            setOptions() only applies what it's given, so the shared tooltip used to keep
+            whatever the last object set on it. The class name was the worst of it: setOptions()
+            takes the "tooltip" class off before adding its own, so once any object passed a
+            className every object after it lost the default class permanently.
+        */
+        it('does not leave one object\'s options on the next one', async () => {
+            const first = polyline({ path });
+            const second = polyline({ path });
+            first.attachTooltip({ content: 'First', className: 'special', theme: 'none', center: false });
+            second.attachTooltip({ content: 'Second' });
+            await tick();
+
+            const map = fakeMap();
+            await first.setMap(map);
+            await second.setMap(map);
+            await tick();
+
+            const shared = Tooltip.getShared();
+            first.dispatch('mouseover', { latLng: { lat: 48.85, lng: 2.35 } });
+            expect(shared.className).toBe('special');
+            expect(shared.theme).toBe('none');
+            expect(shared.center).toBe(false);
+
+            // The second polyline only asked for content, so everything else goes back to the
+            // way the tooltip was built rather than staying as the first one left it.
+            second.dispatch('mouseover', { latLng: { lat: 48.85, lng: 2.35 } });
+            expect(shared.content).toBe('Second');
+            expect(shared.className).toBe('tooltip');
+            expect(shared.theme).toBe('default');
+            expect(shared.center).toBe(true);
+        });
+
+        it('does not leave the previous content showing for an object that has none', async () => {
+            const first = polyline({ path });
+            const second = polyline({ path });
+            first.attachTooltip('First');
+            second.attachTooltip({ className: 'no-content' });
+            await tick();
+
+            const map = fakeMap();
+            await first.setMap(map);
+            await second.setMap(map);
+            await tick();
+
+            const shared = Tooltip.getShared();
+            first.dispatch('mouseover', { latLng: { lat: 48.85, lng: 2.35 } });
+            expect(shared.hasContent()).toBe(true);
+
+            second.dispatch('mouseover', { latLng: { lat: 48.85, lng: 2.35 } });
+            expect(shared.hasContent()).toBe(false);
+            // The element is emptied too, not just the stored value
+            expect(shared.getOverlayElement().innerHTML).toBe('');
+        });
+
         it('gives an object its own Tooltip when the call opts out', () => {
             const shared = polyline({ path }).attachTooltip('Shared');
             const own = polyline({ path }).attachTooltip('Own', 'hover', { shared: false });
