@@ -841,6 +841,86 @@ const fakeProjection = {
 };
 
 /**
+ * A stand-in for google.maps.marker.AdvancedMarkerElement.
+ *
+ * Only the four things the real one actually has are here - map, position, title and
+ * gmpClickable are plain properties on it, not setters. AdvancedMarker.ts has commented-out
+ * calls to setIcon(), setLabel(), setCursor() and setOptions(), each marked with a "@todo",
+ * which are left over from it being a copy of Marker.ts. Those methods don't exist on the real
+ * AdvancedMarkerElement, so they're deliberately not provided here either: if one of those
+ * todos is ever uncommented, the tests should fail rather than pass against an invented API.
+ *
+ * It's a real class so that the instanceof check in Evented.#isGoogleObjectSet() succeeds and
+ * events get wired up the way they do for other objects.
+ */
+class AdvancedMarkerElementStub {
+    map: any = null;
+
+    position: any = null;
+
+    title: string = '';
+
+    gmpClickable: boolean | undefined;
+
+    /** Listeners added through addListener(), keyed by event type */
+    __listeners: Record<string, ((...args: any[]) => void)[]> = {};
+
+    /**
+     * Constructor
+     *
+     * @param {object} [options] The options the marker was built with
+     */
+    constructor(options?: any) {
+        mapsStats.construct('AdvancedMarkerElement');
+        mapsStats.call('AdvancedMarkerElement', 'constructor', [options]);
+        if (options) {
+            if (typeof options.map !== 'undefined') {
+                this.map = options.map;
+            }
+            if (typeof options.position !== 'undefined') {
+                this.position = options.position;
+            }
+            if (typeof options.title !== 'undefined') {
+                this.title = options.title;
+            }
+            if (typeof options.gmpClickable !== 'undefined') {
+                this.gmpClickable = options.gmpClickable;
+            }
+        }
+    }
+
+    /**
+     * Add an event listener
+     *
+     * @param {string} type The event type
+     * @param {Function} fn The listener
+     * @returns {object} A handle with a remove() method, like Google's
+     */
+    addListener(type: string, fn: (...args: any[]) => void): { remove: () => void } {
+        mapsStats.call('AdvancedMarkerElement', 'addListener', [type]);
+        if (!this.__listeners[type]) {
+            this.__listeners[type] = [];
+        }
+        this.__listeners[type].push(fn);
+        return {
+            remove: () => {
+                this.__listeners[type] = (this.__listeners[type] || []).filter((f) => f !== fn);
+            },
+        };
+    }
+
+    /**
+     * Fire the listeners for an event type
+     *
+     * @param {string} type The event type
+     * @param {any} [data] The event data
+     */
+    __fire(type: string, data?: any): void {
+        (this.__listeners[type] || []).slice().forEach((fn) => fn(data));
+    }
+}
+
+/**
  * The google.maps.event namespace
  */
 const event = {
@@ -971,6 +1051,11 @@ const buildMaps = () => ({
         }
     },
     event,
+    // The advanced marker library. AdvancedMarker passes "marker" as its library name, so
+    // checkForGoogleMaps('Marker', 'marker', false) looks for this key.
+    marker: {
+        AdvancedMarkerElement: AdvancedMarkerElementStub,
+    },
     // The geocoding service. checkForGoogleMaps('Geocoder', 'Geocoder', false) looks for this key.
     Geocoder: GeocoderStub,
     GeocoderStatus: {
