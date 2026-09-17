@@ -594,7 +594,12 @@ export class AdvancedMarker extends Layer {
             // Set the map
             this.#options.map = value;
             super.setMap(value);
-            this.#marker.map = value.toGoogle();
+            // Checked rather than assumed. The marker is only built when something needs it, so
+            // it isn't there yet if the Google marker library hasn't loaded. The branch below
+            // for removing the marker from the map has always checked; this one didn't.
+            if (this.#marker) {
+                this.#marker.map = value.toGoogle();
+            }
         } else if (isNullOrUndefined(value)) {
             // Remove the marker from the map
             this.#options.map = null;
@@ -609,7 +614,9 @@ export class AdvancedMarker extends Layer {
             value.then((map) => {
                 this.#options.map = map;
                 super.setMap(map);
-                this.#marker.map = map.toGoogle();
+                if (this.#marker) {
+                    this.#marker.map = map.toGoogle();
+                }
             });
         }
     }
@@ -729,7 +736,11 @@ export class AdvancedMarker extends Layer {
         const position = latLng(value);
         if (position.isValid()) {
             this.#options.position = position;
-            this.#marker.position = this.#options.position.toGoogle();
+            // The position is kept in the options either way, so it reaches the marker when it
+            // is built. Only the write to an existing marker needs the check.
+            if (this.#marker) {
+                this.#marker.position = this.#options.position.toGoogle();
+            }
         }
     }
 
@@ -772,7 +783,11 @@ export class AdvancedMarker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.title = undefined;
         }
-        this.#marker.title = this.#options.title ?? '';
+        // Same as the position: the title is kept in the options and used when the marker is
+        // built, so only the write to an existing marker has to be checked.
+        if (this.#marker) {
+            this.#marker.title = this.#options.title ?? '';
+        }
     }
 
     /**
