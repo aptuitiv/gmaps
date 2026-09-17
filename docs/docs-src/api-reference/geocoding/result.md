@@ -5,7 +5,7 @@
 
 The `GeocodeResult` object holds the individual geocode response. It is accessed through the [GeocodeResults](/api-reference/geocoding/results) object.
 
-The purpose of this object is to provide programatic access to the response data instead of having to work with a json-like object.
+The purpose of this object is to provide programmatic access to the response data instead of having to work with a json-like object.
 
 ## Example usage
 
