@@ -186,7 +186,7 @@ loader.on(G.LoaderEvents.LOAD, () => {
 
 `once(type: string, callback: Function): void`
 
-Since the [on](#on) listener sets events up to only be called once, this function is just syntatic sugar on top of that to make it clear in your code that the event is only called once.
+Since the [on](#on) listener sets events up to only be called once, this function is just syntactic sugar on top of that to make it clear in your code that the event is only called once.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -210,7 +210,7 @@ loader.once(G.LoaderEvents.LOAD, () => {
 
 Convenience function to set up a `once` event callback for the `load` event.
 
-Since the [on](#on) listener sets events up to only be called once, this function is just syntatic sugar on top of `onLoad` to make it clear in your code that the event is only called once.
+Since the [on](#on) listener sets events up to only be called once, this function is just syntactic sugar on top of `onLoad` to make it clear in your code that the event is only called once.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -229,7 +229,7 @@ loader.onceLoad(() => {
 
 Convenience function to set up a `once` event callback for the `map_load` event.
 
-Since the [on](#on) listener sets events up to only be called once, this function is just syntatic sugar on top of `onMapLoad` to make it clear in your code that the event is only called once.
+Since the [on](#on) listener sets events up to only be called once, this function is just syntactic sugar on top of `onMapLoad` to make it clear in your code that the event is only called once.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

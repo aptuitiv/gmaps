@@ -917,7 +917,7 @@ type EventListenerData = {
     options: EventListenerOptions;
 };
 /**
- * Evented class to add syntatic sugar to handling events
+ * Evented class to add syntactic sugar to handling events
  */
 declare class Evented extends Base {
     #private;

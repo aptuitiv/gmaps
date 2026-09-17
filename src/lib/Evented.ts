@@ -82,7 +82,7 @@ type PendingEventData = {
 type PendingEvents = { [key: string]: PendingEventData[] };
 
 /**
- * Evented class to add syntatic sugar to handling events
+ * Evented class to add syntactic sugar to handling events
  */
 export class Evented extends Base {
     /*
@@ -546,12 +546,9 @@ export class Evented extends Base {
                         // optional, so it has to be tested here for the compiler to agree.
                         const googleObject = this.#googleObject;
                         if (googleObject && !googleListeners[type]) {
-                            googleListeners[type] = googleObject.addListener(
-                                type,
-                                (e: google.maps.MapMouseEvent) => {
-                                    this.dispatch(type, e);
-                                },
-                            );
+                            googleListeners[type] = googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                                this.dispatch(type, e);
+                            });
                         }
                     } else {
                         // The Google maps object is not set yet so so save the event listener so that it
@@ -659,12 +656,9 @@ export class Evented extends Base {
                 // Google object existed each added their own Google listener, and every one of
                 // them then dispatched to all of the callbacks.
                 if (googleObject && !googleListeners[type]) {
-                    googleListeners[type] = googleObject.addListener(
-                        type,
-                        (e: google.maps.MapMouseEvent) => {
-                            this.dispatch(type, e);
-                        },
-                    );
+                    googleListeners[type] = googleObject.addListener(type, (e: google.maps.MapMouseEvent) => {
+                        this.dispatch(type, e);
+                    });
                 }
             });
             this.#pendingMapObjectEventListeners = undefined;
