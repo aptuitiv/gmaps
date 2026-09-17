@@ -623,6 +623,83 @@ describe('Marker with a map', () => {
             expect(cb).toHaveBeenCalledTimes(1);
         });
     });
+
+    /* -----------------------------------------------------------------------
+        The synchronous methods have to hand back a marker, whatever the map is doing.
+
+        Creating the marker used to wait for the map to be ready, so with a map that hadn't
+        rendered yet #marker was still undefined when the synchronous methods returned.
+        toGoogleSync() handed back undefined, and the Sync setters went straight on to call
+        something on it - #setTitle, #setCursor, #setAnchorPoint, #setOptimized and
+        #setGoogleMarkerPosition all use the marker without checking - so they threw.
+
+        A synchronous call now builds the marker without a map and puts it on the map once the
+        map is ready. The asynchronous path still waits, which is what the tests above check.
+    ----------------------------------------------------------------------- */
+    describe('the synchronous methods with a map that is not ready', () => {
+        it('toGoogleSync returns a marker rather than undefined', () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+
+            const google = m.toGoogleSync();
+            expect(google).toBeDefined();
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+
+        it('does not put it on the map until the map is ready', () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+
+            m.toGoogleSync();
+            const created = mapsStats.callsTo('Marker', 'constructor')[0];
+            expect(created.args[0].map).toBeUndefined();
+            expect(mapsStats.callsTo('Marker', 'setMap')).toHaveLength(0);
+        });
+
+        it('puts it on the map once the map is ready', () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+
+            m.toGoogleSync();
+            asFakeMap(map).makeReady();
+
+            const attached = mapsStats.callsTo('Marker', 'setMap');
+            expect(attached).toHaveLength(1);
+            expect(attached[0].args[0]).toEqual({ __fakeGoogleMap: true });
+        });
+
+        it('the Sync setters reach Google instead of throwing', () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+
+            expect(() => {
+                m.setTitleSync('A title');
+                m.setCursorSync('pointer');
+                m.setLabelSync('A label');
+                m.setOptimizedSync(true);
+                m.setPositionSync([3, 4]);
+            }).not.toThrow();
+
+            expect(mapsStats.callsTo('Marker', 'setTitle')).toHaveLength(1);
+            expect(mapsStats.callsTo('Marker', 'setLabel')).toHaveLength(1);
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+
+        // The synchronous call builds the marker, so the asynchronous creation that was already
+        // waiting has to use that one rather than building a second.
+        it('builds one marker when an async call is already waiting for the map', async () => {
+            const map = fakeMap({ ready: false });
+            const m = marker({ position: [1, 2], map });
+
+            const pending = m.toGoogle();
+            m.toGoogleSync();
+            asFakeMap(map).makeReady();
+            await pending;
+            await tick();
+
+            expect(mapsStats.countOf('Marker')).toBe(1);
+        });
+    });
 });
 
 /*

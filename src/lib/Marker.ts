@@ -1625,17 +1625,21 @@ export class Marker extends Layer {
      */
     #setupGoogleMarkerSync(): void {
         if (!isObject(this.#marker)) {
-            if (this.#creationPromise) {
-                // A creation is already running, so let it finish rather than starting a second
-                // one. Creating the marker isn't always immediate - when the map isn't ready yet
-                // it waits for the map first - so this is reachable, and without it the marker
-                // was built twice.
-                return;
-            }
             if (checkForGoogleMaps('Marker', 'Marker', false)) {
+                // Built right away, even when the map isn't ready yet. Everything that calls this
+                // is a synchronous method - toGoogleSync() and the "Sync" setters - and they use
+                // the Google marker as soon as this returns, so it has to exist by then. It used
+                // to wait for the map, which left #marker undefined and made those methods throw
+                // or hand back undefined.
+                //
+                // An asynchronous creation that's already running is not waited for here, for the
+                // same reason: waiting would mean returning without a marker. It builds the marker
+                // now, and the waiting creation attaches the map to this one rather than building
+                // another.
+                //
                 // Dispatch the "ready" event once the marker exists, the same as #setupGoogleMarker() does.
                 // Tooltips and popups wait for it before they add their event listeners to the marker.
-                const creation = this.#createMarkerObject().then(() => {
+                const creation = this.#createMarkerObject(true).then(() => {
                     this.#dispatchReady();
                 });
                 // Recorded for the same reason as in #setupGoogleMarker(): anything asking for
@@ -1676,9 +1680,12 @@ export class Marker extends Layer {
      * Create the marker object
      *
      * @private
+     * @param {boolean} [createNow] Whether to build the marker straight away instead of waiting
+     *      for the map to be ready. Used by the synchronous methods, which have to hand back a
+     *      marker by the time they return. The marker is put on the map once the map is ready.
      * @returns {Promise<void>}
      */
-    #createMarkerObject(): Promise<void> {
+    #createMarkerObject(createNow: boolean = false): Promise<void> {
         return new Promise((resolve) => {
             if (!this.#marker) {
                 (async () => {
@@ -1722,7 +1729,7 @@ export class Marker extends Layer {
                     if (this.#options.label) {
                         markerOptions.label = this.#options.label;
                     }
-                    if (this.#options.map) {
+                    if (this.#options.map && !createNow) {
                         // Wait until the map is ready before creating the marker object. This runs right away if the
                         // map is already ready. Don't wait for the "idle" event because it may have already happened,
                         // which would leave the marker hidden until the next time the map is panned or zoomed.
@@ -1732,10 +1739,29 @@ export class Marker extends Layer {
                             if (this.#options.map) {
                                 markerOptions.map = this.#options.map.toGoogle();
                             }
-                            this.#marker = new google.maps.Marker(markerOptions);
-                            this.setEventGoogleObject(this.#marker);
+                            if (this.#marker) {
+                                // A synchronous call needed the marker before the map was ready and built one
+                                // already. Put it on the map instead of building a second one over the top of it.
+                                this.#marker.setMap(markerOptions.map ?? null);
+                            } else {
+                                this.#marker = new google.maps.Marker(markerOptions);
+                                this.setEventGoogleObject(this.#marker);
+                            }
                             resolve();
                         });
+                    } else if (this.#options.map) {
+                        // A synchronous caller needs the marker to exist by the time it returns, and the map isn't
+                        // ready yet. Build it without a map now. The marker isn't displayed until the map is ready,
+                        // which is the same as waiting, but the object exists so that toGoogleSync() and the "Sync"
+                        // setters have something to work with.
+                        //
+                        // Nothing is registered here to put it on the map later. Every route that leaves a map in
+                        // the options has already gone through #setMap(), which registers that itself and re-checks
+                        // for the marker when it runs. Registering another one here just meant setMap() being
+                        // called on the same marker twice.
+                        this.#marker = new google.maps.Marker(markerOptions);
+                        this.setEventGoogleObject(this.#marker);
+                        resolve();
                     } else {
                         this.#marker = new google.maps.Marker(markerOptions);
                         this.setEventGoogleObject(this.#marker);
