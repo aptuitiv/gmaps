@@ -785,7 +785,15 @@ export class Popup extends Overlay {
                                     resolve(this);
                                 });
                             } else {
-                                // The marker isn't on a map so there is nowhere to show the popup
+                                // The marker isn't on a map so there is nowhere to show the popup.
+                                // show() marked the popup as open and put it in the collection
+                                // before it got here, so both are undone - nothing was displayed.
+                                // Leaving them set made the popup report itself as open, put it in
+                                // the way of autoClose hiding a popup that was never shown, and,
+                                // worst of it, made the next show() take the "already open" path
+                                // and do nothing once the marker was actually on a map.
+                                this.#isOpen = false;
+                                collection.remove(this);
                                 resolve(this);
                             }
                         };
@@ -803,7 +811,10 @@ export class Popup extends Overlay {
                             resolve(this);
                         });
                     } else {
-                        // The layer isn't on a map so there is nowhere to show the popup
+                        // The layer isn't on a map so there is nowhere to show the popup.
+                        // See the comment in the marker branch above about why this is undone.
+                        this.#isOpen = false;
+                        collection.remove(this);
                         resolve(this);
                     }
                 }

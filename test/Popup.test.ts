@@ -22,6 +22,7 @@ import { Tooltip, tooltip } from '../src/lib/Tooltip';
 import { marker } from '../src/lib/Marker';
 import { polyline } from '../src/lib/Polyline';
 import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
+import { fakeMap } from './support/fakeMap';
 
 /**
  * Let any pending promise callbacks run
@@ -338,5 +339,65 @@ describe('attaching a popup (M-1)', () => {
         const p = polyline({ path });
         expect(p.hasPopup()).toBe(false);
         expect(p.getPopup()).toBeUndefined();
+    });
+});
+
+/*
+    Showing a popup on something that isn't on a map.
+
+    show() marks the popup as open and puts it in the collection before it works out where to
+    display it. Both of those used to be left set when it turned out there was nowhere to show
+    it, so the popup reported itself as open while nothing was on screen.
+
+    The one that actually bites is the third test: the guard at the top of show() returns early
+    when the popup is already in the collection AND marked open, so a popup that failed this way
+    could never be shown afterwards - putting the layer on a map and calling show() again did
+    nothing at all. That is the same shape as the remembered-failure bug in PlacesSearchBox.init().
+
+    The marker version of this branch is not covered here. Marker's anchorPoint is undefined in
+    these tests, so Popup retries five times on real timers - 100 + 200 + 400 + 600 + 1000ms -
+    before it reaches the no-map check. A test would add 2.3 seconds to the suite, or need fake
+    timers, which nothing else here uses. The two branches are the same three lines, and the
+    layer branch pins them.
+*/
+describe('showing a popup on a layer that is not on a map', () => {
+    beforeEach(() => {
+        installGoogleMaps();
+    });
+
+    afterEach(() => {
+        uninstallGoogleMaps();
+    });
+
+    it('does not report itself as open', async () => {
+        const p = popup('Trail 12');
+        const line = polyline({ path });
+        expect(line.getMap()).toBeNull();
+
+        await p.show(line);
+
+        expect(p.isOpen()).toBe(false);
+    });
+
+    it('is not left displayed', async () => {
+        const p = popup('Trail 12');
+
+        await p.show(polyline({ path }));
+
+        expect(p.isVisible).toBe(false);
+    });
+
+    // The one that matters. A popup left in the collection and marked open takes the early
+    // return at the top of show(), so it could never be opened once the layer had a map.
+    it('can still be shown once the layer is on a map', async () => {
+        const p = popup('Trail 12');
+        const line = polyline({ path });
+        await p.show(line);
+
+        await line.setMap(fakeMap());
+        await p.show(line);
+        await tick();
+
+        expect(p.isOpen()).toBe(true);
     });
 });
