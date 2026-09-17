@@ -354,6 +354,24 @@ export class Evented extends Base {
             }
         }
 
+        // Forget any listener of this type that was waiting for the Google object. A listener
+        // added before the Google object exists is queued here, and setEventGoogleObject() walks
+        // the queue by type and adds a Google listener for each one without looking at whether
+        // the type still has any listeners. So a listener that was added and then removed while
+        // the object was still being set up came back as a live Google listener with nothing
+        // behind it - and every time it fired, dispatch() recorded the type as having happened,
+        // which is what callImmediate and onceImmediate read to decide whether to fire straight
+        // away. A later onceImmediate() for that type would then be called for an event this
+        // object had stopped listening to.
+        const pending = this.#pendingMapObjectEventListeners;
+        if (pending && pending[type]) {
+            delete pending[type];
+            // Released rather than left as an empty object, the same as the other containers
+            if (Object.keys(pending).length === 0) {
+                this.#pendingMapObjectEventListeners = undefined;
+            }
+        }
+
         // Remove the listener that this object added to the Google maps object. Only that one is
         // removed - see the comment on #googleListeners for why. This also no longer needs
         // #isGoogleObjectSet(), so it's safe to call before the Google Maps library has loaded.

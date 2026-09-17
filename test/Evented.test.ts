@@ -624,6 +624,85 @@ describe('removing listeners leaves listeners this library did not add (6.1)', (
     const listenersFor = (googleObject: unknown, type: string): unknown[] =>
         (googleObject as { __listeners: Record<string, unknown[]> }).__listeners[type] ?? [];
 
+    /*
+        A listener added before the Google object exists is queued, and setEventGoogleObject()
+        walks that queue by event type when the object arrives. It never looked at whether the
+        type still had any listeners, so one that was added and then removed while the object was
+        still being set up came back as a live Google listener with nothing behind it.
+
+        That is worse than a wasted listener. dispatch() records a type as having happened
+        whether or not anything is listening, and that record is what callImmediate and
+        onceImmediate read to decide whether to fire straight away - so the resurrected listener
+        would mark an event as fired, and a later onceImmediate() for that type would be called
+        for an event this object had stopped listening to. The second test below is that part.
+
+        The ordering is ordinary rather than exotic: Marker, Polyline, Map, DataLayer and
+        AdvancedMarker all call setEventGoogleObject() well after their listeners are set up.
+    */
+    it('adds no Google listener for a type whose listener was removed before the object arrived', () => {
+        const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
+        const e = makeEvented();
+        const cb = vi.fn();
+
+        // No Google object yet, so this is queued rather than attached
+        e.on('idle', cb);
+        e.off('idle', cb);
+
+        const googleObject = new google.maps.MVCObject();
+        e.setEventGoogleObject(googleObject);
+
+        expect(listenersFor(googleObject, 'idle')).toHaveLength(0);
+    });
+
+    it('does not record the event as fired for a listener that was removed first', () => {
+        const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
+        const e = makeEvented();
+        const cb = vi.fn();
+        e.on('idle', cb);
+        e.off('idle', cb);
+
+        const googleObject = new google.maps.MVCObject();
+        e.setEventGoogleObject(googleObject);
+        // Nothing should be attached, so firing on the Google object reaches nothing
+        (googleObject as unknown as { __fire(type: string): void }).__fire('idle');
+
+        // onceImmediate fires straight away for an event that has already been dispatched
+        const immediate = vi.fn();
+        e.onceImmediate('idle', immediate);
+        expect(immediate).not.toHaveBeenCalled();
+    });
+
+    it('still wires up a type that has a listener left', () => {
+        const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
+        const e = makeEvented();
+        const gone = vi.fn();
+        const kept = vi.fn();
+        e.on('idle', gone);
+        e.on('idle', kept);
+        e.off('idle', gone);
+
+        const googleObject = new google.maps.MVCObject();
+        e.setEventGoogleObject(googleObject);
+
+        expect(listenersFor(googleObject, 'idle')).toHaveLength(1);
+    });
+
+    it('leaves the other pending types alone', () => {
+        const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
+        const e = makeEvented();
+        const idle = vi.fn();
+        const click = vi.fn();
+        e.on('idle', idle);
+        e.on('click', click);
+        e.off('idle', idle);
+
+        const googleObject = new google.maps.MVCObject();
+        e.setEventGoogleObject(googleObject);
+
+        expect(listenersFor(googleObject, 'idle')).toHaveLength(0);
+        expect(listenersFor(googleObject, 'click')).toHaveLength(1);
+    });
+
     it('off() leaves a third-party listener in place while removing its own', () => {
         const google = (globalThis as { google?: { maps: { MVCObject: new () => never } } }).google!;
         const googleObject = new google.maps.MVCObject();
