@@ -2492,6 +2492,7 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getCenter() {
+    this.#throwIfEmpty("getCenter");
     if (this.#bounds) {
       return latLngConvert(this.#bounds.getCenter());
     }
@@ -2543,6 +2544,25 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @private
    * @returns {{northEast: LatLng, southWest: LatLng}}
    */
+  /**
+   * Throw if the bounds has no points in it.
+   *
+   * The methods that describe a bounds - its middle, or its value as a string or an object -
+   * have nothing to describe when it's empty, so they say so rather than handing back a value
+   * that looks real. This is checked separately from #getCorners() because those methods ask
+   * Google for the answer when the Google object exists, and Google answers for an empty
+   * bounds instead of complaining, which made the behaviour depend on load timing.
+   *
+   * @private
+   * @param {string} method The method name, so that the error says what was called
+   */
+  #throwIfEmpty(method) {
+    if (this.isEmpty()) {
+      throw new Error(
+        `The LatLngBounds object is empty so LatLngBounds.${method}() has nothing to return. Add a latitude/longitude value to it first.`
+      );
+    }
+  }
   #getCorners() {
     if (!this.#northEast || !this.#southWest) {
       throw new Error("The LatLngBounds object is empty. Add a latitude/longitude value to it first.");
@@ -2674,6 +2694,7 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {google.maps.LatLngBoundsLiteral}
    */
   toJson() {
+    this.#throwIfEmpty("toJson");
     if (this.#bounds) {
       return this.#bounds.toJSON();
     }
@@ -2691,6 +2712,7 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toString() {
+    this.#throwIfEmpty("toString");
     if (this.#bounds) {
       return this.#bounds.toString();
     }
@@ -2705,6 +2727,7 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    */
   toUrlValue(precision) {
     const prec = isNumber(precision) ? precision : 3;
+    this.#throwIfEmpty("toUrlValue");
     if (this.#bounds) {
       return this.#bounds.toUrlValue(prec);
     }
@@ -15812,7 +15835,7 @@ var ImageOverlay = class extends Overlay {
     if (this.#bounds && projection) {
       const ne = this.#bounds.getNorthEast();
       const sw = this.#bounds.getSouthWest();
-      if (ne && sw) {
+      if (ne && sw && ne.isValid() && sw.isValid()) {
         const nePixel = projection.fromLatLngToDivPixel(ne.toGoogle());
         const swPixel = projection.fromLatLngToDivPixel(sw.toGoogle());
         if (nePixel && swPixel) {
@@ -19862,8 +19885,11 @@ var Tooltip = class _Tooltip extends Overlay {
    */
   draw(projection) {
     const position = this.getPosition();
-    if (position && typeof projection !== "undefined") {
+    if (position && position.isValid() && typeof projection !== "undefined") {
       const divPosition = projection.fromLatLngToDivPixel(position.toGoogle());
+      if (!divPosition) {
+        return;
+      }
       const display = Math.abs(divPosition.x) < 4e3 && Math.abs(divPosition.y) < 4e3 ? "block" : "none";
       if (display === "block") {
         const offset = this.getOffset();
