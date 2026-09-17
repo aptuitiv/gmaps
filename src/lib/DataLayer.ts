@@ -1293,47 +1293,65 @@ export class DataLayer extends Layer {
     }
 
     /**
-     * Convert an array of positions to Google maps LatLng objects
+     * Convert an array of positions to plain latitude/longitude literals.
+     *
+     * Google's Data.LineString, Data.LinearRing and Data.Polygon all take either LatLng objects
+     * or LatLngLiteral objects, so the literals are handed straight over. This used to be
+     * map(latLng).filter(isValid).map(toGoogle), which built three intermediate arrays and two
+     * objects per point - a LatLng wrapper and then a google.maps.LatLng - on paths that can
+     * hold tens of thousands of points.
      *
      * @private
      * @param {LatLngValue[]} path The positions to convert
-     * @returns {google.maps.LatLng[]}
+     * @returns {google.maps.LatLngLiteral[]}
      */
-    static #toPositions(path: LatLngValue[]): google.maps.LatLng[] {
+    static #toPositions(path: LatLngValue[]): google.maps.LatLngLiteral[] {
         if (!Array.isArray(path)) {
             return [];
         }
-        return path
-            .map((value) => latLng(value))
-            .filter((value) => value.isValid())
-            .map((value) => value.toGoogle());
+        const positions: google.maps.LatLngLiteral[] = [];
+        for (let i = 0; i < path.length; i += 1) {
+            const value = latLng(path[i]);
+            if (value.isValid()) {
+                positions.push({ lat: value.latitude, lng: value.longitude });
+            }
+        }
+        return positions;
     }
 
     /**
-     * Convert the positions for one ring of a polygon to Google maps LatLng objects.
+     * Convert the positions for one ring of a polygon to plain latitude/longitude literals.
      *
      * GeoJson repeats the first position at the end of a ring to close it. Google's LinearRing
      * closes itself, so the repeated position is dropped to avoid a duplicate corner.
      *
      * @private
      * @param {LatLngValue[]} ring The positions for the ring
-     * @returns {google.maps.LatLng[]}
+     * @returns {google.maps.LatLngLiteral[]}
      */
-    static #toRingPositions(ring: LatLngValue[]): google.maps.LatLng[] {
-        const positions = Array.isArray(ring)
-            ? ring.map((value) => latLng(value)).filter((value) => value.isValid())
-            : [];
-        if (positions.length > 2 && positions[0].equals(positions[positions.length - 1])) {
+    static #toRingPositions(ring: LatLngValue[]): google.maps.LatLngLiteral[] {
+        const positions = DataLayer.#toPositions(ring);
+        const last = positions.length - 1;
+        // Compared as plain numbers now that these are literals. This used to go through
+        // LatLng.equals() to answer the same question.
+        if (
+            positions.length > 2 &&
+            positions[0].lat === positions[last].lat &&
+            positions[0].lng === positions[last].lng
+        ) {
             positions.pop();
         }
-        return positions.map((value) => value.toGoogle());
+        return positions;
     }
 
     /**
      * Work out whether the paths value is one ring of positions or an array of rings.
      *
-     * A single position can itself be an array ([lat, lng]) so the first value is tested to
-     * see if it's a valid position. If it is then this is one ring of positions.
+     * A single position can itself be an array ([lat, lng]), so the first value is checked to
+     * see whether it looks like a position rather than like another ring.
+     *
+     * This used to build a throwaway LatLng purely to ask that question, which ran the whole of
+     * LatLng's type dispatch on every call to addPolygon().
      *
      * @private
      * @param {LatLngValue[]|LatLngValue[][]} paths The path, or array of paths, for a polygon
@@ -1343,10 +1361,18 @@ export class DataLayer extends Layer {
         if (!Array.isArray(paths) || paths.length === 0) {
             return [];
         }
-        if (latLng(paths[0] as LatLngValue).isValid()) {
-            return [paths as LatLngValue[]];
+        const first = paths[0];
+        if (Array.isArray(first)) {
+            // A position in array form is exactly two numbers. Anything else that is an array
+            // has to be a ring of positions, so this is an array of rings.
+            if (first.length === 2 && isNumberOrNumberString(first[0]) && isNumberOrNumberString(first[1])) {
+                return [paths as LatLngValue[]];
+            }
+            return paths as LatLngValue[][];
         }
-        return paths as LatLngValue[][];
+        // Anything that isn't an array - a LatLng, a {lat, lng} or a {latitude, longitude} -
+        // can only be a single position, so this is one ring.
+        return [paths as LatLngValue[]];
     }
 }
 

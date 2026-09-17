@@ -183,11 +183,24 @@ export class LatLngBounds extends Base {
                         resolve(bounds.equals(googleLatLngBounds));
                     });
                 } else {
-                    // Calculate the equality manually
+                    // Calculate the equality manually.
+                    //
+                    // Both bounds are checked for being empty before their corners are read.
+                    // #getCorners() throws when the bounds has no corners, so asking this bounds
+                    // for them first meant comparing two empty bounds threw instead of answering
+                    // the question. equals() returns a boolean, so an empty bounds is something
+                    // it should have an answer for.
+                    const isThisEmpty = this.isEmpty();
+                    const isOtherEmpty = other.isEmpty();
+                    if (isThisEmpty || isOtherEmpty) {
+                        // Two empty bounds are the same as each other, and an empty bounds is
+                        // never the same as one with values.
+                        resolve(isThisEmpty && isOtherEmpty);
+                        return;
+                    }
                     const { northEast, southWest } = this.#getCorners();
                     const otherNorthEast = other.getNorthEast();
                     const otherSouthWest = other.getSouthWest();
-                    // An empty bounds doesn't equal a bounds with values
                     resolve(
                         typeof otherNorthEast !== 'undefined' &&
                             typeof otherSouthWest !== 'undefined' &&
@@ -332,6 +345,52 @@ export class LatLngBounds extends Base {
     }
 
     /**
+     * Returns whether the longitude spans of two bounds share any points.
+     *
+     * A bounds whose west longitude is greater than its east longitude crosses the 180 degree
+     * meridian, so its span is the two arms either side of the meridian rather than the numbers
+     * in between. Comparing those numbers directly says a bounds running 170 to -170 starts to
+     * the east of one running -175 to -160 and misses it, when in fact they overlap across the
+     * meridian. This is the same wrap that #containsLongitude() handles for a single longitude.
+     *
+     * Two wrapped spans always share points, because both of them contain the meridian itself.
+     * A wrapped span and an ordinary one share points when the ordinary one reaches either arm
+     * of the wrapped one.
+     *
+     * @private
+     * @param {LatLng} southWest This bounds' south-west corner
+     * @param {LatLng} northEast This bounds' north-east corner
+     * @param {LatLng} otherSouthWest The other bounds' south-west corner
+     * @param {LatLng} otherNorthEast The other bounds' north-east corner
+     * @returns {boolean}
+     */
+    // eslint-disable-next-line class-methods-use-this -- Kept with the other bounds calculations
+    #longitudesOverlap(
+        southWest: LatLng,
+        northEast: LatLng,
+        otherSouthWest: LatLng,
+        otherNorthEast: LatLng,
+    ): boolean {
+        const wraps = southWest.longitude > northEast.longitude;
+        const otherWraps = otherSouthWest.longitude > otherNorthEast.longitude;
+        if (wraps && otherWraps) {
+            // Both cross the meridian, so both contain it, so they share at least that
+            return true;
+        }
+        if (wraps) {
+            // Either arm of this bounds is enough
+            return (
+                otherSouthWest.longitude <= northEast.longitude || otherNorthEast.longitude >= southWest.longitude
+            );
+        }
+        if (otherWraps) {
+            return southWest.longitude <= otherNorthEast.longitude || northEast.longitude >= otherSouthWest.longitude;
+        }
+        // Neither wraps, so this is the ordinary overlap test
+        return southWest.longitude <= otherNorthEast.longitude && northEast.longitude >= otherSouthWest.longitude;
+    }
+
+    /**
      * Set the bounds from its north-east and south-west corners.
      *
      * Nothing is set unless both corners are valid.
@@ -358,6 +417,11 @@ export class LatLngBounds extends Base {
      * @returns {LatLng}
      */
     getCenter(): LatLng {
+        // Checked before the Google object is used, not only in the manual path below.
+        // #getCorners() throws for a bounds with no points, but Google answers for one - so
+        // whether this threw or handed back a meaningless value used to depend on whether the
+        // Google library happened to have loaded yet. It throws either way now.
+        this.#throwIfEmpty('getCenter');
         if (this.#bounds) {
             // Get the center from the Google Maps object
             // Convert the center to a LatLngValue
@@ -366,11 +430,18 @@ export class LatLngBounds extends Base {
         // Calculate the center manually
         const { northEast, southWest } = this.#getCorners();
         const lat = (northEast.latitude + southWest.latitude) / 2;
-        let lng = (northEast.longitude + southWest.longitude) / 2;
-
-        // If the bounds crosses the 180 degree meridian, adjust the longitude
+        let lng;
         if (northEast.longitude < southWest.longitude) {
-            lng = ((lng + 180) % 360) - 180;
+            // The bounds crosses the 180 degree meridian, so the east longitude is a smaller
+            // number than the west one. Add a full turn to it before averaging so that the
+            // middle is found across the meridian rather than the long way round the globe.
+            // Averaging them as they are gives the point on the opposite side of the world.
+            lng = (southWest.longitude + northEast.longitude + 360) / 2;
+            if (lng > 180) {
+                lng -= 360;
+            }
+        } else {
+            lng = (northEast.longitude + southWest.longitude) / 2;
         }
 
         return latLng([lat, lng]);
@@ -413,6 +484,26 @@ export class LatLngBounds extends Base {
      * @private
      * @returns {{northEast: LatLng, southWest: LatLng}}
      */
+    /**
+     * Throw if the bounds has no points in it.
+     *
+     * The methods that describe a bounds - its middle, or its value as a string or an object -
+     * have nothing to describe when it's empty, so they say so rather than handing back a value
+     * that looks real. This is checked separately from #getCorners() because those methods ask
+     * Google for the answer when the Google object exists, and Google answers for an empty
+     * bounds instead of complaining, which made the behaviour depend on load timing.
+     *
+     * @private
+     * @param {string} method The method name, so that the error says what was called
+     */
+    #throwIfEmpty(method: string): void {
+        if (this.isEmpty()) {
+            throw new Error(
+                `The LatLngBounds object is empty so LatLngBounds.${method}() has nothing to return. Add a latitude/longitude value to it first.`,
+            );
+        }
+    }
+
     #getCorners(): { northEast: LatLng; southWest: LatLng } {
         if (!this.#northEast || !this.#southWest) {
             throw new Error('The LatLngBounds object is empty. Add a latitude/longitude value to it first.');
@@ -462,10 +553,11 @@ export class LatLngBounds extends Base {
                         return;
                     }
                     resolve(
+                        // Latitude doesn't wrap, so this is the ordinary overlap test
                         sw.latitude <= otherNe.latitude &&
                             ne.latitude >= otherSw.latitude &&
-                            sw.longitude <= otherNe.longitude &&
-                            ne.longitude >= otherSw.longitude,
+                            // Longitude does wrap, so it needs the meridian-aware test below
+                            this.#longitudesOverlap(sw, ne, otherSw, otherNe),
                     );
                 }
             } else {
@@ -563,6 +655,7 @@ export class LatLngBounds extends Base {
      * @returns {google.maps.LatLngBoundsLiteral}
      */
     toJson(): google.maps.LatLngBoundsLiteral {
+        this.#throwIfEmpty('toJson');
         if (this.#bounds) {
             return this.#bounds.toJSON();
         }
@@ -581,6 +674,7 @@ export class LatLngBounds extends Base {
      * @returns {string}
      */
     toString(): string {
+        this.#throwIfEmpty('toString');
         if (this.#bounds) {
             return this.#bounds.toString();
         }
@@ -595,10 +689,10 @@ export class LatLngBounds extends Base {
      * @returns {string}
      */
     toUrlValue(precision?: number): string {
-        let prec = precision || 3;
-        if (!isNumber(prec)) {
-            prec = 3;
-        }
+        // A precision of 0 is valid, so test the type rather than whether the value is truthy.
+        // "precision || 3" turned 0 into 3.
+        const prec = isNumber(precision) ? precision : 3;
+        this.#throwIfEmpty('toUrlValue');
         if (this.#bounds) {
             return this.#bounds.toUrlValue(prec);
         }

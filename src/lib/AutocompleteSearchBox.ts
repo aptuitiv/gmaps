@@ -92,6 +92,17 @@ export class AutocompleteSearchBox extends Evented {
     #input: HTMLInputElement | undefined;
 
     /**
+     * Holds the promise for setting up the search box.
+     *
+     * Every call to init() waits on this same promise so that the search box is only built once,
+     * however many times init() is called and whenever those calls are made.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #initPromise: Promise<void> | undefined;
+
+    /**
      * Holds the place that has been found.
      *
      * @private
@@ -400,25 +411,42 @@ export class AutocompleteSearchBox extends Evented {
      * @returns {Promise<void>}
      */
     async init(): Promise<void> {
-        return new Promise((resolve) => {
-            if (!isObject(this.#searchBox)) {
+        // The work is only started once and every caller waits on the same promise. See the
+        // comment on PlacesSearchBox.init() - this class had the same problem, because it also
+        // awaits the bounds before assigning #searchBox.
+        if (!this.#initPromise) {
+            const initPromise = new Promise<void>((resolve, reject) => {
                 if (checkForGoogleMaps('AutocompleteSearchBox', 'places', false)) {
-                    this.#createAutocompleteSearchBox().then(() => {
-                        resolve();
-                    });
+                    this.#createAutocompleteSearchBox().then(resolve).catch(reject);
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().onMapLoad(() => {
-                        this.#createAutocompleteSearchBox().then(() => {
-                            resolve();
-                        });
+                        this.#createAutocompleteSearchBox().then(resolve).catch(reject);
                     });
                 }
-            } else {
-                resolve();
-            }
-        });
+            });
+            // A failure is not remembered. Initializing throws when there's no input element, and
+            // holding on to the rejected promise meant every later init() got that same failure
+            // back - so setting the input afterwards and calling init() again could never work.
+            // Clearing it lets a later call start again. The promise is only forgotten once it
+            // has actually failed, so calls made while it's still running share it as before.
+            //
+            // Nothing is built twice by this: #createAutocompleteSearchBox() returns early when
+            // #searchBox is already set, so a retry after a successful init still creates nothing.
+            // The check is against the promise that gets stored below, not the one being
+            // wrapped, so that a call which has already started a new attempt isn't undone.
+            // The callback only runs once the promise has rejected, which is always after the
+            // assignment below it.
+            const tracked: Promise<void> = initPromise.catch((error) => {
+                if (this.#initPromise === tracked) {
+                    this.#initPromise = undefined;
+                }
+                throw error;
+            });
+            this.#initPromise = tracked;
+        }
+        return this.#initPromise;
     }
 
     /**

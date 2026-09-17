@@ -62,7 +62,12 @@ export class Point extends Base {
      */
     constructor(x?: XPoint | Point, y?: number | string) {
         super('point');
-        if (typeof x !== 'undefined') {
+        if (isNumber(x) && isNumber(y)) {
+            // Two plain numbers is the common case, so it skips set() and its type dispatch.
+            // See the comment in the LatLng constructor.
+            this.#x = x;
+            this.#y = y;
+        } else if (typeof x !== 'undefined') {
             this.set(x, y);
         }
     }
@@ -87,7 +92,9 @@ export class Point extends Base {
         } else if (isNumber(x)) {
             this.#x = x;
         }
-        if (isObject(this.#pointObject)) {
+        // A plain undefined check. isObject() was doing a toString call to answer "has the cache
+        // been built yet", which runs on every coordinate write.
+        if (this.#pointObject !== undefined) {
             this.#pointObject.x = this.#x;
         }
     }
@@ -112,7 +119,8 @@ export class Point extends Base {
         } else if (isNumber(y)) {
             this.#y = y;
         }
-        if (isObject(this.#pointObject)) {
+        // See the comment in the x setter
+        if (this.#pointObject !== undefined) {
             this.#pointObject.y = this.#y;
         }
     }
@@ -351,7 +359,7 @@ export class Point extends Base {
     toGoogle(): google.maps.Point {
         // This throws an error if the Google Maps library is not loaded.
         checkForGoogleMaps('Point', 'Point');
-        if (!isObject(this.#pointObject)) {
+        if (this.#pointObject === undefined) {
             this.#pointObject = new google.maps.Point(this.x, this.y);
         }
         return this.#pointObject;

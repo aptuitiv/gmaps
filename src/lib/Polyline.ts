@@ -110,6 +110,10 @@ export type PolylineOptions = {
     zIndex?: number;
 };
 
+// Shared empty path, so that a polyline with no path doesn't allocate a new array each time
+// the drawn path is worked out.
+const EMPTY_COORDS = new Float64Array(0);
+
 // The simplify settings after the value passed to the simplify option has been checked
 type SimplifyConfig = {
     debug: boolean;
@@ -1496,8 +1500,11 @@ export class Polyline extends Layer {
      * @returns {google.maps.LatLng[]}
      */
     #getGooglePath(): google.maps.LatLng[] {
-        const start = performance.now();
-        const coords = this.#pathCoords ?? new Float64Array(0);
+        const isDebug = this.#isSimplifyDebug();
+        // Only read the clock when the timing is going to be used. This runs for every polyline
+        // each time the drawn path is worked out.
+        const start = isDebug ? performance.now() : 0;
+        const coords = this.#pathCoords ?? EMPTY_COORDS;
         const tolerance = this.#simplifyTolerance;
         // When the tolerance changes with the zoom level, keep each simplified path so that it isn't worked out again
         const useKeptPaths = tolerance > 0 && (this.#simplifyConfig?.zoom.length ?? 0) > 0;
@@ -1516,7 +1523,7 @@ export class Polyline extends Layer {
         }
 
         // Log how many points are drawn so that developers can see if simplifying helps
-        if (this.#isSimplifyDebug()) {
+        if (isDebug) {
             let detail = '';
             if (isKeptPath) {
                 detail = 'Used the path that was already simplified.';
@@ -1636,14 +1643,43 @@ export class Polyline extends Layer {
     }
 
     /**
+     * Whether two drawn paths hold the same points.
+     *
+     * The point count is checked first because that alone separates most paths for almost
+     * nothing. Only paths that are the same length are compared point by point.
+     *
+     * @private
+     * @param {google.maps.LatLng[]} a The first path
+     * @param {google.maps.LatLng[]} b The second path
+     * @returns {boolean}
+     */
+    static #isSamePath(a: google.maps.LatLng[], b: google.maps.LatLng[]): boolean {
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let i = 0; i < a.length; i += 1) {
+            if (a[i].lat() !== b[i].lat() || a[i].lng() !== b[i].lng()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Update the path drawn on the map if the simplify tolerance to use has changed.
      *
      * If the polyline is hidden then the path isn't updated until the polyline is shown again.
      * This saves simplifying the paths of hidden polylines, for example ones hidden with PolylineCollection.hide(),
      * each time the zoom level changes.
      *
+     * A different tolerance often draws the same points. A short segment simplifies to its two
+     * end points at every tolerance, so moving between zoom buckets used to hand Google an
+     * identical path over and over. setPath is the expensive half of a tolerance change, so it's
+     * skipped when the path that would be drawn matches the one already drawn.
+     *
      * @private
-     * @returns {boolean} Whether the path drawn on the map was updated
+     * @returns {boolean} Whether the tolerance changed and was applied. The path may not have
+     *      been sent to Google, if the new tolerance draws the same points as the old one.
      */
     #applySimplify(): boolean {
         const tolerance = this.#getCurrentTolerance();
@@ -1657,9 +1693,18 @@ export class Polyline extends Layer {
             return false;
         }
         this.#isSimplifyOutOfDate = false;
+        // The path kept for the tolerance that is currently drawn. When tolerances change with
+        // the zoom level every simplified path is kept, so this is the path Google is holding -
+        // which means the comparison below needs nothing extra to be stored for it.
+        const drawnPath = this.#simplifiedPaths[this.#simplifyTolerance];
         this.#simplifyTolerance = tolerance;
         if (this.#polyline) {
-            this.#polyline.setPath(this.#getGooglePath());
+            const googlePath = this.#getGooglePath();
+            // No kept path for the old tolerance means there's nothing to compare against, so
+            // the path is sent as it always was.
+            if (!drawnPath || !Polyline.#isSamePath(drawnPath, googlePath)) {
+                this.#polyline.setPath(googlePath);
+            }
         }
         // Keep the highlight polyline drawing the same path once it has one
         if (this.#highlightPolyline && this.#highlightSetup) {
@@ -1940,11 +1985,26 @@ export class Polyline extends Layer {
             const googlePolyline = new google.maps.Polyline(polylineOptions);
             this.#polyline = googlePolyline;
 
-            // Handle dashed polylines if necessary
-            this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-                googlePolyline.setOptions(opts);
+            // Handle dashed polylines and icons if necessary.
+            //
+            // A plain polyline gets nothing from that pass that the constructor options didn't
+            // already carry: it resolves to the strokeOpacity that was just set and an empty
+            // icons array. It used to run for every polyline anyway, costing a promise, a
+            // microtask hop and a Google setOptions call that changed nothing - and holding up
+            // setEventGoogleObject for a tick. A plain polyline now wires up its events straight
+            // away instead.
+            //
+            // When strokeOpacity isn't set the skipped pass used to send 1, which is what Google
+            // uses when it isn't told otherwise, so the drawn result is the same.
+            const hasIcons = Array.isArray(this.#options.icons) && this.#options.icons.length > 0;
+            if (this.#dashed || hasIcons) {
+                this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+                    googlePolyline.setOptions(opts);
+                    this.setEventGoogleObject(googlePolyline);
+                });
+            } else {
                 this.setEventGoogleObject(googlePolyline);
-            });
+            }
             return googlePolyline;
         }
         return this.#polyline;

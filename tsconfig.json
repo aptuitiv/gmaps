@@ -13,10 +13,16 @@
         // Keep assignment semantics for class fields. Typescript turns this on by default for ES2022,
         // which would change how class fields are initialized.
         "useDefineForClassFields": false,
-        "lib": ["es2017", "dom", "dom.iterable"],
+        // Matches the build target so that ES2022 built-ins can be used, like Object.hasOwn and
+        // Array.prototype.at. Note that some of them need slightly newer browsers than the
+        // target does: Object.hasOwn needs Safari 15.4 and Chrome 93, against the Safari 15 and
+        // Chrome 84 that private fields need. Check support before using a new built-in.
+        "lib": ["es2022", "dom", "dom.iterable"],
         "types": ["google.maps", "node"],
         "rootDir": "src",
         "outDir": "dist",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        // Using a value that might be undefined without checking it first is an error.
+        "strictNullChecks": true
     }
 }

@@ -78,23 +78,44 @@ export class Overlay extends Layer {
     #isResizing: boolean = false;
 
     /**
-     * Holds the offset for the overlay
+     * Holds the offset for the overlay.
+     *
+     * This is undefined until an offset is set or read. The constructor used to set a 0,0
+     * offset, which allocated a Point for every overlay - and Tooltip and Popup both replace it
+     * with their own straight afterwards, so it was thrown away immediately.
      *
      * @private
-     * @type {Point}
+     * @type {Point|undefined}
      */
-    #offset!: Point;
+    #offset: Point | undefined;
 
     /**
      * Holds the overlay HTML element. This is the container element that the
      * content for the overlay will get displayed in.
      * That could be a tooltip, a custom info window (popup), or a map overlay.
      *
+     * It is built the first time something actually needs it, not in the constructor. A popup
+     * attached to every one of 2,595 trail segments used to build 2,595 detached divs before
+     * anything was shown, and popups open on a click, so almost none of them are ever needed.
+     * Read it through #element() or getOverlayElement(), never directly, so that it exists by
+     * the time it's used.
+     *
      * private
      *
-     * @type {HTMLElement}
+     * @type {HTMLElement|undefined}
      */
-    #overlay: HTMLElement;
+    #overlay: HTMLElement | undefined;
+
+    /**
+     * The class names for the overlay element, held here until the element is built.
+     *
+     * The element used to be the only place this lived, so reading className meant reading the
+     * DOM. Keeping it here as well means asking for the class name doesn't build an element.
+     *
+     * @private
+     * @type {string}
+     */
+    #className: string = '';
 
     /**
      * The starting overlay position when dragging begins
@@ -158,7 +179,7 @@ export class Overlay extends Layer {
      * @protected
      * @type {object}
      */
-    resizeStart!: ResizeStart;
+    resizeStart?: ResizeStart;
 
     /**
      * Holds the styles for the overlay.
@@ -178,14 +199,53 @@ export class Overlay extends Layer {
     constructor(objectType: string, testObject: string, testLibrary?: string) {
         super(objectType, testObject, testLibrary || 'OverlayView');
 
-        // Initialize the overlay element
-        this.#overlay = document.createElement('div');
-        this.#overlay.style.position = 'absolute';
-        this.#overlay.style.pointerEvents = 'auto';
-        this.#overlay.style.zIndex = '1000';
+        // The overlay element is created by #element() when it's first needed, rather than here.
+        // The default 0,0 offset is created by getOffset() the same way.
+    }
 
-        // Set the default offset
-        this.setOffset([0, 0]);
+    /**
+     * Get the overlay element, building it the first time it's asked for.
+     *
+     * Everything inside this class reads the element through here. Anything set before the
+     * element existed - class names and styles - is written onto it as it's built, so the
+     * element ends up in the same state it would have been in if it had been built up front.
+     *
+     * @private
+     * @returns {HTMLElement}
+     */
+    #element(): HTMLElement {
+        if (!this.#overlay) {
+            const element = document.createElement('div');
+            element.style.position = 'absolute';
+            element.style.pointerEvents = 'auto';
+            element.style.zIndex = '1000';
+            if (this.#className.length > 0) {
+                this.#className.split(' ').forEach((cn) => {
+                    const name = cn.trim();
+                    if (name.length > 0) {
+                        element.classList.add(name);
+                    }
+                });
+            }
+            Object.keys(this.#styles).forEach((name) => {
+                (element.style as unknown as { [key: string]: string })[name] = this.#styles[name];
+            });
+            this.#overlay = element;
+        }
+        return this.#overlay;
+    }
+
+    /**
+     * Whether the overlay element has been built yet.
+     *
+     * Used by the few places that shouldn't build one just to look at it - removing a class
+     * name that was never added, or taking an element off a parent it was never on.
+     *
+     * @private
+     * @returns {boolean}
+     */
+    #hasElement(): boolean {
+        return typeof this.#overlay !== 'undefined';
     }
 
     /**
@@ -194,7 +254,9 @@ export class Overlay extends Layer {
      * @returns {string}
      */
     get className(): string {
-        return this.#overlay.className;
+        // Read from the stored value rather than the element, so that asking an overlay for its
+        // class name doesn't build one.
+        return this.#className;
     }
 
     /**
@@ -207,12 +269,28 @@ export class Overlay extends Layer {
      */
     set className(className: string) {
         if (isString(className)) {
-            const classes = className.split(' ');
-            classes.forEach((cn) => {
-                this.#overlay.classList.add(cn.trim());
+            // Class names add to what's already there rather than replacing it, which is what
+            // classList.add() did when the element was the only place they were kept. The stored
+            // value has to build up the same way or an overlay whose element is built later
+            // would end up with a different set of classes than one built straight away.
+            const current = this.#className.length > 0 ? this.#className.split(' ') : [];
+            className.split(' ').forEach((cn) => {
+                const name = cn.trim();
+                if (name.length > 0 && !current.includes(name)) {
+                    current.push(name);
+                }
             });
+            this.#className = current.join(' ');
+            if (this.#hasElement()) {
+                current.forEach((name) => {
+                    this.#element().classList.add(name);
+                });
+            }
         } else if (isNullOrUndefined(className)) {
-            this.#overlay.className = '';
+            this.#className = '';
+            if (this.#hasElement()) {
+                this.#element().className = '';
+            }
         }
     }
 
@@ -410,9 +488,9 @@ export class Overlay extends Layer {
      * @returns {LatLng}
      */
     getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng {
-        // const pixel = point(x, y);
-        const gp = new google.maps.Point(x as number, y as number);
-        const pixel = point(gp);
+        // point() handles every PointValue form: a Point, an [x, y] array, a "4"/"5" number
+        // string pair, an {x, y} object, or two plain numbers.
+        const pixel = point(x, y);
         const projection = this.getProjection();
         if (projection) {
             return latLng(projection.fromContainerPixelToLatLng(pixel.toGoogle()) ?? undefined);
@@ -431,9 +509,8 @@ export class Overlay extends Layer {
      * @returns {LatLng}
      */
     getDivLatLngFromPixel(x: PointValue, y?: number): LatLng {
-        // const pixel = point(x, y);
-        const gp = new google.maps.Point(x as number, y as number);
-        const pixel = point(gp);
+        // See the comment in getContainerLatLngFromPixel() about point().
+        const pixel = point(x, y);
         const projection = this.getProjection();
         if (projection) {
             return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()) ?? undefined);
@@ -447,6 +524,13 @@ export class Overlay extends Layer {
      * @returns {Point}
      */
     getOffset(): Point {
+        // Built on first use so that an overlay which never needs an offset never allocates one,
+        // and so that Tooltip and Popup don't pay for a default that they immediately replace.
+        // It isn't a shared instance because Point is mutable through its setters, and
+        // Object.freeze can't stop that - the values are held in #private fields, not properties.
+        if (this.#offset === undefined) {
+            this.#offset = point(0, 0);
+        }
         return this.#offset;
     }
 
@@ -456,7 +540,10 @@ export class Overlay extends Layer {
      * @returns {HTMLElement}
      */
     getOverlayElement(): HTMLElement {
-        return this.#overlay;
+        // Builds the element if it doesn't exist yet. This is how every subclass reaches it -
+        // Popup, Tooltip and ImageOverlay all go through here - so none of them had to change
+        // when the element stopped being built in the constructor.
+        return this.#element();
     }
 
     /**
@@ -543,7 +630,7 @@ export class Overlay extends Layer {
             if (mapObject instanceof Map) {
                 if (this.#overlayView) {
                     // Setting the map will trigger the redraw
-                    this.#overlayView.setMap(mapObject.toGoogle() ?? null);
+                    this.#attachToGoogleMap(mapObject);
                     this.isVisible = true;
                     super.setMap(mapObject);
                     this.dispatch(OverlayEvents.OPEN);
@@ -639,10 +726,21 @@ export class Overlay extends Layer {
      * @returns {Overlay}
      */
     removeClassName(className: string): Overlay {
-        const classes = className.split(' ');
-        classes.forEach((cn) => {
-            this.#overlay.classList.remove(cn.trim());
-        });
+        const classes = className.split(' ').map((cn) => cn.trim());
+        // Taken off the stored value whether or not there's an element yet. Removing a class
+        // from an overlay that was never built shouldn't build one just to remove it from.
+        if (this.#className.length > 0) {
+            this.#className = this.#className
+                .split(' ')
+                .filter((name) => !classes.includes(name))
+                .join(' ');
+        }
+        if (this.#hasElement()) {
+            const element = this.#element();
+            classes.forEach((cn) => {
+                element.classList.remove(cn);
+            });
+        }
         return this;
     }
 
@@ -734,20 +832,20 @@ export class Overlay extends Layer {
             if (map instanceof Map) {
                 this.#setupGoogleOverlay();
                 if (this.#overlayView) {
-                    this.#overlayView.setMap(map.toGoogle() ?? null);
-                    this.isVisible = true;
                     super.setMap(map);
+                    this.#attachToGoogleMap(map);
+                    this.isVisible = true;
                     this.dispatch(OverlayEvents.OPEN);
                     resolve(this);
                 } else {
                     // The Google maps library isn't loaded yet. Wait for it to load.
                     loader().onMapLoad(() => {
                         this.#setupGoogleOverlay();
+                        super.setMap(map);
                         if (this.#overlayView) {
-                            this.#overlayView.setMap(map.toGoogle() ?? null);
+                            this.#attachToGoogleMap(map);
                             this.isVisible = true;
                         }
-                        super.setMap(map);
                         this.dispatch(OverlayEvents.OPEN);
                         resolve(this);
                     });
@@ -768,9 +866,20 @@ export class Overlay extends Layer {
      */
     style(name: string, value: string): Overlay {
         if (isString(name) && isString(value)) {
+            // Don't write to the DOM if the value hasn't changed. draw() runs on every frame
+            // while the map is panned or zoomed and most of the styles it sets are the same
+            // every time, so this saves a style write per frame per overlay.
+            if (this.#styles[name] === value) {
+                return this;
+            }
             this.#styles[name] = value;
-            // Index the style declaration by name so that both camelCase and dashed property names work.
-            (this.#overlay.style as unknown as { [key: string]: string })[name] = value;
+            // Only written to the element if there is one. #styles is the record either way, and
+            // #element() replays it when the element is built, so a style set on an overlay that
+            // was never shown still ends up on its element if it is ever needed.
+            if (this.#hasElement()) {
+                // Index the style declaration by name so that both camelCase and dashed property names work.
+                (this.#element().style as unknown as { [key: string]: string })[name] = value;
+            }
         }
         return this;
     }
@@ -795,22 +904,31 @@ export class Overlay extends Layer {
      * @private
      */
     #setupDragHandlers(): void {
+        // An overlay that can be dragged needs its element, so this builds one rather than
+        // waiting. There is nothing to attach a mousedown listener to otherwise.
+        const element = this.#element();
         if (this.#drag) {
-            this.#overlay.style.cursor = 'move';
-            this.#overlay.style.pointerEvents = 'auto';
-            this.#overlay.style.border = '2px solid #007bff';
-            this.#overlay.addEventListener('mousedown', this.#handleDragStart);
-            this.#overlay.addEventListener('touchstart', this.#handleDragStart);
+            element.style.cursor = 'move';
+            element.style.pointerEvents = 'auto';
+            element.style.border = '2px solid #007bff';
+            element.addEventListener('mousedown', this.#handleDragStart);
+            element.addEventListener('touchstart', this.#handleDragStart);
 
             // Ensure map events are prevented
             if (checkForGoogleMaps('Overlay', 'OverlayView', false)) {
-                google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+                google.maps.OverlayView.preventMapHitsAndGesturesFrom(element);
             }
         } else {
-            this.#overlay.style.cursor = '';
-            this.#overlay.style.pointerEvents = '';
-            this.#overlay.removeEventListener('mousedown', this.#handleDragStart);
-            this.#overlay.removeEventListener('touchstart', this.#handleDragStart);
+            element.style.cursor = '';
+            element.style.pointerEvents = '';
+            // Take the outline away again. Resizing draws the same outline, so it's only
+            // removed when resizing isn't using it - otherwise turning dragging off would
+            // leave a resizable overlay with no handles visible around it.
+            if (!this.#resize) {
+                element.style.border = 'none';
+            }
+            element.removeEventListener('mousedown', this.#handleDragStart);
+            element.removeEventListener('touchstart', this.#handleDragStart);
         }
     }
 
@@ -835,7 +953,9 @@ export class Overlay extends Layer {
     #createResizeHandles(): void {
         this.#removeResizeHandles();
 
-        this.#overlay.style.border = '2px solid #007bff';
+        // An overlay that can be resized needs its element - the handles are appended to it.
+        const element = this.#element();
+        element.style.border = '2px solid #007bff';
 
         const corners = ['nw', 'ne', 'sw', 'se'];
         const cursors: { [key: string]: string } = {
@@ -892,7 +1012,7 @@ export class Overlay extends Layer {
                 google.maps.OverlayView.preventMapHitsAndGesturesFrom(handle);
             }
 
-            this.#overlay.appendChild(handle);
+            element.appendChild(handle);
             this.#resizeHandles.push(handle);
         });
     }
@@ -909,7 +1029,15 @@ export class Overlay extends Layer {
             }
         });
         this.#resizeHandles = [];
-        this.#overlay.style.border = 'none';
+        // Dragging draws the same outline, so leave it alone when dragging is still on.
+        // #createResizeHandles calls this before building new handles and then sets the border
+        // itself, so nothing is lost by skipping it here.
+        //
+        // There's nothing to clear if the element was never built either, and building one just
+        // to take a border off it would be silly.
+        if (!this.#drag && this.#hasElement()) {
+            this.#element().style.border = 'none';
+        }
     }
 
     /**
@@ -928,10 +1056,9 @@ export class Overlay extends Layer {
         this.#dragStart = point(
             e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY],
         );
-        this.#overlayStart = point(
-            parseInt(this.#overlay.style.left, 10) || 0,
-            parseInt(this.#overlay.style.top, 10) || 0,
-        );
+        // A drag can only start on an element that was pressed, so it exists by now
+        const element = this.#element();
+        this.#overlayStart = point(parseInt(element.style.left, 10) || 0, parseInt(element.style.top, 10) || 0);
 
         document.addEventListener('mousemove', this.#handleDrag);
         document.addEventListener('mouseup', this.#handleDragEnd);
@@ -961,8 +1088,9 @@ export class Overlay extends Layer {
         const newLeft = this.#overlayStart.getX() + delta.getX();
         const newTop = this.#overlayStart.getY() + delta.getY();
 
-        this.#overlay.style.left = `${newLeft}px`;
-        this.#overlay.style.top = `${newTop}px`;
+        const element = this.#element();
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
 
         // Calculate new bounds and dispatch event
         this.updateBoundsFromPosition();
@@ -1012,7 +1140,9 @@ export class Overlay extends Layer {
         this.resizeCorner = corner;
 
         const containerRect = mapContainer.getBoundingClientRect();
-        const currentSize = this.#overlay.getBoundingClientRect();
+        // A resize starts from a handle, which lives inside the element, so it exists by now
+        const element = this.#element();
+        const currentSize = element.getBoundingClientRect();
 
         // Get the current bounds, position, and size of the overlay before resizing.
         // These values will be used to calculate the new bounds, position, and size of the overlay after resizing.
@@ -1028,9 +1158,9 @@ export class Overlay extends Layer {
             // This is used to calculate the new position of the overlay after resizing from the bottom right.
             sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
             // Current left position within the overlay container
-            left: parseInt(this.#overlay.style.left, 10) || 0,
+            left: parseInt(element.style.left, 10) || 0,
             // Current top position within the overlay container
-            top: parseInt(this.#overlay.style.top, 10) || 0,
+            top: parseInt(element.style.top, 10) || 0,
             // Current width of the overlay container
             width: currentSize.width,
             // Current height of the overlay container
@@ -1061,7 +1191,12 @@ export class Overlay extends Layer {
         // Get the map container and its bounding client rectangle to get the mouse position relative to the map
         const mapContainer = this.getMap()?.getDiv();
 
-        if (projection && mapContainer) {
+        // The values recorded when the resize started. They only exist once a resize has begun,
+        // and this only runs during one, so there is normally something here - but the field is
+        // public, so it can't be taken on trust.
+        const start = this.resizeStart;
+
+        if (projection && mapContainer && start) {
             const containerRect = mapContainer.getBoundingClientRect();
             const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
             const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
@@ -1069,10 +1204,10 @@ export class Overlay extends Layer {
             const mouseY = eventY - containerRect.top;
 
             // Get the top right x/y coordinates
-            const neGoogle = this.resizeStart.neBounds.toGoogle();
+            const neGoogle = start.neBounds.toGoogle();
             const topRight = neGoogle ? projection.fromLatLngToContainerPixel(neGoogle) : null;
             // Get the bottom left x/y coordinates
-            const swGoogle = this.resizeStart.swBounds.toGoogle();
+            const swGoogle = start.swBounds.toGoogle();
             const bottomLeft = swGoogle ? projection.fromLatLngToContainerPixel(swGoogle) : null;
 
             let newWidth: number;
@@ -1087,13 +1222,13 @@ export class Overlay extends Layer {
                     return;
                 }
                 // Calculate the difference between the current position and the top right
-                const diffX = this.resizeStart.nwPos.x - mouseX;
-                const diffY = this.resizeStart.nwPos.y - mouseY;
+                const diffX = start.nwPos.x - mouseX;
+                const diffY = start.nwPos.y - mouseY;
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width + diffX;
-                newHeight = this.resizeStart.height + diffY;
-                newLeft = this.resizeStart.left - diffX;
-                newTop = this.resizeStart.top - diffY;
+                newWidth = start.width + diffX;
+                newHeight = start.height + diffY;
+                newLeft = start.left - diffX;
+                newTop = start.top - diffY;
             } else if (this.resizeCorner === 'ne') {
                 // If the current position is below the bottom left corner or to the left of the bottom left corner,
                 // then do not continue with the resize
@@ -1104,14 +1239,14 @@ export class Overlay extends Layer {
                 const diffX = topRight.x - mouseX;
                 const diffY = topRight.y - mouseY;
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width - diffX;
-                newHeight = this.resizeStart.height + diffY;
-                newLeft = this.resizeStart.left;
-                newTop = this.resizeStart.top - diffY;
+                newWidth = start.width - diffX;
+                newHeight = start.height + diffY;
+                newLeft = start.left;
+                newTop = start.top - diffY;
             } else if (this.resizeCorner === 'sw') {
                 // If the current position is above the top left corner or to the right of the top right corner,
                 // then do not continue with the resize
-                if (!bottomLeft || !topRight || mouseY < this.resizeStart.top || mouseX > topRight.x) {
+                if (!bottomLeft || !topRight || mouseY < start.top || mouseX > topRight.x) {
                     return;
                 }
 
@@ -1120,26 +1255,26 @@ export class Overlay extends Layer {
                 const diffY = bottomLeft.y - mouseY;
 
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width + diffX;
-                newHeight = this.resizeStart.height - diffY;
-                newLeft = this.resizeStart.left - diffX;
-                newTop = this.resizeStart.top;
+                newWidth = start.width + diffX;
+                newHeight = start.height - diffY;
+                newLeft = start.left - diffX;
+                newTop = start.top;
             } else if (this.resizeCorner === 'se') {
                 // If the current position is above the top left corner or to the left of the top left corner,
                 // then do not continue with the resize
-                if (mouseY < this.resizeStart.top || mouseX < this.resizeStart.left) {
+                if (mouseY < start.top || mouseX < start.left) {
                     return;
                 }
 
                 // Calculate the difference between the current position and the bottom right
-                const diffX = this.resizeStart.sePos.x - mouseX;
-                const diffY = this.resizeStart.sePos.y - mouseY;
+                const diffX = start.sePos.x - mouseX;
+                const diffY = start.sePos.y - mouseY;
 
                 // Calculate new dimensions
-                newWidth = this.resizeStart.width - diffX;
-                newHeight = this.resizeStart.height - diffY;
-                newLeft = this.resizeStart.left;
-                newTop = this.resizeStart.top;
+                newWidth = start.width - diffX;
+                newHeight = start.height - diffY;
+                newLeft = start.left;
+                newTop = start.top;
             } else {
                 // Not a known corner so there is nothing to resize
                 return;
@@ -1149,14 +1284,15 @@ export class Overlay extends Layer {
             const constrained = calculateDimensions(this.#resizeAspectRatio, newWidth, newHeight);
 
             // Update the overlay dimensions and position
-            this.#overlay.style.width = `${constrained.width}px`;
-            this.#overlay.style.height = `${constrained.height}px`;
-            this.#overlay.style.left = `${newLeft}px`;
-            this.#overlay.style.top = `${newTop}px`;
+            const element = this.#element();
+            element.style.width = `${constrained.width}px`;
+            element.style.height = `${constrained.height}px`;
+            element.style.left = `${newLeft}px`;
+            element.style.top = `${newTop}px`;
 
             if (this.#resizeAspectRatio > 0) {
                 // If the aspect ratio is set, then we need to calculate the new lat/lng position based on the new dimensions.
-                const newContainerRect = this.#overlay.getBoundingClientRect();
+                const newContainerRect = element.getBoundingClientRect();
                 const mapContainerRect = mapContainer.getBoundingClientRect();
                 // Need to get the NE and SW pixel coordinates of the container within the map container.
                 const nePos = {
@@ -1238,6 +1374,45 @@ export class Overlay extends Layer {
      *
      * @private
      */
+    /**
+     * Attach the overlay to the Google map object.
+     *
+     * The Google map object doesn't exist until the map has been initialized, so toGoogle()
+     * returns undefined until then. Passing that on as null attached the overlay to nothing,
+     * which left it silently off the map even though it reported itself as visible.
+     *
+     * When the map isn't set up yet it's told to initialize and the overlay is attached once
+     * it's ready. The promise that show() and move() return is deliberately not tied to
+     * init(): the map waits on an IntersectionObserver when its element is hidden, so init()
+     * can take a long time to settle, or never settle at all. Marker and Polyline trigger the
+     * map the same way.
+     *
+     * @private
+     * @param {Map} map The map to attach the overlay to
+     */
+    #attachToGoogleMap(map: Map): void {
+        const overlayView = this.#overlayView;
+        if (!overlayView) {
+            return;
+        }
+        const googleMap = map.toGoogle();
+        if (googleMap) {
+            overlayView.setMap(googleMap);
+        } else {
+            map.init();
+            map.onReady(() => {
+                // The overlay could have been hidden, or moved to another map, while the map
+                // was being set up, so only attach it if it's still waiting for this one.
+                if (this.getMap() === map) {
+                    const readyMap = map.toGoogle();
+                    if (readyMap) {
+                        overlayView.setMap(readyMap);
+                    }
+                }
+            });
+        }
+    }
+
     #setupGoogleOverlay() {
         if (!isObject(this.#overlayView)) {
             if (checkForGoogleMaps('Overlay', 'OverlayView', false)) {
@@ -1247,7 +1422,10 @@ export class Overlay extends Layer {
 
                 // Stops click, tap, drag, and wheel events on the element from bubbling up to the map.
                 // This prevents map dragging and zooming, as well as map "click" events.
-                google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+                //
+                // This runs when the overlay is being shown, which is the point at which the
+                // element is needed anyway, so building it here costs nothing that was avoidable.
+                google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#element());
             }
         }
     }
@@ -1281,8 +1459,14 @@ export class Overlay extends Layer {
      * @internal
      */
     remove() {
-        if (this.#overlay.parentElement) {
-            this.#overlay.parentElement.removeChild(this.#overlay);
+        // An overlay that was never built has nothing on the page to take off it. Google calls
+        // this through onRemove(), so it has to be safe for an overlay that never drew.
+        if (!this.#hasElement()) {
+            return;
+        }
+        const element = this.#element();
+        if (element.parentElement) {
+            element.parentElement.removeChild(element);
         }
     }
 }
@@ -1297,7 +1481,19 @@ export class Overlay extends Layer {
  * @param {Overlay} classObject The overlay class object
  * @returns {OverlayView}
  */
-const getOverlayViewClass = (classObject: Overlay) => {
+// Holds the overlay view class once it's been built. The class can't be declared at the top
+// level because google.maps.OverlayView doesn't exist until the Google Maps library loads, but
+// it only needs to be built once. Declaring it inside the function gave every overlay its own
+// class and its own prototype, which meant the engine saw a different shape at each draw() call
+// site and couldn't optimise them.
+let OverlayViewClass: (new (overlay: Overlay) => google.maps.OverlayView) | undefined;
+
+/**
+ * Build the overlay view class, once
+ *
+ * @returns {Function} The overlay view class
+ */
+const buildOverlayViewClass = () => {
     /**
      * Basic overlay class to handle displaying the overlay
      */
@@ -1346,7 +1542,20 @@ const getOverlayViewClass = (classObject: Overlay) => {
             this.#overlay.remove();
         }
     }
-    return new OverlayView(classObject);
+    return OverlayView;
+};
+
+/**
+ * Gets an overlay view object for the overlay
+ *
+ * @param {Overlay} classObject The overlay class object
+ * @returns {google.maps.OverlayView}
+ */
+const getOverlayViewClass = (classObject: Overlay): google.maps.OverlayView => {
+    if (!OverlayViewClass) {
+        OverlayViewClass = buildOverlayViewClass() as unknown as new (overlay: Overlay) => google.maps.OverlayView;
+    }
+    return new OverlayViewClass(classObject);
 };
 
 /**

@@ -66,7 +66,12 @@ export class Size extends Base {
         super('size');
         this.#height = 0;
         this.#width = 0;
-        if (typeof width !== 'undefined') {
+        if (isNumber(width) && isNumber(height)) {
+            // Two plain numbers is the common case, so it skips set() and its type dispatch.
+            // See the comment in the LatLng constructor.
+            this.#width = width;
+            this.#height = height;
+        } else if (typeof width !== 'undefined') {
             this.set(width, height);
         }
     }
@@ -91,7 +96,9 @@ export class Size extends Base {
         } else if (isNumber(height)) {
             this.#height = height;
         }
-        if (isObject(this.#sizeObject)) {
+        // A plain undefined check. isObject() was doing a toString call to answer "has the cache
+        // been built yet", which runs on every size write.
+        if (this.#sizeObject !== undefined) {
             this.#sizeObject.height = this.#height;
         }
     }
@@ -116,7 +123,8 @@ export class Size extends Base {
         } else if (isNumber(width)) {
             this.#width = width;
         }
-        if (isObject(this.#sizeObject)) {
+        // See the comment in the height setter
+        if (this.#sizeObject !== undefined) {
             this.#sizeObject.width = this.#width;
         }
     }
@@ -223,7 +231,7 @@ export class Size extends Base {
      */
     toGoogle(): google.maps.Size | null {
         if (checkForGoogleMaps('Size', 'Size')) {
-            if (!isObject(this.#sizeObject)) {
+            if (this.#sizeObject === undefined) {
                 this.#sizeObject = new google.maps.Size(this.#width, this.#height);
             }
             return this.#sizeObject;

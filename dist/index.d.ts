@@ -103,6 +103,24 @@ declare class Base {
 
 declare const READY_EVENT = "ready";
 /**
+ * The events that this library dispatches itself, which the Google Maps API knows nothing about.
+ *
+ * Evented wires each event type it's asked to listen for through to the Google object, so that a
+ * Google event reaches the library's own listeners. Google never fires these types, so that wiring
+ * is dead weight: a native listener that can't ever be called, held for as long as the object
+ * lives. Every marker, polyline, overlay and data layer that waits for "ready" registered one.
+ *
+ * Only names that no Google object uses belong here. The overlay drag and resize events are
+ * deliberately left out, even though the overlay dispatches them itself, because "drag",
+ * "dragstart" and "dragend" are real Google events on Marker and Map and this list can't tell
+ * which kind of object it's being asked about. Leaving them out costs a dead listener on overlays;
+ * putting them in would stop markers being draggable. The data layer's "load" is left out for the
+ * same reason.
+ *
+ * The type is widened to string[] so that includes() can be called with any event type.
+ */
+declare const INTERNAL_EVENTS: readonly string[];
+/**
  * Events that can be fired by the Autocomplete search box.
  *
  * https://aptuitiv.github.io/gmaps/api-reference/autocomplete-search-box#events
@@ -899,7 +917,7 @@ type EventListenerData = {
     options: EventListenerOptions;
 };
 /**
- * Evented class to add syntatic sugar to handling events
+ * Evented class to add syntactic sugar to handling events
  */
 declare class Evented extends Base {
     #private;
@@ -1749,6 +1767,7 @@ type GeocodeComponentRestrictions = {
 type GeocodeOptions = {
     address?: string;
     bounds?: LatLngBoundsValue;
+    cache?: boolean;
     componentRestrictions?: GeocodeComponentRestrictions;
     language?: string;
     location?: LatLngValue;
@@ -1766,6 +1785,25 @@ declare class Geocode extends Base {
      * @param {GeocodeOptions} [options] The Geocode options
      */
     constructor(options?: GeocodeOptions);
+    /**
+     * Empty the cache of geocode results.
+     *
+     * The shared Geocoder is dropped as well, so the next request builds a new one. Call this if
+     * the results for an address may have changed.
+     */
+    static clearCache(): void;
+    /**
+     * How many results the cache holds before the oldest is dropped
+     *
+     * @returns {number}
+     */
+    static get cacheSize(): number;
+    /**
+     * Set how many results the cache holds. Set it to 0 to turn caching off everywhere.
+     *
+     * @param {number} size The number of results to hold
+     */
+    static set cacheSize(size: number);
     /**
      * Returns the address
      *
@@ -3455,6 +3493,7 @@ type MapOptions = {
     minFitBoundsZoom?: number;
     minZoom?: number;
     noClear?: boolean;
+    preventPageZoom?: boolean;
     renderingType?: RenderingTypeValue;
     restriction?: MapRestrictionValue;
     rotateControl?: boolean | RotateControlValue;
@@ -3696,6 +3735,18 @@ declare class Map extends Evented {
      * @param {null|number} value The minimum zoom level
      */
     set minZoom(value: null | number);
+    /**
+     * Get whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @returns {boolean}
+     */
+    get preventPageZoom(): boolean;
+    /**
+     * Set whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @param {boolean} value Whether to keep a pinch on the map from zooming the page
+     */
+    set preventPageZoom(value: boolean);
     /**
      * Get the MapRestriction object if it's been set
      *
@@ -4316,7 +4367,7 @@ declare class Overlay extends Layer {
      * @protected
      * @type {object}
      */
-    resizeStart: ResizeStart;
+    resizeStart?: ResizeStart;
     /**
      * Constructor
      *
@@ -4800,6 +4851,15 @@ declare class Popup extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the popup
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
     /**
      * Returns the event to trigger the popup
      *
@@ -6425,11 +6485,40 @@ type TooltipOptions = {
 declare class Tooltip extends Overlay {
     #private;
     /**
+     * Whether attachTooltip() gives everything one shared Tooltip instead of one each.
+     *
+     * Defaults to true. Set it to false to go back to a Tooltip per layer, or pass
+     * { shared: false } to a single attachTooltip() call to opt just that one out.
+     *
+     * Passing an actual Tooltip object to attachTooltip() always uses that object, whatever
+     * this is set to.
+     *
+     * @type {boolean}
+     */
+    static useShared: boolean;
+    /**
      * Constructor
      *
      * @param {TooltipOptions | string | HTMLElement | Text} [options] Tooltip options
      */
     constructor(options?: TooltipOptions | string | HTMLElement | Text);
+    /**
+     * Get the one Tooltip that everything shares, building it the first time it's needed.
+     *
+     * It's built with no options on purpose. A Tooltip built from an options object doesn't get
+     * the "tooltip" class name, only one built from a string or from nothing does, and the shared
+     * tooltip has to look like the per-layer ones it replaces.
+     *
+     * @returns {Tooltip}
+     */
+    static getShared(): Tooltip;
+    /**
+     * Throw away the shared tooltip, hiding it first if it's showing.
+     *
+     * The next thing that needs it builds a new one. Each thing keeps its own value, so they
+     * carry on working after this.
+     */
+    static clearShared(): void;
     /**
      * Returns whether to center the tooltip horizontally on the element.
      *
@@ -6454,6 +6543,15 @@ declare class Tooltip extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the tooltip
      */
     set content(content: string | HTMLElement | Text);
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
     /**
      * Returns the event to trigger the tooltip
      *
@@ -6494,6 +6592,23 @@ declare class Tooltip extends Overlay {
      * @returns {Promise<Tooltip>}
      */
     attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover', callback?: TooltipCallback): Promise<Tooltip>;
+    /**
+     * Hide the tooltip
+     *
+     * A callback can return a different Tooltip to show, which is held in #activeTooltip. Hiding
+     * this one used to leave that one on the map with nothing referring to it. Only the hover
+     * wiring took it down, by hiding `#activeTooltip || this` on mouseout, so a tooltip shown by
+     * a click and then hidden directly stayed on the map. It's hidden and forgotten here instead,
+     * which is what Popup.hide() does for the same reason.
+     *
+     * The check against this one matters rather than being tidiness: a callback that returns
+     * content or an options object is applied to this tooltip and #activeTooltip is then set to
+     * this tooltip, so calling hide() on it without the check would call this method again and
+     * never stop.
+     *
+     * @returns {Tooltip}
+     */
+    hide(): Tooltip;
     /**
      * Returns whether the tooltip already has content
      *
@@ -6570,6 +6685,7 @@ type GMMarkerOptions = {
     optimized?: boolean;
     position?: LatLng;
     title?: string;
+    visible?: boolean;
 };
 type MarkerOptions = GMMarkerOptions & {
     anchorPoint?: PointValue;
@@ -6718,6 +6834,18 @@ declare class Marker extends Layer {
      */
     set title(value: string);
     /**
+     * Get whether the marker is visible on the map
+     *
+     * @returns {boolean | undefined} Undefined if it hasn't been set, which means visible
+     */
+    get visible(): boolean | undefined;
+    /**
+     * Set whether the marker is visible on the map
+     *
+     * @param {boolean} value Whether the marker is visible on the map
+     */
+    set visible(value: boolean);
+    /**
      * Disable dragging for this marker
      *
      * @returns {Promise<Marker>}
@@ -6761,6 +6889,18 @@ declare class Marker extends Layer {
      * @returns {Marker}
      */
     hide(): Marker;
+    /**
+     * Returns whether the Google maps marker object has been created yet.
+     *
+     * This lets other parts of the library avoid building the Google marker just to find out
+     * that there isn't one, which toGoogleSync() would otherwise do.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {boolean}
+     */
+    hasGoogleMarker(): boolean;
     /**
      * Initialize the marker
      *
@@ -7112,6 +7252,16 @@ declare class Marker extends Layer {
      * @returns {Marker}
      */
     setTitleSync(value: string): Marker;
+    /**
+     * Set whether the marker is visible on the map.
+     *
+     * A marker that isn't visible isn't drawn, so nothing is created on the Google map for it
+     * until it's shown. Setting it to visible draws it if it was waiting to be drawn.
+     *
+     * @param {boolean} visible Whether the marker is visible on the map
+     * @returns {Marker}
+     */
+    setVisible(visible: boolean): Marker;
     /**
      * Adds the marker to the map object
      *
@@ -8652,4 +8802,4 @@ declare const DEFAULT_SIMPLIFY_ZOOM: {
  */
 declare const simplifyPath: (path: LatLngValue[], tolerance?: number) => LatLng[];
 
-export { type AttachEventValue, type AttachPopupValue, type AttachTooltipValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DataTooltipCallback, type DataTooltipValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineSimplifyOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipCallback, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, renderTemplate, rotateControl, scaleControl, simplifyPath, size, streetViewControl, svgSymbol, tooltip, zoomControl };
+export { type AttachEventValue, type AttachPopupValue, type AttachTooltipValue, AutocompleteSearchBox, AutocompleteSearchBoxEvents, type AutocompleteSearchBoxOptions, type AutocompleteSearchBoxValue, Base, ControlPosition, type ControlPositionValue, DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, DataFeature, type DataFeatureValue, DataLayer, type DataLayerEventCallback, type DataLayerEventObject, DataLayerEvents, type DataLayerOptions, type DataLayerValue, type DataPopupCallback, type DataPopupValue, type DataStyleOptions, type DataStyleValue, type DataTooltipCallback, type DataTooltipValue, type DefaultRenderOptions, type Event, type EventCallback, type EventConfig, type EventListenerOptions, Evented, type FeatureOptions, type FeatureProperties, FullscreenControl, type FullscreenControlOptions, Geocode, type GeocodeComponentRestrictions, type GeocodeOptions, GeocodeResult, GeocodeResults, GeocoderErrorStatus, type GeocoderErrorStatusValue, GeocoderLocationType, type GeocoderLocationTypeValue, GeometryType, type GeometryTypeValue, INTERNAL_EVENTS, Icon, type IconOptions, type IconValue, ImageOverlay, ImageOverlayEvents, type ImageOverlayOptions, type ImageOverlayValue, type ImageRendererOptions, InfoWindow, InfoWindowEvents, type InfoWindowOptions, type InfoWindowValue, LatLng, LatLngBounds, type LatLngBoundsEdges, type LatLngBoundsLiteral, type LatLngBoundsValue, type LatLngLiteral, type LatLngLiteralExpanded, type LatLngValue, Layer, LayerEvents, type LoadOptions, Loader, LoaderEvents, type LoaderOptions, type LocateOptions, type LocationOnSuccess, type LocationPosition, Map, MapEvents, type MapOptions, MapRestriction, type MapRestrictionOptions, MapStyle, type MapStyleOptions, type MapType, MapTypeControl, type MapTypeControlOptions, MapTypeControlStyle, type MapTypeControlStyleValue, MapTypeId, type MapTypeIdValue, Marker, MarkerCluster, type MarkerClusterOptions, MarkerCollection, MarkerEvents, type MarkerLabel, type MarkerOptions, type MarkerValue, Overlay, OverlayEvents, PlacesSearchBox, PlacesSearchBoxEvents, type PlacesSearchBoxOptions, type PlacesSearchBoxValue, Point, type PointObject, type PointValue, Polyline, PolylineCollection, PolylineEvents, PolylineIcon, type PolylineIconOptions, type PolylineIconValue, type PolylineOptions, type PolylineSimplifyOptions, type PolylineValue, Popup, type PopupCallback, PopupEvents, type PopupOptions, type PopupValue, READY_EVENT, RenderingType, type RenderingTypeValue, RotateControl, type RotateControlOptions, ScaleControl, type ScaleControlOptions, Size, type SizeObject, type SizeValue, StreetViewControl, type StreetViewControlOptions, StreetViewSource, type StreetViewSourceValue, SvgSymbol, type SvgSymbolOptions, type SvgSymbolValue, SymbolPath, type SymbolPathValue, Tooltip, type TooltipCallback, type TooltipOptions, type TooltipValue, ZoomControl, type ZoomControlOptions, autocompleteSearchBox, calculateDimensions, callCallback, checkForGoogleMaps, closeAllPopups, convertControlPosition, convertMapTypeControlStyle, convertSymbolPath, dataLayer, fullscreenControl, geocode, getBoolean, getNumber, getPixelsFromLatLng, getSizeWithUnit, icon, imageOverlay, infoWindow, isBoolean, isDefined, isFunction, isNull, isNullOrUndefined, isNumber, isNumberOrNumberString, isNumberString, isObject, isObjectWithValues, isPromise, isString, isStringOrNumber, isStringWithValue, isUndefined, latLng, latLngBounds, loader, map, mapRestriction, mapStyle, mapTypeControl, marker, markerCluster, markerCollection, objectEquals, objectHasValue, overlay, placesSearchBox, point, polyline, polylineCollection, polylineIcon, popup, renderTemplate, rotateControl, scaleControl, simplifyPath, size, streetViewControl, svgSymbol, tooltip, zoomControl };

@@ -77,6 +77,17 @@ export class PlacesSearchBox extends Evented {
     #searchBox: google.maps.places.SearchBox | undefined;
 
     /**
+     * Holds the promise for setting up the search box.
+     *
+     * Every call to init() waits on this same promise so that the search box is only built once,
+     * however many times init() is called and whenever those calls are made.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #initPromise: Promise<void> | undefined;
+
+    /**
      * Holds the options for the places search box
      *
      * @private
@@ -214,25 +225,48 @@ export class PlacesSearchBox extends Evented {
      * @returns {Promise<void>}
      */
     async init(): Promise<void> {
-        return new Promise((resolve) => {
-            if (!isObject(this.#searchBox)) {
+        // The work is only started once and every caller waits on the same promise.
+        //
+        // This used to guard on whether #searchBox was set, which isn't enough: creating the
+        // search box awaits the bounds before it assigns #searchBox, so two calls made before
+        // that await finished both got past the guard and both built a search box on the same
+        // input. That meant two sets of listeners and two lots of billed Places requests.
+        //
+        // The promise also used to have no reject path, so a failure - no input element, for
+        // example - left it unsettled forever and anything awaiting init() hung.
+        if (!this.#initPromise) {
+            const initPromise = new Promise<void>((resolve, reject) => {
                 if (checkForGoogleMaps('PlacesSearchBox', 'places', false)) {
-                    this.#createPlacesSearchBox().then(() => {
-                        resolve();
-                    });
+                    this.#createPlacesSearchBox().then(resolve).catch(reject);
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
                     loader().onMapLoad(() => {
-                        this.#createPlacesSearchBox().then(() => {
-                            resolve();
-                        });
+                        this.#createPlacesSearchBox().then(resolve).catch(reject);
                     });
                 }
-            } else {
-                resolve();
-            }
-        });
+            });
+            // A failure is not remembered. Initializing throws when there's no input element, and
+            // holding on to the rejected promise meant every later init() got that same failure
+            // back - so setting the input afterwards and calling init() again could never work.
+            // Clearing it lets a later call start again. The promise is only forgotten once it
+            // has actually failed, so calls made while it's still running share it as before.
+            //
+            // Nothing is built twice by this: #createPlacesSearchBox() returns early when
+            // #searchBox is already set, so a retry after a successful init still creates nothing.
+            //
+            // The check is against the promise that gets stored below, not the one being wrapped,
+            // so that a call which has already started a new attempt isn't undone. The callback
+            // only runs once the promise has rejected, which is always after the assignment.
+            const tracked: Promise<void> = initPromise.catch((error) => {
+                if (this.#initPromise === tracked) {
+                    this.#initPromise = undefined;
+                }
+                throw error;
+            });
+            this.#initPromise = tracked;
+        }
+        return this.#initPromise;
     }
 
     /**
@@ -253,14 +287,18 @@ export class PlacesSearchBox extends Evented {
             this.#searchBox = searchBox;
             // Add the listener for when the user selects a place
             searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-                const places = searchBox.getPlaces();
-                if (!Array.isArray(places) || places.length === 0) {
-                    // No places were found. Clear the previous results so that they don't look like they
-                    // belong to this search, and don't dispatch the event because there is nothing to report.
-                    this.#places = [];
-                    this.#placesBounds = undefined;
-                    return;
-                }
+                // A search that matched nothing gives back an empty array, and older versions of
+                // the API could give back nothing at all.
+                const found = searchBox.getPlaces();
+                const places = Array.isArray(found) ? found : [];
+                // The event used to not be dispatched at all when nothing was found, which left
+                // listeners with no way to know that a search had come back empty - the previous
+                // results were cleared behind their back and nothing told them to clear theirs.
+                // It's now always dispatched, with an empty array and an empty bounds, which is
+                // how AutocompleteSearchBox has always behaved for a place it couldn't place.
+                //
+                // The bounds is a real LatLngBounds with nothing in it rather than undefined,
+                // because the event object says it's a LatLngBounds and listeners read it as one.
                 const bounds = latLngBounds();
                 places.forEach((place) => {
                     // Set up the map bounds based on the place

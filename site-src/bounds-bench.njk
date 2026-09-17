@@ -1,0 +1,240 @@
+---
+title: "Bounds Benchmark"
+layout: "base.njk"
+---
+
+<style>
+    .BenchControls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; margin-bottom: 16px; }
+    .BenchControls label { display: block; font-weight: 600; margin-bottom: 4px; }
+    .BenchControls .BenchCheckbox { font-weight: normal; }
+    .BenchControls fieldset { border: none; padding: 0; }
+    .BenchControls button { padding: 6px 14px; }
+    .BenchStats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 16px; }
+    .BenchStats strong { font-variant-numeric: tabular-nums; }
+    .BenchVerdict { border-left: 4px solid #ccc; padding: 8px 12px; margin-bottom: 16px; font-size: 15px; }
+    .BenchVerdict.is-worth { border-left-color: #2e7d32; background: #f1f8f1; }
+    .BenchVerdict.is-not-worth { border-left-color: #b71c1c; background: #fdf1f1; }
+    .BenchResults { overflow-x: auto; margin-bottom: 20px; }
+    .BenchResults table { border-collapse: collapse; font-size: 14px; }
+    .BenchResults th, .BenchResults td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; white-space: nowrap; }
+    .BenchResults th:first-child, .BenchResults td:first-child { text-align: left; }
+    .BenchMap { aspect-ratio: auto; height: 240px; min-height: 200px; }
+    .BenchNote { background: #f6f6f6; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px; }
+</style>
+
+<h1>Bounds benchmark</h1>
+
+<p>
+    This page exists to answer one question, so that the remaining Phase 4 items in
+    <code>ai-plans/active/performance-improvements.md</code> are decided by a measurement instead of
+    by a guess: <strong>does anything build a bounds over enough points for it to matter?</strong>
+</p>
+
+<div class="BenchNote">
+    <p><strong>What is being measured, and why it is measured this way.</strong></p>
+    <ul>
+        <li>
+            The timings below are of <strong>library operations</strong> &mdash;
+            <code>dataLayer.getBounds()</code> and <code>map.addToBounds()</code> &mdash; not of
+            <code>bounds.extend()</code> in a tight loop. A loop over two million points would produce an
+            impressive number and "prove" the optimization is worth doing whether or not any real code
+            path does that. Only the operations a real application actually calls can decide this.
+        </li>
+        <li>
+            <code>getBounds()</code> is timed rather than <code>fitBounds()</code> because
+            <code>getBounds()</code> is the bounds walk on its own. <code>fitBounds()</code> also moves the
+            Google viewport, which would swamp the thing being measured.
+        </li>
+        <li>
+            The optimizations do not exist yet, so there is nothing to compare against. Instead each
+            scenario also runs a <strong>numeric floor</strong>: the same coordinates reduced with plain
+            <code>Math.min</code>/<code>Math.max</code> over a <code>Float64Array</code>, allocating
+            nothing. The gap between the two is the <strong>ceiling</strong> on what the optimization
+            could recover.
+        </li>
+        <li>
+            <strong>That ceiling is not reachable.</strong> For the data layer, Google's own
+            <code>forEachLatLng()</code> hands back a <code>google.maps.LatLng</code> per coordinate no
+            matter what this library does. D-3 can drop the <code>latLngConvert()</code> wrapper and the
+            literal that <code>extend()</code> stores, but not Google's object. Treat the gap as an upper
+            bound that the real change will fall short of.
+        </li>
+    </ul>
+</div>
+
+<h2>Scenario A &mdash; data layer bounds (D-3, and C-5 underneath it)</h2>
+
+<p>
+    <code>DataLayer.#bounds()</code> walks every coordinate of every feature and calls
+    <code>latLngConvert()</code> then <code>extend()</code> on each one. It runs on every
+    <code>getBounds()</code> and <code>fitBounds()</code>, and on any <code>addGeoJson()</code> or
+    <code>loadGeoJson()</code> with <code>fitBounds: true</code>. This is the largest real caller in
+    the library &mdash; a detailed boundary or trail GeoJson is tens of thousands of coordinates.
+</p>
+
+<p>
+    Set the feature count and points per feature to match your real data. For a trail site, that is
+    roughly one feature per trail and however many points your tracks carry.
+</p>
+
+<form class="BenchControls" id="controlsA">
+    <div>
+        <label for="features">Features</label>
+        <input type="number" id="features" name="features" value="50" min="1" step="1" style="width: 7em;">
+    </div>
+    <div>
+        <label for="pointsPer">Points per feature</label>
+        <input type="number" id="pointsPer" name="pointsPer" value="2000" min="2" step="1" style="width: 7em;">
+    </div>
+    <div>
+        <label for="runsA">Runs (median)</label>
+        <input type="number" id="runsA" name="runsA" value="5" min="1" max="25" step="1" style="width: 5em;">
+    </div>
+    <div>
+        <label for="seedA">Seed</label>
+        <input type="number" id="seedA" name="seedA" value="1" min="1" step="1" style="width: 6em;">
+    </div>
+    <div>
+        <label class="BenchCheckbox" for="attach">
+            <input type="checkbox" id="attach" name="attach"> Draw the layer on the map
+        </label>
+    </div>
+    <div>
+        <button type="submit">Run scenario A</button>
+    </div>
+</form>
+
+<p>
+    Leave "Draw the layer on the map" off unless you want to see the data. Drawing a hundred thousand
+    points costs far more than the bounds walk and makes the page a measurement of rendering.
+</p>
+
+<div class="BenchStats">
+    <span>Features: <strong id="statFeatures">-</strong></span>
+    <span>Coordinates: <strong id="statCoords">-</strong></span>
+    <span>Load: <strong id="statLoadMs">-</strong></span>
+    <span><code>getBounds()</code>: <strong id="statGetBoundsMs">-</strong></span>
+    <span>Numeric floor: <strong id="statFloorAMs">-</strong></span>
+    <span>Ceiling on the saving: <strong id="statSaveAMs">-</strong></span>
+</div>
+
+<div class="BenchVerdict" id="verdictA">Run scenario A to get a verdict.</div>
+
+<h2>Scenario B &mdash; map.addToBounds() (C-5)</h2>
+
+<p>
+    <code>Map.addToBounds()</code> is public API that takes an array, and
+    <code>LatLngBounds.extend()</code> builds a <code>LatLng</code> for each entry. An application that
+    collects its marker positions and fits the map to them goes through here, so set the count to your
+    real marker count.
+</p>
+
+<form class="BenchControls" id="controlsB">
+    <div>
+        <label for="positions">Positions</label>
+        <input type="number" id="positions" name="positions" value="2595" min="1" step="1" style="width: 7em;">
+    </div>
+    <div>
+        <label for="runsB">Runs (median)</label>
+        <input type="number" id="runsB" name="runsB" value="5" min="1" max="25" step="1" style="width: 5em;">
+    </div>
+    <div>
+        <label for="seedB">Seed</label>
+        <input type="number" id="seedB" name="seedB" value="1" min="1" step="1" style="width: 6em;">
+    </div>
+    <div>
+        <button type="submit">Run scenario B</button>
+    </div>
+</form>
+
+<div class="BenchStats">
+    <span>Positions: <strong id="statPositions">-</strong></span>
+    <span><code>addToBounds()</code>: <strong id="statAddMs">-</strong></span>
+    <span>Numeric floor: <strong id="statFloorBMs">-</strong></span>
+    <span>Ceiling on the saving: <strong id="statSaveBMs">-</strong></span>
+</div>
+
+<div class="BenchVerdict" id="verdictB">Run scenario B to get a verdict.</div>
+
+<h2>Scenario C &mdash; contains() in a loop (C-17), and C-15</h2>
+
+<p>
+    <strong>C-17 and C-15 cannot be justified from this library's own code.</strong> C-17 saves one
+    <code>LatLng</code> per <code>contains()</code> call, but the loop that would have justified it was
+    viewport culling, which is struck (section 5.4.1). Nothing in the library now calls
+    <code>contains()</code> in a loop. C-15 memoizes the corner getters, and only
+    <code>intersects()</code> reads them repeatedly &mdash; four times in one call, which is not a loop.
+</p>
+
+<p>
+    So this scenario is here for one reason only: <strong>if your own application code calls
+    <code>contains()</code> over many points</strong> &mdash; filtering a list to the visible area, say
+    &mdash; then C-17 applies to you and this measures it. If it does not, C-17 should stay struck, and
+    no number on this page changes that.
+</p>
+
+<form class="BenchControls" id="controlsC">
+    <div>
+        <label for="checks">contains() calls</label>
+        <input type="number" id="checks" name="checks" value="2595" min="1" step="1" style="width: 7em;">
+    </div>
+    <div>
+        <label for="runsC">Runs (median)</label>
+        <input type="number" id="runsC" name="runsC" value="5" min="1" max="25" step="1" style="width: 5em;">
+    </div>
+    <div>
+        <button type="submit">Run scenario C</button>
+    </div>
+</form>
+
+<div class="BenchStats">
+    <span>Calls: <strong id="statChecks">-</strong></span>
+    <span><code>contains()</code>: <strong id="statContainsMs">-</strong></span>
+    <span>Numeric floor: <strong id="statFloorCMs">-</strong></span>
+    <span>Ceiling on the saving: <strong id="statSaveCMs">-</strong></span>
+</div>
+
+<div class="BenchVerdict" id="verdictC">Run scenario C only if your application code does this.</div>
+
+<h2>How to read the verdict</h2>
+
+<p>
+    The verdict applies one rule, and the rule is about the <em>saving</em>, not the total. An operation
+    that takes 400&nbsp;ms is irrelevant if the change can only recover 3&nbsp;ms of it.
+</p>
+
+<ul>
+    <li><strong>Under 5&nbsp;ms of ceiling</strong> &mdash; not worth doing. Leave the item struck.</li>
+    <li><strong>5 to 50&nbsp;ms</strong> &mdash; worth doing only if it is also a simplification. Judge it on the code, not the clock.</li>
+    <li><strong>Over 50&nbsp;ms</strong> &mdash; worth doing. This is a real cost a user can feel on a page load.</li>
+</ul>
+
+<p>
+    Run this on the slowest device you support, not on the Mac. The iPhone is the reason this plan
+    exists, and a number gathered on a desktop browser does not decide anything for it. Connect the
+    phone to the Mac and use Safari's Web Inspector.
+</p>
+
+<div id="map1" class="mapContainer BenchMap"></div>
+
+<h2>Results</h2>
+<div class="BenchResults">
+    <table>
+        <thead>
+            <tr>
+                <th>Scenario</th>
+                <th>Size</th>
+                <th>Coordinates</th>
+                <th>Operation (ms)</th>
+                <th>Numeric floor (ms)</th>
+                <th>Ceiling on saving (ms)</th>
+                <th>Saving %</th>
+                <th>JS memory (MB)</th>
+                <th>Verdict</th>
+            </tr>
+        </thead>
+        <tbody id="results"></tbody>
+    </table>
+</div>
+
+<script src="{{ '/js/bounds-bench.js'|url|safe}}"></script>

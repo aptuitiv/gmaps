@@ -36,6 +36,7 @@ __export(index_exports, {
   GeocoderErrorStatus: () => GeocoderErrorStatus,
   GeocoderLocationType: () => GeocoderLocationType,
   GeometryType: () => GeometryType,
+  INTERNAL_EVENTS: () => INTERNAL_EVENTS,
   Icon: () => Icon,
   ImageOverlay: () => ImageOverlay,
   ImageOverlayEvents: () => ImageOverlayEvents,
@@ -47,7 +48,7 @@ __export(index_exports, {
   LayerEvents: () => LayerEvents,
   Loader: () => Loader,
   LoaderEvents: () => LoaderEvents,
-  Map: () => Map,
+  Map: () => Map2,
   MapEvents: () => MapEvents,
   MapRestriction: () => MapRestriction,
   MapStyle: () => MapStyle,
@@ -281,6 +282,12 @@ var Base_default = Base;
 
 // src/lib/constants.ts
 var READY_EVENT = "ready";
+var INTERNAL_EVENTS = Object.freeze([
+  READY_EVENT,
+  "locationfound",
+  "locationerror",
+  "initialized"
+]);
 var AutocompleteSearchBoxEvents = Object.freeze({
   // Called when the user selects a Place.
   PLACE_CHANGED: "place_changed"
@@ -714,8 +721,20 @@ var getBoolean = (thing) => {
   }
   return false;
 };
-var isObject = (thing) => Object.prototype.toString.call(thing) === "[object Object]";
-var isObjectWithValues = (thing) => Object.prototype.toString.call(thing) === "[object Object]" && Object.keys(thing).length > 0;
+var isObject = (thing) => (
+  // The typeof test costs almost nothing and rules out every primitive, which is most of what
+  // this is called with - option arguments that weren't passed, strings, numbers, functions.
+  // Only a value that could actually be an object reaches the slower toString call.
+  //
+  // The answers are exactly the same as before. Arrays, null, Date, Map and Set are all still
+  // not objects by this test, which a plain typeof check would have got wrong.
+  typeof thing === "object" && thing !== null && Object.prototype.toString.call(thing) === "[object Object]"
+);
+var isObjectWithValues = (thing) => (
+  // Reuses isObject so that the cheap typeof test runs first and the keys are only listed for
+  // something that is actually an object
+  isObject(thing) && Object.keys(thing).length > 0
+);
 var isPromise = (thing) => !!thing && isFunction(thing.then);
 var getPixelsFromLatLng = (map2, position) => {
   const projection = map2.getProjection();
@@ -776,7 +795,7 @@ var getSizeWithUnit = (value, defaultUnit = "px", allowedUnits = ["%", "px"], al
       }
     }
     if (pass) {
-      const val = parseFloat(value.replace(`${allowedUnits.join("|")}/g`, ""));
+      const val = parseFloat(value);
       if (val >= 0) {
         returnValue = value;
       }
@@ -864,12 +883,6 @@ var LatLng = class _LatLng extends Base_default {
    */
   #longitude;
   /**
-   * Whether the latitude/longitude pair values have changed since the last time they were set
-   *
-   * @type {boolean}
-   */
-  #valuesChanged = false;
-  /**
    * Constructor
    *
    * @param {Latitude|LatLng|google.maps.LatLng} latitude The latitude value or the latitude/longitude pair
@@ -877,7 +890,10 @@ var LatLng = class _LatLng extends Base_default {
    */
   constructor(latitude, longitude) {
     super("latlng");
-    if (typeof latitude !== "undefined") {
+    if (isNumber(latitude) && isNumber(longitude)) {
+      this.#latitude = latitude;
+      this.#longitude = longitude;
+    } else if (typeof latitude !== "undefined") {
       this.set(latitude, longitude);
     }
   }
@@ -900,7 +916,7 @@ var LatLng = class _LatLng extends Base_default {
     } else if (isNumber(latitude)) {
       this.#latitude = latitude;
     }
-    this.#valuesChanged = true;
+    this.#latLngObject = void 0;
   }
   /**
    * Get the latitude value (shortened version of the latitude property)
@@ -937,7 +953,7 @@ var LatLng = class _LatLng extends Base_default {
     } else if (isNumber(longitude)) {
       this.#longitude = longitude;
     }
-    this.#valuesChanged = true;
+    this.#latLngObject = void 0;
   }
   /**
    * Get the longitude value (shortened version of the longitude property)
@@ -970,6 +986,9 @@ var LatLng = class _LatLng extends Base_default {
    * @returns {boolean}
    */
   equals(other) {
+    if (other instanceof _LatLng) {
+      return other.isValid() && this.latitude === other.latitude && this.longitude === other.longitude;
+    }
     let isEqual = false;
     const otherLatLng = new _LatLng(other);
     if (otherLatLng.isValid()) {
@@ -1068,9 +1087,8 @@ var LatLng = class _LatLng extends Base_default {
       );
     }
     checkForGoogleMaps("LatLng", "LatLng");
-    if (!isObject(this.#latLngObject) || this.#valuesChanged) {
+    if (this.#latLngObject === void 0) {
       this.#latLngObject = new google.maps.LatLng(this.latitude, this.longitude);
-      this.#valuesChanged = false;
     }
     return this.#latLngObject;
   }
@@ -1127,7 +1145,10 @@ var Point = class _Point extends Base_default {
    */
   constructor(x, y) {
     super("point");
-    if (typeof x !== "undefined") {
+    if (isNumber(x) && isNumber(y)) {
+      this.#x = x;
+      this.#y = y;
+    } else if (typeof x !== "undefined") {
       this.set(x, y);
     }
   }
@@ -1150,7 +1171,7 @@ var Point = class _Point extends Base_default {
     } else if (isNumber(x)) {
       this.#x = x;
     }
-    if (isObject(this.#pointObject)) {
+    if (this.#pointObject !== void 0) {
       this.#pointObject.x = this.#x;
     }
   }
@@ -1173,7 +1194,7 @@ var Point = class _Point extends Base_default {
     } else if (isNumber(y)) {
       this.#y = y;
     }
-    if (isObject(this.#pointObject)) {
+    if (this.#pointObject !== void 0) {
       this.#pointObject.y = this.#y;
     }
   }
@@ -1391,7 +1412,7 @@ var Point = class _Point extends Base_default {
    */
   toGoogle() {
     checkForGoogleMaps("Point", "Point");
-    if (!isObject(this.#pointObject)) {
+    if (this.#pointObject === void 0) {
       this.#pointObject = new google.maps.Point(this.x, this.y);
     }
     return this.#pointObject;
@@ -1413,24 +1434,38 @@ var point = (x, y) => new Point(x, y);
 
 // src/lib/Evented.ts
 var Evented = class extends Base_default {
+  /*
+   * The containers below are only created when something is actually put in them.
+   *
+   * Every Marker, Polyline, Overlay, Popup, Tooltip, InfoWindow, DataFeature, Map and
+   * DataLayer extends this class. Creating these up front meant four objects per instance
+   * whether or not it ever had a listener, which is around 80,000 objects for a map with
+   * 20,000 markers, most of them empty for the life of the page.
+   *
+   * Reads use optional chaining and writes create the container first, so an object that
+   * never has a listener never allocates any of them.
+   */
   /**
    * Holds the events that have been called
+   *
+   * @private
+   * @type {object|undefined}
    */
-  #eventsCalled = {};
+  #eventsCalled;
   /**
    * Holds the event listeners
    *
    * @private
-   * @type {EventListeners}
+   * @type {EventListeners|undefined}
    */
-  #eventListeners = {};
+  #eventListeners;
   /**
    * Holds the event listeners that are set to only be called once
    *
    * @private
-   * @type {string[]}
+   * @type {string[]|undefined}
    */
-  #onlyEventListeners = [];
+  #onlyEventListeners;
   /**
    * Holds the Google maps object that events are set up on
    *
@@ -1440,12 +1475,24 @@ var Evented = class extends Base_default {
   // Definitely assigned because it's only used after #isGoogleObjectSet() confirms that it's set.
   #googleObject;
   /**
+   * Holds the listeners that this object added to the Google maps object, by event type.
+   *
+   * They're held so that only the listeners this object added are removed. Removing them with
+   * google.maps.event.clearListeners() takes away every listener of that type on the object,
+   * including ones added by other libraries - the marker clusterer listens for "idle" on the
+   * map, for example, and would stop re-clustering.
+   *
+   * @private
+   * @type {object}
+   */
+  #googleListeners;
+  /**
    * Holds the event listeners that are waiting to be added once the Google Maps object is set
    *
    * @private
    * @type {PendingEvents}
    */
-  #pendingMapObjectEventListeners = {};
+  #pendingMapObjectEventListeners;
   /**
    * The object that needs Google maps. This should be the name of the object that extends this class.
    *
@@ -1488,12 +1535,9 @@ var Evented = class extends Base_default {
    * @returns {Evented}
    */
   dispatch(event, data) {
-    this.#eventsCalled[event] = true;
-    if (!this.hasListener(event)) {
-      return this;
-    }
-    const listeners = this.#eventListeners[event];
-    if (listeners) {
+    (this.#eventsCalled ??= {})[event] = true;
+    const listeners = this.#eventListeners?.[event];
+    if (listeners && listeners.length > 0) {
       let eventData = {
         type: event
       };
@@ -1521,14 +1565,17 @@ var Evented = class extends Base_default {
           eventData = { ...eventData, ...data };
         }
       }
-      const listenersToRemove = [];
+      let listenersToRemove;
       listeners.forEach((listener) => {
         listener.callback.call(listener.context || this, eventData);
-        if (typeof listener.options !== "undefined" && isObject(listener.options) && typeof listener.options.once === "boolean" && listener.options.once === true) {
+        if (listener.options.once === true) {
+          if (!listenersToRemove) {
+            listenersToRemove = [];
+          }
           listenersToRemove.push(listener);
         }
       });
-      if (listenersToRemove.length > 0) {
+      if (listenersToRemove) {
         this.removeCalledOnceListeners(event, listenersToRemove);
       }
     }
@@ -1544,13 +1591,14 @@ var Evented = class extends Base_default {
    * @returns {boolean}
    */
   hasListener(type, callback) {
-    if (!this.#eventListeners[type]) {
+    const listeners = this.#eventListeners?.[type];
+    if (!listeners || listeners.length === 0) {
       return false;
     }
     if (typeof callback === "function") {
-      return this.#eventListeners[type].filter((event) => event.callback === callback).length > 0;
+      return listeners.some((event) => event.callback === callback);
     }
-    return this.#eventListeners[type] && this.#eventListeners[type].length > 0;
+    return true;
   }
   /**
    * Removes the event listener
@@ -1571,9 +1619,10 @@ var Evented = class extends Base_default {
    */
   off(type, callback, options) {
     if (isString(type)) {
-      if (this.#eventListeners[type]) {
+      const eventListeners = this.#eventListeners;
+      if (eventListeners && eventListeners[type]) {
         if (isFunction(callback)) {
-          this.#eventListeners[type] = this.#eventListeners[type].filter((listener) => {
+          eventListeners[type] = eventListeners[type].filter((listener) => {
             let keep = true;
             if (isObject(options)) {
               keep = listener.callback !== callback || !objectEquals(options, listener.options);
@@ -1583,7 +1632,7 @@ var Evented = class extends Base_default {
             return keep;
           });
         } else {
-          this.#eventListeners[type] = [];
+          eventListeners[type] = [];
         }
         this.#afterListenersRemoved(type);
       }
@@ -1598,12 +1647,19 @@ var Evented = class extends Base_default {
    * @param {string} type The event type
    */
   #afterListenersRemoved(type) {
-    const index = this.#onlyEventListeners.indexOf(type);
-    if (index > -1) {
-      this.#onlyEventListeners.splice(index, 1);
+    const onlyEventListeners = this.#onlyEventListeners;
+    if (onlyEventListeners) {
+      const index = onlyEventListeners.indexOf(type);
+      if (index > -1) {
+        onlyEventListeners.splice(index, 1);
+      }
     }
-    if (this.#eventListeners[type].length === 0 && this.#isGoogleObjectSet()) {
-      google.maps.event.clearListeners(this.#googleObject, type);
+    if ((this.#eventListeners?.[type]?.length ?? 0) === 0) {
+      const googleListeners = this.#googleListeners;
+      if (googleListeners && googleListeners[type]) {
+        googleListeners[type].remove();
+        delete googleListeners[type];
+      }
     }
   }
   /**
@@ -1621,9 +1677,10 @@ var Evented = class extends Base_default {
    * @param {EventListenerData[]} listeners The listeners that were called
    */
   removeCalledOnceListeners(type, listeners) {
-    if (this.#eventListeners[type]) {
+    const eventListeners = this.#eventListeners;
+    if (eventListeners && eventListeners[type]) {
       const toRemove = new Set(listeners);
-      this.#eventListeners[type] = this.#eventListeners[type].filter((listener) => !toRemove.has(listener));
+      eventListeners[type] = eventListeners[type].filter((listener) => !toRemove.has(listener));
       this.#afterListenersRemoved(type);
     }
   }
@@ -1631,10 +1688,15 @@ var Evented = class extends Base_default {
    * Removes all event listeners
    */
   offAll() {
-    this.#eventListeners = {};
-    this.#onlyEventListeners = [];
-    if (this.#isGoogleObjectSet()) {
-      google.maps.event.clearInstanceListeners(this.#googleObject);
+    this.#eventListeners = void 0;
+    this.#onlyEventListeners = void 0;
+    this.#pendingMapObjectEventListeners = void 0;
+    const googleListeners = this.#googleListeners;
+    if (googleListeners) {
+      Object.keys(googleListeners).forEach((type) => {
+        googleListeners[type].remove();
+      });
+      this.#googleListeners = void 0;
     }
   }
   /**
@@ -1734,18 +1796,20 @@ var Evented = class extends Base_default {
    */
   #on(type, callback, config) {
     if (isFunction(callback)) {
-      if (!Array.isArray(this.#eventListeners[type]) || this.#eventListeners[type].length === 0) {
+      const existingListeners = this.#eventListeners?.[type];
+      if ((!existingListeners || existingListeners.length === 0) && !INTERNAL_EVENTS.includes(type)) {
         let setupPending = false;
         if (checkForGoogleMaps(this.#testObject, this.#testLibrary, false)) {
           if (this.#isGoogleObjectSet()) {
-            if (!google.maps.event.hasListeners(this.#googleObject, type)) {
-              this.#googleObject.addListener(type, (e) => {
-                this.dispatch(type, e);
-              });
-            } else if (["bounds_changed", "zoom_changed"].includes(type)) {
-              this.#googleObject.addListener(type, (e) => {
-                this.dispatch(type, e);
-              });
+            const googleListeners = this.#googleListeners ??= {};
+            const googleObject = this.#googleObject;
+            if (googleObject && !googleListeners[type]) {
+              googleListeners[type] = googleObject.addListener(
+                type,
+                (e) => {
+                  this.dispatch(type, e);
+                }
+              );
             }
           } else {
             setupPending = true;
@@ -1754,16 +1818,15 @@ var Evented = class extends Base_default {
           setupPending = true;
         }
         if (setupPending) {
-          if (!this.#pendingMapObjectEventListeners[type]) {
-            this.#pendingMapObjectEventListeners[type] = [];
-          }
-          this.#pendingMapObjectEventListeners[type].push({ callback, config });
+          const pending = this.#pendingMapObjectEventListeners ??= {};
+          pending[type] ??= [];
+          pending[type].push({ callback, config });
         }
       }
       let addListener = true;
       const listenerOptions = {};
       let context;
-      if (this.#onlyEventListeners.includes(type)) {
+      if (this.#onlyEventListeners?.includes(type)) {
         addListener = false;
       }
       if (addListener && isObjectWithValues(config)) {
@@ -1771,7 +1834,7 @@ var Evented = class extends Base_default {
           listenerOptions.once = true;
         }
         if (typeof config.only === "boolean" && config.only === true) {
-          this.#onlyEventListeners.push(type);
+          (this.#onlyEventListeners ??= []).push(type);
           if (this.hasListener(type)) {
             addListener = false;
           }
@@ -1783,7 +1846,7 @@ var Evented = class extends Base_default {
           }
         }
         if (typeof config.callImmediate === "boolean" && config.callImmediate === true) {
-          if (typeof this.#eventsCalled[type] !== "undefined") {
+          if (typeof this.#eventsCalled?.[type] !== "undefined") {
             if (typeof config.once === "boolean" && config.once === true) {
               addListener = false;
             }
@@ -1794,10 +1857,9 @@ var Evented = class extends Base_default {
         }
       }
       if (addListener) {
-        if (!this.#eventListeners[type]) {
-          this.#eventListeners[type] = [];
-        }
-        this.#eventListeners[type].push({ callback, context, options: listenerOptions });
+        const eventListeners = this.#eventListeners ??= {};
+        eventListeners[type] ??= [];
+        eventListeners[type].push({ callback, context, options: listenerOptions });
       }
     } else {
       throw new Error(`The "${type}" event handler needs a callback function`);
@@ -1816,15 +1878,20 @@ var Evented = class extends Base_default {
    */
   setEventGoogleObject(googleObject) {
     this.#googleObject = googleObject;
-    if (isObject(this.#pendingMapObjectEventListeners)) {
-      Object.keys(this.#pendingMapObjectEventListeners).forEach((type) => {
-        this.#pendingMapObjectEventListeners[type].forEach(() => {
-          this.#googleObject.addListener(type, (e) => {
-            this.dispatch(type, e);
-          });
-        });
+    const pending = this.#pendingMapObjectEventListeners;
+    if (pending) {
+      const googleListeners = this.#googleListeners ??= {};
+      Object.keys(pending).forEach((type) => {
+        if (googleObject && !googleListeners[type]) {
+          googleListeners[type] = googleObject.addListener(
+            type,
+            (e) => {
+              this.dispatch(type, e);
+            }
+          );
+        }
       });
-      this.#pendingMapObjectEventListeners = {};
+      this.#pendingMapObjectEventListeners = void 0;
     }
   }
   /**
@@ -1833,6 +1900,9 @@ var Evented = class extends Base_default {
    * @returns {boolean}
    */
   #isGoogleObjectSet() {
+    if (typeof google === "undefined" || typeof google.maps === "undefined") {
+      return false;
+    }
     let isSet = this.#googleObject instanceof google.maps.MVCObject;
     if (!isSet && typeof google.maps.marker !== "undefined" && typeof google.maps.marker.AdvancedMarkerElement !== "undefined") {
       isSet = this.#googleObject instanceof google.maps.marker.AdvancedMarkerElement;
@@ -1877,6 +1947,16 @@ var Loader = class extends EventTarget {
    * @type {boolean}
    */
   #isLoaded = false;
+  /**
+   * Holds whether the map has finished loading.
+   *
+   * This is set when the "map_load" event is dispatched so that a listener added after that
+   * point can still be called.
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isMapLoaded = false;
   /**
    * Holds the libraries to load with Google maps
    *
@@ -2072,6 +2152,9 @@ var Loader = class extends EventTarget {
    * @param {string} event The event to dispatch
    */
   dispatch(event) {
+    if (event === LoaderEvents.MAP_LOAD) {
+      this.#isMapLoaded = true;
+    }
     super.dispatchEvent(new CustomEvent(event));
   }
   /**
@@ -2086,8 +2169,10 @@ var Loader = class extends EventTarget {
   on(type, callback) {
     if (isFunction(callback)) {
       this.addEventListener(type, callback, { once: true });
-      if (this.#isLoaded) {
+      if (type === LoaderEvents.LOAD && this.#isLoaded) {
         this.dispatch(LoaderEvents.LOAD);
+      } else if (type === LoaderEvents.MAP_LOAD && this.#isMapLoaded) {
+        this.dispatch(LoaderEvents.MAP_LOAD);
       }
     } else {
       throw new Error("the event handler needs a callback function");
@@ -2263,6 +2348,12 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
             resolve(bounds.equals(googleLatLngBounds));
           });
         } else {
+          const isThisEmpty = this.isEmpty();
+          const isOtherEmpty = other.isEmpty();
+          if (isThisEmpty || isOtherEmpty) {
+            resolve(isThisEmpty && isOtherEmpty);
+            return;
+          }
           const { northEast, southWest } = this.#getCorners();
           const otherNorthEast = other.getNorthEast();
           const otherSouthWest = other.getSouthWest();
@@ -2377,6 +2468,41 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
     return longitude >= southWest.longitude || longitude <= northEast.longitude;
   }
   /**
+   * Returns whether the longitude spans of two bounds share any points.
+   *
+   * A bounds whose west longitude is greater than its east longitude crosses the 180 degree
+   * meridian, so its span is the two arms either side of the meridian rather than the numbers
+   * in between. Comparing those numbers directly says a bounds running 170 to -170 starts to
+   * the east of one running -175 to -160 and misses it, when in fact they overlap across the
+   * meridian. This is the same wrap that #containsLongitude() handles for a single longitude.
+   *
+   * Two wrapped spans always share points, because both of them contain the meridian itself.
+   * A wrapped span and an ordinary one share points when the ordinary one reaches either arm
+   * of the wrapped one.
+   *
+   * @private
+   * @param {LatLng} southWest This bounds' south-west corner
+   * @param {LatLng} northEast This bounds' north-east corner
+   * @param {LatLng} otherSouthWest The other bounds' south-west corner
+   * @param {LatLng} otherNorthEast The other bounds' north-east corner
+   * @returns {boolean}
+   */
+  // eslint-disable-next-line class-methods-use-this -- Kept with the other bounds calculations
+  #longitudesOverlap(southWest, northEast, otherSouthWest, otherNorthEast) {
+    const wraps = southWest.longitude > northEast.longitude;
+    const otherWraps = otherSouthWest.longitude > otherNorthEast.longitude;
+    if (wraps && otherWraps) {
+      return true;
+    }
+    if (wraps) {
+      return otherSouthWest.longitude <= northEast.longitude || otherNorthEast.longitude >= southWest.longitude;
+    }
+    if (otherWraps) {
+      return southWest.longitude <= otherNorthEast.longitude || northEast.longitude >= otherSouthWest.longitude;
+    }
+    return southWest.longitude <= otherNorthEast.longitude && northEast.longitude >= otherSouthWest.longitude;
+  }
+  /**
    * Set the bounds from its north-east and south-west corners.
    *
    * Nothing is set unless both corners are valid.
@@ -2401,14 +2527,20 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {LatLng}
    */
   getCenter() {
+    this.#throwIfEmpty("getCenter");
     if (this.#bounds) {
       return latLngConvert(this.#bounds.getCenter());
     }
     const { northEast, southWest } = this.#getCorners();
     const lat = (northEast.latitude + southWest.latitude) / 2;
-    let lng = (northEast.longitude + southWest.longitude) / 2;
+    let lng;
     if (northEast.longitude < southWest.longitude) {
-      lng = (lng + 180) % 360 - 180;
+      lng = (southWest.longitude + northEast.longitude + 360) / 2;
+      if (lng > 180) {
+        lng -= 360;
+      }
+    } else {
+      lng = (northEast.longitude + southWest.longitude) / 2;
     }
     return latLng([lat, lng]);
   }
@@ -2447,6 +2579,25 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @private
    * @returns {{northEast: LatLng, southWest: LatLng}}
    */
+  /**
+   * Throw if the bounds has no points in it.
+   *
+   * The methods that describe a bounds - its middle, or its value as a string or an object -
+   * have nothing to describe when it's empty, so they say so rather than handing back a value
+   * that looks real. This is checked separately from #getCorners() because those methods ask
+   * Google for the answer when the Google object exists, and Google answers for an empty
+   * bounds instead of complaining, which made the behaviour depend on load timing.
+   *
+   * @private
+   * @param {string} method The method name, so that the error says what was called
+   */
+  #throwIfEmpty(method) {
+    if (this.isEmpty()) {
+      throw new Error(
+        `The LatLngBounds object is empty so LatLngBounds.${method}() has nothing to return. Add a latitude/longitude value to it first.`
+      );
+    }
+  }
   #getCorners() {
     if (!this.#northEast || !this.#southWest) {
       throw new Error("The LatLngBounds object is empty. Add a latitude/longitude value to it first.");
@@ -2492,7 +2643,9 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
             return;
           }
           resolve(
-            sw.latitude <= otherNe.latitude && ne.latitude >= otherSw.latitude && sw.longitude <= otherNe.longitude && ne.longitude >= otherSw.longitude
+            // Latitude doesn't wrap, so this is the ordinary overlap test
+            sw.latitude <= otherNe.latitude && ne.latitude >= otherSw.latitude && // Longitude does wrap, so it needs the meridian-aware test below
+            this.#longitudesOverlap(sw, ne, otherSw, otherNe)
           );
         }
       } else {
@@ -2578,6 +2731,7 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {google.maps.LatLngBoundsLiteral}
    */
   toJson() {
+    this.#throwIfEmpty("toJson");
     if (this.#bounds) {
       return this.#bounds.toJSON();
     }
@@ -2595,6 +2749,7 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toString() {
+    this.#throwIfEmpty("toString");
     if (this.#bounds) {
       return this.#bounds.toString();
     }
@@ -2608,10 +2763,8 @@ var LatLngBounds = class _LatLngBounds extends Base_default {
    * @returns {string}
    */
   toUrlValue(precision) {
-    let prec = precision || 3;
-    if (!isNumber(prec)) {
-      prec = 3;
-    }
+    const prec = isNumber(precision) ? precision : 3;
+    this.#throwIfEmpty("toUrlValue");
     if (this.#bounds) {
       return this.#bounds.toUrlValue(prec);
     }
@@ -3546,6 +3699,18 @@ var GeocodeResults = class extends Base_default {
 var Results_default = GeocodeResults;
 
 // src/lib/Geocode.ts
+var sharedGeocoder;
+var geocodeCache = /* @__PURE__ */ new Map();
+var geocodeCacheSize = 50;
+var trimGeocodeCache = () => {
+  while (geocodeCache.size > geocodeCacheSize) {
+    const oldest = geocodeCache.keys().next();
+    if (oldest.done) {
+      return;
+    }
+    geocodeCache.delete(oldest.value);
+  }
+};
 var Geocode = class extends Base_default {
   /**
    * The address to geocode
@@ -3561,6 +3726,13 @@ var Geocode = class extends Base_default {
    * @private
    */
   #bounds;
+  /**
+   * Whether this object uses the shared cache of results
+   *
+   * @type {boolean}
+   * @private
+   */
+  #cache = true;
   /**
    * Holds the component restrictions
    *
@@ -3607,6 +3779,35 @@ var Geocode = class extends Base_default {
     super("geocode");
     if (isObject(options)) {
       this.setOptions(options);
+    }
+  }
+  /**
+   * Empty the cache of geocode results.
+   *
+   * The shared Geocoder is dropped as well, so the next request builds a new one. Call this if
+   * the results for an address may have changed.
+   */
+  static clearCache() {
+    geocodeCache.clear();
+    sharedGeocoder = void 0;
+  }
+  /**
+   * How many results the cache holds before the oldest is dropped
+   *
+   * @returns {number}
+   */
+  static get cacheSize() {
+    return geocodeCacheSize;
+  }
+  /**
+   * Set how many results the cache holds. Set it to 0 to turn caching off everywhere.
+   *
+   * @param {number} size The number of results to hold
+   */
+  static set cacheSize(size2) {
+    if (typeof size2 === "number" && Number.isFinite(size2) && size2 >= 0) {
+      geocodeCacheSize = Math.floor(size2);
+      trimGeocodeCache();
     }
   }
   /**
@@ -3767,10 +3968,59 @@ var Geocode = class extends Base_default {
    * @returns {Promise<GeocodeResults>}
    */
   geocode(options) {
-    return new Promise((resolve, reject) => {
-      if (isObject(options)) {
-        this.setOptions(options);
+    if (isObject(options)) {
+      this.setOptions(options);
+    }
+    const useCache = this.#cache && geocodeCacheSize > 0;
+    const key = useCache ? this.#cacheKey() : "";
+    if (useCache) {
+      const cached = geocodeCache.get(key);
+      if (cached) {
+        return cached;
       }
+    }
+    const request = this.#requestResults();
+    if (useCache) {
+      geocodeCache.set(key, request);
+      request.catch(() => {
+        geocodeCache.delete(key);
+      });
+      trimGeocodeCache();
+    }
+    return request;
+  }
+  /**
+   * Build the key that this request is cached under.
+   *
+   * The key is built from this object's own values rather than from the Google request, because
+   * the Google request holds LatLng and LatLngBounds objects that don't serialise usefully. The
+   * bounds are read through getNorthEast()/getSouthWest(), which work before the Google library
+   * has loaded.
+   *
+   * @private
+   * @returns {string}
+   */
+  #cacheKey() {
+    const ne = this.#bounds?.getNorthEast();
+    const sw = this.#bounds?.getSouthWest();
+    return JSON.stringify({
+      address: this.#address,
+      bounds: ne && sw ? [ne.latitude, ne.longitude, sw.latitude, sw.longitude] : void 0,
+      componentRestrictions: this.#componentRestrictions,
+      language: this.#language,
+      location: this.#location ? [this.#location.latitude, this.#location.longitude] : void 0,
+      placeId: this.#placeId,
+      region: this.#region
+    });
+  }
+  /**
+   * Send the request, waiting for the Google library first if it isn't loaded yet
+   *
+   * @private
+   * @returns {Promise<GeocodeResults>}
+   */
+  #requestResults() {
+    return new Promise((resolve, reject) => {
       if (checkForGoogleMaps("Geocoder", "Geocoder", false)) {
         this.#runGeocode().then((results) => {
           resolve(results);
@@ -3823,8 +4073,8 @@ var Geocode = class extends Base_default {
       options.region = this.#region;
     }
     return new Promise((resolve, reject) => {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode(options, (results, status) => {
+      sharedGeocoder ??= new google.maps.Geocoder();
+      sharedGeocoder.geocode(options, (results, status) => {
         if (status === google.maps.GeocoderStatus.OK) {
           const resultsObj = new Results_default(results ?? void 0);
           resolve(resultsObj);
@@ -3918,6 +4168,9 @@ var Geocode = class extends Base_default {
     if (options.bounds) {
       this.bounds = options.bounds;
     }
+    if (typeof options.cache === "boolean") {
+      this.#cache = options.cache;
+    }
     if (options.componentRestrictions) {
       this.componentRestrictions = options.componentRestrictions;
     }
@@ -3975,6 +4228,16 @@ var AutocompleteSearchBox = class extends Evented {
    * @type {HTMLInputElement | undefined}
    */
   #input;
+  /**
+   * Holds the promise for setting up the search box.
+   *
+   * Every call to init() waits on this same promise so that the search box is only built once,
+   * however many times init() is called and whenever those calls are made.
+   *
+   * @private
+   * @type {Promise<void>|undefined}
+   */
+  #initPromise;
   /**
    * Holds the place that has been found.
    *
@@ -4251,23 +4514,25 @@ var AutocompleteSearchBox = class extends Evented {
    * @returns {Promise<void>}
    */
   async init() {
-    return new Promise((resolve) => {
-      if (!isObject(this.#searchBox)) {
+    if (!this.#initPromise) {
+      const initPromise = new Promise((resolve, reject) => {
         if (checkForGoogleMaps("AutocompleteSearchBox", "places", false)) {
-          this.#createAutocompleteSearchBox().then(() => {
-            resolve();
-          });
+          this.#createAutocompleteSearchBox().then(resolve).catch(reject);
         } else {
           loader().onMapLoad(() => {
-            this.#createAutocompleteSearchBox().then(() => {
-              resolve();
-            });
+            this.#createAutocompleteSearchBox().then(resolve).catch(reject);
           });
         }
-      } else {
-        resolve();
-      }
-    });
+      });
+      const tracked = initPromise.catch((error) => {
+        if (this.#initPromise === tracked) {
+          this.#initPromise = void 0;
+        }
+        throw error;
+      });
+      this.#initPromise = tracked;
+    }
+    return this.#initPromise;
   }
   /**
    * Create the places search box object
@@ -5013,7 +5278,10 @@ var Size = class _Size extends Base_default {
     super("size");
     this.#height = 0;
     this.#width = 0;
-    if (typeof width !== "undefined") {
+    if (isNumber(width) && isNumber(height)) {
+      this.#width = width;
+      this.#height = height;
+    } else if (typeof width !== "undefined") {
       this.set(width, height);
     }
   }
@@ -5036,7 +5304,7 @@ var Size = class _Size extends Base_default {
     } else if (isNumber(height)) {
       this.#height = height;
     }
-    if (isObject(this.#sizeObject)) {
+    if (this.#sizeObject !== void 0) {
       this.#sizeObject.height = this.#height;
     }
   }
@@ -5059,7 +5327,7 @@ var Size = class _Size extends Base_default {
     } else if (isNumber(width)) {
       this.#width = width;
     }
-    if (isObject(this.#sizeObject)) {
+    if (this.#sizeObject !== void 0) {
       this.#sizeObject.width = this.#width;
     }
   }
@@ -5155,7 +5423,7 @@ var Size = class _Size extends Base_default {
    */
   toGoogle() {
     if (checkForGoogleMaps("Size", "Size")) {
-      if (!isObject(this.#sizeObject)) {
+      if (this.#sizeObject === void 0) {
         this.#sizeObject = new google.maps.Size(this.#width, this.#height);
       }
       return this.#sizeObject;
@@ -5166,6 +5434,9 @@ var Size = class _Size extends Base_default {
 var size = (width, height) => new Size(width, height);
 
 // src/lib/Icon.ts
+var POINT_OPTIONS = ["anchor", "labelOrigin", "origin"];
+var SIZE_OPTIONS = ["scaledSize", "size"];
+var STRING_OPTIONS = ["url"];
 var Icon = class extends Base_default {
   /**
    * Holds the Google maps icon options
@@ -5199,22 +5470,19 @@ var Icon = class extends Base_default {
    */
   setOptions(options) {
     if (isObject(options)) {
-      const pointValues = ["anchor", "labelOrigin", "origin"];
-      const sizeValues = ["scaledSize", "size"];
-      const stringValues = ["url"];
-      pointValues.forEach((key) => {
+      POINT_OPTIONS.forEach((key) => {
         const value = options[key];
         if (value) {
           this.#options[key] = point(value).toGoogle();
         }
       });
-      sizeValues.forEach((key) => {
+      SIZE_OPTIONS.forEach((key) => {
         const value = options[key];
         if (value) {
           this.#options[key] = size(value).toGoogle();
         }
       });
-      stringValues.forEach((key) => {
+      STRING_OPTIONS.forEach((key) => {
         const value = options[key];
         if (value && isStringWithValue(value)) {
           this.#options[key] = value;
@@ -6699,7 +6967,7 @@ var hideFeatureTypes = {
   hidePointsOfInterest: "poi",
   hideTransit: "transit"
 };
-var Map = class extends Evented {
+var Map2 = class extends Evented {
   /**
    * Class constructor
    *
@@ -6804,6 +7072,21 @@ var Map = class extends Evented {
       zoom: 6
     };
     /**
+     * Holds the listener that cancels the gesture events, or null if it hasn't been added.
+     * It's held so that it can be removed if the preventPageZoom option is turned off.
+     *
+     * @private
+     * @type {null|((event: Event) => void)}
+     */
+    this.#pageZoomHandler = null;
+    /**
+     * Holds whether a pinch on the map is kept from zooming the whole page on iOS
+     *
+     * @private
+     * @type {boolean}
+     */
+    this.#preventPageZoom = true;
+    /**
      * Holds the styles to apply to the map
      *
      * @private
@@ -6838,6 +7121,45 @@ var Map = class extends Evented {
       }
     };
     /**
+     * Keep a pinch on the map from zooming the whole page on iOS.
+     *
+     * iOS ignores "user-scalable=no" in the viewport tag, so the gesture events that Safari fires
+     * are canceled instead. The map still zooms because the Google Maps API handles the pinch
+     * itself. Only the map element is covered so that the rest of the page can still be zoomed by
+     * people who need to. Other browsers don't fire these events, so this does nothing in them.
+     *
+     * @private
+     */
+    this.#setupPreventPageZoom = () => {
+      const element = this.#element;
+      if (!this.#preventPageZoom || !element || this.#pageZoomHandler) {
+        return;
+      }
+      const handler = (event) => {
+        event.preventDefault();
+      };
+      this.#pageZoomHandler = handler;
+      ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+        element.addEventListener(eventName, handler, { passive: false });
+      });
+    };
+    /**
+     * Stop keeping a pinch on the map from zooming the whole page
+     *
+     * @private
+     */
+    this.#removePreventPageZoom = () => {
+      const element = this.#element;
+      const handler = this.#pageZoomHandler;
+      if (!element || !handler) {
+        return;
+      }
+      ["gesturestart", "gesturechange", "gestureend"].forEach((eventName) => {
+        element.removeEventListener(eventName, handler);
+      });
+      this.#pageZoomHandler = null;
+    };
+    /**
      * Set up the map object
      *
      * @param {HTMLElement} element THe HTML elemen to attach the map to
@@ -6848,6 +7170,7 @@ var Map = class extends Evented {
         const map2 = new google.maps.Map(element, mapOptions);
         this.#map = map2;
         this.setEventGoogleObject(map2);
+        this.#setupPreventPageZoom();
         if (this.#customControls.length > 0) {
           this.#customControls.forEach((control) => {
             map2.controls[convertControlPosition(control.position)].push(control.element);
@@ -6861,10 +7184,11 @@ var Map = class extends Evented {
      * Set the map as ready
      */
     this.#setMapAsReady = () => {
-      this.dispatch(MapEvents.READY);
-      loader().dispatch(LoaderEvents.MAP_LOAD);
       this.#isInitialized = true;
       this.#isReady = true;
+      this.#isGettingMapOptions = false;
+      this.dispatch(MapEvents.READY);
+      loader().dispatch(LoaderEvents.MAP_LOAD);
     };
     this.#fullscreenControl = fullscreenControl();
     this.#mapTypeControl = mapTypeControl();
@@ -6934,6 +7258,8 @@ var Map = class extends Evented {
   #maxFitBoundsZoom;
   #minFitBoundsZoom;
   #options;
+  #pageZoomHandler;
+  #preventPageZoom;
   /**
    * Holds the map restriction object to restrict the map to a certain area
    *
@@ -7314,6 +7640,29 @@ var Map = class extends Evented {
       this.#options.minZoom = value ?? void 0;
       if (this.#map) {
         this.#map.setOptions({ minZoom: value });
+      }
+    }
+  }
+  /**
+   * Get whether a pinch on the map is kept from zooming the whole page on iOS
+   *
+   * @returns {boolean}
+   */
+  get preventPageZoom() {
+    return this.#preventPageZoom;
+  }
+  /**
+   * Set whether a pinch on the map is kept from zooming the whole page on iOS
+   *
+   * @param {boolean} value Whether to keep a pinch on the map from zooming the page
+   */
+  set preventPageZoom(value) {
+    if (isBoolean(value)) {
+      this.#preventPageZoom = value;
+      if (value) {
+        this.#setupPreventPageZoom();
+      } else {
+        this.#removePreventPageZoom();
       }
     }
   }
@@ -8457,6 +8806,9 @@ var Map = class extends Evented {
       if (typeof options.minZoom !== "undefined") {
         this.minZoom = options.minZoom;
       }
+      if (isBoolean(options.preventPageZoom)) {
+        this.preventPageZoom = options.preventPageZoom;
+      }
       if (typeof options.restriction !== "undefined") {
         this.restriction = options.restriction;
       }
@@ -8636,6 +8988,8 @@ var Map = class extends Evented {
       }
     });
   }
+  #setupPreventPageZoom;
+  #removePreventPageZoom;
   #setupMapObject;
   #setMapAsReady;
   /**
@@ -8661,9 +9015,18 @@ var Map = class extends Evented {
     return this.#map;
   }
 };
-var map = (selector, config) => new Map(selector, config);
+var map = (selector, config) => new Map2(selector, config);
 
 // src/lib/SvgSymbol.ts
+var NUMBER_OPTIONS = [
+  "fillOpacity",
+  "rotation",
+  "scale",
+  "strokeOpacity",
+  "strokeWeight"
+];
+var POINT_OPTIONS2 = ["anchor", "labelOrigin"];
+var STRING_OPTIONS2 = ["fillColor", "path", "strokeColor"];
 var SvgSymbol = class extends Base_default {
   /**
    * Holds the icon options
@@ -8887,16 +9250,7 @@ var SvgSymbol = class extends Base_default {
    */
   setOptions(options) {
     if (isObject(options)) {
-      const numberValues = [
-        "fillOpacity",
-        "rotation",
-        "scale",
-        "strokeOpacity",
-        "strokeWeight"
-      ];
-      const pointValues = ["anchor", "labelOrigin"];
-      const stringValues = ["fillColor", "path", "strokeColor"];
-      numberValues.forEach((key) => {
+      NUMBER_OPTIONS.forEach((key) => {
         if (typeof options[key] !== "undefined" && isNumber(options[key]) || isNumberString(options[key])) {
           if (isNumberString(options[key])) {
             this.#options[key] = Number(options[key]);
@@ -8905,12 +9259,12 @@ var SvgSymbol = class extends Base_default {
           }
         }
       });
-      pointValues.forEach((key) => {
+      POINT_OPTIONS2.forEach((key) => {
         if (options[key]) {
           this.#options[key] = point(options[key]);
         }
       });
-      stringValues.forEach((key) => {
+      STRING_OPTIONS2.forEach((key) => {
         if (options[key] && isStringWithValue(options[key])) {
           this.#options[key] = options[key];
         }
@@ -9146,7 +9500,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    */
   constructor(options, defaultLayerMap) {
     super("datalayer", "Data");
-    if (defaultLayerMap instanceof Map) {
+    if (defaultLayerMap instanceof Map2) {
       this.#defaultLayerMap = defaultLayerMap;
       super.setMap(defaultLayerMap);
     }
@@ -9621,7 +9975,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    * @returns {Promise<DataLayer>}
    */
   async setMap(value) {
-    if (value instanceof Map) {
+    if (value instanceof Map2) {
       super.setMap(value);
       this.#options.map = value;
       value.init();
@@ -9704,7 +10058,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    */
   async show(map2) {
     this.isVisible = true;
-    if (map2 instanceof Map) {
+    if (map2 instanceof Map2) {
       return this.setMap(map2);
     }
     const mapObject = this.#mapObject();
@@ -9959,7 +10313,7 @@ var DataLayer = class _DataLayer extends Layer_default {
     if (!this.#setupPromise) {
       this.#setupPromise = new Promise((resolve, reject) => {
         const defaultLayerMap = this.#defaultLayerMap;
-        if (defaultLayerMap instanceof Map) {
+        if (defaultLayerMap instanceof Map2) {
           defaultLayerMap.init().then(() => {
             const googleMap = defaultLayerMap.toGoogle();
             if (!googleMap) {
@@ -10029,7 +10383,7 @@ var DataLayer = class _DataLayer extends Layer_default {
    */
   #mapObject() {
     const map2 = this.getMap();
-    if (map2 instanceof Map) {
+    if (map2 instanceof Map2) {
       return map2;
     }
     return this.#defaultLayerMap ?? null;
@@ -10112,40 +10466,57 @@ var DataLayer = class _DataLayer extends Layer_default {
     return features;
   }
   /**
-   * Convert an array of positions to Google maps LatLng objects
+   * Convert an array of positions to plain latitude/longitude literals.
+   *
+   * Google's Data.LineString, Data.LinearRing and Data.Polygon all take either LatLng objects
+   * or LatLngLiteral objects, so the literals are handed straight over. This used to be
+   * map(latLng).filter(isValid).map(toGoogle), which built three intermediate arrays and two
+   * objects per point - a LatLng wrapper and then a google.maps.LatLng - on paths that can
+   * hold tens of thousands of points.
    *
    * @private
    * @param {LatLngValue[]} path The positions to convert
-   * @returns {google.maps.LatLng[]}
+   * @returns {google.maps.LatLngLiteral[]}
    */
   static #toPositions(path) {
     if (!Array.isArray(path)) {
       return [];
     }
-    return path.map((value) => latLng(value)).filter((value) => value.isValid()).map((value) => value.toGoogle());
+    const positions = [];
+    for (let i = 0; i < path.length; i += 1) {
+      const value = latLng(path[i]);
+      if (value.isValid()) {
+        positions.push({ lat: value.latitude, lng: value.longitude });
+      }
+    }
+    return positions;
   }
   /**
-   * Convert the positions for one ring of a polygon to Google maps LatLng objects.
+   * Convert the positions for one ring of a polygon to plain latitude/longitude literals.
    *
    * GeoJson repeats the first position at the end of a ring to close it. Google's LinearRing
    * closes itself, so the repeated position is dropped to avoid a duplicate corner.
    *
    * @private
    * @param {LatLngValue[]} ring The positions for the ring
-   * @returns {google.maps.LatLng[]}
+   * @returns {google.maps.LatLngLiteral[]}
    */
   static #toRingPositions(ring) {
-    const positions = Array.isArray(ring) ? ring.map((value) => latLng(value)).filter((value) => value.isValid()) : [];
-    if (positions.length > 2 && positions[0].equals(positions[positions.length - 1])) {
+    const positions = _DataLayer.#toPositions(ring);
+    const last = positions.length - 1;
+    if (positions.length > 2 && positions[0].lat === positions[last].lat && positions[0].lng === positions[last].lng) {
       positions.pop();
     }
-    return positions.map((value) => value.toGoogle());
+    return positions;
   }
   /**
    * Work out whether the paths value is one ring of positions or an array of rings.
    *
-   * A single position can itself be an array ([lat, lng]) so the first value is tested to
-   * see if it's a valid position. If it is then this is one ring of positions.
+   * A single position can itself be an array ([lat, lng]), so the first value is checked to
+   * see whether it looks like a position rather than like another ring.
+   *
+   * This used to build a throwaway LatLng purely to ask that question, which ran the whole of
+   * LatLng's type dispatch on every call to addPolygon().
    *
    * @private
    * @param {LatLngValue[]|LatLngValue[][]} paths The path, or array of paths, for a polygon
@@ -10155,10 +10526,14 @@ var DataLayer = class _DataLayer extends Layer_default {
     if (!Array.isArray(paths) || paths.length === 0) {
       return [];
     }
-    if (latLng(paths[0]).isValid()) {
-      return [paths];
+    const first = paths[0];
+    if (Array.isArray(first)) {
+      if (first.length === 2 && isNumberOrNumberString(first[0]) && isNumberOrNumberString(first[1])) {
+        return [paths];
+      }
+      return paths;
     }
-    return paths;
+    return [paths];
   }
 };
 var dataLayer = (options) => {
@@ -10169,6 +10544,9 @@ var dataLayer = (options) => {
 };
 
 // src/lib/Marker.ts
+var STRING_OPTIONS3 = ["cursor"];
+var GOOGLE_OPTIONS_TO_SET = ["cursor", "title"];
+var RESOLVED = Promise.resolve();
 var Marker = class extends Layer_default {
   /**
    * Holds any custom data to attach to the marker object
@@ -10185,12 +10563,38 @@ var Marker = class extends Layer_default {
    */
   #drag = false;
   /**
+   * Holds whether the marker was hidden when it was added to the map, so the Google marker
+   * hasn't been created yet.
+   *
+   * A marker that isn't visible isn't drawn, so nothing is created for it until it's first
+   * shown. This saves the work for markers that start out hidden, like ones a filter leaves out.
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isCreationDeferred = false;
+  /**
    * Holds if the marker is setting up
    *
    * @private
    * @type {boolean}
    */
   #isSettingUp = false;
+  /**
+   * The marker creation that is currently running, if there is one.
+   *
+   * Anything that has to wait for the marker waits on this rather than on the "ready" event.
+   * They aren't the same thing: init() dispatches "ready" without creating a marker, so that a
+   * tooltip or popup can set up its events without forcing one to be built. A waiter that
+   * listened for "ready" could therefore be woken by that early event and carry on to use
+   * #marker while it was still undefined.
+   *
+   * Cleared once creation settles, so that a later call takes the normal path.
+   *
+   * @private
+   * @type {Promise<void>|undefined}
+   */
+  #creationPromise;
   /**
    * Holds if the "ready" event has been dispatched
    *
@@ -10208,12 +10612,15 @@ var Marker = class extends Layer_default {
   /**
    * Holds the marker options
    *
-   * The position always has a value. It defaults to 0,0 and is only replaced with a valid position.
+   * The position is only set once there is a real one. It used to default to a 0,0 LatLng,
+   * which meant every marker built a LatLng object that was thrown away as soon as a position
+   * was set - and almost every marker has one. The position getter creates the 0,0 default if
+   * something asks for a position that was never set.
    *
    * @private
-   * @type {GMMarkerOptions & { position: LatLng }}
+   * @type {GMMarkerOptions}
    */
-  #options = { position: latLng([0, 0]) };
+  #options = {};
   /**
    * Constructor
    *
@@ -10373,14 +10780,13 @@ var Marker = class extends Layer_default {
    * @returns {LatLng}
    */
   get position() {
-    let returnValue = this.#options.position;
-    if (this.#marker) {
-      returnValue = latLng(this.#marker.getPosition() ?? void 0);
+    if (this.#drag && this.#marker) {
+      return latLng(this.#marker.getPosition() ?? void 0);
     }
-    if (isNullOrUndefined(returnValue)) {
-      returnValue = latLng([0, 0]);
+    if (isNullOrUndefined(this.#options.position)) {
+      this.#options.position = latLng([0, 0]);
     }
-    return returnValue;
+    return this.#options.position;
   }
   /**
    * Set the latitude and longitude value for the marker
@@ -10405,6 +10811,22 @@ var Marker = class extends Layer_default {
    */
   set title(value) {
     this.setTitle(value);
+  }
+  /**
+   * Get whether the marker is visible on the map
+   *
+   * @returns {boolean | undefined} Undefined if it hasn't been set, which means visible
+   */
+  get visible() {
+    return this.#options.visible;
+  }
+  /**
+   * Set whether the marker is visible on the map
+   *
+   * @param {boolean} value Whether the marker is visible on the map
+   */
+  set visible(value) {
+    this.setVisible(value);
   }
   /**
    * Disable dragging for this marker
@@ -10475,6 +10897,20 @@ var Marker = class extends Layer_default {
     return this;
   }
   /**
+   * Returns whether the Google maps marker object has been created yet.
+   *
+   * This lets other parts of the library avoid building the Google marker just to find out
+   * that there isn't one, which toGoogleSync() would otherwise do.
+   *
+   * This is not intended to be called outside of this library.
+   *
+   * @internal
+   * @returns {boolean}
+   */
+  hasGoogleMarker() {
+    return isObject(this.#marker);
+  }
+  /**
    * Initialize the marker
    *
    * This is used when another element (like a tooltip) needs to be attached to the marker,
@@ -10487,9 +10923,12 @@ var Marker = class extends Layer_default {
    */
   init() {
     return new Promise((resolve) => {
-      this.#setupGoogleMarker().then(() => {
+      if (isObject(this.#marker)) {
         resolve();
-      });
+        return;
+      }
+      this.#dispatchReady();
+      resolve();
     });
   }
   /**
@@ -10947,6 +11386,12 @@ var Marker = class extends Layer_default {
    * @returns {Promise<Marker>}
    */
   async setMap(map2) {
+    if (isNullOrUndefined(map2) && !isObject(this.#marker)) {
+      this.#isCreationDeferred = false;
+      this.#options.map = null;
+      super.setMap(null);
+      return this;
+    }
     await this.#setupGoogleMarker(map2 ?? void 0);
     this.#setMap(map2);
     return this;
@@ -10972,7 +11417,7 @@ var Marker = class extends Layer_default {
    * @param {Map|null} value The map object. Set to null if you want to remove the marker from the map.
    */
   #setMap(value) {
-    if (value instanceof Map) {
+    if (value instanceof Map2) {
       this.#options.map = value;
       super.setMap(value);
       if (value.getIsReady()) {
@@ -11114,18 +11559,28 @@ var Marker = class extends Layer_default {
       }
       this.attachTooltip(tooltip2);
     } else if (options.title) {
-      this.title = options.title;
+      this.#options.title = options.title;
+      if (this.#marker) {
+        this.title = options.title;
+      }
     }
-    const stringOptions = ["cursor"];
-    stringOptions.forEach((key) => {
+    STRING_OPTIONS3.forEach((key) => {
       if (options[key] && isStringWithValue(options[key])) {
         this.#options[key] = options[key];
       }
     });
+    if (isBoolean(options.visible)) {
+      this.#options.visible = options.visible;
+      this.isVisible = options.visible;
+    }
     if (options.map) {
       this.#options.map = options.map;
       super.setMap(options.map);
-      if (this.#marker) {
+      if (this.#options.visible === false) {
+        this.isVisible = false;
+        this.#isCreationDeferred = true;
+        this.#dispatchReady();
+      } else {
         this.setMap(options.map);
       }
     }
@@ -11177,7 +11632,7 @@ var Marker = class extends Layer_default {
    * Set the position for the marker on the Google marker object
    */
   #setGoogleMarkerPosition() {
-    this.#marker.setPosition(this.#options.position.toGoogle());
+    this.#marker.setPosition(this.position.toGoogle());
   }
   /**
    *Set the title for the marker
@@ -11217,6 +11672,33 @@ var Marker = class extends Layer_default {
       this.#options.title = void 0;
     }
     this.#marker.setTitle(this.#options.title);
+  }
+  /**
+   * Set whether the marker is visible on the map.
+   *
+   * A marker that isn't visible isn't drawn, so nothing is created on the Google map for it
+   * until it's shown. Setting it to visible draws it if it was waiting to be drawn.
+   *
+   * @param {boolean} visible Whether the marker is visible on the map
+   * @returns {Marker}
+   */
+  setVisible(visible) {
+    if (isBoolean(visible)) {
+      this.#options.visible = visible;
+      this.isVisible = visible;
+      if (visible && this.#isCreationDeferred) {
+        this.#isCreationDeferred = false;
+        const { map: map2 } = this.#options;
+        this.#setupGoogleMarker(map2 ?? void 0).then(() => {
+          if (map2 && this.#options.map === map2 && this.#marker) {
+            this.#marker.setMap(map2.toGoogle() ?? null);
+          }
+        });
+      } else if (this.#marker) {
+        this.#marker.setVisible(visible);
+      }
+    }
+    return this;
   }
   /**
    * Adds the marker to the map object
@@ -11266,16 +11748,43 @@ var Marker = class extends Layer_default {
    * @returns {Promise<void>}
    */
   #setupGoogleMarker(map2) {
+    if (isObject(this.#marker)) {
+      return RESOLVED;
+    }
+    const creation = this.#startGoogleMarkerSetup(map2);
+    this.#creationPromise = creation;
+    creation.then(
+      () => {
+        this.#creationPromise = void 0;
+      },
+      () => {
+        this.#creationPromise = void 0;
+      }
+    );
+    return creation;
+  }
+  /**
+   * Start setting up the Google maps marker object
+   *
+   * @private
+   * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
+   * @returns {Promise<void>}
+   */
+  #startGoogleMarkerSetup(map2) {
+    if (this.#creationPromise) {
+      return this.#creationPromise;
+    }
     return new Promise((resolve) => {
       if (!this.#isSettingUp && !isObject(this.#marker)) {
         this.#isSettingUp = true;
         if (checkForGoogleMaps("Marker", "Marker", false)) {
           this.#createMarkerObject().then(() => {
+            this.#isSettingUp = false;
             this.#dispatchReady();
             resolve();
           });
         } else {
-          if (map2 instanceof Map) {
+          if (map2 instanceof Map2) {
             map2.init();
           }
           loader().onMapLoad(() => {
@@ -11291,10 +11800,6 @@ var Marker = class extends Layer_default {
             });
           });
         }
-      } else if (this.#isSettingUp && !isObject(this.#marker)) {
-        this.onceImmediate(MarkerEvents.READY, () => {
-          resolve();
-        });
       } else {
         resolve();
       }
@@ -11306,9 +11811,18 @@ var Marker = class extends Layer_default {
   #setupGoogleMarkerSync() {
     if (!isObject(this.#marker)) {
       if (checkForGoogleMaps("Marker", "Marker", false)) {
-        this.#createMarkerObject().then(() => {
+        const creation = this.#createMarkerObject(true).then(() => {
           this.#dispatchReady();
         });
+        this.#creationPromise = creation;
+        creation.then(
+          () => {
+            this.#creationPromise = void 0;
+          },
+          () => {
+            this.#creationPromise = void 0;
+          }
+        );
       } else {
         throw new Error(
           "The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first."
@@ -11333,15 +11847,17 @@ var Marker = class extends Layer_default {
    * Create the marker object
    *
    * @private
+   * @param {boolean} [createNow] Whether to build the marker straight away instead of waiting
+   *      for the map to be ready. Used by the synchronous methods, which have to hand back a
+   *      marker by the time they return. The marker is put on the map once the map is ready.
    * @returns {Promise<void>}
    */
-  #createMarkerObject() {
+  #createMarkerObject(createNow = false) {
     return new Promise((resolve) => {
       if (!this.#marker) {
         (async () => {
           const markerOptions = {};
-          const optionsToSet = ["cursor", "title"];
-          optionsToSet.forEach((key) => {
+          GOOGLE_OPTIONS_TO_SET.forEach((key) => {
             if (typeof this.#options[key] !== "undefined") {
               markerOptions[key] = this.#options[key];
             }
@@ -11376,15 +11892,23 @@ var Marker = class extends Layer_default {
           if (this.#options.label) {
             markerOptions.label = this.#options.label;
           }
-          if (this.#options.map) {
+          if (this.#options.map && !createNow) {
             this.#options.map.onReady(() => {
               if (this.#options.map) {
                 markerOptions.map = this.#options.map.toGoogle();
               }
-              this.#marker = new google.maps.Marker(markerOptions);
-              this.setEventGoogleObject(this.#marker);
+              if (this.#marker) {
+                this.#marker.setMap(markerOptions.map ?? null);
+              } else {
+                this.#marker = new google.maps.Marker(markerOptions);
+                this.setEventGoogleObject(this.#marker);
+              }
               resolve();
             });
+          } else if (this.#options.map) {
+            this.#marker = new google.maps.Marker(markerOptions);
+            this.setEventGoogleObject(this.#marker);
+            resolve();
           } else {
             this.#marker = new google.maps.Marker(markerOptions);
             this.setEventGoogleObject(this.#marker);
@@ -11720,7 +12244,7 @@ var InfoWindow = class extends Layer_default {
               }
               this.show(element);
             });
-            if (element instanceof Map) {
+            if (element instanceof Map2) {
               element.on("mousemove", (e) => {
                 if (e.latLng) {
                   this.position = e.latLng;
@@ -11733,14 +12257,14 @@ var InfoWindow = class extends Layer_default {
             });
           } else if (triggerEvent === "clickon") {
             element.on("click", (e) => {
-              if (element instanceof Map && e.latLng) {
+              if (element instanceof Map2 && e.latLng) {
                 this.position = e.latLng;
               }
               this.show(element);
             });
           } else {
             element.on("click", (e) => {
-              if (element instanceof Map && e.latLng) {
+              if (element instanceof Map2 && e.latLng) {
                 this.position = e.latLng;
               }
               this.show(element);
@@ -11952,7 +12476,11 @@ var InfoWindow = class extends Layer_default {
       this.#setupGoogleInfoWindow();
       const googleInfoWindow = this.#infoWindow;
       if (!googleInfoWindow) {
-        reject(new Error("The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded."));
+        reject(
+          new Error(
+            "The Google Maps InfoWindow could not be set up. Make sure the Google Maps library is loaded."
+          )
+        );
         return;
       }
       const collection = InfoWindowCollection.getInstance();
@@ -11968,7 +12496,7 @@ var InfoWindow = class extends Layer_default {
         }
         this.#isOpen = true;
         collection.add(this);
-        if (element instanceof Map) {
+        if (element instanceof Map2) {
           googleInfoWindow.open({
             map: element.toGoogle(),
             shouldFocus: this.#focus
@@ -12091,7 +12619,7 @@ var infoWindowMixin = {
   }
 };
 Layer_default.include(infoWindowMixin);
-Map.include(infoWindowMixin);
+Map2.include(infoWindowMixin);
 var InfoWindowCollection = /* @__PURE__ */ (() => {
   let instance;
   function createInstance() {
@@ -12708,7 +13236,7 @@ var MarkerCluster = class extends Base_default {
    */
   constructor(map2, markers, options) {
     super("markercluster");
-    if (!(map2 instanceof Map)) {
+    if (!(map2 instanceof Map2)) {
       throw new Error("You must pass a valid map object to the MarkerCluster object.");
     }
     if (checkForGoogleMaps("MarkerCluster", "Marker", false)) {
@@ -12927,6 +13455,9 @@ var MarkerCluster = class extends Base_default {
    * @returns {MarkerCluster}
    */
   removeMarker(marker2, draw = false) {
+    if (!marker2.hasGoogleMarker()) {
+      return this;
+    }
     this.#clusterer?.removeMarker(marker2.toGoogleSync(), !draw);
     return this;
   }
@@ -13170,6 +13701,16 @@ var Overlay = class extends Layer_default {
      */
     this.#isResizing = false;
     /**
+     * The class names for the overlay element, held here until the element is built.
+     *
+     * The element used to be the only place this lived, so reading className meant reading the
+     * DOM. Keeping it here as well means asking for the class name doesn't build an element.
+     *
+     * @private
+     * @type {string}
+     */
+    this.#className = "";
+    /**
      * Whether resizing is enabled for this overlay
      *
      * @private
@@ -13218,10 +13759,8 @@ var Overlay = class extends Layer_default {
       this.#dragStart = point(
         e instanceof MouseEvent ? [e.clientX, e.clientY] : [e.touches[0].clientX, e.touches[0].clientY]
       );
-      this.#overlayStart = point(
-        parseInt(this.#overlay.style.left, 10) || 0,
-        parseInt(this.#overlay.style.top, 10) || 0
-      );
+      const element = this.#element();
+      this.#overlayStart = point(parseInt(element.style.left, 10) || 0, parseInt(element.style.top, 10) || 0);
       document.addEventListener("mousemove", this.#handleDrag);
       document.addEventListener("mouseup", this.#handleDragEnd);
       document.addEventListener("touchmove", this.#handleDrag);
@@ -13243,8 +13782,9 @@ var Overlay = class extends Layer_default {
       const delta = currentPos.subtract(this.#dragStart);
       const newLeft = this.#overlayStart.getX() + delta.getX();
       const newTop = this.#overlayStart.getY() + delta.getY();
-      this.#overlay.style.left = `${newLeft}px`;
-      this.#overlay.style.top = `${newTop}px`;
+      const element = this.#element();
+      element.style.left = `${newLeft}px`;
+      element.style.top = `${newTop}px`;
       this.updateBoundsFromPosition();
       this.dispatch(OverlayEvents.DRAG, { event: e, delta });
     };
@@ -13282,7 +13822,8 @@ var Overlay = class extends Layer_default {
       this.#isResizing = true;
       this.resizeCorner = corner;
       const containerRect = mapContainer.getBoundingClientRect();
-      const currentSize = this.#overlay.getBoundingClientRect();
+      const element = this.#element();
+      const currentSize = element.getBoundingClientRect();
       this.resizeStart = {
         // Northeast lat/lng
         neBounds,
@@ -13295,9 +13836,9 @@ var Overlay = class extends Layer_default {
         // This is used to calculate the new position of the overlay after resizing from the bottom right.
         sePos: { x: currentSize.right - containerRect.left, y: currentSize.bottom - containerRect.top },
         // Current left position within the overlay container
-        left: parseInt(this.#overlay.style.left, 10) || 0,
+        left: parseInt(element.style.left, 10) || 0,
         // Current top position within the overlay container
-        top: parseInt(this.#overlay.style.top, 10) || 0,
+        top: parseInt(element.style.top, 10) || 0,
         // Current width of the overlay container
         width: currentSize.width,
         // Current height of the overlay container
@@ -13320,15 +13861,16 @@ var Overlay = class extends Layer_default {
       e.preventDefault();
       const projection = this.getProjection();
       const mapContainer = this.getMap()?.getDiv();
-      if (projection && mapContainer) {
+      const start = this.resizeStart;
+      if (projection && mapContainer && start) {
         const containerRect = mapContainer.getBoundingClientRect();
         const eventX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
         const eventY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
         const mouseX = eventX - containerRect.left;
         const mouseY = eventY - containerRect.top;
-        const neGoogle = this.resizeStart.neBounds.toGoogle();
+        const neGoogle = start.neBounds.toGoogle();
         const topRight = neGoogle ? projection.fromLatLngToContainerPixel(neGoogle) : null;
-        const swGoogle = this.resizeStart.swBounds.toGoogle();
+        const swGoogle = start.swBounds.toGoogle();
         const bottomLeft = swGoogle ? projection.fromLatLngToContainerPixel(swGoogle) : null;
         let newWidth;
         let newHeight;
@@ -13338,52 +13880,53 @@ var Overlay = class extends Layer_default {
           if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX > topRight.x) {
             return;
           }
-          const diffX = this.resizeStart.nwPos.x - mouseX;
-          const diffY = this.resizeStart.nwPos.y - mouseY;
-          newWidth = this.resizeStart.width + diffX;
-          newHeight = this.resizeStart.height + diffY;
-          newLeft = this.resizeStart.left - diffX;
-          newTop = this.resizeStart.top - diffY;
+          const diffX = start.nwPos.x - mouseX;
+          const diffY = start.nwPos.y - mouseY;
+          newWidth = start.width + diffX;
+          newHeight = start.height + diffY;
+          newLeft = start.left - diffX;
+          newTop = start.top - diffY;
         } else if (this.resizeCorner === "ne") {
           if (!bottomLeft || !topRight || mouseY > bottomLeft.y || mouseX < bottomLeft.x) {
             return;
           }
           const diffX = topRight.x - mouseX;
           const diffY = topRight.y - mouseY;
-          newWidth = this.resizeStart.width - diffX;
-          newHeight = this.resizeStart.height + diffY;
-          newLeft = this.resizeStart.left;
-          newTop = this.resizeStart.top - diffY;
+          newWidth = start.width - diffX;
+          newHeight = start.height + diffY;
+          newLeft = start.left;
+          newTop = start.top - diffY;
         } else if (this.resizeCorner === "sw") {
-          if (!bottomLeft || !topRight || mouseY < this.resizeStart.top || mouseX > topRight.x) {
+          if (!bottomLeft || !topRight || mouseY < start.top || mouseX > topRight.x) {
             return;
           }
           const diffX = bottomLeft.x - mouseX;
           const diffY = bottomLeft.y - mouseY;
-          newWidth = this.resizeStart.width + diffX;
-          newHeight = this.resizeStart.height - diffY;
-          newLeft = this.resizeStart.left - diffX;
-          newTop = this.resizeStart.top;
+          newWidth = start.width + diffX;
+          newHeight = start.height - diffY;
+          newLeft = start.left - diffX;
+          newTop = start.top;
         } else if (this.resizeCorner === "se") {
-          if (mouseY < this.resizeStart.top || mouseX < this.resizeStart.left) {
+          if (mouseY < start.top || mouseX < start.left) {
             return;
           }
-          const diffX = this.resizeStart.sePos.x - mouseX;
-          const diffY = this.resizeStart.sePos.y - mouseY;
-          newWidth = this.resizeStart.width - diffX;
-          newHeight = this.resizeStart.height - diffY;
-          newLeft = this.resizeStart.left;
-          newTop = this.resizeStart.top;
+          const diffX = start.sePos.x - mouseX;
+          const diffY = start.sePos.y - mouseY;
+          newWidth = start.width - diffX;
+          newHeight = start.height - diffY;
+          newLeft = start.left;
+          newTop = start.top;
         } else {
           return;
         }
         const constrained = calculateDimensions(this.#resizeAspectRatio, newWidth, newHeight);
-        this.#overlay.style.width = `${constrained.width}px`;
-        this.#overlay.style.height = `${constrained.height}px`;
-        this.#overlay.style.left = `${newLeft}px`;
-        this.#overlay.style.top = `${newTop}px`;
+        const element = this.#element();
+        element.style.width = `${constrained.width}px`;
+        element.style.height = `${constrained.height}px`;
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
         if (this.#resizeAspectRatio > 0) {
-          const newContainerRect = this.#overlay.getBoundingClientRect();
+          const newContainerRect = element.getBoundingClientRect();
           const mapContainerRect = mapContainer.getBoundingClientRect();
           const nePos = {
             x: newContainerRect.right - mapContainerRect.left,
@@ -13419,11 +13962,6 @@ var Overlay = class extends Layer_default {
       document.removeEventListener("touchend", this.#handleResizeEnd);
       this.dispatch(OverlayEvents.RESIZE_END, { event: e });
     };
-    this.#overlay = document.createElement("div");
-    this.#overlay.style.position = "absolute";
-    this.#overlay.style.pointerEvents = "auto";
-    this.#overlay.style.zIndex = "1000";
-    this.setOffset([0, 0]);
   }
   #drag;
   /**
@@ -13436,10 +13974,14 @@ var Overlay = class extends Layer_default {
   #isDragging;
   #isResizing;
   /**
-   * Holds the offset for the overlay
+   * Holds the offset for the overlay.
+   *
+   * This is undefined until an offset is set or read. The constructor used to set a 0,0
+   * offset, which allocated a Point for every overlay - and Tooltip and Popup both replace it
+   * with their own straight afterwards, so it was thrown away immediately.
    *
    * @private
-   * @type {Point}
+   * @type {Point|undefined}
    */
   #offset;
   /**
@@ -13447,11 +13989,18 @@ var Overlay = class extends Layer_default {
    * content for the overlay will get displayed in.
    * That could be a tooltip, a custom info window (popup), or a map overlay.
    *
+   * It is built the first time something actually needs it, not in the constructor. A popup
+   * attached to every one of 2,595 trail segments used to build 2,595 detached divs before
+   * anything was shown, and popups open on a click, so almost none of them are ever needed.
+   * Read it through #element() or getOverlayElement(), never directly, so that it exists by
+   * the time it's used.
+   *
    * private
    *
-   * @type {HTMLElement}
+   * @type {HTMLElement|undefined}
    */
   #overlay;
+  #className;
   /**
    * The starting overlay position when dragging begins
    *
@@ -13478,12 +14027,55 @@ var Overlay = class extends Layer_default {
   #resizeHandles;
   #styles;
   /**
+   * Get the overlay element, building it the first time it's asked for.
+   *
+   * Everything inside this class reads the element through here. Anything set before the
+   * element existed - class names and styles - is written onto it as it's built, so the
+   * element ends up in the same state it would have been in if it had been built up front.
+   *
+   * @private
+   * @returns {HTMLElement}
+   */
+  #element() {
+    if (!this.#overlay) {
+      const element = document.createElement("div");
+      element.style.position = "absolute";
+      element.style.pointerEvents = "auto";
+      element.style.zIndex = "1000";
+      if (this.#className.length > 0) {
+        this.#className.split(" ").forEach((cn) => {
+          const name = cn.trim();
+          if (name.length > 0) {
+            element.classList.add(name);
+          }
+        });
+      }
+      Object.keys(this.#styles).forEach((name) => {
+        element.style[name] = this.#styles[name];
+      });
+      this.#overlay = element;
+    }
+    return this.#overlay;
+  }
+  /**
+   * Whether the overlay element has been built yet.
+   *
+   * Used by the few places that shouldn't build one just to look at it - removing a class
+   * name that was never added, or taking an element off a parent it was never on.
+   *
+   * @private
+   * @returns {boolean}
+   */
+  #hasElement() {
+    return typeof this.#overlay !== "undefined";
+  }
+  /**
    * Get the class name for the overlay element
    *
    * @returns {string}
    */
   get className() {
-    return this.#overlay.className;
+    return this.#className;
   }
   /**
    * Set the class name(s) for the overlay element
@@ -13495,12 +14087,24 @@ var Overlay = class extends Layer_default {
    */
   set className(className) {
     if (isString(className)) {
-      const classes = className.split(" ");
-      classes.forEach((cn) => {
-        this.#overlay.classList.add(cn.trim());
+      const current = this.#className.length > 0 ? this.#className.split(" ") : [];
+      className.split(" ").forEach((cn) => {
+        const name = cn.trim();
+        if (name.length > 0 && !current.includes(name)) {
+          current.push(name);
+        }
       });
+      this.#className = current.join(" ");
+      if (this.#hasElement()) {
+        current.forEach((name) => {
+          this.#element().classList.add(name);
+        });
+      }
     } else if (isNullOrUndefined(className)) {
-      this.#overlay.className = "";
+      this.#className = "";
+      if (this.#hasElement()) {
+        this.#element().className = "";
+      }
     }
   }
   /**
@@ -13681,8 +14285,7 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   getContainerLatLngFromPixel(x, y) {
-    const gp = new google.maps.Point(x, y);
-    const pixel = point(gp);
+    const pixel = point(x, y);
     const projection = this.getProjection();
     if (projection) {
       return latLng(projection.fromContainerPixelToLatLng(pixel.toGoogle()) ?? void 0);
@@ -13700,8 +14303,7 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   getDivLatLngFromPixel(x, y) {
-    const gp = new google.maps.Point(x, y);
-    const pixel = point(gp);
+    const pixel = point(x, y);
     const projection = this.getProjection();
     if (projection) {
       return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()) ?? void 0);
@@ -13714,6 +14316,9 @@ var Overlay = class extends Layer_default {
    * @returns {Point}
    */
   getOffset() {
+    if (this.#offset === void 0) {
+      this.#offset = point(0, 0);
+    }
     return this.#offset;
   }
   /**
@@ -13722,7 +14327,7 @@ var Overlay = class extends Layer_default {
    * @returns {HTMLElement}
    */
   getOverlayElement() {
-    return this.#overlay;
+    return this.#element();
   }
   /**
    * Get the position of the overlay
@@ -13799,9 +14404,9 @@ var Overlay = class extends Layer_default {
         mapObject = this.getMap() ?? void 0;
       }
       this.position = position;
-      if (mapObject instanceof Map) {
+      if (mapObject instanceof Map2) {
         if (this.#overlayView) {
-          this.#overlayView.setMap(mapObject.toGoogle() ?? null);
+          this.#attachToGoogleMap(mapObject);
           this.isVisible = true;
           super.setMap(mapObject);
           this.dispatch(OverlayEvents.OPEN);
@@ -13888,10 +14493,16 @@ var Overlay = class extends Layer_default {
    * @returns {Overlay}
    */
   removeClassName(className) {
-    const classes = className.split(" ");
-    classes.forEach((cn) => {
-      this.#overlay.classList.remove(cn.trim());
-    });
+    const classes = className.split(" ").map((cn) => cn.trim());
+    if (this.#className.length > 0) {
+      this.#className = this.#className.split(" ").filter((name) => !classes.includes(name)).join(" ");
+    }
+    if (this.#hasElement()) {
+      const element = this.#element();
+      classes.forEach((cn) => {
+        element.classList.remove(cn);
+      });
+    }
     return this;
   }
   /**
@@ -13973,22 +14584,22 @@ var Overlay = class extends Layer_default {
    */
   show(map2) {
     return new Promise((resolve) => {
-      if (map2 instanceof Map) {
+      if (map2 instanceof Map2) {
         this.#setupGoogleOverlay();
         if (this.#overlayView) {
-          this.#overlayView.setMap(map2.toGoogle() ?? null);
-          this.isVisible = true;
           super.setMap(map2);
+          this.#attachToGoogleMap(map2);
+          this.isVisible = true;
           this.dispatch(OverlayEvents.OPEN);
           resolve(this);
         } else {
           loader().onMapLoad(() => {
             this.#setupGoogleOverlay();
+            super.setMap(map2);
             if (this.#overlayView) {
-              this.#overlayView.setMap(map2.toGoogle() ?? null);
+              this.#attachToGoogleMap(map2);
               this.isVisible = true;
             }
-            super.setMap(map2);
             this.dispatch(OverlayEvents.OPEN);
             resolve(this);
           });
@@ -14008,8 +14619,13 @@ var Overlay = class extends Layer_default {
    */
   style(name, value) {
     if (isString(name) && isString(value)) {
+      if (this.#styles[name] === value) {
+        return this;
+      }
       this.#styles[name] = value;
-      this.#overlay.style[name] = value;
+      if (this.#hasElement()) {
+        this.#element().style[name] = value;
+      }
     }
     return this;
   }
@@ -14032,20 +14648,24 @@ var Overlay = class extends Layer_default {
    * @private
    */
   #setupDragHandlers() {
+    const element = this.#element();
     if (this.#drag) {
-      this.#overlay.style.cursor = "move";
-      this.#overlay.style.pointerEvents = "auto";
-      this.#overlay.style.border = "2px solid #007bff";
-      this.#overlay.addEventListener("mousedown", this.#handleDragStart);
-      this.#overlay.addEventListener("touchstart", this.#handleDragStart);
+      element.style.cursor = "move";
+      element.style.pointerEvents = "auto";
+      element.style.border = "2px solid #007bff";
+      element.addEventListener("mousedown", this.#handleDragStart);
+      element.addEventListener("touchstart", this.#handleDragStart);
       if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
-        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+        google.maps.OverlayView.preventMapHitsAndGesturesFrom(element);
       }
     } else {
-      this.#overlay.style.cursor = "";
-      this.#overlay.style.pointerEvents = "";
-      this.#overlay.removeEventListener("mousedown", this.#handleDragStart);
-      this.#overlay.removeEventListener("touchstart", this.#handleDragStart);
+      element.style.cursor = "";
+      element.style.pointerEvents = "";
+      if (!this.#resize) {
+        element.style.border = "none";
+      }
+      element.removeEventListener("mousedown", this.#handleDragStart);
+      element.removeEventListener("touchstart", this.#handleDragStart);
     }
   }
   /**
@@ -14067,7 +14687,8 @@ var Overlay = class extends Layer_default {
    */
   #createResizeHandles() {
     this.#removeResizeHandles();
-    this.#overlay.style.border = "2px solid #007bff";
+    const element = this.#element();
+    element.style.border = "2px solid #007bff";
     const corners = ["nw", "ne", "sw", "se"];
     const cursors = {
       nw: "nwse-resize",
@@ -14116,7 +14737,7 @@ var Overlay = class extends Layer_default {
       if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
         google.maps.OverlayView.preventMapHitsAndGesturesFrom(handle);
       }
-      this.#overlay.appendChild(handle);
+      element.appendChild(handle);
       this.#resizeHandles.push(handle);
     });
   }
@@ -14132,7 +14753,9 @@ var Overlay = class extends Layer_default {
       }
     });
     this.#resizeHandles = [];
-    this.#overlay.style.border = "none";
+    if (!this.#drag && this.#hasElement()) {
+      this.#element().style.border = "none";
+    }
   }
   #handleDragStart;
   #handleDrag;
@@ -14172,11 +14795,47 @@ var Overlay = class extends Layer_default {
    *
    * @private
    */
+  /**
+   * Attach the overlay to the Google map object.
+   *
+   * The Google map object doesn't exist until the map has been initialized, so toGoogle()
+   * returns undefined until then. Passing that on as null attached the overlay to nothing,
+   * which left it silently off the map even though it reported itself as visible.
+   *
+   * When the map isn't set up yet it's told to initialize and the overlay is attached once
+   * it's ready. The promise that show() and move() return is deliberately not tied to
+   * init(): the map waits on an IntersectionObserver when its element is hidden, so init()
+   * can take a long time to settle, or never settle at all. Marker and Polyline trigger the
+   * map the same way.
+   *
+   * @private
+   * @param {Map} map The map to attach the overlay to
+   */
+  #attachToGoogleMap(map2) {
+    const overlayView = this.#overlayView;
+    if (!overlayView) {
+      return;
+    }
+    const googleMap = map2.toGoogle();
+    if (googleMap) {
+      overlayView.setMap(googleMap);
+    } else {
+      map2.init();
+      map2.onReady(() => {
+        if (this.getMap() === map2) {
+          const readyMap = map2.toGoogle();
+          if (readyMap) {
+            overlayView.setMap(readyMap);
+          }
+        }
+      });
+    }
+  }
   #setupGoogleOverlay() {
     if (!isObject(this.#overlayView)) {
       if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
         this.#overlayView = getOverlayViewClass(this);
-        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#overlay);
+        google.maps.OverlayView.preventMapHitsAndGesturesFrom(this.#element());
       }
     }
   }
@@ -14211,12 +14870,17 @@ var Overlay = class extends Layer_default {
    * @internal
    */
   remove() {
-    if (this.#overlay.parentElement) {
-      this.#overlay.parentElement.removeChild(this.#overlay);
+    if (!this.#hasElement()) {
+      return;
+    }
+    const element = this.#element();
+    if (element.parentElement) {
+      element.parentElement.removeChild(element);
     }
   }
 };
-var getOverlayViewClass = (classObject) => {
+var OverlayViewClass;
+var buildOverlayViewClass = () => {
   class OverlayView extends google.maps.OverlayView {
     /**
      * Holds the class instance for this overlay
@@ -14258,7 +14922,13 @@ var getOverlayViewClass = (classObject) => {
       this.#overlay.remove();
     }
   }
-  return new OverlayView(classObject);
+  return OverlayView;
+};
+var getOverlayViewClass = (classObject) => {
+  if (!OverlayViewClass) {
+    OverlayViewClass = buildOverlayViewClass();
+  }
+  return new OverlayViewClass(classObject);
 };
 var overlay = () => new Overlay("overlay", "OverlayView");
 
@@ -14315,7 +14985,7 @@ var getOverlay = (config, feature, adapter) => {
 };
 var showOverlay = (config, feature, position, adapter, openOverlay) => {
   const { map: map2 } = feature.getLayer();
-  if (!(map2 instanceof Map) || !position) {
+  if (!(map2 instanceof Map2) || !position) {
     return void 0;
   }
   const overlay2 = getOverlay(config, feature, adapter);
@@ -15240,7 +15910,7 @@ var ImageOverlay = class extends Overlay {
     if (this.#bounds && projection) {
       const ne = this.#bounds.getNorthEast();
       const sw = this.#bounds.getSouthWest();
-      if (ne && sw) {
+      if (ne && sw && ne.isValid() && sw.isValid()) {
         const nePixel = projection.fromLatLngToDivPixel(ne.toGoogle());
         const swPixel = projection.fromLatLngToDivPixel(sw.toGoogle());
         if (nePixel && swPixel) {
@@ -15297,6 +15967,16 @@ var PlacesSearchBox = class extends Evented {
    * @type {google.maps.places.SearchBox | undefined}
    */
   #searchBox;
+  /**
+   * Holds the promise for setting up the search box.
+   *
+   * Every call to init() waits on this same promise so that the search box is only built once,
+   * however many times init() is called and whenever those calls are made.
+   *
+   * @private
+   * @type {Promise<void>|undefined}
+   */
+  #initPromise;
   /**
    * Holds the options for the places search box
    *
@@ -15421,23 +16101,25 @@ var PlacesSearchBox = class extends Evented {
    * @returns {Promise<void>}
    */
   async init() {
-    return new Promise((resolve) => {
-      if (!isObject(this.#searchBox)) {
+    if (!this.#initPromise) {
+      const initPromise = new Promise((resolve, reject) => {
         if (checkForGoogleMaps("PlacesSearchBox", "places", false)) {
-          this.#createPlacesSearchBox().then(() => {
-            resolve();
-          });
+          this.#createPlacesSearchBox().then(resolve).catch(reject);
         } else {
           loader().onMapLoad(() => {
-            this.#createPlacesSearchBox().then(() => {
-              resolve();
-            });
+            this.#createPlacesSearchBox().then(resolve).catch(reject);
           });
         }
-      } else {
-        resolve();
-      }
-    });
+      });
+      const tracked = initPromise.catch((error) => {
+        if (this.#initPromise === tracked) {
+          this.#initPromise = void 0;
+        }
+        throw error;
+      });
+      this.#initPromise = tracked;
+    }
+    return this.#initPromise;
   }
   /**
    * Create the places search box object
@@ -15456,12 +16138,8 @@ var PlacesSearchBox = class extends Evented {
       const searchBox = new google.maps.places.SearchBox(this.#input, options);
       this.#searchBox = searchBox;
       searchBox.addListener(PlacesSearchBoxEvents.PLACES_CHANGED, () => {
-        const places = searchBox.getPlaces();
-        if (!Array.isArray(places) || places.length === 0) {
-          this.#places = [];
-          this.#placesBounds = void 0;
-          return;
-        }
+        const found = searchBox.getPlaces();
+        const places = Array.isArray(found) ? found : [];
         const bounds = latLngBounds();
         places.forEach((place) => {
           if (place.geometry) {
@@ -15940,6 +16618,7 @@ var simplifyPath = (path, tolerance = DEFAULT_SIMPLIFY_TOLERANCE) => {
 };
 
 // src/lib/Polyline.ts
+var EMPTY_COORDS = new Float64Array(0);
 var getSimplifyConfig = (value) => {
   const getZoomTolerances = (zoom) => Object.entries(zoom).map(([level, zoomTolerance]) => ({ level: Number(level), tolerance: Number(zoomTolerance) })).filter((z) => Number.isFinite(z.level) && Number.isFinite(z.tolerance) && z.tolerance >= 0).sort((a, b) => a.level - b.level);
   if (value === true) {
@@ -16899,13 +17578,13 @@ var Polyline = class _Polyline extends Layer_default {
    * @returns {Promise<Polyline>}
    */
   async setMap(value, isVisible = true) {
-    this.#requestedMap = value instanceof Map ? value : null;
+    this.#requestedMap = value instanceof Map2 ? value : null;
     this.#updateZoomListener();
     this.#applySimplify();
     if (this.#highlightPolyline && this.#highlightSetup) {
       this.#highlightPolyline.setMap(value, false);
     }
-    if (value instanceof Map) {
+    if (value instanceof Map2) {
       if (!this.#polyline && isVisible === false) {
         this.visible = isVisible;
         this.#options.map = value;
@@ -17124,8 +17803,9 @@ var Polyline = class _Polyline extends Layer_default {
    * @returns {google.maps.LatLng[]}
    */
   #getGooglePath() {
-    const start = performance.now();
-    const coords = this.#pathCoords ?? new Float64Array(0);
+    const isDebug = this.#isSimplifyDebug();
+    const start = isDebug ? performance.now() : 0;
+    const coords = this.#pathCoords ?? EMPTY_COORDS;
     const tolerance = this.#simplifyTolerance;
     const useKeptPaths = tolerance > 0 && (this.#simplifyConfig?.zoom.length ?? 0) > 0;
     let googlePath = useKeptPaths ? this.#simplifiedPaths[tolerance] : void 0;
@@ -17140,7 +17820,7 @@ var Polyline = class _Polyline extends Layer_default {
         this.#simplifiedPaths[tolerance] = googlePath;
       }
     }
-    if (this.#isSimplifyDebug()) {
+    if (isDebug) {
       let detail = "";
       if (isKeptPath) {
         detail = "Used the path that was already simplified.";
@@ -17246,14 +17926,42 @@ var Polyline = class _Polyline extends Layer_default {
     return config.tolerance;
   }
   /**
+   * Whether two drawn paths hold the same points.
+   *
+   * The point count is checked first because that alone separates most paths for almost
+   * nothing. Only paths that are the same length are compared point by point.
+   *
+   * @private
+   * @param {google.maps.LatLng[]} a The first path
+   * @param {google.maps.LatLng[]} b The second path
+   * @returns {boolean}
+   */
+  static #isSamePath(a, b) {
+    if (a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i += 1) {
+      if (a[i].lat() !== b[i].lat() || a[i].lng() !== b[i].lng()) {
+        return false;
+      }
+    }
+    return true;
+  }
+  /**
    * Update the path drawn on the map if the simplify tolerance to use has changed.
    *
    * If the polyline is hidden then the path isn't updated until the polyline is shown again.
    * This saves simplifying the paths of hidden polylines, for example ones hidden with PolylineCollection.hide(),
    * each time the zoom level changes.
    *
+   * A different tolerance often draws the same points. A short segment simplifies to its two
+   * end points at every tolerance, so moving between zoom buckets used to hand Google an
+   * identical path over and over. setPath is the expensive half of a tolerance change, so it's
+   * skipped when the path that would be drawn matches the one already drawn.
+   *
    * @private
-   * @returns {boolean} Whether the path drawn on the map was updated
+   * @returns {boolean} Whether the tolerance changed and was applied. The path may not have
+   *      been sent to Google, if the new tolerance draws the same points as the old one.
    */
   #applySimplify() {
     const tolerance = this.#getCurrentTolerance();
@@ -17266,9 +17974,13 @@ var Polyline = class _Polyline extends Layer_default {
       return false;
     }
     this.#isSimplifyOutOfDate = false;
+    const drawnPath = this.#simplifiedPaths[this.#simplifyTolerance];
     this.#simplifyTolerance = tolerance;
     if (this.#polyline) {
-      this.#polyline.setPath(this.#getGooglePath());
+      const googlePath = this.#getGooglePath();
+      if (!drawnPath || !_Polyline.#isSamePath(drawnPath, googlePath)) {
+        this.#polyline.setPath(googlePath);
+      }
     }
     if (this.#highlightPolyline && this.#highlightSetup) {
       this.#highlightPolyline.simplify = tolerance;
@@ -17442,7 +18154,7 @@ var Polyline = class _Polyline extends Layer_default {
             this.#dispatchReady();
             resolve(googlePolyline);
           });
-          if (map2 instanceof Map) {
+          if (map2 instanceof Map2) {
             map2.init();
           }
         }
@@ -17508,10 +18220,15 @@ var Polyline = class _Polyline extends Layer_default {
       polylineOptions.path = this.#getGooglePath();
       const googlePolyline = new google.maps.Polyline(polylineOptions);
       this.#polyline = googlePolyline;
-      this.#setupIconsAndDashedPolylineOptions().then((opts) => {
-        googlePolyline.setOptions(opts);
+      const hasIcons = Array.isArray(this.#options.icons) && this.#options.icons.length > 0;
+      if (this.#dashed || hasIcons) {
+        this.#setupIconsAndDashedPolylineOptions().then((opts) => {
+          googlePolyline.setOptions(opts);
+          this.setEventGoogleObject(googlePolyline);
+        });
+      } else {
         this.setEventGoogleObject(googlePolyline);
-      });
+      }
       return googlePolyline;
     }
     return this.#polyline;
@@ -17891,6 +18608,13 @@ var Popup = class extends Overlay {
    */
   #content;
   /**
+   * Whether the content still needs to be written into the overlay element
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isContentDirty = false;
+  /**
    * The event to trigger the popup
    *
    * @private
@@ -17933,12 +18657,29 @@ var Popup = class extends Overlay {
    */
   #callback;
   /**
+   * Whether the close handlers have been bound to the elements inside the popup
+   *
+   * They're bound the first time the popup is drawn rather than on every draw. Setting the
+   * content replaces the element's children, so the content setter sets this back to false.
+   *
+   * @private
+   * @type {boolean}
+   */
+  #areCloseHandlersBound = false;
+  /**
    * Whether the popup is attached to an element
    *
    * @private
    * @type {boolean}
    */
   #isAttached = false;
+  /**
+   * Whether the default theme styles have been set on the popup element
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isThemeApplied = false;
   /**
    * Holds if the Popup is open or not
    *
@@ -17977,12 +18718,8 @@ var Popup = class extends Overlay {
     super("popup", "Popup");
     this.#clearance = size(0, 0);
     this.#popupOffset = point(0, 0);
-    if (isObject(options)) {
-      if (options instanceof HTMLElement || options instanceof Text) {
-        this.content = options;
-      } else {
-        this.setOptions(options);
-      }
+    if (isObject(options) && !(options instanceof HTMLElement) && !(options instanceof Text)) {
+      this.setOptions(options);
     } else if (typeof options !== "undefined") {
       this.content = options;
     }
@@ -18073,17 +18810,44 @@ var Popup = class extends Overlay {
    * @param {string|HTMLElement|Text} content The content for the popup
    */
   set content(content) {
-    if (isStringWithValue(content)) {
+    if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
       this.#content = content;
-      this.getOverlayElement().innerHTML = content;
-    } else if (content instanceof HTMLElement || content instanceof Text) {
-      this.#content = content;
-      const overlayElement = this.getOverlayElement();
-      while (overlayElement.firstChild) {
-        overlayElement.removeChild(overlayElement.firstChild);
-      }
-      overlayElement.appendChild(content);
+      this.#areCloseHandlersBound = false;
+      this.#isContentDirty = true;
     }
+  }
+  /**
+   * Write the content into the overlay element if it hasn't been written yet
+   *
+   * @private
+   */
+  #flushContent() {
+    if (!this.#isContentDirty) {
+      return;
+    }
+    this.#isContentDirty = false;
+    const element = super.getOverlayElement();
+    const content = this.#content;
+    if (isStringWithValue(content)) {
+      element.innerHTML = content;
+    } else if (content instanceof HTMLElement || content instanceof Text) {
+      while (element.firstChild) {
+        element.removeChild(element.firstChild);
+      }
+      element.appendChild(content);
+    }
+  }
+  /**
+   * Get the overlay HTML element, writing any content that is waiting into it first.
+   *
+   * Everything that uses the element goes through here - add(), draw(), and anything outside
+   * the library - so the content is always there by the time it's looked at.
+   *
+   * @returns {HTMLElement}
+   */
+  getOverlayElement() {
+    this.#flushContent();
+    return super.getOverlayElement();
   }
   /**
    * Returns the event to trigger the popup
@@ -18138,6 +18902,31 @@ var Popup = class extends Overlay {
    */
   set theme(theme) {
     this.#theme = theme;
+    this.#isThemeApplied = false;
+  }
+  /**
+   * Set the default theme styles on the popup element.
+   *
+   * Any style that has already been set on the popup is kept so that custom styles win over
+   * the theme. This is the same as Tooltip.#applyTheme().
+   *
+   * @private
+   */
+  #applyTheme() {
+    const themeStyles = {
+      backgroundColor: "#fff",
+      color: "#333",
+      padding: "3px 6px",
+      borderRadius: "4px",
+      boxShadow: "0 0 5px rgba(0,0,0,0.3)"
+    };
+    const styles = this.styles;
+    Object.keys(themeStyles).forEach((key) => {
+      if (typeof styles[key] === "undefined") {
+        this.style(key, themeStyles[key]);
+      }
+    });
+    this.#isThemeApplied = true;
   }
   /**
    * Attach the popup to a element
@@ -18170,7 +18959,7 @@ var Popup = class extends Overlay {
           }
           const triggerEvent = event || this.#event;
           this.event = triggerEvent;
-          const elementMap = () => element instanceof Map ? element : element.getMap();
+          const elementMap = () => element instanceof Map2 ? element : element.getMap();
           if (triggerEvent === "hover") {
             element.on("mouseover", (e) => {
               const popupObject = this.#popupFor(element);
@@ -18179,7 +18968,7 @@ var Popup = class extends Overlay {
                 popupObject.move(e.latLng, map2);
               }
             });
-            if (element instanceof Map) {
+            if (element instanceof Map2) {
               element.on("mousemove", (e) => {
                 (this.#activePopup || this).move(e.latLng, element);
               });
@@ -18206,7 +18995,7 @@ var Popup = class extends Overlay {
           } else {
             element.on("click", (e) => {
               const popupObject = this.#popupFor(element);
-              if (element instanceof Map || element instanceof Polyline) {
+              if (element instanceof Map2 || element instanceof Polyline) {
                 popupObject.position = e.latLng;
               }
               popupObject.toggle(element);
@@ -18241,6 +19030,11 @@ var Popup = class extends Overlay {
    * @returns {Popup}
    */
   hide() {
+    const active = this.#activePopup;
+    this.#activePopup = void 0;
+    if (active && active !== this) {
+      active.hide();
+    }
     super.hide();
     this.#firstDraw = false;
     this.#isOpen = false;
@@ -18357,7 +19151,7 @@ var Popup = class extends Overlay {
         }
         this.#isOpen = true;
         collection.add(this);
-        if (element instanceof Map) {
+        if (element instanceof Map2) {
           this.#popupOffset = this.getOffset().clone();
           super.show(element).then(() => {
             resolve(this);
@@ -18386,6 +19180,8 @@ var Popup = class extends Overlay {
                   resolve(this);
                 });
               } else {
+                this.#isOpen = false;
+                collection.remove(this);
                 resolve(this);
               }
             };
@@ -18399,6 +19195,8 @@ var Popup = class extends Overlay {
               resolve(this);
             });
           } else {
+            this.#isOpen = false;
+            collection.remove(this);
             resolve(this);
           }
         }
@@ -18452,21 +19250,14 @@ var Popup = class extends Overlay {
       } else {
         this.style("transform", "translate(0, -100%)");
       }
-      if (this.#theme === "default") {
-        const styles = this.styles || {};
-        const themeStyles = {
-          backgroundColor: "#fff",
-          color: "#333",
-          padding: "3px 6px",
-          borderRadius: "4px",
-          boxShadow: "0 0 5px rgba(0,0,0,0.3)"
-        };
-        this.styles = { ...themeStyles, ...styles };
+      if (this.#theme === "default" && !this.#isThemeApplied) {
+        this.#applyTheme();
       }
       if (this.getOverlayElement().style.display !== display) {
         this.style("display", display);
       }
-      if (this.#closeElement) {
+      if (this.#closeElement && !this.#areCloseHandlersBound) {
+        this.#areCloseHandlersBound = true;
         if (this.#closeElement instanceof HTMLElement) {
           this.#setupCloseClick(this.#closeElement);
         } else if (isStringWithValue(this.#closeElement)) {
@@ -18609,7 +19400,7 @@ var popupMixin = {
   }
 };
 Layer_default.include(popupMixin);
-Map.include(popupMixin);
+Map2.include(popupMixin);
 var popupAdapter = {
   create: (value) => popup(value),
   defaultEvent: "click",
@@ -18733,7 +19524,23 @@ var PopupCollection = /* @__PURE__ */ (() => {
 })();
 
 // src/lib/Tooltip.ts
-var Tooltip = class extends Overlay {
+var sharedTooltipInstance;
+var sharedTooltipValues = /* @__PURE__ */ new WeakMap();
+var Tooltip = class _Tooltip extends Overlay {
+  static {
+    /**
+     * Whether attachTooltip() gives everything one shared Tooltip instead of one each.
+     *
+     * Defaults to true. Set it to false to go back to a Tooltip per layer, or pass
+     * { shared: false } to a single attachTooltip() call to opt just that one out.
+     *
+     * Passing an actual Tooltip object to attachTooltip() always uses that object, whatever
+     * this is set to.
+     *
+     * @type {boolean}
+     */
+    this.useShared = true;
+  }
   /**
    * Holds the tooltip that this one last showed for the object it's attached to.
    *
@@ -18767,6 +19574,13 @@ var Tooltip = class extends Overlay {
    */
   #content;
   /**
+   * Whether the content still needs to be written into the overlay element
+   *
+   * @private
+   * @type {boolean}
+   */
+  #isContentDirty = false;
+  /**
    * The event to trigger the tooltip
    *
    * @private
@@ -18774,12 +19588,18 @@ var Tooltip = class extends Overlay {
    */
   #event = "hover";
   /**
-   * Whether the tooltip is attached to an element
+   * The things that this tooltip is attached to.
+   *
+   * This used to be a single boolean, which was right while every layer had its own tooltip.
+   * The shared tooltip is attached to many things, and a boolean would have let it wire up its
+   * listeners for the first one and silently do nothing for all the rest.
+   *
+   * Built on first use, and a WeakSet so that it doesn't keep a layer alive.
    *
    * @private
-   * @type {boolean}
+   * @type {WeakSet<Map|Layer>|undefined}
    */
-  #isAttached = false;
+  #attachedTo;
   /**
    * Whether the default theme styles have been set on the tooltip element
    *
@@ -18802,17 +19622,40 @@ var Tooltip = class extends Overlay {
   constructor(options) {
     super("tooltip", "Tooltip");
     this.setOffset([0, 4]);
-    if (isObject(options)) {
-      if (options instanceof HTMLElement || options instanceof Text) {
-        this.content = options;
-      } else {
-        this.setOptions(options);
-      }
+    if (isObject(options) && !(options instanceof HTMLElement) && !(options instanceof Text)) {
+      this.setOptions(options);
     } else {
       if (typeof options !== "undefined") {
         this.content = options;
       }
       this.setClassName("tooltip");
+    }
+  }
+  /**
+   * Get the one Tooltip that everything shares, building it the first time it's needed.
+   *
+   * It's built with no options on purpose. A Tooltip built from an options object doesn't get
+   * the "tooltip" class name, only one built from a string or from nothing does, and the shared
+   * tooltip has to look like the per-layer ones it replaces.
+   *
+   * @returns {Tooltip}
+   */
+  static getShared() {
+    if (!sharedTooltipInstance) {
+      sharedTooltipInstance = new _Tooltip();
+    }
+    return sharedTooltipInstance;
+  }
+  /**
+   * Throw away the shared tooltip, hiding it first if it's showing.
+   *
+   * The next thing that needs it builds a new one. Each thing keeps its own value, so they
+   * carry on working after this.
+   */
+  static clearShared() {
+    if (sharedTooltipInstance) {
+      sharedTooltipInstance.hide();
+      sharedTooltipInstance = void 0;
     }
   }
   /**
@@ -18847,14 +19690,43 @@ var Tooltip = class extends Overlay {
    * @param {string|HTMLElement|Text} content The content for the tooltip
    */
   set content(content) {
-    if (isStringWithValue(content)) {
+    if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
       this.#content = content;
-      this.getOverlayElement().innerHTML = content;
-    } else if (content instanceof HTMLElement || content instanceof Text) {
-      this.#content = content;
-      this.getOverlayElement().innerHTML = "";
-      this.getOverlayElement().appendChild(content);
+      this.#isContentDirty = true;
     }
+  }
+  /**
+   * Write the content into the overlay element if it hasn't been written yet
+   *
+   * @private
+   */
+  #flushContent() {
+    if (!this.#isContentDirty) {
+      return;
+    }
+    this.#isContentDirty = false;
+    const element = super.getOverlayElement();
+    const content = this.#content;
+    if (isStringWithValue(content)) {
+      element.innerHTML = content;
+    } else if (content instanceof HTMLElement || content instanceof Text) {
+      element.innerHTML = "";
+      element.appendChild(content);
+    } else {
+      element.innerHTML = "";
+    }
+  }
+  /**
+   * Get the overlay HTML element, writing any content that is waiting into it first.
+   *
+   * Everything that uses the element goes through here - add(), draw(), and anything outside
+   * the library - so the content is always there by the time it's looked at.
+   *
+   * @returns {HTMLElement}
+   */
+  getOverlayElement() {
+    this.#flushContent();
+    return super.getOverlayElement();
   }
   /**
    * Returns the event to trigger the tooltip
@@ -18909,15 +19781,16 @@ var Tooltip = class extends Overlay {
    * @returns {Promise<Tooltip>}
    */
   async attachTo(element, event, callback) {
-    if (!this.#isAttached) {
-      this.#isAttached = true;
+    const attachedTo = this.#attachedTo ??= /* @__PURE__ */ new WeakSet();
+    if (!attachedTo.has(element)) {
+      attachedTo.add(element);
       if (isFunction(callback)) {
         this.#callback = callback;
       }
       await element.init().then(() => {
         element.onceImmediate(READY_EVENT, () => {
           const triggerEvent = event || this.#event;
-          const elementMap = () => element instanceof Map ? element : element.getMap();
+          const elementMap = () => element instanceof Map2 ? element : element.getMap();
           if (triggerEvent === "click") {
             element.on("click", (e) => {
               const tooltipObject = this.#tooltipFor(element);
@@ -18945,7 +19818,7 @@ var Tooltip = class extends Overlay {
                 tooltipObject.show(map2);
               }
             });
-            if (element instanceof Map) {
+            if (element instanceof Map2) {
               element.on("mousemove", (e) => {
                 const tooltipObject = this.#activeTooltip || this;
                 tooltipObject.setPosition(e.latLng);
@@ -18973,10 +19846,59 @@ var Tooltip = class extends Overlay {
    * @returns {Tooltip}
    */
   #tooltipFor(target) {
+    const sharedValue = sharedTooltipValues.get(target);
+    if (typeof sharedValue !== "undefined") {
+      this.#resetToBaseline();
+      return this.#resolveFor(target, sharedValue);
+    }
     if (!isFunction(this.#callback)) {
       return this;
     }
-    const tooltipObject = overlayFromCallback(this, this.#callback(target), tooltipAdapter);
+    return this.#resolveFor(target, this.#callback);
+  }
+  /**
+   * Put the shared tooltip back to how it was built, before another object's value is applied.
+   *
+   * setOptions() only applies the options that are actually given, so anything it isn't told
+   * about is left as the last object set it. That's fine for a tooltip that belongs to one
+   * layer, but the shared tooltip is the same object for everything on the map: a marker that
+   * attached {content, className, theme} left its class name and theme on the tooltip, and the
+   * next marker along - whose value is only {content} - was then shown wearing them.
+   *
+   * The class name is the worst of it. setOptions() takes the "tooltip" class off before adding
+   * the one it was given, so once any object passed a className, every object after it lost the
+   * default class for good.
+   *
+   * Only the shared tooltip is reset, and only the values that a tooltip is built with. Styles
+   * are deliberately left alone: they're only carried over when an object passes a styles
+   * object of its own, and clearing them would mean reaching into Overlay's style record.
+   * The theme puts its own styles back, because setting the theme marks it for reapplying.
+   *
+   * @private
+   */
+  #resetToBaseline() {
+    this.center = true;
+    this.theme = "default";
+    this.setOffset([0, 4]);
+    const current = this.className;
+    if (current.length > 0) {
+      this.removeClassName(current);
+    }
+    this.setClassName("tooltip");
+    this.#content = void 0;
+    this.#isContentDirty = true;
+  }
+  /**
+   * Work out the tooltip to show for a value, calling it first if it's a callback.
+   *
+   * @private
+   * @param {Map|Layer} target The object that the tooltip is being shown for
+   * @param {AttachTooltipValue} value The value attached for that object
+   * @returns {Tooltip}
+   */
+  #resolveFor(target, value) {
+    const resolved = isFunction(value) ? value(target) : value;
+    const tooltipObject = overlayFromCallback(this, resolved, tooltipAdapter);
     if (this.#activeTooltip && this.#activeTooltip !== tooltipObject) {
       this.#activeTooltip.hide();
     }
@@ -19005,6 +19927,31 @@ var Tooltip = class extends Overlay {
       }
     });
     this.#isThemeApplied = true;
+  }
+  /**
+   * Hide the tooltip
+   *
+   * A callback can return a different Tooltip to show, which is held in #activeTooltip. Hiding
+   * this one used to leave that one on the map with nothing referring to it. Only the hover
+   * wiring took it down, by hiding `#activeTooltip || this` on mouseout, so a tooltip shown by
+   * a click and then hidden directly stayed on the map. It's hidden and forgotten here instead,
+   * which is what Popup.hide() does for the same reason.
+   *
+   * The check against this one matters rather than being tidiness: a callback that returns
+   * content or an options object is applied to this tooltip and #activeTooltip is then set to
+   * this tooltip, so calling hide() on it without the check would call this method again and
+   * never stop.
+   *
+   * @returns {Tooltip}
+   */
+  hide() {
+    const active = this.#activeTooltip;
+    this.#activeTooltip = void 0;
+    if (active && active !== this) {
+      active.hide();
+    }
+    super.hide();
+    return this;
   }
   /**
    * Returns whether the tooltip already has content
@@ -19078,8 +20025,11 @@ var Tooltip = class extends Overlay {
    */
   draw(projection) {
     const position = this.getPosition();
-    if (position && typeof projection !== "undefined") {
+    if (position && position.isValid() && typeof projection !== "undefined") {
       const divPosition = projection.fromLatLngToDivPixel(position.toGoogle());
+      if (!divPosition) {
+        return;
+      }
       const display = Math.abs(divPosition.x) < 4e3 && Math.abs(divPosition.y) < 4e3 ? "block" : "none";
       if (display === "block") {
         const offset = this.getOffset();
@@ -19123,9 +20073,11 @@ var tooltipMixin = {
    * @param {AttachTooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the
    *      Tooltip object, or a function that returns one of those.
    * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+   * @param {AttachTooltipOptions} [attachOptions] Options for this call. Set "shared" to false
+   *      to give this object its own Tooltip instead of the shared one.
    * @returns {Tooltip}
    */
-  attachTooltip(tooltipValue, event) {
+  attachTooltip(tooltipValue, event, attachOptions) {
     let tooltipVal = tooltipValue;
     let tooltipEvent = event;
     if (isObject(tooltipValue) && objectHasValue(tooltipValue, "attachConfig") && objectHasValue(tooltipValue, "attachEvent")) {
@@ -19137,6 +20089,17 @@ var tooltipMixin = {
         attachConfig: tooltipVal,
         attachEvent: tooltipEvent
       };
+    }
+    const isOwnTooltip = tooltipVal instanceof Tooltip;
+    const useShared = !isOwnTooltip && (typeof attachOptions?.shared === "boolean" ? attachOptions.shared : Tooltip.useShared);
+    if (useShared) {
+      const sharedTooltip = Tooltip.getShared();
+      sharedTooltipValues.set(this, tooltipVal);
+      if (!isFunction(tooltipVal)) {
+        overlayFromCallback(sharedTooltip, tooltipVal, tooltipAdapter);
+      }
+      sharedTooltip.attachTo(this, tooltipEvent);
+      return sharedTooltip;
     }
     let t;
     let callback;
@@ -19151,7 +20114,7 @@ var tooltipMixin = {
   }
 };
 Layer_default.include(tooltipMixin);
-Map.include(tooltipMixin);
+Map2.include(tooltipMixin);
 var tooltipAdapter = {
   create: (value) => tooltip(value),
   defaultEvent: "hover",
@@ -19213,6 +20176,7 @@ DataFeature.include(dataFeatureTooltipMixin);
   GeocoderErrorStatus,
   GeocoderLocationType,
   GeometryType,
+  INTERNAL_EVENTS,
   Icon,
   ImageOverlay,
   ImageOverlayEvents,

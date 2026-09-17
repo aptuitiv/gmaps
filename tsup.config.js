@@ -42,11 +42,9 @@ export default defineConfig([
     {
         dts: true, // Enable Typescript dts generation
         entry: ['src/index.ts'],
-        esbuildPlugins: [
-            eslint({
-                fix: true
-            })
-        ],
+        // No eslint plugin here. It ran on both builds, so every file was linted twice, which
+        // took about four times as long as the build itself and slowed down every watch
+        // rebuild. Linting now runs in CI (.github/workflows/test.yml) and with "npm run lint".
         format: ['cjs', 'esm'],
         minify: false,
         outDir: 'dist',

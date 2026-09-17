@@ -35,6 +35,16 @@ import {
 
 export type MarkerLabel = google.maps.MarkerLabel;
 
+// Option keys that are copied across as they are. These are held here rather than inside the
+// methods that use them so that the arrays aren't rebuilt for every marker. At 20,000 markers
+// that's 40,000 throwaway arrays and closures.
+const STRING_OPTIONS: 'cursor'[] = ['cursor'];
+const GOOGLE_OPTIONS_TO_SET: ('cursor' | 'title')[] = ['cursor', 'title'];
+
+// Shared already-resolved promise, so that the common "the marker already exists" path doesn't
+// build a promise and an executor closure. Every setter waits on #setupGoogleMarker().
+const RESOLVED = Promise.resolve();
+
 // Custom data to attach to the marker object
 type CustomData = {
     [key: string]: any;
@@ -63,6 +73,10 @@ type GMMarkerOptions = {
     // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
     // that shows when you hover over a link with a title.
     title?: string;
+    // Whether the marker is visible on the map. Defaults to true.
+    // A marker that isn't visible isn't drawn, so nothing is created on the Google map for it
+    // until it's shown. Pass this with the "map" option for a marker that starts out hidden.
+    visible?: boolean;
 };
 
 // Marker options that aren't part of the options used to set up the Google maps marker
@@ -137,12 +151,40 @@ export class Marker extends Layer {
     #drag: boolean = false;
 
     /**
+     * Holds whether the marker was hidden when it was added to the map, so the Google marker
+     * hasn't been created yet.
+     *
+     * A marker that isn't visible isn't drawn, so nothing is created for it until it's first
+     * shown. This saves the work for markers that start out hidden, like ones a filter leaves out.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isCreationDeferred: boolean = false;
+
+    /**
      * Holds if the marker is setting up
      *
      * @private
      * @type {boolean}
      */
     #isSettingUp: boolean = false;
+
+    /**
+     * The marker creation that is currently running, if there is one.
+     *
+     * Anything that has to wait for the marker waits on this rather than on the "ready" event.
+     * They aren't the same thing: init() dispatches "ready" without creating a marker, so that a
+     * tooltip or popup can set up its events without forcing one to be built. A waiter that
+     * listened for "ready" could therefore be woken by that early event and carry on to use
+     * #marker while it was still undefined.
+     *
+     * Cleared once creation settles, so that a later call takes the normal path.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #creationPromise: Promise<void> | undefined;
 
     /**
      * Holds if the "ready" event has been dispatched
@@ -163,12 +205,15 @@ export class Marker extends Layer {
     /**
      * Holds the marker options
      *
-     * The position always has a value. It defaults to 0,0 and is only replaced with a valid position.
+     * The position is only set once there is a real one. It used to default to a 0,0 LatLng,
+     * which meant every marker built a LatLng object that was thrown away as soon as a position
+     * was set - and almost every marker has one. The position getter creates the 0,0 default if
+     * something asks for a position that was never set.
      *
      * @private
-     * @type {GMMarkerOptions & { position: LatLng }}
+     * @type {GMMarkerOptions}
      */
-    #options: GMMarkerOptions & { position: LatLng } = { position: latLng([0, 0]) };
+    #options: GMMarkerOptions = {};
 
     /**
      * Constructor
@@ -351,16 +396,22 @@ export class Marker extends Layer {
      * @returns {LatLng}
      */
     get position(): LatLng {
-        let returnValue = this.#options.position;
-        if (this.#marker) {
-            // The marker position could have changed if it was dragged around so try to get the latest position
-            // directly from the Google Maps marker object
-            returnValue = latLng(this.#marker.getPosition() ?? undefined);
+        // Only a draggable marker can move without the library being told, so only that case
+        // needs to ask Google where the marker is now. Every other marker's stored position is
+        // authoritative, because setPosition() updates both sides.
+        //
+        // This used to go to Google and build a new LatLng on every read, whatever kind of
+        // marker it was, so anything that looped over markers - fitting bounds, filtering,
+        // sorting by distance - allocated one object per marker per pass.
+        if (this.#drag && this.#marker) {
+            return latLng(this.#marker.getPosition() ?? undefined);
         }
-        if (isNullOrUndefined(returnValue)) {
-            returnValue = latLng([0, 0]);
+        if (isNullOrUndefined(this.#options.position)) {
+            // Nothing set a position, so fall back to 0,0. It's created here rather than in the
+            // field initialiser so that a marker with a real position never builds it.
+            this.#options.position = latLng([0, 0]);
         }
-        return returnValue;
+        return this.#options.position;
     }
 
     /**
@@ -388,6 +439,24 @@ export class Marker extends Layer {
      */
     set title(value: string) {
         this.setTitle(value);
+    }
+
+    /**
+     * Get whether the marker is visible on the map
+     *
+     * @returns {boolean | undefined} Undefined if it hasn't been set, which means visible
+     */
+    get visible(): boolean | undefined {
+        return this.#options.visible;
+    }
+
+    /**
+     * Set whether the marker is visible on the map
+     *
+     * @param {boolean} value Whether the marker is visible on the map
+     */
+    set visible(value: boolean) {
+        this.setVisible(value);
     }
 
     /**
@@ -465,6 +534,21 @@ export class Marker extends Layer {
     }
 
     /**
+     * Returns whether the Google maps marker object has been created yet.
+     *
+     * This lets other parts of the library avoid building the Google marker just to find out
+     * that there isn't one, which toGoogleSync() would otherwise do.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {boolean}
+     */
+    hasGoogleMarker(): boolean {
+        return isObject(this.#marker);
+    }
+
+    /**
      * Initialize the marker
      *
      * This is used when another element (like a tooltip) needs to be attached to the marker,
@@ -477,9 +561,22 @@ export class Marker extends Layer {
      */
     init(): Promise<void> {
         return new Promise((resolve) => {
-            this.#setupGoogleMarker().then(() => {
+            if (isObject(this.#marker)) {
+                // The marker is already created
                 resolve();
-            });
+                return;
+            }
+            // Nothing is created yet, and attaching a tooltip or a popup isn't a reason to create
+            // it. Say that the marker is ready so that they can set up their events now. The
+            // events are held until the marker is created and are added to it then.
+            // The marker is created when it's added to a map, when it's shown, or when
+            // toGoogle() is called.
+            //
+            // This matches what Polyline.init() already does. It is the change that stops a page
+            // with a tooltip and a popup on every marker building a Google marker for each one
+            // before anything is shown.
+            this.#dispatchReady();
+            resolve();
         });
     }
 
@@ -986,6 +1083,15 @@ export class Marker extends Layer {
      * @returns {Promise<Marker>}
      */
     async setMap(map: Map | null): Promise<Marker> {
+        // Taking a marker off the map that was never drawn doesn't need one built first.
+        // This used to create a Google marker purely so that setMap(null) had something to call,
+        // so hiding a collection of markers that had never been shown built one for every marker.
+        if (isNullOrUndefined(map) && !isObject(this.#marker)) {
+            this.#isCreationDeferred = false;
+            this.#options.map = null;
+            super.setMap(null);
+            return this;
+        }
         await this.#setupGoogleMarker(map ?? undefined);
         this.#setMap(map);
         return this;
@@ -1194,23 +1300,55 @@ export class Marker extends Layer {
             }
             this.attachTooltip(tooltip);
         } else if (options.title) {
-            this.title = options.title;
+            // Held on the options rather than assigned through the public setter. The setter
+            // awaits #setupGoogleMarker(), so setting a title used to build the Google marker
+            // immediately - and because the value was applied after the await, the marker was
+            // built without the title and then patched with an extra setTitle() call.
+            // #createMarkerObject() reads it from the options, so it now goes in up front.
+            this.#options.title = options.title;
+            if (this.#marker) {
+                // The Google Maps marker is set up. Fully set the title.
+                this.title = options.title;
+            }
         }
 
         // Set simple options
-        const stringOptions: 'cursor'[] = ['cursor'];
-        stringOptions.forEach((key) => {
+        STRING_OPTIONS.forEach((key) => {
             if (options[key] && isStringWithValue(options[key])) {
                 this.#options[key] = options[key];
             }
         });
 
+        // Set whether the marker is visible before the map, so that a marker that starts out
+        // hidden isn't drawn on the map
+        if (isBoolean(options.visible)) {
+            this.#options.visible = options.visible;
+            this.isVisible = options.visible;
+        }
+
         // Set the map. This must come last so that the other options are set.
         if (options.map) {
             this.#options.map = options.map;
             super.setMap(options.map);
-            if (this.#marker) {
-                // The Google Maps marker is set up. Fully set the map.
+            if (this.#options.visible === false) {
+                // A hidden marker isn't drawn, so nothing is created for it yet. The visible
+                // setter creates it when the marker is shown.
+                //
+                // Layer.setMap() sets isVisible to true for any non-null map, so the value set
+                // from the visible option a few lines above has just been overwritten. Put it
+                // back, because this marker is deliberately not visible.
+                this.isVisible = false;
+                this.#isCreationDeferred = true;
+                // Say that the marker is ready so that a tooltip or popup can set up its events.
+                // They're added to the Google marker when it's created.
+                this.#dispatchReady();
+            } else {
+                // Passing the map displays the marker. This used to be guarded by
+                // "if (this.#marker)", which is never true for a new marker, so the map option
+                // set the map on the layer and then created and displayed nothing.
+                //
+                // setMap() is async, so the Google marker is created on a later microtask. Use
+                // setMapSync() if it has to exist by the time the call returns.
                 this.setMap(options.map);
             }
         }
@@ -1269,7 +1407,10 @@ export class Marker extends Layer {
      * Set the position for the marker on the Google marker object
      */
     #setGoogleMarkerPosition() {
-        this.#marker.setPosition(this.#options.position.toGoogle());
+        // The position getter creates the 0,0 default if nothing set one, so this always has a
+        // value to hand over. #options.position is optional now, so it's read through the getter
+        // rather than directly.
+        this.#marker.setPosition(this.position.toGoogle());
     }
 
     /**
@@ -1312,6 +1453,36 @@ export class Marker extends Layer {
             this.#options.title = undefined;
         }
         this.#marker.setTitle(this.#options.title);
+    }
+
+    /**
+     * Set whether the marker is visible on the map.
+     *
+     * A marker that isn't visible isn't drawn, so nothing is created on the Google map for it
+     * until it's shown. Setting it to visible draws it if it was waiting to be drawn.
+     *
+     * @param {boolean} visible Whether the marker is visible on the map
+     * @returns {Marker}
+     */
+    setVisible(visible: boolean): Marker {
+        if (isBoolean(visible)) {
+            this.#options.visible = visible;
+            this.isVisible = visible;
+            if (visible && this.#isCreationDeferred) {
+                // The marker was hidden when it was added to the map, so it wasn't drawn. Draw it now.
+                this.#isCreationDeferred = false;
+                const { map } = this.#options;
+                this.#setupGoogleMarker(map ?? undefined).then(() => {
+                    // Make sure the marker is still on the same map
+                    if (map && this.#options.map === map && this.#marker) {
+                        this.#marker.setMap(map.toGoogle() ?? null);
+                    }
+                });
+            } else if (this.#marker) {
+                this.#marker.setVisible(visible);
+            }
+        }
+        return this;
     }
 
     /**
@@ -1365,11 +1536,53 @@ export class Marker extends Layer {
      * @returns {Promise<void>}
      */
     #setupGoogleMarker(map?: Map): Promise<void> {
+        // The marker already exists, which is the case for every setter call after the first.
+        // Returning a shared resolved promise avoids building a promise and an executor closure
+        // for each one, which adds up when options are set across a lot of markers.
+        if (isObject(this.#marker)) {
+            return RESOLVED;
+        }
+        const creation = this.#startGoogleMarkerSetup(map);
+        // Held so that anything else asking for the marker while this is running waits on this
+        // same creation. Forgotten once it settles, whether or not a marker came out of it, so
+        // that a later call starts again rather than getting a stale answer.
+        this.#creationPromise = creation;
+        creation.then(
+            () => {
+                this.#creationPromise = undefined;
+            },
+            () => {
+                this.#creationPromise = undefined;
+            },
+        );
+        return creation;
+    }
+
+    /**
+     * Start setting up the Google maps marker object
+     *
+     * @private
+     * @param {Map} [map] The map object. If it's set then it will be initialized if the Google maps object isn't available yet.
+     * @returns {Promise<void>}
+     */
+    #startGoogleMarkerSetup(map?: Map): Promise<void> {
+        // A creation is already running, so wait for that one to finish rather than starting
+        // another. This used to wait for the "ready" event instead, which is not the same thing:
+        // init() dispatches "ready" with no marker, and onceImmediate() fires straight away for
+        // an event that has already been dispatched. So a setter could be woken by that early
+        // event and then use #marker while it was still undefined. Waiting on the creation
+        // itself means it can only continue once there really is a marker.
+        if (this.#creationPromise) {
+            return this.#creationPromise;
+        }
         return new Promise((resolve) => {
             if (!this.#isSettingUp && !isObject(this.#marker)) {
                 this.#isSettingUp = true;
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
                     this.#createMarkerObject().then(() => {
+                        // The marker exists now, so it's no longer being set up. This was never
+                        // cleared, which left the flag true for the life of the marker.
+                        this.#isSettingUp = false;
                         this.#dispatchReady();
                         resolve();
                     });
@@ -1397,12 +1610,11 @@ export class Marker extends Layer {
                         });
                     });
                 }
-            } else if (this.#isSettingUp && !isObject(this.#marker)) {
-                // The marker is already being set up. Wait for it to finish.
-                this.onceImmediate(MarkerEvents.READY, () => {
-                    resolve();
-                });
             } else {
+                // Only reached when the marker already exists. #isSettingUp is set in the branch
+                // above and #creationPromise is assigned in the same synchronous step, so there
+                // is no point at which a setup is running but unguarded - a caller in that state
+                // gets the creation promise back before reaching here.
                 resolve();
             }
         });
@@ -1414,11 +1626,34 @@ export class Marker extends Layer {
     #setupGoogleMarkerSync(): void {
         if (!isObject(this.#marker)) {
             if (checkForGoogleMaps('Marker', 'Marker', false)) {
+                // Built right away, even when the map isn't ready yet. Everything that calls this
+                // is a synchronous method - toGoogleSync() and the "Sync" setters - and they use
+                // the Google marker as soon as this returns, so it has to exist by then. It used
+                // to wait for the map, which left #marker undefined and made those methods throw
+                // or hand back undefined.
+                //
+                // An asynchronous creation that's already running is not waited for here, for the
+                // same reason: waiting would mean returning without a marker. It builds the marker
+                // now, and the waiting creation attaches the map to this one rather than building
+                // another.
+                //
                 // Dispatch the "ready" event once the marker exists, the same as #setupGoogleMarker() does.
                 // Tooltips and popups wait for it before they add their event listeners to the marker.
-                this.#createMarkerObject().then(() => {
+                const creation = this.#createMarkerObject(true).then(() => {
                     this.#dispatchReady();
                 });
+                // Recorded for the same reason as in #setupGoogleMarker(): anything asking for
+                // the marker while this is still running waits on this creation instead of
+                // starting its own. This path used to record nothing at all.
+                this.#creationPromise = creation;
+                creation.then(
+                    () => {
+                        this.#creationPromise = undefined;
+                    },
+                    () => {
+                        this.#creationPromise = undefined;
+                    },
+                );
             } else {
                 throw new Error(
                     'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.',
@@ -1445,16 +1680,18 @@ export class Marker extends Layer {
      * Create the marker object
      *
      * @private
+     * @param {boolean} [createNow] Whether to build the marker straight away instead of waiting
+     *      for the map to be ready. Used by the synchronous methods, which have to hand back a
+     *      marker by the time they return. The marker is put on the map once the map is ready.
      * @returns {Promise<void>}
      */
-    #createMarkerObject(): Promise<void> {
+    #createMarkerObject(createNow: boolean = false): Promise<void> {
         return new Promise((resolve) => {
             if (!this.#marker) {
                 (async () => {
                     const markerOptions: google.maps.MarkerOptions = {};
                     // Options that can be set on the marker without any modification
-                    const optionsToSet: ('cursor' | 'title')[] = ['cursor', 'title'];
-                    optionsToSet.forEach((key) => {
+                    GOOGLE_OPTIONS_TO_SET.forEach((key) => {
                         if (typeof this.#options[key] !== 'undefined') {
                             markerOptions[key] = this.#options[key];
                         }
@@ -1492,7 +1729,7 @@ export class Marker extends Layer {
                     if (this.#options.label) {
                         markerOptions.label = this.#options.label;
                     }
-                    if (this.#options.map) {
+                    if (this.#options.map && !createNow) {
                         // Wait until the map is ready before creating the marker object. This runs right away if the
                         // map is already ready. Don't wait for the "idle" event because it may have already happened,
                         // which would leave the marker hidden until the next time the map is panned or zoomed.
@@ -1502,10 +1739,29 @@ export class Marker extends Layer {
                             if (this.#options.map) {
                                 markerOptions.map = this.#options.map.toGoogle();
                             }
-                            this.#marker = new google.maps.Marker(markerOptions);
-                            this.setEventGoogleObject(this.#marker);
+                            if (this.#marker) {
+                                // A synchronous call needed the marker before the map was ready and built one
+                                // already. Put it on the map instead of building a second one over the top of it.
+                                this.#marker.setMap(markerOptions.map ?? null);
+                            } else {
+                                this.#marker = new google.maps.Marker(markerOptions);
+                                this.setEventGoogleObject(this.#marker);
+                            }
                             resolve();
                         });
+                    } else if (this.#options.map) {
+                        // A synchronous caller needs the marker to exist by the time it returns, and the map isn't
+                        // ready yet. Build it without a map now. The marker isn't displayed until the map is ready,
+                        // which is the same as waiting, but the object exists so that toGoogleSync() and the "Sync"
+                        // setters have something to work with.
+                        //
+                        // Nothing is registered here to put it on the map later. Every route that leaves a map in
+                        // the options has already gone through #setMap(), which registers that itself and re-checks
+                        // for the marker when it runs. Registering another one here just meant setMap() being
+                        // called on the same marker twice.
+                        this.#marker = new google.maps.Marker(markerOptions);
+                        this.setEventGoogleObject(this.#marker);
+                        resolve();
                     } else {
                         this.#marker = new google.maps.Marker(markerOptions);
                         this.setEventGoogleObject(this.#marker);

@@ -1,0 +1,193 @@
+---
+title: "Stress Test Page"
+layout: "base.njk"
+---
+
+<style>
+    .StressMap { aspect-ratio: auto; height: 60vh; min-height: 320px; }
+    .StressControls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; margin-bottom: 16px; }
+    .StressControls label { display: block; font-weight: 600; margin-bottom: 4px; }
+    .StressControls .StressCheckbox { font-weight: normal; }
+    .StressControls fieldset { border: none; padding: 0; }
+    .StressControls legend { font-weight: 600; margin-bottom: 4px; }
+    .StressControls button { padding: 6px 14px; }
+    .StressControls .StressGroup { border: 1px solid #ddd; padding: 12px; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; }
+    .StressControls .StressGroup > legend { padding: 0 6px; }
+    .StressStats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 16px; }
+    .StressStats strong { font-variant-numeric: tabular-nums; }
+    .StressResults { overflow-x: auto; margin-bottom: 20px; }
+    .StressResults table { border-collapse: collapse; font-size: 14px; }
+    .StressResults th, .StressResults td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; white-space: nowrap; }
+    .StressResults th:first-child, .StressResults td:first-child { text-align: left; }
+</style>
+
+<h1>Stress test</h1>
+
+<p>
+    Builds a lot of polylines and a lot of markers at the same time, each with its own tooltip and popup.
+    This is the shape of a real trail map: many short segments plus many points of interest, all with something
+    attached to them. The other test pages each measure one thing. This page exists because the expensive part
+    is the combination.
+</p>
+<ul>
+    <li>
+        Everything is built from the <strong>seed</strong>, so two runs with the same settings build the same
+        geometry. Change the seed for different data, keep it the same to compare a change fairly.
+    </li>
+    <li>
+        "Separate" gives every polyline and every marker its own tooltip and popup object. "Shared" uses one
+        tooltip and one popup for everything and changes the content when it opens. Only one can be visible at a
+        time, so "Shared" is what "Separate" is measured against. Compare the time to build and the JS memory.
+    </li>
+    <li>
+        "Polylines start hidden" uses the <code>visible: false</code> option. A hidden polyline isn't drawn, so
+        nothing is created on the Google map for it until it's shown. Build with it on, then use
+        "Show hidden polylines" to see what drawing them afterwards costs. Markers have no <code>visible</code>
+        option, so they are always drawn when they're added.
+    </li>
+    <li>Run the zoom test after each build and compare the lowest frame rate. Each run is added to the results table.</li>
+    <li>For JS memory, reload the page before each run. It's only reported in Chrome.</li>
+    <li>On an iPhone, connect it to a Mac and open Safari's Web Inspector. Watch the console for "Total canvas memory use exceeds the maximum limit".</li>
+    <li>Start small. 2,000 polylines with 1,000 points each and 5,000 markers with separate overlays will take a while.</li>
+</ul>
+
+<form id="controls" class="StressControls">
+    <fieldset class="StressGroup">
+        <legend>Polylines</legend>
+        <div>
+            <label for="polylineCount">How many</label>
+            <select id="polylineCount" name="polylineCount">
+                <option value="0">0</option>
+                <option value="100">100</option>
+                <option value="500" selected>500</option>
+                <option value="1000">1,000</option>
+                <option value="2000">2,000</option>
+            </select>
+        </div>
+        <div>
+            <label for="pointsPer">Points in each</label>
+            <select id="pointsPer" name="pointsPer">
+                <option value="10">10</option>
+                <option value="50" selected>50</option>
+                <option value="200">200</option>
+                <option value="1000">1,000</option>
+            </select>
+        </div>
+        <div>
+            <label for="simplify">simplify</label>
+            <select id="simplify" name="simplify">
+                <option value="0">Off</option>
+                <option value="2">2 meters</option>
+                <option value="5">5 meters</option>
+                <option value="10">10 meters</option>
+                <option value="zoom" selected>Default zoom levels ('zoom')</option>
+            </select>
+        </div>
+        <div>
+            <label for="polylineOverlays">Tooltips and popups</label>
+            <select id="polylineOverlays" name="polylineOverlays">
+                <option value="none">None</option>
+                <option value="each" selected>Separate per polyline</option>
+                <option value="shared">Shared</option>
+            </select>
+        </div>
+        <div>
+            <label class="StressCheckbox"><input type="checkbox" name="startHidden"> Polylines start hidden</label>
+        </div>
+    </fieldset>
+
+    <fieldset class="StressGroup">
+        <legend>Markers</legend>
+        <div>
+            <label for="markerCount">How many</label>
+            <select id="markerCount" name="markerCount">
+                <option value="0">0</option>
+                <option value="500">500</option>
+                <option value="1000" selected>1,000</option>
+                <option value="2000">2,000</option>
+                <option value="5000">5,000</option>
+            </select>
+        </div>
+        <div>
+            <label for="markerIcon">Icon</label>
+            <select id="markerIcon" name="markerIcon">
+                <option value="default">Default Google pin</option>
+                <option value="svg">SVG icon (svgIcon option)</option>
+            </select>
+        </div>
+        <div>
+            <label for="markerOverlays">Tooltips and popups</label>
+            <select id="markerOverlays" name="markerOverlays">
+                <option value="none">None</option>
+                <option value="each" selected>Separate per marker</option>
+                <option value="shared">Shared</option>
+            </select>
+        </div>
+        <fieldset>
+            <legend>optimized</legend>
+            <label><input type="radio" name="optimized" value="unset" checked> Not set</label>
+            <label><input type="radio" name="optimized" value="true"> true</label>
+            <label><input type="radio" name="optimized" value="false"> false</label>
+        </fieldset>
+    </fieldset>
+
+    <div>
+        <label for="seed">Seed</label>
+        <input type="number" id="seed" name="seed" value="1" min="1" step="1" style="width: 6em;">
+    </div>
+    <div>
+        <button type="submit">Build</button>
+        <button type="button" id="zoomTest">Run zoom test</button>
+        <button type="button" id="showHidden" disabled>Show hidden polylines</button>
+    </div>
+</form>
+
+<div class="StressStats">
+    <span>Polylines: <strong id="statPolylines">0</strong></span>
+    <span>Points: <strong id="statPoints">0</strong></span>
+    <span>Markers: <strong id="statMarkers">0</strong></span>
+    <span>Tooltip and popup objects: <strong id="statOverlays">0</strong></span>
+    <span>Polylines built in: <strong id="statPolylineMs">-</strong></span>
+    <span>Markers built in: <strong id="statMarkerMs">-</strong></span>
+    <span>Total build: <strong id="statTotalMs">-</strong></span>
+    <span>Time to show hidden: <strong id="statShowMs">-</strong></span>
+    <span>Elements in the map: <strong id="statElements">-</strong></span>
+    <span>Canvas elements: <strong id="statCanvases">-</strong></span>
+    <span>Image elements: <strong id="statImages">-</strong></span>
+    <span>JS memory (Chrome only): <strong id="statHeap">-</strong></span>
+    <span>Frame rate: <strong id="statFps">-</strong></span>
+    <span>Lowest frame rate while moving: <strong id="statLowestFps">-</strong></span>
+    <span id="statStatus"></span>
+</div>
+
+<div id="map1" class="mapContainer StressMap"></div>
+
+<h2>Results</h2>
+<div class="StressResults">
+    <table>
+        <thead>
+            <tr>
+                <th>Polylines</th>
+                <th>Points</th>
+                <th>simplify</th>
+                <th>Markers</th>
+                <th>optimized</th>
+                <th>Tooltips/popups</th>
+                <th>Overlay objects</th>
+                <th>Started hidden</th>
+                <th>Polylines (ms)</th>
+                <th>Markers (ms)</th>
+                <th>Total (ms)</th>
+                <th>Show hidden (ms)</th>
+                <th>Elements</th>
+                <th>Canvases</th>
+                <th>Images</th>
+                <th>JS memory (MB)</th>
+                <th>Zoom test lowest FPS</th>
+            </tr>
+        </thead>
+        <tbody id="results"></tbody>
+    </table>
+</div>
+
+<script src="{{ '/js/stress.js'|url|safe}}"></script>

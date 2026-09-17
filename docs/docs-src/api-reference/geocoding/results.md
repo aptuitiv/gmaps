@@ -5,7 +5,7 @@
 
 The `GeocodeResults` object holds the results from a geocode request. It is used when there are zero or more matching results with no errors.
 
-The purpose of the `GeocodeResults` is to provide programatic access to the geocode results instead of working with the array of object data that Google provides.
+The purpose of the `GeocodeResults` is to provide programmatic access to the geocode results instead of working with the array of object data that Google provides.
 
 ## Example usage
 

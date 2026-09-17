@@ -220,6 +220,45 @@ Type `TooltipOptions`
 | event | string | The event to trigger the display of the tooltip. Allowed values are `click`, `clickon`, and `hover`. This is an alternate way of setting the trigger event than passing the event to [attachTo](#attachto) or [attachTooltip](/api-reference/base-classes/layer#attachtooltip). An error is thrown if any other value is set. |
 | theme | string | The theme to use for the tooltip. This does the same as the `theme` [option](#tooltip-options). |
 
+## Sharing one tooltip
+
+By default everything you call [attachTooltip()](/api-reference/base-classes/layer#attachtooltip) on shares a single tooltip. Only one tooltip is ever visible, because you can only hover one thing at a time, so one tooltip object and one element is enough for a whole map. A map with a tooltip on each of 2,595 polyline segments builds one tooltip instead of 2,595.
+
+Markers, polylines and the map all share the same one. Each object keeps its own content, and it's put back every time that object shows the tooltip, so they don't overwrite each other.
+
+Three things to know about the shared tooltip:
+
+- `attachTooltip()` returns the shared tooltip rather than one of your own. Changing it changes the tooltip for everything that shares it.
+- The `clickon` event can only keep one tooltip open at a time. Before, each object could hold its own open.
+- A style or class name set on the shared tooltip stays until something else replaces it, because setting options only replaces the options you set.
+
+Give one object its own tooltip by passing `shared: false`:
+
+```js
+marker.attachTooltip('Its own tooltip', 'hover', { shared: false });
+```
+
+Or turn sharing off everywhere:
+
+```js
+G.Tooltip.useShared = false;
+```
+
+Passing a `Tooltip` object to `attachTooltip()` always uses that object, whatever `useShared` is set to.
+
+### Static properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| useShared | boolean | true | Whether `attachTooltip()` gives everything one shared tooltip or builds one for each object. |
+
+### Static methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getShared()` | [Tooltip](/api-reference/tooltip) | The shared tooltip. It's built the first time something needs it, so nothing is created if you never attach a tooltip. |
+| `clearShared()` | void | Throw the shared tooltip away, hiding it first if it's showing. The next `attachTooltip()` builds a new one. Each object keeps its own value, so they carry on working. |
+
 ## Methods
 
 - Methods inherited from [Overlay](/api-reference/overlay#methods).
@@ -235,7 +274,7 @@ Attach the tooltip to a map or an element that extends the [Layer object](/api-r
 
 Elements that extend [Layer](/api-reference/base-classes/layer) include [Marker](/api-reference/marker), [Polyline](/api-reference/polyline), [InfoWindow](/api-reference/infowindow), and [Popup](/api-reference/popup).
 
-A tooltip can only be attached once. Calling `attachTo()` again on the same tooltip does nothing.
+A tooltip can be attached to as many elements as you like, but only once to each one. Calling `attachTo()` again with an element it's already attached to does nothing. This is what lets one tooltip be [shared](#sharing-one-tooltip) between everything on a map.
 
 | Parameter | Type | Default | Required | Description |
 |-----------|------|---------|----------|-------------|

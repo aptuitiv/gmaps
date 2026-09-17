@@ -51,6 +51,17 @@ export class Loader extends EventTarget {
     #isLoaded: boolean = false;
 
     /**
+     * Holds whether the map has finished loading.
+     *
+     * This is set when the "map_load" event is dispatched so that a listener added after that
+     * point can still be called.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isMapLoaded: boolean = false;
+
+    /**
      * Holds the libraries to load with Google maps
      *
      * @private
@@ -270,6 +281,10 @@ export class Loader extends EventTarget {
      * @param {string} event The event to dispatch
      */
     dispatch(event: string) {
+        // Remember that the map has loaded so that a listener added later can still be called
+        if (event === LoaderEvents.MAP_LOAD) {
+            this.#isMapLoaded = true;
+        }
         super.dispatchEvent(new CustomEvent(event));
     }
 
@@ -285,8 +300,16 @@ export class Loader extends EventTarget {
     on(type: string, callback: EventListenerOrEventListenerObject | null): void {
         if (isFunction(callback)) {
             this.addEventListener(type, callback, { once: true });
-            if (this.#isLoaded) {
+            // If the event being listened for has already happened then dispatch it now so that
+            // the new listener is called.
+            //
+            // This used to dispatch the "load" event whatever type was asked for. A "map_load"
+            // listener added after the map had loaded was therefore never called, and anything
+            // waiting on it - Marker, Polyline and MarkerCluster all do - never finished.
+            if (type === LoaderEvents.LOAD && this.#isLoaded) {
                 this.dispatch(LoaderEvents.LOAD);
+            } else if (type === LoaderEvents.MAP_LOAD && this.#isMapLoaded) {
+                this.dispatch(LoaderEvents.MAP_LOAD);
             }
         } else {
             throw new Error('the event handler needs a callback function');

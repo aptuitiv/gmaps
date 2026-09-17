@@ -107,6 +107,14 @@ export class Popup extends Overlay {
     #content: string | HTMLElement | Text | undefined;
 
     /**
+     * Whether the content still needs to be written into the overlay element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isContentDirty: boolean = false;
+
+    /**
      * The event to trigger the popup
      *
      * @private
@@ -154,12 +162,31 @@ export class Popup extends Overlay {
     #callback: PopupCallback | undefined;
 
     /**
+     * Whether the close handlers have been bound to the elements inside the popup
+     *
+     * They're bound the first time the popup is drawn rather than on every draw. Setting the
+     * content replaces the element's children, so the content setter sets this back to false.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #areCloseHandlersBound: boolean = false;
+
+    /**
      * Whether the popup is attached to an element
      *
      * @private
      * @type {boolean}
      */
     #isAttached: boolean = false;
+
+    /**
+     * Whether the default theme styles have been set on the popup element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isThemeApplied: boolean = false;
 
     /**
      * Holds if the Popup is open or not
@@ -205,13 +232,12 @@ export class Popup extends Overlay {
         this.#clearance = size(0, 0);
         this.#popupOffset = point(0, 0);
 
-        if (isObject(options)) {
-            if (options instanceof HTMLElement || options instanceof Text) {
-                // The popup contents were passed
-                this.content = options;
-            } else {
-                this.setOptions(options);
-            }
+        // isObject() only matches a plain object, so an HTMLElement or Text never reached this
+        // branch. There used to be a test for them here that could never run. Element content
+        // goes through the else branch below, which handles it. The element types are named in
+        // the check so that Typescript narrows the value the same way that isObject() does.
+        if (isObject(options) && !(options instanceof HTMLElement) && !(options instanceof Text)) {
+            this.setOptions(options);
         } else if (typeof options !== 'undefined') {
             // The popup contents were passed
             this.content = options;
@@ -313,19 +339,52 @@ export class Popup extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the popup
      */
     set content(content: string | HTMLElement | Text) {
+        if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
+            this.#content = content;
+            // The old children are replaced, so anything the close handlers were bound to is gone
+            this.#areCloseHandlersBound = false;
+            // The content isn't written into the element here. Parsing it is the expensive part,
+            // and a popup attached to a layer that is never clicked would pay for it for nothing.
+            // #flushContent() writes it the first time the element is actually used.
+            this.#isContentDirty = true;
+        }
+    }
+
+    /**
+     * Write the content into the overlay element if it hasn't been written yet
+     *
+     * @private
+     */
+    #flushContent(): void {
+        if (!this.#isContentDirty) {
+            return;
+        }
+        this.#isContentDirty = false;
+        const element = super.getOverlayElement();
+        const content = this.#content;
         if (isStringWithValue(content)) {
-            this.#content = content;
-            this.getOverlayElement().innerHTML = content;
+            element.innerHTML = content;
         } else if (content instanceof HTMLElement || content instanceof Text) {
-            this.#content = content;
-            const overlayElement = this.getOverlayElement();
             // First clear all existing children and their events
-            while (overlayElement.firstChild) {
-                overlayElement.removeChild(overlayElement.firstChild);
+            while (element.firstChild) {
+                element.removeChild(element.firstChild);
             }
             // Append the content as the first child
-            overlayElement.appendChild(content);
+            element.appendChild(content);
         }
+    }
+
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement {
+        this.#flushContent();
+        return super.getOverlayElement();
     }
 
     /**
@@ -386,6 +445,33 @@ export class Popup extends Overlay {
      */
     set theme(theme: string) {
         this.#theme = theme;
+        // Apply the theme styles again the next time the popup is drawn
+        this.#isThemeApplied = false;
+    }
+
+    /**
+     * Set the default theme styles on the popup element.
+     *
+     * Any style that has already been set on the popup is kept so that custom styles win over
+     * the theme. This is the same as Tooltip.#applyTheme().
+     *
+     * @private
+     */
+    #applyTheme(): void {
+        const themeStyles: { [key: string]: string } = {
+            backgroundColor: '#fff',
+            color: '#333',
+            padding: '3px 6px',
+            borderRadius: '4px',
+            boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+        };
+        const styles = this.styles as { [key: string]: string };
+        Object.keys(themeStyles).forEach((key) => {
+            if (typeof styles[key] === 'undefined') {
+                this.style(key, themeStyles[key]);
+            }
+        });
+        this.#isThemeApplied = true;
     }
 
     /**
@@ -522,6 +608,20 @@ export class Popup extends Overlay {
      * @returns {Popup}
      */
     hide(): Popup {
+        // A callback can return a different Popup to show, which is held in #activePopup. Hiding
+        // this one used to leave that one on the map with nothing referring to it - closePopup()
+        // and close() both come through here, so the only way to get rid of it was to hover or
+        // click the layer again. It's hidden and forgotten here instead.
+        //
+        // The check against this one matters rather than being tidiness: a callback that returns
+        // content or an options object is applied to this popup and #activePopup is then set to
+        // this popup, so calling hide() on it without the check would call this method again and
+        // never stop.
+        const active = this.#activePopup;
+        this.#activePopup = undefined;
+        if (active && active !== this) {
+            active.hide();
+        }
         super.hide();
         this.#firstDraw = false;
         this.#isOpen = false;
@@ -699,7 +799,15 @@ export class Popup extends Overlay {
                                     resolve(this);
                                 });
                             } else {
-                                // The marker isn't on a map so there is nowhere to show the popup
+                                // The marker isn't on a map so there is nowhere to show the popup.
+                                // show() marked the popup as open and put it in the collection
+                                // before it got here, so both are undone - nothing was displayed.
+                                // Leaving them set made the popup report itself as open, put it in
+                                // the way of autoClose hiding a popup that was never shown, and,
+                                // worst of it, made the next show() take the "already open" path
+                                // and do nothing once the marker was actually on a map.
+                                this.#isOpen = false;
+                                collection.remove(this);
                                 resolve(this);
                             }
                         };
@@ -717,7 +825,10 @@ export class Popup extends Overlay {
                             resolve(this);
                         });
                     } else {
-                        // The layer isn't on a map so there is nowhere to show the popup
+                        // The layer isn't on a map so there is nowhere to show the popup.
+                        // See the comment in the marker branch above about why this is undone.
+                        this.#isOpen = false;
+                        collection.remove(this);
                         resolve(this);
                     }
                 }
@@ -786,23 +897,20 @@ export class Popup extends Overlay {
                 // Position the popup above the element.
                 this.style('transform', 'translate(0, -100%)');
             }
-            if (this.#theme === 'default') {
-                const styles = this.styles || {};
-                const themeStyles = {
-                    backgroundColor: '#fff',
-                    color: '#333',
-                    padding: '3px 6px',
-                    borderRadius: '4px',
-                    boxShadow: '0 0 5px rgba(0,0,0,0.3)',
-                };
-                this.styles = { ...themeStyles, ...styles };
+            // Only the position changes from one draw to the next. draw() is called on every
+            // frame while the map is zoomed or panned, so the theme styles are only set once.
+            if (this.#theme === 'default' && !this.#isThemeApplied) {
+                this.#applyTheme();
             }
 
             if (this.getOverlayElement().style.display !== display) {
                 this.style('display', display);
             }
 
-            if (this.#closeElement) {
+            // Bind the close handlers once rather than on every frame. Setting the content
+            // replaces the element's children, so the content setter marks them for binding again.
+            if (this.#closeElement && !this.#areCloseHandlersBound) {
+                this.#areCloseHandlersBound = true;
                 if (this.#closeElement instanceof HTMLElement) {
                     this.#setupCloseClick(this.#closeElement);
                 } else if (isStringWithValue(this.#closeElement)) {

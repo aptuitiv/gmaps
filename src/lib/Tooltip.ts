@@ -48,9 +48,43 @@ export type TooltipOptions = {
 };
 
 /**
+ * The one Tooltip that everything shares when sharing is turned on.
+ *
+ * Built the first time it's needed, so importing this file doesn't create a div. Only one
+ * tooltip is ever visible - you can only hover one thing at a time - so one object and one div
+ * is enough for a whole map. A page with a tooltip on each of 2,595 polyline segments used to
+ * build 2,595 Tooltip objects and 2,595 detached divs.
+ */
+let sharedTooltipInstance: Tooltip | undefined;
+
+/**
+ * What each thing shows in the shared tooltip.
+ *
+ * The shared tooltip has one content at a time, so each thing's own value is kept here and put
+ * back every time that thing is about to show it. Without this, whatever was attached last would
+ * be left showing for everything else.
+ *
+ * A WeakMap so that a marker or polyline that's dropped doesn't keep its tooltip value alive.
+ */
+const sharedTooltipValues: WeakMap<Map | Layer, AttachTooltipValue> = new WeakMap();
+
+/**
  * Tooltip class
  */
 export class Tooltip extends Overlay {
+    /**
+     * Whether attachTooltip() gives everything one shared Tooltip instead of one each.
+     *
+     * Defaults to true. Set it to false to go back to a Tooltip per layer, or pass
+     * { shared: false } to a single attachTooltip() call to opt just that one out.
+     *
+     * Passing an actual Tooltip object to attachTooltip() always uses that object, whatever
+     * this is set to.
+     *
+     * @type {boolean}
+     */
+    static useShared: boolean = true;
+
     /**
      * Holds the tooltip that this one last showed for the object it's attached to.
      *
@@ -88,6 +122,14 @@ export class Tooltip extends Overlay {
     #content: string | HTMLElement | Text | undefined;
 
     /**
+     * Whether the content still needs to be written into the overlay element
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isContentDirty: boolean = false;
+
+    /**
      * The event to trigger the tooltip
      *
      * @private
@@ -96,12 +138,18 @@ export class Tooltip extends Overlay {
     #event: string = 'hover';
 
     /**
-     * Whether the tooltip is attached to an element
+     * The things that this tooltip is attached to.
+     *
+     * This used to be a single boolean, which was right while every layer had its own tooltip.
+     * The shared tooltip is attached to many things, and a boolean would have let it wire up its
+     * listeners for the first one and silently do nothing for all the rest.
+     *
+     * Built on first use, and a WeakSet so that it doesn't keep a layer alive.
      *
      * @private
-     * @type {boolean}
+     * @type {WeakSet<Map|Layer>|undefined}
      */
-    #isAttached: boolean = false;
+    #attachedTo: WeakSet<Map | Layer> | undefined;
 
     /**
      * Whether the default theme styles have been set on the tooltip element
@@ -128,18 +176,47 @@ export class Tooltip extends Overlay {
         super('tooltip', 'Tooltip');
 
         this.setOffset([0, 4]);
-        if (isObject(options)) {
-            if (options instanceof HTMLElement || options instanceof Text) {
-                this.content = options;
-            } else {
-                this.setOptions(options);
-            }
+        // isObject() only matches a plain object, so an HTMLElement or Text never reached this
+        // branch. There used to be a test for them here that could never run. Element content
+        // goes through the else branch below, which handles it. The element types are named in
+        // the check so that Typescript narrows the value the same way that isObject() does.
+        if (isObject(options) && !(options instanceof HTMLElement) && !(options instanceof Text)) {
+            this.setOptions(options);
         } else {
             // The tooltip contents were passed
             if (typeof options !== 'undefined') {
                 this.content = options;
             }
             this.setClassName('tooltip');
+        }
+    }
+
+    /**
+     * Get the one Tooltip that everything shares, building it the first time it's needed.
+     *
+     * It's built with no options on purpose. A Tooltip built from an options object doesn't get
+     * the "tooltip" class name, only one built from a string or from nothing does, and the shared
+     * tooltip has to look like the per-layer ones it replaces.
+     *
+     * @returns {Tooltip}
+     */
+    static getShared(): Tooltip {
+        if (!sharedTooltipInstance) {
+            sharedTooltipInstance = new Tooltip();
+        }
+        return sharedTooltipInstance;
+    }
+
+    /**
+     * Throw away the shared tooltip, hiding it first if it's showing.
+     *
+     * The next thing that needs it builds a new one. Each thing keeps its own value, so they
+     * carry on working after this.
+     */
+    static clearShared(): void {
+        if (sharedTooltipInstance) {
+            sharedTooltipInstance.hide();
+            sharedTooltipInstance = undefined;
         }
     }
 
@@ -178,14 +255,53 @@ export class Tooltip extends Overlay {
      * @param {string|HTMLElement|Text} content The content for the tooltip
      */
     set content(content: string | HTMLElement | Text) {
-        if (isStringWithValue(content)) {
+        if (isStringWithValue(content) || content instanceof HTMLElement || content instanceof Text) {
             this.#content = content;
-            this.getOverlayElement().innerHTML = content;
-        } else if (content instanceof HTMLElement || content instanceof Text) {
-            this.#content = content;
-            this.getOverlayElement().innerHTML = '';
-            this.getOverlayElement().appendChild(content);
+            // The content isn't written into the element here. Parsing it is the expensive part,
+            // and a tooltip attached to a layer that is never hovered would pay for it for
+            // nothing. On a page with a tooltip on every one of 2,595 segments that's 2,595
+            // innerHTML parses before anything is shown. #flushContent() writes it the first
+            // time the element is actually used.
+            this.#isContentDirty = true;
         }
+    }
+
+    /**
+     * Write the content into the overlay element if it hasn't been written yet
+     *
+     * @private
+     */
+    #flushContent(): void {
+        if (!this.#isContentDirty) {
+            return;
+        }
+        this.#isContentDirty = false;
+        const element = super.getOverlayElement();
+        const content = this.#content;
+        if (isStringWithValue(content)) {
+            element.innerHTML = content;
+        } else if (content instanceof HTMLElement || content instanceof Text) {
+            element.innerHTML = '';
+            element.appendChild(content);
+        } else {
+            // No content to write. This is how the shared tooltip empties itself between the
+            // things it's shown for - without it the last thing's text would be left in the
+            // element for the next one, which has none of its own.
+            element.innerHTML = '';
+        }
+    }
+
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement {
+        this.#flushContent();
+        return super.getOverlayElement();
     }
 
     /**
@@ -250,8 +366,15 @@ export class Tooltip extends Overlay {
         event?: 'click' | 'clickon' | 'hover',
         callback?: TooltipCallback,
     ): Promise<Tooltip> {
-        if (!this.#isAttached) {
-            this.#isAttached = true;
+        // Which elements this tooltip is attached to, rather than a single "am I attached" flag.
+        // The shared tooltip is attached to every marker and polyline on the map and each one
+        // needs its own listeners, so a flag would have wired up the first element and silently
+        // skipped every one after it.
+        const attachedTo = (this.#attachedTo ??= new WeakSet());
+        if (!attachedTo.has(element)) {
+            // Attaching to the same element twice would give it a second set of listeners, and
+            // the tooltip would then be shown twice for one hover.
+            attachedTo.add(element);
             if (isFunction(callback)) {
                 this.#callback = callback;
             }
@@ -324,12 +447,86 @@ export class Tooltip extends Overlay {
      * @returns {Tooltip}
      */
     #tooltipFor(target: Map | Layer): Tooltip {
+        // The shared tooltip keeps each thing's own value, so the right one is put back every
+        // time it's about to be shown.
+        const sharedValue = sharedTooltipValues.get(target);
+        if (typeof sharedValue !== 'undefined') {
+            // Everything shares this one object, so whatever the last thing left on it is put
+            // back to the built state before this thing's value goes on.
+            this.#resetToBaseline();
+            return this.#resolveFor(target, sharedValue);
+        }
+        // Not shared and no callback. This is a tooltip with fixed content, which is always
+        // itself - nothing has to be worked out before it's shown.
         if (!isFunction(this.#callback)) {
             return this;
         }
-        const tooltipObject = overlayFromCallback(this, this.#callback(target), tooltipAdapter) as Tooltip;
-        // If the callback returned a different tooltip than the one that's showing then the old
-        // one is hidden. Otherwise it would be left open on the map with nothing referring to it.
+        // Not shared, but a callback was given, so it decides what to show each time
+        return this.#resolveFor(target, this.#callback);
+    }
+
+    /**
+     * Put the shared tooltip back to how it was built, before another object's value is applied.
+     *
+     * setOptions() only applies the options that are actually given, so anything it isn't told
+     * about is left as the last object set it. That's fine for a tooltip that belongs to one
+     * layer, but the shared tooltip is the same object for everything on the map: a marker that
+     * attached {content, className, theme} left its class name and theme on the tooltip, and the
+     * next marker along - whose value is only {content} - was then shown wearing them.
+     *
+     * The class name is the worst of it. setOptions() takes the "tooltip" class off before adding
+     * the one it was given, so once any object passed a className, every object after it lost the
+     * default class for good.
+     *
+     * Only the shared tooltip is reset, and only the values that a tooltip is built with. Styles
+     * are deliberately left alone: they're only carried over when an object passes a styles
+     * object of its own, and clearing them would mean reaching into Overlay's style record.
+     * The theme puts its own styles back, because setting the theme marks it for reapplying.
+     *
+     * @private
+     */
+    #resetToBaseline(): void {
+        this.center = true;
+        this.theme = 'default';
+        this.setOffset([0, 4]);
+        // Class names add to each other rather than replacing, so the current ones are taken off
+        // before the default goes back on. removeClassName('') would ask the element to remove an
+        // empty class, which throws, so there's nothing to do when there aren't any.
+        const current = this.className;
+        if (current.length > 0) {
+            this.removeClassName(current);
+        }
+        this.setClassName('tooltip');
+        // The content setter ignores an empty value on purpose, so this is set directly. Marking
+        // it dirty is what gets the old content out of the element - #flushContent() clears the
+        // element when there's nothing to put in it.
+        this.#content = undefined;
+        this.#isContentDirty = true;
+    }
+
+    /**
+     * Work out the tooltip to show for a value, calling it first if it's a callback.
+     *
+     * @private
+     * @param {Map|Layer} target The object that the tooltip is being shown for
+     * @param {AttachTooltipValue} value The value attached for that object
+     * @returns {Tooltip}
+     */
+    #resolveFor(target: Map | Layer, value: AttachTooltipValue): Tooltip {
+        // The value is either a callback to run now, or the content, options or Tooltip to use
+        // as it is. A callback is only called at this point, when the tooltip is about to be
+        // shown, which is what lets it return something different each time.
+        const resolved = isFunction(value) ? (value as TooltipCallback)(target) : value;
+        // This is where the tooltip's content actually changes. overlayFromCallback() sets the
+        // content when it's given a string or an element, or applies the options when it's given
+        // an options object, onto the tooltip passed as the first argument - this one. That's how
+        // the shared tooltip ends up holding this object's value rather than the last one's.
+        //
+        // A Tooltip object is handed straight back instead of being applied, which is how a
+        // callback can return a completely different tooltip to show.
+        const tooltipObject = overlayFromCallback(this, resolved, tooltipAdapter) as Tooltip;
+        // If a different tooltip than the one that's showing was worked out then the old one is
+        // hidden. Otherwise it would be left open on the map with nothing referring to it.
         if (this.#activeTooltip && this.#activeTooltip !== tooltipObject) {
             this.#activeTooltip.hide();
         }
@@ -359,6 +556,32 @@ export class Tooltip extends Overlay {
             }
         });
         this.#isThemeApplied = true;
+    }
+
+    /**
+     * Hide the tooltip
+     *
+     * A callback can return a different Tooltip to show, which is held in #activeTooltip. Hiding
+     * this one used to leave that one on the map with nothing referring to it. Only the hover
+     * wiring took it down, by hiding `#activeTooltip || this` on mouseout, so a tooltip shown by
+     * a click and then hidden directly stayed on the map. It's hidden and forgotten here instead,
+     * which is what Popup.hide() does for the same reason.
+     *
+     * The check against this one matters rather than being tidiness: a callback that returns
+     * content or an options object is applied to this tooltip and #activeTooltip is then set to
+     * this tooltip, so calling hide() on it without the check would call this method again and
+     * never stop.
+     *
+     * @returns {Tooltip}
+     */
+    hide(): Tooltip {
+        const active = this.#activeTooltip;
+        this.#activeTooltip = undefined;
+        if (active && active !== this) {
+            active.hide();
+        }
+        super.hide();
+        return this;
     }
 
     /**
@@ -442,8 +665,18 @@ export class Tooltip extends Overlay {
         // hover events are triggered faster than the overlay can be set up on the map. It'll eventually catch
         // up and the tooltip will be displayed.
         const position = this.getPosition();
-        if (position && typeof projection !== 'undefined') {
-            const divPosition = projection.fromLatLngToDivPixel(position.toGoogle())!;
+        // The position has to be a real latitude/longitude pair, not just present. The pixel to
+        // lat/lng conversions on Overlay hand back an empty LatLng when there's no projection to
+        // work with, and toGoogle() throws for one of those - inside draw(), which Google calls
+        // on every frame while the map moves.
+        if (position && position.isValid() && typeof projection !== 'undefined') {
+            const divPosition = projection.fromLatLngToDivPixel(position.toGoogle());
+            if (!divPosition) {
+                // The position couldn't be converted to pixel coordinates so the tooltip can't
+                // be placed. Popup.draw() has always checked this; this used to assert that it
+                // was never null and read x and y off it regardless.
+                return;
+            }
 
             // Hide the tooltip when it is far out of view.
             const display = Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000 ? 'block' : 'none';
@@ -503,6 +736,14 @@ export type TooltipConfig = {
     attachEvent?: 'click' | 'clickon' | 'hover';
 };
 
+// Options for a single attachTooltip() call
+export type AttachTooltipOptions = {
+    // Whether this one call uses the shared tooltip. Defaults to Tooltip.useShared, which is
+    // true. Set it to false for something that needs a Tooltip of its own, for example one with
+    // its own class name or offset.
+    shared?: boolean;
+};
+
 /**
  * The objects that the tooltip mixin is added to.
  *
@@ -533,12 +774,15 @@ const tooltipMixin = {
      * @param {AttachTooltipValue} tooltipValue The content for the Tooltip, or the Tooltip options object, or the
      *      Tooltip object, or a function that returns one of those.
      * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'. See Tooltip.attachTo() for more information.
+     * @param {AttachTooltipOptions} [attachOptions] Options for this call. Set "shared" to false
+     *      to give this object its own Tooltip instead of the shared one.
      * @returns {Tooltip}
      */
     attachTooltip(
         this: TooltipMixinHost,
         tooltipValue: AttachTooltipValue | TooltipConfig,
         event?: 'click' | 'clickon' | 'hover',
+        attachOptions?: AttachTooltipOptions,
     ): Tooltip {
         let tooltipVal = tooltipValue;
         let tooltipEvent = event;
@@ -558,6 +802,34 @@ const tooltipMixin = {
                 attachConfig: tooltipVal as AttachTooltipValue,
                 attachEvent: tooltipEvent,
             };
+        }
+
+        // Passing an actual Tooltip object means that object is wanted, so it's never replaced
+        // by the shared one however the sharing option is set.
+        const isOwnTooltip = tooltipVal instanceof Tooltip;
+        // The "shared" option for this one call wins over the Tooltip.useShared default, so a
+        // single object can be given its own tooltip while everything else shares one, or can
+        // share one while everything else has its own.
+        const useShared =
+            !isOwnTooltip && (typeof attachOptions?.shared === 'boolean' ? attachOptions.shared : Tooltip.useShared);
+
+        if (useShared) {
+            const sharedTooltip = Tooltip.getShared();
+            // Each thing keeps its own value so that the shared tooltip can put the right one
+            // back every time it's shown.
+            sharedTooltipValues.set(this, tooltipVal as AttachTooltipValue);
+            // Applied now as well as on every show, so that the tooltip handed back already
+            // holds the value that was just passed. A caller attaching one tooltip and then
+            // reading or changing it straight away sees what it expects.
+            if (!isFunction(tooltipVal)) {
+                overlayFromCallback(sharedTooltip, tooltipVal, tooltipAdapter);
+            }
+            // No callback is passed on, even when the value is one. This object's value is
+            // already in sharedTooltipValues, and #tooltipFor() reads it from there every time
+            // the tooltip is shown. Passing it as the tooltip's own callback would replace the
+            // callback belonging to whichever object attached before this one.
+            sharedTooltip.attachTo(this, tooltipEvent);
+            return sharedTooltip;
         }
 
         let t: Tooltip;
