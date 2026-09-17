@@ -59,19 +59,20 @@ describe('Tooltip', () => {
             expect(second).toBe(first);
         });
 
-        // The point of O-3. One object and one div instead of 100 of each.
+        // The point of O-3. One Tooltip object instead of 100.
         //
-        // The div count is 1 rather than 0 because Overlay still builds its element in the
-        // constructor - that's O-1, which was deferred. O-3 doesn't make the element lazy, it
-        // makes there be one element instead of 100, which is most of the same win.
-        it('builds one Tooltip, and one div, for 100 polylines', () => {
+        // The div count is 0 because of O-1, which landed afterwards: the overlay element is
+        // built the first time it's needed rather than in the constructor, and a tooltip that
+        // has never been hovered doesn't need one. So 100 polylines with a tooltip each build
+        // one object and no elements at all.
+        it('builds one Tooltip, and no elements, for 100 polylines', () => {
             const created = vi.spyOn(document, 'createElement');
             const tooltips = new Set();
             for (let i = 0; i < 100; i += 1) {
                 tooltips.add(polyline({ path }).attachTooltip(`Segment ${i}`));
             }
             expect(tooltips.size).toBe(1);
-            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(1);
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(0);
         });
 
         // Markers and polylines share the same one. Only one tooltip is ever visible, so there

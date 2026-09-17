@@ -293,7 +293,7 @@ divs, up to 5,190 `innerHTML` parses, ~13,000 coordinate objects, ~15–20k prom
 
 | # | Finding | Location | Impact |
 |---|---|---|---|
-| O-1 | Every `Overlay` builds its DOM element in the constructor | `Overlay.ts:182` | High |
+| ~~O-1~~ **done 2026-09-16** | Every `Overlay` builds its DOM element in the constructor | `Overlay.ts:182` | High |
 | O-2 | Content is parsed via `innerHTML` at attach time, not show time | `Tooltip.ts:183`, `Popup.ts:318` | High |
 | O-3 | One `Tooltip` **and one div** per layer, where only one is ever visible at a time | `Tooltip.ts:538` | High |
 | O-4 ✅ | A brand-new `OverlayView` **class** is declared per overlay — own prototype, and it makes `draw()` megamorphic | `Overlay.ts:1301` | High |
@@ -871,19 +871,21 @@ The core of the plan. It's big enough that it's being done in **slices**, each v
 so that the ones with no API risk land first: a fault in the primitives would otherwise be
 misattributed once the later work sat on top of them.
 
-**Status: 2026-09-16. A, B and C done. D done apart from O-1 and O-10.**
-448 tests passing, `tsc --noEmit` clean, `eslint ./src` clean.
+**Status: 2026-09-16. A, B and C done. D done apart from O-10** — O-1 was deferred when this was
+written and landed later the same day, once `strictNullChecks` and the drag/resize tests were in
+place. See the notes at the end of Slice D.
+448 tests passing when that status was written, `tsc --noEmit` clean, `eslint ./src` clean.
 
 | Slice | Covers | State |
 |---|---|---|
 | A — core primitives | C-3, C-7, C-12, C-13, M11 | **Done** |
 | B — lazy `Evented` containers | C-2, C-8 | **Done** |
 | C — Marker and DataFeature laziness | M-1…M-4, M-6, M-13, §6.3 | **Done** |
-| D — Overlay, Tooltip, Popup | O-2, O-11 | **Done**. O-1 and O-10 deferred |
+| D — Overlay, Tooltip, Popup | O-2, O-11, O-1 | **Done**. O-1 landed later the same day; O-10 deferred |
 
-**Left in Phase 3:** O-1 (the full lazy DOM conversion) and O-10 (`InfoWindow` deferring its
-setup). Neither blocks a later phase, and both are bigger than the audit made them look — see
-the notes at the end of Slice D.
+**Left in Phase 3:** O-10 (`InfoWindow` deferring its setup). O-1, the full lazy DOM conversion,
+was left here too and **landed on 2026-09-16** once its groundwork was in place — see the notes at
+the end of Slice D. O-10 doesn't block a later phase, and is bigger than the audit made it look.
 
 #### Slice A — core primitives (done)
 
@@ -1014,9 +1016,10 @@ The `Polyline` half is **already shipped and confirmed working in the browser** 
 existence proof for M-1: the same contract, applied to markers and data features, on a page that
 creates far more of them.
 
-#### Slice D — Overlay, Tooltip, Popup (O-2 and O-11 done)
+#### Slice D — Overlay, Tooltip, Popup (O-2, O-11 and O-1 done)
 
-**Done 2026-09-16.** Split as recommended below: O-2 and O-11 landed, O-1 deferred.
+**Done 2026-09-16.** Split as recommended below: O-2 and O-11 landed first, and O-1 followed the
+same day once `strictNullChecks` and the drag/resize tests made it safe to do.
 
 | Item | What changed |
 |---|---|
@@ -1047,9 +1050,41 @@ during the flush, so `element.parentElement` stays `null` until then. `test/Tool
 that, including across 100 tooltips. String content has no equivalent observable, which is worth
 knowing if these are ever rewritten.
 
-**O-1 was deferred for the reason given below:** 42 `this.#overlay` references, most of the
-form `this.#overlay.style.x = …`, so a missed one fails at runtime rather than at compile time,
-and the drag and resize paths have no test cover.
+**O-1 — DONE 2026-09-16.** It was deferred for the reason given below: 42 `this.#overlay`
+references, most of the form `this.#overlay.style.x = …`, so a missed one fails at runtime rather
+than at compile time, and the drag and resize paths have no test cover.
+
+**The method is the part worth keeping.** Both halves of that objection were removed first, and
+then the conversion was driven by the compiler rather than by grep:
+
+1. `#overlay` was retyped `HTMLElement | undefined` and the constructor's four lines deleted.
+2. `tsc` then listed **36 errors** — that list *was* the worklist, and working through it to zero
+   is what proves the conversion is complete. No searching, no hoping.
+
+The estimate made before starting held up almost exactly: all the work was in `Overlay.ts`,
+**no subclass changed at all**, most sites were a mechanical swap to a local
+`const element = this.#element()`, and about ten needed judgement.
+
+**What was built:**
+
+- `#element()` creates the div on first use, writes the three base styles, then replays anything
+  set beforehand. `#hasElement()` answers whether one exists, for the few places that must not
+  build one.
+- A `#className` backing field, because `get className()` read the DOM — asking an overlay for its
+  class name would otherwise have built the element it was trying to avoid. `#styles` already
+  existed and needed only a guard, which is why `style()` was nearly free.
+- The three places that must **not** create an element: `get className()`, `removeClassName()` for
+  a class that was never added, and `remove()` — which Google calls through `onRemove()`, so it has
+  to be safe for an overlay that never drew.
+
+**One thing to watch, and it is in the changelog.** `getOverlayElement()` is the public creation
+point, so calling it merely to inspect an overlay now *builds* the element. That is what makes
+every subclass work unchanged — Popup, Tooltip and ImageOverlay only ever reach the element
+through it — but it means an inspection has a side effect it didn't have before.
+
+**Measured on the tests:** 100 overlays now build **zero** elements, where the old tests asserted
+100. Combined with O-3, 100 polylines with a tooltip each build one Tooltip object and no elements
+at all. 563 tests pass, `tsc` exit 0, `eslint ./src` exit 0.
 
 **Both halves of that reason were addressed on 2026-09-16, at the user's direction, as groundwork.
 O-1 itself is still not done — but it is no longer blocked for the stated reason.**
@@ -1150,6 +1185,12 @@ segments (it's an `innerHTML` parse per overlay) and both are small and low-risk
 lazy-DOM conversion (O-1) until the drag and resize paths have test cover, so a missed reference
 is caught by something other than a user.
 
+**That is exactly how it went, and the advice was worth following.** O-2 and O-11 landed first.
+O-1 waited until the drag and resize tests existed — and until `strictNullChecks` was turned on,
+which turned out to matter more: with it, retyping the field `HTMLElement | undefined` made the
+compiler list all 36 remaining sites, so completeness was proved rather than hoped for. Without
+it the objection in this paragraph would have stood.
+
 **Expected:** the headline win. Attach cost for thousands of tooltips/popups drops to near zero,
 and per-object allocation falls across the whole library.
 
@@ -1188,7 +1229,7 @@ unchanged so that references elsewhere in this plan still resolve.
 | C-4 drop `#boundValues` | 4 |
 | P-4 `Promise.all` control conversions, P-5 setter batching | 5 |
 | L-2 chunked scheduler, L-6 O(n²) teardown, L-12 cache cap | 6 |
-| O-1 lazy overlay DOM (**groundwork done 2026-09-16 — ready to reconsider, see Phase 3**), O-10 `InfoWindow` deferral | 3 |
+| ~~O-1 lazy overlay DOM~~ (**done 2026-09-16, see Phase 3**), O-10 `InfoWindow` deferral | 3 |
 | L-1 viewport culling | 6 |
 
 Everything not listed above is **gated on a real-device profile**. Section 10.1 is the reason:
@@ -1579,8 +1620,11 @@ until the day the build starts emitting separate modules.
 - **O-3 shared tooltip. Not for popups.** Every `Tooltip` still builds a div in its constructor, so
   2,595 segments meant 2,595 detached divs plus objects and offsets. One shared tooltip collapses
   that to one. **O-3 largely obviates O-1** — but note what it does and doesn't do: it does *not*
-  make the element lazy, it makes there be **one element instead of 2,595**. O-1 would still be
-  needed to build that one element lazily, and is worth much less now.
+  make the element lazy, it makes there be **one element instead of 2,595**.
+
+  **O-1 landed later the same day**, so the one remaining element is built lazily as well. The two
+  together mean 100 polylines with a tooltip each build one `Tooltip` object and **no elements at
+  all** until something is hovered, which is what the test in `test/Tooltip.test.ts` now asserts.
 
   **What changed** (`src/lib/Tooltip.ts`):
 

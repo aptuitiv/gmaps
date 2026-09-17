@@ -26,30 +26,34 @@ describe('Overlay', () => {
         vi.restoreAllMocks();
     });
 
-    // O-1. The element is built in the constructor, whether or not the overlay is ever shown.
-    describe('the DOM element is built in the constructor (O-1)', () => {
-        it('creates a div before anything is shown', () => {
+    // O-1, done. The element is built the first time something needs it, not in the constructor.
+    // These tests used to say the opposite - they were written to pin down what O-1 cost.
+    describe('the DOM element is built when it is first needed (O-1)', () => {
+        it('creates nothing when the overlay is built', () => {
             const created = vi.spyOn(document, 'createElement');
-            const o = overlay();
-            expect(created).toHaveBeenCalledWith('div');
-            expect(o.getOverlayElement()).toBeInstanceOf(HTMLElement);
-            expect(o.getOverlayElement().tagName).toBe('DIV');
+            overlay();
+            expect(created).not.toHaveBeenCalled();
         });
 
-        it('builds one element per overlay, none of them attached to the page', () => {
+        it('builds no elements for 100 overlays that are never used', () => {
             const created = vi.spyOn(document, 'createElement');
             const overlays: Overlay[] = [];
             for (let i = 0; i < 100; i += 1) {
                 overlays.push(overlay());
             }
-            expect(created).toHaveBeenCalledTimes(100);
-            // All 100 are detached, held only by their overlay object
-            overlays.forEach((o) => {
-                expect(o.getOverlayElement().parentElement).toBeNull();
-            });
+            expect(overlays).toHaveLength(100);
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(0);
         });
 
-        it('writes the three base styles up front', () => {
+        it('builds one, and only one, when the element is read', () => {
+            const created = vi.spyOn(document, 'createElement');
+            const o = overlay();
+            expect(o.getOverlayElement()).toBeInstanceOf(HTMLElement);
+            expect(o.getOverlayElement().tagName).toBe('DIV');
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(1);
+        });
+
+        it('writes the three base styles when it builds it', () => {
             const element = overlay().getOverlayElement();
             expect(element.style.position).toBe('absolute');
             expect(element.style.pointerEvents).toBe('auto');
@@ -61,9 +65,107 @@ describe('Overlay', () => {
             expect(o.getOverlayElement()).toBe(o.getOverlayElement());
         });
 
+        it('is not attached to the page when it is built', () => {
+            expect(overlay().getOverlayElement().parentElement).toBeNull();
+        });
+
         it('creates no Google objects', () => {
             overlay();
             expect(mapsStats.countOf('OverlayView')).toBe(0);
+        });
+    });
+
+    /* -----------------------------------------------------------------------
+        Anything set before the element exists has to end up on it once it's built, or a lazy
+        overlay would look different from an eager one. Class names and styles are both kept
+        on the overlay itself and replayed by #element().
+    ----------------------------------------------------------------------- */
+    describe('what was set before the element existed (O-1)', () => {
+        it('reads the class name back without building an element', () => {
+            const created = vi.spyOn(document, 'createElement');
+            const o = overlay();
+            o.setClassName('tooltip');
+            expect(o.className).toBe('tooltip');
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(0);
+        });
+
+        it('puts the class names on the element when it is built', () => {
+            const o = overlay();
+            o.setClassName('a b');
+            const element = o.getOverlayElement();
+            expect(element.classList.contains('a')).toBe(true);
+            expect(element.classList.contains('b')).toBe(true);
+        });
+
+        it('adds to the class names rather than replacing them, the same as before', () => {
+            const o = overlay();
+            o.setClassName('a');
+            o.setClassName('b');
+            expect(o.className).toBe('a b');
+
+            const element = o.getOverlayElement();
+            expect(element.classList.contains('a')).toBe(true);
+            expect(element.classList.contains('b')).toBe(true);
+        });
+
+        it('leaves out a class name that was removed before the element was built', () => {
+            const created = vi.spyOn(document, 'createElement');
+            const o = overlay();
+            o.setClassName('a b');
+            o.removeClassName('a');
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(0);
+
+            const element = o.getOverlayElement();
+            expect(element.classList.contains('a')).toBe(false);
+            expect(element.classList.contains('b')).toBe(true);
+        });
+
+        it('puts the styles on the element when it is built', () => {
+            const o = overlay();
+            o.style('color', 'red');
+            o.setStyles({ backgroundColor: 'blue' });
+            const element = o.getOverlayElement();
+            expect(element.style.color).toBe('red');
+            expect(element.style.backgroundColor).toBe('blue');
+        });
+
+        it('records styles without building an element', () => {
+            const created = vi.spyOn(document, 'createElement');
+            const o = overlay();
+            o.style('color', 'red');
+            expect(o.styles).toMatchObject({ color: 'red' });
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(0);
+        });
+
+        it('still writes styles straight to the element once it exists', () => {
+            const o = overlay();
+            const element = o.getOverlayElement();
+            o.style('color', 'green');
+            expect(element.style.color).toBe('green');
+        });
+
+        it('clears the class names when set to null, before the element is built', () => {
+            const o = overlay();
+            o.setClassName('a b');
+            o.className = null as never;
+            expect(o.className).toBe('');
+            expect(o.getOverlayElement().className).toBe('');
+        });
+
+        it('removes nothing, and builds nothing, for a class that was never added', () => {
+            const created = vi.spyOn(document, 'createElement');
+            const o = overlay();
+            expect(() => o.removeClassName('nope')).not.toThrow();
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(0);
+        });
+
+        // remove() is called by Google through onRemove(), so it has to be safe for an overlay
+        // that never drew anything.
+        it('removing an overlay that was never built does nothing', () => {
+            const created = vi.spyOn(document, 'createElement');
+            const o = overlay();
+            expect(() => o.remove()).not.toThrow();
+            expect(created.mock.calls.filter((c) => c[0] === 'div')).toHaveLength(0);
         });
     });
 
