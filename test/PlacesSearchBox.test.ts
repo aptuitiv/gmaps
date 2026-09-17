@@ -132,6 +132,54 @@ describe('PlacesSearchBox', () => {
         });
     });
 
+    // A failed init() is not remembered, so the search box can be set up properly and tried
+    // again. The rejected promise used to be kept, so every later init() failed the same way
+    // however the input was fixed in between.
+    describe('trying again after init() failed', () => {
+        it('works once the input has been set', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+
+            box.setInput(searchInput());
+            await expect(box.init()).resolves.toBeUndefined();
+
+            expect(box.isInitialized()).toBe(true);
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+        });
+
+        it('fails the same way again while the input is still missing', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+
+            expect(mapsStats.countOf('SearchBox')).toBe(0);
+        });
+
+        it('builds nothing more when a call is made after a successful one', async () => {
+            const box = new PlacesSearchBox();
+            await expect(box.init()).rejects.toThrow(/input element must be set/);
+
+            box.setInput(searchInput());
+            await box.init();
+            await box.init();
+
+            // Clearing the remembered failure must not let a second widget be built
+            expect(mapsStats.countOf('SearchBox')).toBe(1);
+            expect(mapsStats.callsTo('SearchBox', 'addListener')).toHaveLength(1);
+        });
+
+        it('lets several calls made together fail without building anything', async () => {
+            const box = new PlacesSearchBox();
+
+            const results = await Promise.allSettled([box.init(), box.init(), box.init()]);
+            results.forEach((result) => {
+                expect(result.status).toBe('rejected');
+            });
+
+            expect(mapsStats.countOf('SearchBox')).toBe(0);
+        });
+    });
+
     // Section 6.6, fixed in Phase 2. init() now memoizes its promise, so the work starts once
     // and every caller waits on the same promise however many times it is called.
     describe('two concurrent init() calls (6.6)', () => {

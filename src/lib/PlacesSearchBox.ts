@@ -235,7 +235,7 @@ export class PlacesSearchBox extends Evented {
         // The promise also used to have no reject path, so a failure - no input element, for
         // example - left it unsettled forever and anything awaiting init() hung.
         if (!this.#initPromise) {
-            this.#initPromise = new Promise((resolve, reject) => {
+            const initPromise = new Promise<void>((resolve, reject) => {
                 if (checkForGoogleMaps('PlacesSearchBox', 'places', false)) {
                     this.#createPlacesSearchBox().then(resolve).catch(reject);
                 } else {
@@ -246,6 +246,25 @@ export class PlacesSearchBox extends Evented {
                     });
                 }
             });
+            // A failure is not remembered. Initializing throws when there's no input element, and
+            // holding on to the rejected promise meant every later init() got that same failure
+            // back - so setting the input afterwards and calling init() again could never work.
+            // Clearing it lets a later call start again. The promise is only forgotten once it
+            // has actually failed, so calls made while it's still running share it as before.
+            //
+            // Nothing is built twice by this: #createPlacesSearchBox() returns early when
+            // #searchBox is already set, so a retry after a successful init still creates nothing.
+            //
+            // The check is against the promise that gets stored below, not the one being wrapped,
+            // so that a call which has already started a new attempt isn't undone. The callback
+            // only runs once the promise has rejected, which is always after the assignment.
+            const tracked: Promise<void> = initPromise.catch((error) => {
+                if (this.#initPromise === tracked) {
+                    this.#initPromise = undefined;
+                }
+                throw error;
+            });
+            this.#initPromise = tracked;
         }
         return this.#initPromise;
     }

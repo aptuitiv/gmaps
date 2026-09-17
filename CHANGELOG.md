@@ -78,6 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Fixed `PlacesSearchBox` and `AutocompleteSearchBox` never recovering from a failed `init()`. Initializing throws when the input element hasn't been set, and the failure was remembered, so every later `init()` call failed the same way even after `setInput()` had been used to set the input. A failed attempt is now forgotten, so a later `init()` can try again. Calls made while an attempt is still running share it as before, and a call made after a successful one still doesn't build a second search box.
 - Fixed tooltips and popups never showing on a marker that was set up with one of the `Sync` methods, like `setMapSync()`. Those methods didn't dispatch the marker's `ready` event, which the tooltip and popup wait for before they attach their events to the marker.
 - Fixed an overlay keeping its outline after dragging or resizing was turned off. Turning either one on draws a blue outline around the overlay, but `disableDrag()` never took it away, so the overlay was left outlined when it could no longer be moved. `disableResize()` had the same problem in reverse: it took the outline away from an overlay that could still be dragged. Both draw the same outline, so each one now removes it only when the other isn't using it.
 - Fixed the highlight polyline keeping the old path when the polyline's path was changed.
