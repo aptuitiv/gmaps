@@ -262,8 +262,16 @@ describe('equals and intersects', () => {
         await expect(full.equals(empty)).resolves.toBe(false);
     });
 
-    it('answers rather than throwing when both bounds are empty', async () => {
-        await expect(new LatLngBounds().equals(new LatLngBounds())).resolves.not.toThrow();
+    // intersects() has always read its corners through the getters, which return undefined for
+    // an empty bounds, and answered false when any of them is missing. That is the shape
+    // equals() now has too.
+    it('an empty bounds does not intersect anything', async () => {
+        const empty = new LatLngBounds();
+        const full = latLngBounds({ ne: [10, 20], sw: [0, 10] });
+
+        await expect(empty.intersects(full)).resolves.toBe(false);
+        await expect(full.intersects(empty)).resolves.toBe(false);
+        await expect(empty.intersects(new LatLngBounds())).resolves.toBe(false);
     });
 
     it('is false for anything that is not a LatLngBounds', async () => {
