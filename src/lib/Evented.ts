@@ -128,7 +128,7 @@ export class Evented extends Base {
      * @type {google.maps.MVCObject| google.maps.marker.AdvancedMarkerElement}
      */
     // Definitely assigned because it's only used after #isGoogleObjectSet() confirms that it's set.
-    #googleObject!: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement;
+    #googleObject: google.maps.MVCObject | google.maps.marker.AdvancedMarkerElement | undefined;
 
     /**
      * Holds the listeners that this object added to the Google maps object, by event type.
@@ -535,8 +535,12 @@ export class Evented extends Base {
                         // "bounds_changed" and "zoom_changed" to work around it. Tracking each
                         // listener separately removes the need for both.
                         const googleListeners = (this.#googleListeners ??= {});
-                        if (!googleListeners[type]) {
-                            googleListeners[type] = this.#googleObject.addListener(
+                        // Read into a local so that it's checked rather than assumed. The check
+                        // above proves there's an object, but only to a reader - the field is
+                        // optional, so it has to be tested here for the compiler to agree.
+                        const googleObject = this.#googleObject;
+                        if (googleObject && !googleListeners[type]) {
+                            googleListeners[type] = googleObject.addListener(
                                 type,
                                 (e: google.maps.MapMouseEvent) => {
                                     this.dispatch(type, e);
@@ -648,8 +652,8 @@ export class Evented extends Base {
                 // was only ever walked for its length, so several listeners registered before the
                 // Google object existed each added their own Google listener, and every one of
                 // them then dispatched to all of the callbacks.
-                if (!googleListeners[type]) {
-                    googleListeners[type] = this.#googleObject.addListener(
+                if (googleObject && !googleListeners[type]) {
+                    googleListeners[type] = googleObject.addListener(
                         type,
                         (e: google.maps.MapMouseEvent) => {
                             this.dispatch(type, e);
