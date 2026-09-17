@@ -6593,6 +6593,23 @@ declare class Tooltip extends Overlay {
      */
     attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover', callback?: TooltipCallback): Promise<Tooltip>;
     /**
+     * Hide the tooltip
+     *
+     * A callback can return a different Tooltip to show, which is held in #activeTooltip. Hiding
+     * this one used to leave that one on the map with nothing referring to it. Only the hover
+     * wiring took it down, by hiding `#activeTooltip || this` on mouseout, so a tooltip shown by
+     * a click and then hidden directly stayed on the map. It's hidden and forgotten here instead,
+     * which is what Popup.hide() does for the same reason.
+     *
+     * The check against this one matters rather than being tidiness: a callback that returns
+     * content or an options object is applied to this tooltip and #activeTooltip is then set to
+     * this tooltip, so calling hide() on it without the check would call this method again and
+     * never stop.
+     *
+     * @returns {Tooltip}
+     */
+    hide(): Tooltip;
+    /**
      * Returns whether the tooltip already has content
      *
      * @returns {boolean}
