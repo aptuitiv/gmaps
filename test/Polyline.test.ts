@@ -5,9 +5,12 @@
     already shipped and must not regress: a hidden polyline is not drawn, init() does not
     draw, and the path is held as plain numbers.
 
-    The rest document what the pass left behind - L-4 (setPath called when the drawn path
-    did not change), L-5 (one "idle" listener per polyline) and L-7 (a redundant setOptions
-    call on every plain polyline). Those expectations change when the work lands.
+    L-4 (setPath called when the drawn path did not change) and L-7 (a redundant setOptions
+    call on every plain polyline) have since been fixed, and the tests below lock in those
+    skips - including the cases that must still send, so that the skips can't get greedy.
+
+    L-5 (one "idle" listener per polyline) is still outstanding, and is documented rather
+    than fixed.
 =========================================================================== */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,6 +50,30 @@ const longPath = (count: number) => {
         points.push({
             lat: 48.85 + i * 0.00002 + (i % 3) * 0.0000015,
             lng: 2.35 + i * 0.00002,
+        });
+    }
+    return points;
+};
+
+/**
+ * Build a path that zigzags about 4 metres either side of a straight line.
+ *
+ * The size of the wobble is the point. It's bigger than the 1m tolerance used from zoom 18, so
+ * those points are kept, and smaller than the 10m tolerance used below zoom 14, so they're
+ * dropped there. That makes the two zoom buckets draw genuinely different paths.
+ *
+ * longPath() can't be used for this: its wobble is about 0.17m, which is under both tolerances,
+ * so every bucket simplifies it to the same two end points.
+ *
+ * @param {number} count The number of points
+ * @returns {object[]}
+ */
+const wobblyPath = (count: number) => {
+    const points = [];
+    for (let i = 0; i < count; i += 1) {
+        points.push({
+            lat: 48.85 + (i % 2 === 0 ? 0.00004 : -0.00004),
+            lng: 2.35 + i * 0.0002,
         });
     }
     return points;
@@ -332,11 +359,11 @@ describe('Polyline', () => {
         });
     });
 
-    // L-4: setPath is called whenever the tolerance changes, with no check on whether the
-    // resulting path is any different. shortPath has two points, so every tolerance draws
-    // exactly the same thing. When L-4 lands, the second count stops growing.
+    // L-4: setPath used to be called whenever the tolerance changed, with no check on whether
+    // the resulting path was any different. shortPath has two points, so every tolerance draws
+    // exactly the same thing, and the path is no longer sent for those bucket changes.
     describe('redundant setPath when the drawn path is unchanged (L-4)', () => {
-        it('calls setPath even though the two-point path cannot change', async () => {
+        it('does not call setPath when the new tolerance draws the same points', async () => {
             const map = fakeMap({ zoom: 10 });
             const p = polyline({ path: shortPath, simplify: 'zoom' });
             await p.setMap(map);
@@ -347,29 +374,118 @@ describe('Polyline', () => {
             asFakeMap(map).zoomTo(18);
 
             const after = mapsStats.callsTo('Polyline', 'setPath').length;
-            expect(p.simplify).toBe(1);
-            // Two bucket changes, two setPath calls, identical geometry each time
-            expect(after - before).toBe(2);
+            // Two bucket changes, both drawing the same two points, so nothing was sent
+            expect(after - before).toBe(0);
+        });
 
-            // Every drawn path was the same two points
-            mapsStats.callsTo('Polyline', 'setPath').forEach((call) => {
-                expect(call.args[0]).toHaveLength(2);
-            });
+        // Skipping the send must not skip the tolerance itself, or the next change would be
+        // compared against the wrong one.
+        it('still applies the new tolerance even though nothing was sent', async () => {
+            const map = fakeMap({ zoom: 10 });
+            const p = polyline({ path: shortPath, simplify: 'zoom' });
+            await p.setMap(map);
+            await tick();
+            expect(p.simplify).toBe(10);
+
+            asFakeMap(map).zoomTo(16);
+            expect(p.simplify).toBe(2);
+
+            asFakeMap(map).zoomTo(18);
+            expect(p.simplify).toBe(1);
+        });
+
+        // The skip must not get greedy. A path long enough for the tolerance to matter draws
+        // different points in different buckets, and those still have to reach Google.
+        it('still calls setPath when the new tolerance draws different points', async () => {
+            const map = fakeMap({ zoom: 10 });
+            const p = polyline({ path: wobblyPath(200), simplify: 'zoom' });
+            await p.setMap(map);
+            await tick();
+
+            // What was drawn at the 10m bucket, from the constructor options. The 4m wobbles are
+            // under that tolerance, so they're dropped here.
+            const drawnAt10 = mapsStats.callsTo('Polyline', 'constructor')[0].args[0].path.length;
+            const before = mapsStats.callsTo('Polyline', 'setPath').length;
+
+            asFakeMap(map).zoomTo(18); // the 1m bucket keeps the wobbles
+            const sent = mapsStats.callsTo('Polyline', 'setPath');
+
+            expect(sent.length - before).toBe(1);
+            expect(sent[sent.length - 1].args[0].length).toBeGreaterThan(drawnAt10);
+        });
+
+        // Changing the path throws the kept paths away, so there is nothing to compare against
+        // and the new path is always sent.
+        it('sends the path when the path itself changes', async () => {
+            const p = polyline({ path: shortPath, simplify: 'zoom' });
+            await p.toGoogle();
+
+            const before = mapsStats.callsTo('Polyline', 'setPath').length;
+            p.path = longPath(50);
+            expect(mapsStats.callsTo('Polyline', 'setPath').length).toBeGreaterThan(before);
         });
     });
 
-    // L-7: a plain polyline still goes through the dashed/icon setup, which resolves to
-    // options that change nothing and then calls setOptions on the Google polyline.
-    describe('the redundant dashed/icon pass (L-7)', () => {
-        it('calls setOptions once on a plain polyline that has no dashes or icons', async () => {
+    // L-7: a plain polyline used to go through the dashed/icon setup, which resolved to options
+    // that changed nothing and then called setOptions on the Google polyline. It now skips it.
+    describe('the dashed/icon pass is skipped for a plain polyline (L-7)', () => {
+        it('does not call setOptions on a plain polyline', async () => {
             const p = polyline({ path: shortPath, strokeOpacity: 0.5 });
             await p.toGoogle();
             await tick();
 
-            const calls = mapsStats.callsTo('Polyline', 'setOptions');
-            expect(calls).toHaveLength(1);
-            // Nothing in it that the constructor options did not already carry
-            expect(calls[0].args[0]).toEqual({ strokeOpacity: 0.5, icons: [] });
+            expect(mapsStats.callsTo('Polyline', 'setOptions')).toHaveLength(0);
+        });
+
+        // The constructor options already carry strokeOpacity, which is the only thing the
+        // skipped pass would have set for a plain polyline.
+        it('still passes strokeOpacity to Google through the constructor', async () => {
+            const p = polyline({ path: shortPath, strokeOpacity: 0.5 });
+            await p.toGoogle();
+
+            const built = mapsStats.callsTo('Polyline', 'constructor');
+            expect(built[0].args[0]).toMatchObject({ strokeOpacity: 0.5 });
+        });
+
+        // The pass used to hold up setEventGoogleObject for a microtask. There is no tick()
+        // here on purpose: the listener has to be attached by the time toGoogle() resolves.
+        it('wires the Google listeners up without waiting for a microtask', async () => {
+            const p = polyline({ path: shortPath });
+            p.on('click', vi.fn());
+            await p.toGoogle();
+
+            expect(mapsStats.callsTo('Polyline', 'addListener')).toHaveLength(1);
+        });
+
+        // The skip must not get greedy. A polyline with icons still needs the pass, so it still
+        // gets one setOptions call.
+        //
+        // The icon here has no symbol of its own on purpose. PolylineIcon.toGoogle() only awaits
+        // when it has one, so this resolves - see the dashed test below for why that matters.
+        it('still runs the pass for a polyline with icons', async () => {
+            const p = polyline({ path: shortPath, icons: [{ offset: '50%', repeat: '100px' }] });
+            await p.toGoogle();
+            await tick();
+
+            expect(mapsStats.callsTo('Polyline', 'setOptions')).toHaveLength(1);
+        });
+
+        // A dashed polyline also still needs the pass, but this checks the branch that was taken
+        // rather than the setOptions call that follows it.
+        //
+        // The dashed pass can't finish under the test stub: it builds an SvgSymbol, and
+        // SvgSymbol.toGoogle() (SvgSymbol.ts:471) waits on loader().onLoad(), which nothing
+        // drives here, so the promise never settles. That was true before this change too - it
+        // is a gap in the harness, not something this change introduced. What can be checked is
+        // that a dashed polyline takes the deferred branch instead of the new immediate one.
+        it('still defers a dashed polyline instead of wiring its events up at once', async () => {
+            const p = polyline({ path: shortPath, dashed: true });
+            p.on('click', vi.fn());
+            await p.toGoogle();
+            await tick();
+
+            // The plain polyline above has its listener by this point. This one is still waiting.
+            expect(mapsStats.callsTo('Polyline', 'addListener')).toHaveLength(0);
         });
     });
 

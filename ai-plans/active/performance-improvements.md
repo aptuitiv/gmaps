@@ -1095,7 +1095,8 @@ and per-object allocation falls across the whole library.
 ### What is left, in one table
 
 Phases 0-3 are done. From Phase 4, D-2 landed on 2026-09-16 and **the rest of Phase 4 was skipped
-by decision on the same day** — see the Phase 4 section. P-1 from Phase 5 landed on 2026-09-16.
+by decision on the same day** — see the Phase 4 section. P-1 from Phase 5 landed on 2026-09-16,
+and L-4 and L-7 from Phase 6 landed on 2026-09-16.
 From Phase 7, D-8 landed on 2026-09-16, and B-1 was **measured and found to buy nothing in this
 build** — the declaration was added as a safeguard, but the tree-shaking win it promised is not
 available without a build change. See the Phase 7 section.
@@ -1112,8 +1113,8 @@ unchanged so that references elsewhere in this plan still resolve.
 
 | Worth doing, moderate effort | Phase | Why |
 |---|---|---|
-| L-4 skip redundant `setPath` | 6 | `setPath` is the expensive half of a tolerance change |
-| L-7 skip the dashed/icon pass | 6 | A promise, a microtask and a no-op Google call per polyline |
+| ~~L-4 skip redundant `setPath`~~ **done 2026-09-16** | 6 | `setPath` is the expensive half of a tolerance change |
+| ~~L-7 skip the dashed/icon pass~~ **done 2026-09-16** | 6 | A promise, a microtask and a no-op Google call per polyline |
 | O-3 opt-in shared tooltip | 7 | 2,595 divs to one, and it largely obviates O-1 |
 | B-2 split out `markerclusterer` | 7 | Measured: 18% of the browser bundle |
 
@@ -1350,16 +1351,56 @@ Per §10.1 this proves work was *avoided*, not that anything got faster.
 
 ### Phase 6 — Polyline leftovers
 
-**Do now — L-4 and L-7.** Both are small, self-contained, have no API surface, and need no
-measurement to justify.
+**L-4 and L-7 — DONE 2026-09-16.** Both were small, self-contained, and had no API surface.
 
-1. **L-4** — skip `setPath` when the resulting path is unchanged. `setPath` is the expensive half
-   of a tolerance change, and today the only skip is when the tolerance itself is unchanged.
-   Compare the **point count first**: that alone catches most short segments across adjacent
-   buckets for almost nothing, before any element-wise comparison.
-2. **L-7** — skip the dashed/icon pass for a plain polyline. Every polyline currently pays for a
-   promise, a microtask hop and a Google `setOptions` call that changes nothing, and it delays
-   `setEventGoogleObject` by a tick for no reason.
+**L-4 — skip `setPath` when the drawn path is unchanged** (`Polyline.#applySimplify`).
+
+`setPath` used to run on every tolerance change, and the only skip was when the tolerance itself
+was unchanged. A different tolerance very often draws the same points: a short segment simplifies
+to its two end points at every tolerance, so a map full of short segments re-sent identical paths
+on every zoom bucket change.
+
+`Polyline.#isSamePath()` compares the point count first and only then goes point by point, as the
+plan called for.
+
+**The part worth recording is what it compares against.** The obvious approach — keep the path
+last handed to Google in a field — would retain an extra array of references for the life of every
+polyline. At roughly 8 bytes per point across a 1,400-polyline trail map that is real memory spent
+to save a call. It isn't needed: when tolerances vary by zoom, `#simplifiedPaths` **already** holds
+the path for every tolerance visited, so the currently drawn path is `#simplifiedPaths[oldTolerance]`.
+The comparison uses that and stores **nothing new**.
+
+Where there is no kept path for the old tolerance — it was 0, or zoom buckets aren't in use —
+`drawnPath` is `undefined` and the path is sent exactly as before. `#simplifiedPaths` is also
+cleared whenever the path itself changes (`#setPathCoords`) or the `simplify` setting changes, so
+a genuine path change always sends. `#applySimplify()` still returns `true` whenever the tolerance
+changed, so its one caller that reads the return value is unaffected.
+
+**L-7 — skip the dashed/icon pass for a plain polyline** (`Polyline.#createPolylineObject`).
+
+Every polyline used to run `#setupIconsAndDashedPolylineOptions()`, which for a plain polyline
+resolves to the `strokeOpacity` the constructor had already set plus an empty `icons` array — then
+called `setOptions` with it. It cost a promise, a microtask hop and a Google call that changed
+nothing, and held up `setEventGoogleObject` for a tick. A polyline that is neither dashed nor
+carrying icons now skips it and wires its events up immediately.
+
+The one behaviour difference: when `strokeOpacity` isn't set, the skipped pass used to send `1`
+explicitly, which is what Google uses anyway, so the drawn result is identical.
+
+**Testing.** The two Phase 0 tests that documented this waste were rewritten to lock in the skips,
+plus cases that must still send so the skips can't get greedy: a long path whose geometry really
+does differ between buckets, a path change, a polyline with icons, and a dashed polyline.
+
+**A harness gap found while doing this, worth knowing before writing more polyline tests.** The
+dashed pass **cannot complete under the test stub**. It builds an `SvgSymbol`, and
+`SvgSymbol.toGoogle()` (`SvgSymbol.ts:471`) waits on `loader().onLoad()`, which nothing drives in
+the tests — so the promise never settles and `setOptions` is never reached. This is not new and is
+not caused by L-7; it means any assertion about what a dashed polyline sends to Google will fail
+for the wrong reason. The dashed test therefore asserts the *branch taken* (events deferred rather
+than immediate), which is what L-7 actually controls. Driving the loader in the stub would be a
+genuine improvement to the harness.
+
+**Gates:** 499 tests pass (492 before, +7), `tsc --noEmit` exit 0, `eslint ./src` exit 0.
 
 **Gated on the profile.**
 
