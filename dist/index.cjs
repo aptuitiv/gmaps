@@ -14244,8 +14244,7 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   getContainerLatLngFromPixel(x, y) {
-    const gp = new google.maps.Point(x, y);
-    const pixel = point(gp);
+    const pixel = point(x, y);
     const projection = this.getProjection();
     if (projection) {
       return latLng(projection.fromContainerPixelToLatLng(pixel.toGoogle()) ?? void 0);
@@ -14263,8 +14262,7 @@ var Overlay = class extends Layer_default {
    * @returns {LatLng}
    */
   getDivLatLngFromPixel(x, y) {
-    const gp = new google.maps.Point(x, y);
-    const pixel = point(gp);
+    const pixel = point(x, y);
     const projection = this.getProjection();
     if (projection) {
       return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()) ?? void 0);
@@ -14367,7 +14365,7 @@ var Overlay = class extends Layer_default {
       this.position = position;
       if (mapObject instanceof Map2) {
         if (this.#overlayView) {
-          this.#overlayView.setMap(mapObject.toGoogle() ?? null);
+          this.#attachToGoogleMap(mapObject);
           this.isVisible = true;
           super.setMap(mapObject);
           this.dispatch(OverlayEvents.OPEN);
@@ -14548,19 +14546,19 @@ var Overlay = class extends Layer_default {
       if (map2 instanceof Map2) {
         this.#setupGoogleOverlay();
         if (this.#overlayView) {
-          this.#overlayView.setMap(map2.toGoogle() ?? null);
-          this.isVisible = true;
           super.setMap(map2);
+          this.#attachToGoogleMap(map2);
+          this.isVisible = true;
           this.dispatch(OverlayEvents.OPEN);
           resolve(this);
         } else {
           loader().onMapLoad(() => {
             this.#setupGoogleOverlay();
+            super.setMap(map2);
             if (this.#overlayView) {
-              this.#overlayView.setMap(map2.toGoogle() ?? null);
+              this.#attachToGoogleMap(map2);
               this.isVisible = true;
             }
-            super.setMap(map2);
             this.dispatch(OverlayEvents.OPEN);
             resolve(this);
           });
@@ -14756,6 +14754,42 @@ var Overlay = class extends Layer_default {
    *
    * @private
    */
+  /**
+   * Attach the overlay to the Google map object.
+   *
+   * The Google map object doesn't exist until the map has been initialized, so toGoogle()
+   * returns undefined until then. Passing that on as null attached the overlay to nothing,
+   * which left it silently off the map even though it reported itself as visible.
+   *
+   * When the map isn't set up yet it's told to initialize and the overlay is attached once
+   * it's ready. The promise that show() and move() return is deliberately not tied to
+   * init(): the map waits on an IntersectionObserver when its element is hidden, so init()
+   * can take a long time to settle, or never settle at all. Marker and Polyline trigger the
+   * map the same way.
+   *
+   * @private
+   * @param {Map} map The map to attach the overlay to
+   */
+  #attachToGoogleMap(map2) {
+    const overlayView = this.#overlayView;
+    if (!overlayView) {
+      return;
+    }
+    const googleMap = map2.toGoogle();
+    if (googleMap) {
+      overlayView.setMap(googleMap);
+    } else {
+      map2.init();
+      map2.onReady(() => {
+        if (this.getMap() === map2) {
+          const readyMap = map2.toGoogle();
+          if (readyMap) {
+            overlayView.setMap(readyMap);
+          }
+        }
+      });
+    }
+  }
   #setupGoogleOverlay() {
     if (!isObject(this.#overlayView)) {
       if (checkForGoogleMaps("Overlay", "OverlayView", false)) {
@@ -19632,6 +19666,8 @@ var Tooltip = class _Tooltip extends Overlay {
     } else if (content instanceof HTMLElement || content instanceof Text) {
       element.innerHTML = "";
       element.appendChild(content);
+    } else {
+      element.innerHTML = "";
     }
   }
   /**
@@ -19766,12 +19802,45 @@ var Tooltip = class _Tooltip extends Overlay {
   #tooltipFor(target) {
     const sharedValue = sharedTooltipValues.get(target);
     if (typeof sharedValue !== "undefined") {
+      this.#resetToBaseline();
       return this.#resolveFor(target, sharedValue);
     }
     if (!isFunction(this.#callback)) {
       return this;
     }
     return this.#resolveFor(target, this.#callback);
+  }
+  /**
+   * Put the shared tooltip back to how it was built, before another object's value is applied.
+   *
+   * setOptions() only applies the options that are actually given, so anything it isn't told
+   * about is left as the last object set it. That's fine for a tooltip that belongs to one
+   * layer, but the shared tooltip is the same object for everything on the map: a marker that
+   * attached {content, className, theme} left its class name and theme on the tooltip, and the
+   * next marker along - whose value is only {content} - was then shown wearing them.
+   *
+   * The class name is the worst of it. setOptions() takes the "tooltip" class off before adding
+   * the one it was given, so once any object passed a className, every object after it lost the
+   * default class for good.
+   *
+   * Only the shared tooltip is reset, and only the values that a tooltip is built with. Styles
+   * are deliberately left alone: they're only carried over when an object passes a styles
+   * object of its own, and clearing them would mean reaching into Overlay's style record.
+   * The theme puts its own styles back, because setting the theme marks it for reapplying.
+   *
+   * @private
+   */
+  #resetToBaseline() {
+    this.center = true;
+    this.theme = "default";
+    this.setOffset([0, 4]);
+    const current = this.className;
+    if (current.length > 0) {
+      this.removeClassName(current);
+    }
+    this.setClassName("tooltip");
+    this.#content = void 0;
+    this.#isContentDirty = true;
   }
   /**
    * Work out the tooltip to show for a value, calling it first if it's a callback.
