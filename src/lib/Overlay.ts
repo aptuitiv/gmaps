@@ -488,9 +488,9 @@ export class Overlay extends Layer {
      * @returns {LatLng}
      */
     getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng {
-        // const pixel = point(x, y);
-        const gp = new google.maps.Point(x as number, y as number);
-        const pixel = point(gp);
+        // point() handles every PointValue form: a Point, an [x, y] array, a "4"/"5" number
+        // string pair, an {x, y} object, or two plain numbers.
+        const pixel = point(x, y);
         const projection = this.getProjection();
         if (projection) {
             return latLng(projection.fromContainerPixelToLatLng(pixel.toGoogle()) ?? undefined);
@@ -509,9 +509,8 @@ export class Overlay extends Layer {
      * @returns {LatLng}
      */
     getDivLatLngFromPixel(x: PointValue, y?: number): LatLng {
-        // const pixel = point(x, y);
-        const gp = new google.maps.Point(x as number, y as number);
-        const pixel = point(gp);
+        // See the comment in getContainerLatLngFromPixel() about point().
+        const pixel = point(x, y);
         const projection = this.getProjection();
         if (projection) {
             return latLng(projection.fromDivPixelToLatLng(pixel.toGoogle()) ?? undefined);

@@ -13,7 +13,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Overlay, overlay } from '../src/lib/Overlay';
 import { LatLng } from '../src/lib/LatLng';
-import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
+import { point, PointValue } from '../src/lib/Point';
+import { installGoogleMaps, mapsStats, PIXELS_PER_DEGREE, uninstallGoogleMaps } from './support/googleMaps';
 import { fakeMap } from './support/fakeMap';
 
 describe('Overlay', () => {
@@ -641,6 +642,75 @@ describe('Overlay', () => {
             handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
 
             expect(cb).not.toHaveBeenCalled();
+        });
+    });
+
+    /* -----------------------------------------------------------------------
+        Converting a pixel position back to a latitude and longitude.
+
+        Both methods take a PointValue, which is any of: two numbers, an [x, y] array, a
+        number string or an array of them, an {x, y} object, or a Point. They used to build a
+        google.maps.Point straight from `x as number` and `y as number`, so only the two
+        number form survived - every other form put the raw value (an array, a string, a
+        Point) into the Google point, and the Point built from it came out with no x or y at
+        all. The documented contract and the code disagreed, and the cast hid it from tsc.
+
+        The stand-in projection is reversible: x is longitude times PIXELS_PER_DEGREE and y is
+        latitude times the same, negated. So the pixel below is 4 degrees east, 3 degrees north.
+    ----------------------------------------------------------------------- */
+    describe('converting a pixel position to a latitude and longitude', () => {
+        const expected = { lat: 3, lng: 4 };
+        const x = expected.lng * PIXELS_PER_DEGREE;
+        const y = -expected.lat * PIXELS_PER_DEGREE;
+
+        // Every way of expressing the same pixel position that PointValue allows
+        const forms: [string, PointValue, number?][] = [
+            ['two numbers', x, y],
+            ['an [x, y] array', [x, y]],
+            ['an array of number strings', [String(x), String(y)]],
+            ['two number strings', String(x), y],
+            ['an {x, y} object', { x, y }],
+            ['a Point', point(x, y)],
+        ];
+
+        /**
+         * Build an overlay that is on a map, so that it has a projection to work with.
+         *
+         * @returns {Promise<Overlay>}
+         */
+        const shownOverlay = async (): Promise<Overlay> => {
+            const o = overlay();
+            await o.setMap(fakeMap());
+            return o;
+        };
+
+        forms.forEach(([label, xValue, yValue]) => {
+            it(`converts a container pixel given as ${label}`, async () => {
+                const o = await shownOverlay();
+                const result = o.getContainerLatLngFromPixel(xValue, yValue);
+
+                expect(result.isValid()).toBe(true);
+                expect(result.latitude).toBe(expected.lat);
+                expect(result.longitude).toBe(expected.lng);
+            });
+
+            it(`converts a div pixel given as ${label}`, async () => {
+                const o = await shownOverlay();
+                const result = o.getDivLatLngFromPixel(xValue, yValue);
+
+                expect(result.isValid()).toBe(true);
+                expect(result.latitude).toBe(expected.lat);
+                expect(result.longitude).toBe(expected.lng);
+            });
+        });
+
+        // The empty LatLng that comes back here is what Tooltip.draw() and ImageOverlay.draw()
+        // guard against - see the note in test/Tooltip.test.ts.
+        it('gives back an empty LatLng when there is no projection to work with', () => {
+            const o = overlay();
+
+            expect(o.getContainerLatLngFromPixel(x, y).isValid()).toBe(false);
+            expect(o.getDivLatLngFromPixel(x, y).isValid()).toBe(false);
         });
     });
 });
