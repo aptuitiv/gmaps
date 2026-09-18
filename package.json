@@ -79,7 +79,8 @@
         "node": ">=20.0.0"
     },
     "scripts": {
-        "build": "node -e \"require('fs').rmSync('dist', { force: true, recursive: true })\" && tsup",
+        "build": "npm run clean && tsup",
+        "clean": "node -e \"const fs = require('fs'); fs.mkdirSync('dist', { recursive: true }); for (const f of fs.readdirSync('dist')) { fs.rmSync('dist/' + f, { force: true, recursive: true }); }\"",
         "css": "postcss ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "css-watch": "postcss --watch ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "lint": "eslint --fix --ext .js,.ts ./src",

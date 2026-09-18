@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - The ESM build is now split into shared chunks instead of one file, so that the entry points share the code they have in common rather than each carrying a copy. Anyone importing `@aptuitiv/gmaps` normally doesn't need to do anything. Code that referred to `dist/index.esm.js` as a standalone file will need to copy the whole `dist` folder instead, or use the `dist/browser.js` build, which is still a single self-contained file.
 - Calling `attachPopup()`, `attachTooltip()` or `attachInfoWindow()` without having imported the module that provides it now throws an error saying which import to add. It used to fail with "attachPopup is not a function". This only happens when importing from `@aptuitiv/gmaps/core`; the main entry point includes all three.
-- The build now removes `dist` before it runs, so that old content-hashed chunk files don't accumulate.
+- The build now clears `dist` before it runs, so that old content-hashed chunk files don't accumulate. It empties the folder rather than deleting it, so that a terminal or editor sitting in `dist` isn't left with a working directory that no longer exists. There's also a separate `npm run clean` script for it.
 
 ## [v0.29.0] - 2026-09-17
 
