@@ -44,3 +44,6 @@ coverage
 
 # static site output
 site-dist
+
+# AI plan scratch space (not committed)
+ai-plans/scratch
