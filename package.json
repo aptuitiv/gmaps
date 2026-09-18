@@ -84,6 +84,7 @@
         "css": "postcss ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "css-watch": "postcss --watch ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "lint": "eslint --fix --ext .js,.ts ./src",
+        "prepare": "npm run build",
         "site-build": "eleventy",
         "site-serve": "eleventy --serve --incremental",
         "test": "vitest run",
