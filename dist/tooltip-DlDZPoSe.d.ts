@@ -20,6 +20,16 @@ declare class Base {
     /**
      * Include the mixin into the class
      *
+     * The mixin's own properties are copied onto the class prototype with their descriptors, so
+     * that getters and setters arrive as getters and setters. Object.assign() was used here before,
+     * which reads the value a getter returns and copies that instead, leaving a static value on the
+     * prototype and no accessor - and it did so silently, so a mixin written with a getter appeared
+     * to work until the value needed to change.
+     *
+     * Note that a property holding a mutable value is still shared by every instance, because it
+     * lives on the prototype rather than on each object. That is how prototypes work and isn't
+     * something this can fix. Assign in a method (this.thing = []) to give each object its own.
+     *
      * https://javascript.info/mixins
      * https://www.digitalocean.com/community/tutorials/js-using-js-mixins
      *
@@ -3506,6 +3516,7 @@ declare const infoWindow: (options?: InfoWindowValue) => InfoWindow;
 
 type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
+type InitHook = (map: Map) => void;
 type GMEvent = 'bounds_changed' | 'center_changed' | 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'heading_changed' | 'idle' | 'isfractionalzoomenabled_changed' | 'mapcapabilities_changed' | 'maptypeid_changed' | 'mousemove' | 'mouseout' | 'mouseover' | 'projection_changed' | 'renderingtype_changed' | 'tilesloaded' | 'tilt_changed' | 'zoom_changed';
 type MapEvent = GMEvent | InternalEvent;
 /**
@@ -3546,12 +3557,26 @@ declare class Map extends Evented {
      */
     attachInfoWindow(infoWindowValue: InfoWindowValue, event?: 'click' | 'clickon' | 'hover'): InfoWindow;
     /**
-     * Class constructor
+     * Add a function to run against every map that is created from now on.
      *
-     * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-     *      The selector can be any valid selector for document.querySelector() can be used. Or, it can be an HTML element
-     * @param {MapOptions} [options] The options object for the map
+     * This is how a plugin attaches itself to every map on a page without the site having to call
+     * it for each one. The function is called as the map is constructed, after its options have
+     * been set and before it has been rendered, with the map as both "this" and its first argument.
+     *
+     * Two things to know about it:
+     *
+     * 1. It only applies to maps created after the hook is added, not to ones that already exist.
+     *    A plugin therefore has to be loaded before the maps it means to attach to. In the browser
+     *    that means its script tag comes before the code that creates the map.
+     * 2. The map isn't rendered yet when the hook runs, so toGoogle() returns undefined. Anything
+     *    that needs the Google map object should wait for the "ready" event.
+     *
+     * A hook that throws is logged and the rest still run, so that one plugin can't stop a map
+     * from being created.
+     *
+     * @param {InitHook} callback The function to call for each new map
      */
+    static addInitHook(callback: InitHook): void;
     constructor(selector: string | HTMLElement, options?: MapOptions);
     /**
      * Get the center point for the map
@@ -5338,4 +5363,4 @@ declare class DataFeature extends Layer {
 }
 type DataFeatureValue = DataFeature | string | number;
 
-export { type MapStyleOptions as $, latLng as A, Base as B, type LatLngLiteral as C, DataFeature as D, Evented as E, type FeatureProperties as F, type LatLngLiteralExpanded as G, latLngBounds as H, Icon as I, type LatLngBoundsEdges as J, type LatLngBoundsLiteral as K, LatLngBounds as L, Map as M, map as N, Overlay as O, Point as P, type MapType as Q, fullscreenControl as R, SvgSymbol as S, type TooltipValue as T, FullscreenControl as U, type FullscreenControlOptions as V, mapRestriction as W, MapRestriction as X, type MapRestrictionOptions as Y, mapStyle as Z, MapStyle as _, LatLng as a, InfoWindow as a$, mapTypeControl as a0, MapTypeControl as a1, type MapTypeControlOptions as a2, rotateControl as a3, RotateControl as a4, type RotateControlOptions as a5, scaleControl as a6, ScaleControl as a7, type ScaleControlOptions as a8, streetViewControl as a9, GeocoderErrorStatus as aA, type GeocoderErrorStatusValue as aB, GeocoderLocationType as aC, type GeocoderLocationTypeValue as aD, ImageOverlayEvents as aE, InfoWindowEvents as aF, LayerEvents as aG, LoaderEvents as aH, MapEvents as aI, MapTypeControlStyle as aJ, type MapTypeControlStyleValue as aK, convertMapTypeControlStyle as aL, MapTypeId as aM, type MapTypeIdValue as aN, MarkerEvents as aO, OverlayEvents as aP, PlacesSearchBoxEvents as aQ, PolylineEvents as aR, PopupEvents as aS, RenderingType as aT, type RenderingTypeValue as aU, StreetViewSource as aV, type StreetViewSourceValue as aW, SymbolPath as aX, type SymbolPathValue as aY, convertSymbolPath as aZ, infoWindow as a_, StreetViewControl as aa, type StreetViewControlOptions as ab, zoomControl as ac, ZoomControl as ad, type ZoomControlOptions as ae, type LocationOnSuccess as af, type LocateOptions as ag, type LocationPosition as ah, type MapOptions as ai, overlay as aj, point as ak, type PointObject as al, size as am, Size as an, type SizeObject as ao, svgSymbol as ap, type SvgSymbolOptions as aq, READY_EVENT as ar, INTERNAL_EVENTS as as, AutocompleteSearchBoxEvents as at, ControlPosition as au, type ControlPositionValue as av, convertControlPosition as aw, DataLayerEvents as ax, GeometryType as ay, type GeometryTypeValue as az, type LatLngBoundsValue as b, type InfoWindowOptions as b0, type InfoWindowValue as b1, type AttachPopupValue as b2, closeAllPopups as b3, type DataPopupCallback as b4, type DataPopupValue as b5, popup as b6, Popup as b7, type PopupCallback as b8, type PopupOptions as b9, type PopupValue as ba, type AttachTooltipValue as bb, type DataTooltipCallback as bc, type DataTooltipValue as bd, tooltip as be, Tooltip as bf, type TooltipCallback as bg, type TooltipOptions as bh, type LatLngValue as c, type Event as d, type EventListenerOptions as e, type EventConfig as f, Layer as g, type PointValue as h, type IconValue as i, type SvgSymbolValue as j, type EventCallback as k, type SizeValue as l, type EventListenerData as m, type DataFeatureValue as n, dataLayer as o, DataLayer as p, type DataLayerEventCallback as q, type DataLayerEventObject as r, type DataLayerOptions as s, type DataLayerValue as t, type DataStyleOptions as u, type DataStyleValue as v, type FeatureOptions as w, type LoadOptions as x, icon as y, type IconOptions as z };
+export { MapStyle as $, latLng as A, Base as B, type LatLngLiteral as C, DataFeature as D, Evented as E, type FeatureProperties as F, type LatLngLiteralExpanded as G, latLngBounds as H, Icon as I, type LatLngBoundsEdges as J, type LatLngBoundsLiteral as K, LatLngBounds as L, Map as M, type InitHook as N, Overlay as O, Point as P, map as Q, type MapType as R, SvgSymbol as S, type TooltipValue as T, fullscreenControl as U, FullscreenControl as V, type FullscreenControlOptions as W, mapRestriction as X, MapRestriction as Y, type MapRestrictionOptions as Z, mapStyle as _, LatLng as a, infoWindow as a$, type MapStyleOptions as a0, mapTypeControl as a1, MapTypeControl as a2, type MapTypeControlOptions as a3, rotateControl as a4, RotateControl as a5, type RotateControlOptions as a6, scaleControl as a7, ScaleControl as a8, type ScaleControlOptions as a9, type GeometryTypeValue as aA, GeocoderErrorStatus as aB, type GeocoderErrorStatusValue as aC, GeocoderLocationType as aD, type GeocoderLocationTypeValue as aE, ImageOverlayEvents as aF, InfoWindowEvents as aG, LayerEvents as aH, LoaderEvents as aI, MapEvents as aJ, MapTypeControlStyle as aK, type MapTypeControlStyleValue as aL, convertMapTypeControlStyle as aM, MapTypeId as aN, type MapTypeIdValue as aO, MarkerEvents as aP, OverlayEvents as aQ, PlacesSearchBoxEvents as aR, PolylineEvents as aS, PopupEvents as aT, RenderingType as aU, type RenderingTypeValue as aV, StreetViewSource as aW, type StreetViewSourceValue as aX, SymbolPath as aY, type SymbolPathValue as aZ, convertSymbolPath as a_, streetViewControl as aa, StreetViewControl as ab, type StreetViewControlOptions as ac, zoomControl as ad, ZoomControl as ae, type ZoomControlOptions as af, type LocationOnSuccess as ag, type LocateOptions as ah, type LocationPosition as ai, type MapOptions as aj, overlay as ak, point as al, type PointObject as am, size as an, Size as ao, type SizeObject as ap, svgSymbol as aq, type SvgSymbolOptions as ar, READY_EVENT as as, INTERNAL_EVENTS as at, AutocompleteSearchBoxEvents as au, ControlPosition as av, type ControlPositionValue as aw, convertControlPosition as ax, DataLayerEvents as ay, GeometryType as az, type LatLngBoundsValue as b, InfoWindow as b0, type InfoWindowOptions as b1, type InfoWindowValue as b2, type AttachPopupValue as b3, closeAllPopups as b4, type DataPopupCallback as b5, type DataPopupValue as b6, popup as b7, Popup as b8, type PopupCallback as b9, type PopupOptions as ba, type PopupValue as bb, type AttachTooltipValue as bc, type DataTooltipCallback as bd, type DataTooltipValue as be, tooltip as bf, Tooltip as bg, type TooltipCallback as bh, type TooltipOptions as bi, type LatLngValue as c, type Event as d, type EventListenerOptions as e, type EventConfig as f, Layer as g, type PointValue as h, type IconValue as i, type SvgSymbolValue as j, type EventCallback as k, type SizeValue as l, type EventListenerData as m, type DataFeatureValue as n, dataLayer as o, DataLayer as p, type DataLayerEventCallback as q, type DataLayerEventObject as r, type DataLayerOptions as s, type DataLayerValue as t, type DataStyleOptions as u, type DataStyleValue as v, type FeatureOptions as w, type LoadOptions as x, icon as y, type IconOptions as z };

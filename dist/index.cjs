@@ -173,13 +173,23 @@ var Base = class {
   /**
    * Include the mixin into the class
    *
+   * The mixin's own properties are copied onto the class prototype with their descriptors, so
+   * that getters and setters arrive as getters and setters. Object.assign() was used here before,
+   * which reads the value a getter returns and copies that instead, leaving a static value on the
+   * prototype and no accessor - and it did so silently, so a mixin written with a getter appeared
+   * to work until the value needed to change.
+   *
+   * Note that a property holding a mutable value is still shared by every instance, because it
+   * lives on the prototype rather than on each object. That is how prototypes work and isn't
+   * something this can fix. Assign in a method (this.thing = []) to give each object its own.
+   *
    * https://javascript.info/mixins
    * https://www.digitalocean.com/community/tutorials/js-using-js-mixins
    *
    * @param {any} mixin The mixin to include
    */
   static include(mixin) {
-    Object.assign(this.prototype, mixin);
+    Object.defineProperties(this.prototype, Object.getOwnPropertyDescriptors(mixin));
   }
   /**
    * Returns if the object is an Icon object
@@ -7009,14 +7019,7 @@ var hideFeatureTypes = {
   hidePointsOfInterest: "poi",
   hideTransit: "transit"
 };
-var Map2 = class extends Evented {
-  /**
-   * Class constructor
-   *
-   * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
-   *      The selector can be any valid selector for document.querySelector() can be used. Or, it can be an HTML element
-   * @param {MapOptions} [options] The options object for the map
-   */
+var Map2 = class _Map extends Evented {
   constructor(selector, options) {
     super("map", "Map");
     /**
@@ -7246,6 +7249,7 @@ var Map2 = class extends Evented {
     if (isObject(options)) {
       this.setOptions(options);
     }
+    this.#runInitHooks();
   }
   /* eslint-disable jsdoc/require-returns-check -- These placeholders throw rather than return. See below. */
   /**
@@ -7390,6 +7394,61 @@ var Map2 = class extends Evented {
    * @type {ZoomControl}
    */
   #zoomControl;
+  /**
+   * Class constructor
+   *
+   * @param {string|HTMLElement} selector The selector of the element that the map will be rendered in. Or the HTMLElement that the map will be rendered in.
+   *      The selector can be any valid selector for document.querySelector() can be used. Or, it can be an HTML element
+   * @param {MapOptions} [options] The options object for the map
+   */
+  /**
+   * Holds the functions to run against every map as it is created.
+   *
+   * Static, so that a plugin can add one without a reference to any particular map.
+   *
+   * @private
+   * @type {InitHook[]}
+   */
+  static #initHooks = [];
+  /**
+   * Add a function to run against every map that is created from now on.
+   *
+   * This is how a plugin attaches itself to every map on a page without the site having to call
+   * it for each one. The function is called as the map is constructed, after its options have
+   * been set and before it has been rendered, with the map as both "this" and its first argument.
+   *
+   * Two things to know about it:
+   *
+   * 1. It only applies to maps created after the hook is added, not to ones that already exist.
+   *    A plugin therefore has to be loaded before the maps it means to attach to. In the browser
+   *    that means its script tag comes before the code that creates the map.
+   * 2. The map isn't rendered yet when the hook runs, so toGoogle() returns undefined. Anything
+   *    that needs the Google map object should wait for the "ready" event.
+   *
+   * A hook that throws is logged and the rest still run, so that one plugin can't stop a map
+   * from being created.
+   *
+   * @param {InitHook} callback The function to call for each new map
+   */
+  static addInitHook(callback) {
+    if (isFunction(callback)) {
+      _Map.#initHooks.push(callback);
+    }
+  }
+  /**
+   * Run the functions that were registered with addInitHook()
+   *
+   * @private
+   */
+  #runInitHooks() {
+    _Map.#initHooks.forEach((hook) => {
+      try {
+        hook.call(this, this);
+      } catch (error) {
+        console.error("A map init hook threw an error. The map was still created.", error);
+      }
+    });
+  }
   /**
    * Get the center point for the map
    *

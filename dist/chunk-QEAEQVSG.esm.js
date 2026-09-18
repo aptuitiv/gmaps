@@ -19,7 +19,7 @@ import {
   loader,
   objectHasValue,
   svgSymbol
-} from "./chunk-IDBS76XJ.esm.js";
+} from "./chunk-7O6XY2MX.esm.js";
 
 // src/lib/PolylineIcon.ts
 var PolylineIcon = class extends Base_default {
