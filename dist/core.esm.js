@@ -17,15 +17,6 @@ import {
   polylineCollection
 } from "./chunk-WU4MMDZJ.esm.js";
 import {
-  InfoWindow,
-  infoWindow
-} from "./chunk-BN5PMNFJ.esm.js";
-import {
-  Popup,
-  closeAllPopups,
-  popup
-} from "./chunk-BDBEFLPR.esm.js";
-import {
   DEFAULT_SIMPLIFY_TOLERANCE,
   DEFAULT_SIMPLIFY_ZOOM,
   Polyline,
@@ -38,10 +29,6 @@ import {
   Marker,
   marker
 } from "./chunk-YLGNAECT.esm.js";
-import {
-  Tooltip,
-  tooltip
-} from "./chunk-QRMTIYGG.esm.js";
 import {
   Overlay,
   overlay
@@ -159,7 +146,6 @@ export {
   Icon,
   ImageOverlay,
   ImageOverlayEvents,
-  InfoWindow,
   InfoWindowEvents,
   LatLng,
   LatLngBounds,
@@ -187,7 +173,6 @@ export {
   PolylineCollection,
   PolylineEvents,
   PolylineIcon,
-  Popup,
   PopupEvents,
   READY_EVENT,
   RenderingType,
@@ -198,13 +183,11 @@ export {
   StreetViewSource,
   SvgSymbol,
   SymbolPath,
-  Tooltip,
   ZoomControl,
   autocompleteSearchBox,
   calculateDimensions,
   callCallback,
   checkForGoogleMaps,
-  closeAllPopups,
   convertControlPosition,
   convertMapTypeControlStyle,
   convertSymbolPath,
@@ -217,7 +200,6 @@ export {
   getSizeWithUnit,
   icon,
   imageOverlay,
-  infoWindow,
   isBoolean,
   isDefined,
   isFunction,
@@ -251,7 +233,6 @@ export {
   polyline,
   polylineCollection,
   polylineIcon,
-  popup,
   renderTemplate,
   rotateControl,
   scaleControl,
@@ -259,6 +240,5 @@ export {
   size,
   streetViewControl,
   svgSymbol,
-  tooltip,
   zoomControl
 };

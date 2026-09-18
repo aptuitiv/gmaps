@@ -19,6 +19,31 @@ const sidebars: SidebarsConfig = {
         'intro',
         {
             type: 'category',
+            label: 'Installation',
+            link: {
+                type: 'doc',
+                id: 'installation/index',
+            },
+            items: [
+                {
+                    type: 'doc',
+                    id: 'installation/bundler',
+                    label: 'Bundler (ESM)',
+                },
+                {
+                    type: 'doc',
+                    id: 'installation/browser',
+                    label: 'Standalone browser script',
+                },
+                {
+                    type: 'doc',
+                    id: 'installation/commonjs',
+                    label: 'CommonJS',
+                },
+            ],
+        },
+        {
+            type: 'category',
             label: 'Guides',
             link: {
                 type: 'generated-index',

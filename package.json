@@ -16,22 +16,71 @@
                 "types": "./dist/index.d.cts",
                 "default": "./dist/index.cjs"
             }
-        }
+        },
+        "./core": {
+            "import": {
+                "types": "./dist/core.d.ts",
+                "default": "./dist/core.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./infowindow": {
+            "import": {
+                "types": "./dist/infowindow.d.ts",
+                "default": "./dist/infowindow.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./popup": {
+            "import": {
+                "types": "./dist/popup.d.ts",
+                "default": "./dist/popup.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./tooltip": {
+            "import": {
+                "types": "./dist/tooltip.d.ts",
+                "default": "./dist/tooltip.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./package.json": "./package.json"
     },
     "files": [
         "dist",
         "CHANGELOG.md"
     ],
     "sideEffects": [
+        "**/InfoWindow.*",
         "**/Popup.*",
         "**/Tooltip.*",
-        "**/InfoWindow.*"
+        "**/browser.js",
+        "**/chunk-*.esm.js",
+        "**/index.cjs",
+        "**/index.esm.js",
+        "**/infowindow.esm.js",
+        "**/popup.esm.js",
+        "**/tooltip.esm.js"
     ],
     "engines": {
         "node": ">=20.0.0"
     },
     "scripts": {
-        "build": "tsup",
+        "build": "npm run clean && tsup",
+        "clean": "node -e \"const fs = require('fs'); fs.mkdirSync('dist', { recursive: true }); for (const f of fs.readdirSync('dist')) { fs.rmSync('dist/' + f, { force: true, recursive: true }); }\"",
         "css": "postcss ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "css-watch": "postcss --watch ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "lint": "eslint --fix --ext .js,.ts ./src",
@@ -62,6 +111,7 @@
         "cacao-css": "^8.1.0",
         "cssnano": "^9.0.4",
         "dotenv": "^17.4.2",
+        "esbuild": "^0.27.7",
         "esbuild-plugin-eslint": "^0.3.12",
         "eslint": "^9.39.5",
         "eslint-config-prettier": "^10.1.8",
