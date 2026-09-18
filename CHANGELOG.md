@@ -7,6 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- Added separate entry points so that a project can leave out the parts of the library it doesn't use. `@aptuitiv/gmaps` still contains everything and is unchanged. `@aptuitiv/gmaps/core` is everything except popups, tooltips and InfoWindows, and `@aptuitiv/gmaps/popup`, `@aptuitiv/gmaps/tooltip` and `@aptuitiv/gmaps/infowindow` add those back. Importing `latLng` from `/core` bundles about 8 KB where the main entry point bundles about 111 KB, and a map with markers is about 69 KB. See the new [installation documentation](https://aptuitiv.github.io/gmaps-docs/installation).
+- Added an installation section to the documentation with a page for each way of using the library: a bundler, the standalone browser script, and CommonJS.
+
+### Fixed
+
+- `map.attachPopup()`, `map.attachTooltip()` and `map.attachInfoWindow()` are now typed. They worked at runtime but Typescript rejected them with "Property does not exist on type 'Map'", because `Map` doesn't extend `Layer` and so never picked up the type that made the same calls work on markers and polylines.
+
+### Changed
+
+- The ESM build is now split into shared chunks instead of one file, so that the entry points share the code they have in common rather than each carrying a copy. Anyone importing `@aptuitiv/gmaps` normally doesn't need to do anything. Code that referred to `dist/index.esm.js` as a standalone file will need to copy the whole `dist` folder instead, or use the `dist/browser.js` build, which is still a single self-contained file.
+- Calling `attachPopup()`, `attachTooltip()` or `attachInfoWindow()` without having imported the module that provides it now throws an error saying which import to add. It used to fail with "attachPopup is not a function". This only happens when importing from `@aptuitiv/gmaps/core`; the main entry point includes all three.
+- The build now removes `dist` before it runs, so that old content-hashed chunk files don't accumulate.
+
 ## [v0.29.0] - 2026-09-17
 
 ### Added

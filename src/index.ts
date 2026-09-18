@@ -1,78 +1,14 @@
 /* ===========================================================================
     Main file for the Google Map Display library for importing into other projects.
+
+    This entry point includes everything: the core library plus popups, tooltips and
+    InfoWindows. It's the one to use unless you want to keep the features you don't use out of
+    your bundle, in which case import from '@aptuitiv/gmaps/core' and add the feature entry
+    points you need. See the installation documentation.
 =========================================================================== */
 
-// The classes are exported so that developers can use them at types within their own code.
-// It's not intended that they used directly.
-// For example, the marker() function should be used to create a new Marker object
-// rather than using the Marker class directly.
-
-export { default as Base } from './lib/Base';
-export * from './lib/constants';
-export { Event, EventCallback, EventConfig, EventListenerOptions, Evented } from './lib/Evented';
-export { geocode, Geocode, GeocodeComponentRestrictions, GeocodeOptions } from './lib/Geocode';
-export { default as GeocodeResult } from './lib/Geocode/Result';
-export { default as GeocodeResults } from './lib/Geocode/Results';
-export * from './lib/helpers';
-export {
-    autocompleteSearchBox,
-    AutocompleteSearchBox,
-    AutocompleteSearchBoxOptions,
-    AutocompleteSearchBoxValue,
-} from './lib/AutocompleteSearchBox';
-export { DataFeature, DataFeatureValue, FeatureProperties } from './lib/DataFeature';
-export {
-    dataLayer,
-    DataLayer,
-    DataLayerEventCallback,
-    DataLayerEventObject,
-    DataLayerOptions,
-    DataLayerValue,
-    DataStyleOptions,
-    DataStyleValue,
-    FeatureOptions,
-    LoadOptions,
-} from './lib/DataLayer';
-export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
+export * from './core';
 export { infoWindow, InfoWindow, InfoWindowOptions, InfoWindowValue } from './lib/InfoWindow';
-export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';
-export {
-    latLngBounds,
-    LatLngBounds,
-    LatLngBoundsValue,
-    LatLngBoundsEdges,
-    LatLngBoundsLiteral,
-} from './lib/LatLngBounds';
-export { default as Layer } from './lib/Layer';
-export { loader, Loader, LoaderOptions } from './lib/Loader';
-export { map, Map, MapType } from './lib/Map';
-export { fullscreenControl, FullscreenControl, FullscreenControlOptions } from './lib/Map/FullscreenControl';
-export { mapRestriction, MapRestriction, MapRestrictionOptions } from './lib/Map/MapRestriction';
-export { mapStyle, MapStyle, MapStyleOptions } from './lib/Map/MapStyle';
-export { mapTypeControl, MapTypeControl, MapTypeControlOptions } from './lib/Map/MapTypeControl';
-export { rotateControl, RotateControl, RotateControlOptions } from './lib/Map/RotateControl';
-export { scaleControl, ScaleControl, ScaleControlOptions } from './lib/Map/ScaleControl';
-export { streetViewControl, StreetViewControl, StreetViewControlOptions } from './lib/Map/StreetViewControl';
-export { zoomControl, ZoomControl, ZoomControlOptions } from './lib/Map/ZoomControl';
-export { LocationOnSuccess, LocateOptions, LocationPosition, MapOptions } from './lib/Map/types';
-export { marker, Marker, MarkerLabel, MarkerOptions, MarkerValue } from './lib/Marker';
-export {
-    markerCluster,
-    DefaultRenderOptions,
-    ImageRendererOptions,
-    MarkerCluster,
-    MarkerClusterOptions,
-} from './lib/MarkerCluster';
-export { markerCollection, MarkerCollection } from './lib/MarkerCollection';
-export { overlay, Overlay } from './lib/Overlay';
-export { AttachEventValue } from './lib/OverlayAttachment';
-export { imageOverlay, ImageOverlay, ImageOverlayOptions, ImageOverlayValue } from './lib/ImageOverlay';
-export { placesSearchBox, PlacesSearchBox, PlacesSearchBoxOptions, PlacesSearchBoxValue } from './lib/PlacesSearchBox';
-export { point, Point, PointObject, PointValue } from './lib/Point';
-export { polyline, Polyline, PolylineOptions, PolylineSimplifyOptions, PolylineValue } from './lib/Polyline';
-export { polylineCollection, PolylineCollection } from './lib/PolylineCollection';
-export { polylineIcon, PolylineIcon, PolylineIconOptions, PolylineIconValue } from './lib/PolylineIcon';
-export { DEFAULT_SIMPLIFY_TOLERANCE, DEFAULT_SIMPLIFY_ZOOM, simplifyPath } from './lib/simplifyPath';
 export {
     AttachPopupValue,
     closeAllPopups,
@@ -84,8 +20,6 @@ export {
     PopupOptions,
     PopupValue,
 } from './lib/Popup';
-export { size, Size, SizeObject, SizeValue } from './lib/Size';
-export { svgSymbol, SvgSymbol, SvgSymbolOptions, SvgSymbolValue } from './lib/SvgSymbol';
 export {
     AttachTooltipValue,
     DataTooltipCallback,

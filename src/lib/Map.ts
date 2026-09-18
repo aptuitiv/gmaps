@@ -42,6 +42,7 @@ import {
 } from './helpers';
 import { LatLng, latLng, LatLngValue } from './LatLng';
 import { Evented, EventCallback, EventConfig, EventListenerOptions } from './Evented';
+import { missingFeatureMessage } from './missingFeature';
 import { fullscreenControl, FullscreenControl } from './Map/FullscreenControl';
 import { mapRestriction, MapRestriction, MapRestrictionValue } from './Map/MapRestriction';
 import { mapTypeControl, MapTypeControl } from './Map/MapTypeControl';
@@ -51,6 +52,9 @@ import { rotateControl, RotateControl } from './Map/RotateControl';
 import { scaleControl, ScaleControl } from './Map/ScaleControl';
 import { streetViewControl, StreetViewControl } from './Map/StreetViewControl';
 import { zoomControl, ZoomControl } from './Map/ZoomControl';
+import type { AttachPopupValue, Popup } from './Popup';
+import type { AttachTooltipValue, Tooltip, TooltipConfig } from './Tooltip';
+import type { InfoWindow, InfoWindowValue } from './InfoWindow';
 
 // Based on google.maps.MapTypeId
 export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
@@ -108,6 +112,52 @@ type MapOptionsWithDefaults = GMMapOptions & Required<Pick<GMMapOptions, 'center
  * The map class
  */
 export class Map extends Evented {
+    /* eslint-disable jsdoc/require-returns-check -- These placeholders throw rather than return. See below. */
+    /**
+     * Placeholders for the methods that the optional feature modules add to this class.
+     *
+     * Importing the popup, tooltip or InfoWindow module runs an include() that replaces each of
+     * these with the real method. The signatures here match the ones those modules install, so the
+     * types are the same either way. Only the body differs, and it only ever runs when the matching
+     * module hasn't been imported - which is possible when importing from '@aptuitiv/gmaps/core'
+     * rather than '@aptuitiv/gmaps'. Without these the call fails with "attachPopup is not a
+     * function", which doesn't say what to do about it.
+     *
+     * @param {AttachPopupValue} popupValue The content for the Popup, or the Popup options object, or
+     *      the Popup object, or a function that returns one of those.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup.
+     * @returns {Popup}
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, class-methods-use-this
+    attachPopup(popupValue: AttachPopupValue, event?: 'click' | 'clickon' | 'hover'): Popup {
+        throw new Error(missingFeatureMessage('attachPopup', 'popup'));
+    }
+
+    /**
+     * @inheritdoc
+     * @param {AttachTooltipValue|TooltipConfig} tooltipValue The content for the Tooltip, or the
+     *      Tooltip options object, or the Tooltip object, or a function that returns one of those.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip.
+     * @returns {Tooltip}
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, class-methods-use-this
+    attachTooltip(tooltipValue: AttachTooltipValue | TooltipConfig, event?: 'click' | 'clickon' | 'hover'): Tooltip {
+        throw new Error(missingFeatureMessage('attachTooltip', 'tooltip'));
+    }
+
+    /**
+     * @inheritdoc
+     * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow
+     *      options object, or the InfoWindow object.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the InfoWindow.
+     * @returns {InfoWindow}
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, class-methods-use-this
+    attachInfoWindow(infoWindowValue: InfoWindowValue, event?: 'click' | 'clickon' | 'hover'): InfoWindow {
+        throw new Error(missingFeatureMessage('attachInfoWindow', 'infowindow'));
+    }
+    /* eslint-enable jsdoc/require-returns-check */
+
     /**
      * The bounds to fit the map to
      *

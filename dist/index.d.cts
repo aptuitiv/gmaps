@@ -3527,6 +3527,1217 @@ type LocationPosition = {
 };
 type LocationOnSuccess = (position: LocationPosition) => void;
 
+type ResizeStart = {
+    neBounds: LatLng;
+    nwPos: {
+        x: number;
+        y: number;
+    };
+    swBounds: LatLng;
+    sePos: {
+        x: number;
+        y: number;
+    };
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+};
+/**
+ * Base class to help with drawing overlays on the map.
+ *
+ * The methods are purposely left blank so you can override them in your own class.
+ * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
+ */
+declare class Overlay extends Layer {
+    #private;
+    /**
+     * The corner being resized (nw, ne, sw, se)
+     *
+     * @protected
+     * @type {string}
+     */
+    resizeCorner: string;
+    /**
+     * The starting bounds when resizing begins
+     *
+     * @protected
+     * @type {object}
+     */
+    resizeStart?: ResizeStart;
+    /**
+     * Constructor
+     *
+     * @param {string} objectType The object type for the class
+     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
+     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
+     */
+    constructor(objectType: string, testObject: string, testLibrary?: string);
+    /**
+     * Get the class name for the overlay element
+     *
+     * @returns {string}
+     */
+    get className(): string;
+    /**
+     * Set the class name(s) for the overlay element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the overlay.
+     *    This can be a space separated list of class names.
+     */
+    set className(className: string);
+    /**
+     * Returns whether dragging is enabled
+     *
+     * @returns {boolean}
+     */
+    get drag(): boolean;
+    /**
+     * Set whether dragging is enabled
+     *
+     * @param {boolean} drag Whether dragging is enabled
+     */
+    set drag(drag: boolean);
+    /**
+     * Returns the offset value
+     *
+     * @returns {Point}
+     */
+    get offset(): Point;
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param {PointValue} value The offset value
+     */
+    set offset(value: PointValue);
+    /**
+     * Returns the position of the overlay
+     *
+     * @returns {LatLng|undefined}
+     */
+    get position(): LatLng | undefined;
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue|undefined} value The position of the overlay. Pass undefined to clear the position.
+     */
+    set position(value: LatLngValue | undefined);
+    /**
+     * Returns whether resizing is enabled
+     *
+     * @returns {boolean}
+     */
+    get resize(): boolean;
+    /**
+     * Set whether resizing is enabled
+     *
+     * @param {boolean} resize Whether resizing is enabled
+     */
+    set resize(resize: boolean);
+    /**
+     * Returns the styles for the overlay element
+     *
+     * @returns {object}
+     */
+    get styles(): object;
+    /**
+     * Set multiple styles for the overlay element
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     */
+    set styles(styles: object);
+    /**
+     * Disable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableDrag(): Overlay;
+    /**
+     * Disable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    disableResize(): Overlay;
+    /**
+     * Display the overlay on the map
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    display(map: Map): Promise<Overlay>;
+    /**
+     * Enable dragging for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableDrag(): Overlay;
+    /**
+     * Enable resizing for this overlay
+     *
+     * @returns {Overlay}
+     */
+    enableResize(): Overlay;
+    /**
+     * Get the bounds where the overlay should be displayed
+     *
+     * This method should be overridden by subclasses and not called directly.
+     *
+     * @returns {LatLngBounds|undefined}
+     */
+    getBounds(): LatLngBounds | undefined;
+    /**
+     * Computes the geographical coordinates from pixel coordinates in the map's container.
+     *
+     * This is a shortcut to getting the projection from the overlay and then calling
+     * fromContainerPixelToLatLng on the projection with the pixel value.
+     *
+     * @param {PointValue} x The Point value or the x numeric point value.
+     * @param {number} [y] The y value if x is a number.
+     * @returns {LatLng}
+     */
+    getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng;
+    /**
+     * Computes the geographical coordinates from pixel coordinates in the div that holds the draggable map.
+     *
+     * This is a shortcut to getting the projection from the overlay and then calling
+     * fromDivPixelToLatLng on the projection with the pixel value.
+     *
+     * @param {PointValue} x The Point value or the x numeric point value.
+     * @param {number} [y] The y value if x is a number.
+     * @returns {LatLng}
+     */
+    getDivLatLngFromPixel(x: PointValue, y?: number): LatLng;
+    /**
+     * Get the offset value
+     *
+     * @returns {Point}
+     */
+    getOffset(): Point;
+    /**
+     * Get the overlay HTML element
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
+    /**
+     * Get the position of the overlay
+     *
+     * @returns {LatLng|undefined}
+     */
+    getPosition(): LatLng | undefined;
+    /**
+     * Returns the MapCanvasProjection object associated with this OverlayView.
+     *
+     * The projection is not initialized until onAdd is called by the API.
+     * This returns undefined if the Google maps overlay view hasn't been set up yet.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
+     *
+     * @returns {google.maps.MapCanvasProjection|undefined}
+     */
+    getProjection(): google.maps.MapCanvasProjection | undefined;
+    /**
+     * Get the current aspect ratio for resizing
+     *
+     * @returns {number}
+     */
+    getResizeAspectRatio(): number;
+    /**
+     * Returns whether the overlay has a position
+     *
+     * @returns {boolean}
+     */
+    hasPosition(): boolean;
+    /**
+     * Hide the overlay
+     *
+     * @returns {Overlay}
+     */
+    hide(): Overlay;
+    /**
+     * Returns whether the overlay is draggable
+     *
+     * @returns {boolean}
+     */
+    isDraggable(): boolean;
+    /**
+     * Moves the overlay to a new position.
+     *
+     * If the overlay is not visible, it will be shown.
+     * If it's already visible on the map, it will be moved to the new position.
+     *
+     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show
+     * @param {Map} [map] The Map object
+     * @returns {Promise<Overlay>}
+     */
+    move(position: LatLngValue | undefined, map?: Map): Promise<Overlay>;
+    /**
+     * Add an event listener for when dragging ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when dragging updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDrag(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the overlay draggable property changes
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDraggableChanged(callback: EventCallback): void;
+    /**
+     * Add an event listener for when dragging the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onDragStart(callback: EventCallback): void;
+    /**
+     * Add an event listener for when the overlay is opened.
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onOpen(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing ends
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeEnd(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing updates the overlay position
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResize(callback: EventCallback): void;
+    /**
+     * Add an event listener for when resizing the overlay starts
+     *
+     * @param {EventCallback} callback The callback function to call when the event is dispatched.
+     */
+    onResizeStart(callback: EventCallback): void;
+    /**
+     * Removes a class name from the overlay element
+     *
+     * @param {string} className The class name to remove from the overlay element
+     * @returns {Overlay}
+     */
+    removeClassName(className: string): Overlay;
+    /**
+     * Set the class name(s) for the overlay element
+     *
+     * If you need multiple class names then separate them with a space.
+     *
+     * @param {string} className The class name(s) to add to the overlay.
+     *    This can be a space separated list of class names.
+     * @returns {Overlay}
+     */
+    setClassName(className: string): Overlay;
+    /**
+     * Set the map object to display the overlay in
+     *
+     * Alias to show()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    setMap(map: Map): Promise<Overlay>;
+    /**
+     * Set the x,y offset for the overlay
+     *
+     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
+     *
+     * @param {PointValue} offset The offset value
+     * @returns {Overlay}
+     */
+    setOffset(offset: PointValue): Overlay;
+    /**
+     * Set the position of the overlay
+     *
+     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show.
+     *    Pass undefined to clear the position.
+     * @returns {Overlay}
+     */
+    setPosition(position: LatLngValue | undefined): Overlay;
+    /**
+     * Set the aspect ratio to maintain during resizing
+     *
+     * @param {number} aspectRatio The aspect ratio (width / height)
+     * @returns {Overlay}
+     */
+    setResizeAspectRatio(aspectRatio: number): Overlay;
+    /**
+     * Set one more styles for the overlay element. This will merge styles with an existing ones.
+     *
+     * @param {object} styles The styles to apply to the overlay element
+     * @returns {Overlay}
+     */
+    setStyles(styles: object): Overlay;
+    /**
+     * Add the overlay to the map.
+     *
+     * Alias for setMap()
+     *
+     * @param {Map} map The Map object
+     * @returns {Promise<Overlay>}
+     */
+    show(map: Map): Promise<Overlay>;
+    /**
+     * Set a single style on the overlay element
+     *
+     * @param {string} name The style name
+     * @param {string} value The style value
+     * @returns {Overlay}
+     */
+    style(name: string, value: string): Overlay;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map} map The map object
+     * @returns {void}
+     */
+    toggle(map: Map): void;
+    /**
+     * Update bounds from current position
+     *
+     * @protected
+     */
+    updateBoundsFromPosition(): void;
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
+     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
+     */
+    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
+    /**
+     * Update bounds from resize
+     *
+     * @protected
+     * @param {LatLng} newLatLng The new lat/lng position
+     */
+    updateBoundsFromResize(newLatLng: LatLng): void;
+    /**
+     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+    /**
+     * Remove the overlay from the map.
+     * This method is called once following a call to setMap(null).
+     *
+     * This is called by the internal OverlayView class. It should not be called directly.
+     *
+     * @internal
+     */
+    remove(): void;
+}
+/**
+ * Helper function to set up the overlay object
+ *
+ * @returns {Overlay}
+ */
+declare const overlay: () => Overlay;
+
+type PopupOptions = {
+    autoClose?: boolean;
+    center?: boolean;
+    className?: string;
+    clearance?: SizeValue;
+    closeElement?: HTMLElement | string;
+    content: string | HTMLElement | Text;
+    event?: string;
+    fit?: boolean;
+    offset?: PointValue;
+    styles?: object;
+    theme?: string;
+};
+/**
+ * Popup class
+ */
+declare class Popup extends Overlay {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
+     */
+    constructor(options?: PopupOptions | string | HTMLElement | Text);
+    /**
+     * Get the autoClose value
+     *
+     * @returns {boolean}
+     */
+    get autoClose(): boolean;
+    /**
+     * Set the autoClose value
+     *
+     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
+     */
+    set autoClose(autoClose: boolean);
+    /**
+     * Returns whether to center the popup horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean;
+    /**
+     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
+     *
+     * @param {boolean} center Whether to center the popup on the element
+     */
+    set center(center: boolean);
+    /**
+     * Returns the amount of space between the popup and the map viewport edge.
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @returns {Size}
+     */
+    get clearance(): Size;
+    /**
+     * Set the amount of space between the popup and the map viewport edge
+     * This is used when the map is panned to bring the popup into view.
+     *
+     * @param {SizeValue} clearance The amount of space between the popup and the map viewport edge
+     */
+    set clearance(clearance: SizeValue);
+    /**
+     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @returns {HTMLElement|string|undefined}
+     */
+    get closeElement(): HTMLElement | string | undefined;
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     *
+     * @param {HTMLElement|string} closeElement The element to close the popup
+     */
+    set closeElement(closeElement: HTMLElement | string);
+    /**
+     * Returns the content for the popup
+     *
+     * @returns {string|HTMLElement|Text|undefined}
+     */
+    get content(): string | HTMLElement | Text | undefined;
+    /**
+     * Set the content for the popup
+     *
+     * @param {string|HTMLElement|Text} content The content for the popup
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string);
+    /**
+     * Returns whether to fit the popup within the map viewport when it's displayed
+     *
+     * @returns {boolean}
+     */
+    get fit(): boolean;
+    /**
+     * Set whether to fit the popup within the map viewport when it's displayed
+     *
+     * @param {boolean} fit Whether to fit the popup within the map viewport when it's displayed
+     */
+    set fit(fit: boolean);
+    /**
+     * Returns the theme to use for the popup
+     *
+     * @returns {string}
+     */
+    get theme(): string;
+    /**
+     * Set the theme to use for the popup
+     *
+     * @param {string} theme The theme to use for the popup
+     */
+    set theme(theme: string);
+    /**
+     * Attach the popup to a element
+     *
+     * By default the popup will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the popup to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
+     *   - 'click' - Toggle the display of the popup when clicking on the element
+     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
+     * @param {PopupCallback} [callback] A function that is called every time the popup is about to be shown.
+     *      It's passed the element that the popup is attached to and returns the content for the popup,
+     *      a PopupOptions object, or a Popup object to show instead.
+     * @returns {Promise<Popup>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover', callback?: PopupCallback): Promise<Popup>;
+    /**
+     * Hide the popup
+     *
+     * Alias to hide()
+     *
+     * @returns {Popup}
+     */
+    close(): Popup;
+    /**
+     * Returns whether the popup already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
+     * Hide the popup
+     *
+     * @returns {Popup}
+     */
+    hide(): Popup;
+    /**
+     * Returns whether the popup is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean;
+    /**
+     * Open the popup
+     *
+     * Alias to show()
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<Popup>}
+     */
+    open(element: Map | Layer): Promise<Popup>;
+    /**
+     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
+     * The popup will be hidden when this element is clicked on.
+     *
+     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
+     * @returns {Popup}
+     */
+    setCloseElement(element: HTMLElement | string): Popup;
+    /**
+     * Set the Popup content
+     *
+     * @param {string | HTMLElement | Text} content The Popup content
+     * @returns {Popup}
+     */
+    setContent(content: string | HTMLElement | Text): Popup;
+    /**
+     * Sets the options for the popup
+     *
+     * @param {PopupOptions} options Popup options
+     * @returns {Popup}
+     */
+    setOptions(options: PopupOptions): Popup;
+    /**
+     * Open the popup
+     *
+     * You need to pass in either an anchor object or a map object.
+     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
+     * If a map object is passed in then the popup will be displayed at the position of the popup.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     *      This should ideally be the Map or Marker object and not the Google maps object.
+     *      If this is used internally then the Google maps object can be used.
+     * @returns {Promise<Popup>}
+     */
+    show(element: Map | Layer): Promise<Popup>;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     */
+    toggle(element: Map | Layer): void;
+    /**
+     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+}
+type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
+/**
+ * A function that works out what popup to show.
+ *
+ * It's called every time the popup is about to be shown and is passed the object that the popup
+ * is attached to. It can return the content for the popup, a PopupOptions object, or a Popup
+ * object to show instead.
+ */
+type PopupCallback = (target?: Map | Layer) => PopupValue;
+type AttachPopupValue = PopupValue | PopupCallback;
+/**
+ * Helper function to set up the Popup class
+ *
+ * @param {PopupValue} [options] The Popup options
+ * @returns {Popup}
+ */
+declare const popup: (options?: PopupValue) => Popup;
+/**
+ * Helper function to close all open popups
+ *
+ * Usage:
+ * G.closeAllPopups();
+ *
+ * @returns {void}
+ */
+declare const closeAllPopups: () => void;
+/**
+ * A function that works out the popup to show for a data layer feature.
+ *
+ * It's the data layer version of PopupCallback. It's called every time the popup is about to be
+ * shown and is passed the feature that the event happened on. It can return the content for the
+ * popup, a PopupOptions object, or a Popup object to show instead.
+ */
+type DataPopupCallback = (feature: DataFeature) => PopupValue;
+type DataPopupValue = PopupValue | DataPopupCallback;
+
+type TooltipOptions = {
+    center?: boolean;
+    className?: string;
+    content?: string | HTMLElement | Text;
+    event?: string;
+    map?: Map;
+    offset?: PointValue;
+    position?: LatLngValue;
+    styles?: object;
+    theme?: string;
+};
+/**
+ * Tooltip class
+ */
+declare class Tooltip extends Overlay {
+    #private;
+    /**
+     * Whether attachTooltip() gives everything one shared Tooltip instead of one each.
+     *
+     * Defaults to true. Set it to false to go back to a Tooltip per layer, or pass
+     * { shared: false } to a single attachTooltip() call to opt just that one out.
+     *
+     * Passing an actual Tooltip object to attachTooltip() always uses that object, whatever
+     * this is set to.
+     *
+     * @type {boolean}
+     */
+    static useShared: boolean;
+    /**
+     * Constructor
+     *
+     * @param {TooltipOptions | string | HTMLElement | Text} [options] Tooltip options
+     */
+    constructor(options?: TooltipOptions | string | HTMLElement | Text);
+    /**
+     * Get the one Tooltip that everything shares, building it the first time it's needed.
+     *
+     * It's built with no options on purpose. A Tooltip built from an options object doesn't get
+     * the "tooltip" class name, only one built from a string or from nothing does, and the shared
+     * tooltip has to look like the per-layer ones it replaces.
+     *
+     * @returns {Tooltip}
+     */
+    static getShared(): Tooltip;
+    /**
+     * Throw away the shared tooltip, hiding it first if it's showing.
+     *
+     * The next thing that needs it builds a new one. Each thing keeps its own value, so they
+     * carry on working after this.
+     */
+    static clearShared(): void;
+    /**
+     * Returns whether to center the tooltip horizontally on the element.
+     *
+     * @returns {boolean}
+     */
+    get center(): boolean;
+    /**
+     * Set whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker.
+     *
+     * @param {boolean} center Whether to center the tooltip on the element
+     */
+    set center(center: boolean);
+    /**
+     * Returns the content for the tooltip
+     *
+     * @returns {string|HTMLElement|Text|undefined}
+     */
+    get content(): string | HTMLElement | Text | undefined;
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement|Text} content The content for the tooltip
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Get the overlay HTML element, writing any content that is waiting into it first.
+     *
+     * Everything that uses the element goes through here - add(), draw(), and anything outside
+     * the library - so the content is always there by the time it's looked at.
+     *
+     * @returns {HTMLElement}
+     */
+    getOverlayElement(): HTMLElement;
+    /**
+     * Returns the event to trigger the tooltip
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the tooltip
+     *
+     * @param {string} event The event to trigger the tooltip
+     */
+    set event(event: string);
+    /**
+     * Returns the theme to use for the tooltip
+     *
+     * @returns {string}
+     */
+    get theme(): string;
+    /**
+     * Set the theme to use for the tooltip
+     *
+     * @param {string} theme The theme to use for the tooltip
+     */
+    set theme(theme: string);
+    /**
+     * Attach the tooltip to a element
+     *
+     * By default the tooltip will be shown when hovering over the element.
+     *
+     * @param {Map | Layer} element The element to attach the tooltip to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'
+     *   - 'click' - Toggle the display of the tooltip when clicking on the element
+     *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
+     * @param {TooltipCallback} [callback] A function that is called every time the tooltip is about to be shown.
+     *      It's passed the element that the tooltip is attached to and returns the content for the tooltip,
+     *      a TooltipOptions object, or a Tooltip object to show instead.
+     * @returns {Promise<Tooltip>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover', callback?: TooltipCallback): Promise<Tooltip>;
+    /**
+     * Hide the tooltip
+     *
+     * A callback can return a different Tooltip to show, which is held in #activeTooltip. Hiding
+     * this one used to leave that one on the map with nothing referring to it. Only the hover
+     * wiring took it down, by hiding `#activeTooltip || this` on mouseout, so a tooltip shown by
+     * a click and then hidden directly stayed on the map. It's hidden and forgotten here instead,
+     * which is what Popup.hide() does for the same reason.
+     *
+     * The check against this one matters rather than being tidiness: a callback that returns
+     * content or an options object is applied to this tooltip and #activeTooltip is then set to
+     * this tooltip, so calling hide() on it without the check would call this method again and
+     * never stop.
+     *
+     * @returns {Tooltip}
+     */
+    hide(): Tooltip;
+    /**
+     * Returns whether the tooltip already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
+     * Set the content for the tooltip
+     *
+     * @param {string|HTMLElement} content The content for the tooltip
+     * @returns {Tooltip}
+     */
+    setContent(content: string | HTMLElement): Tooltip;
+    /**
+     * Sets the options for the tooltip
+     *
+     * @param {TooltipOptions} options Tooltip options
+     * @returns {Tooltip}
+     */
+    setOptions(options: TooltipOptions): Tooltip;
+    /**
+     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
+     *
+     * @internal
+     * @param {google.maps.MapPanes} panes The Google maps panes object
+     */
+    add(panes: google.maps.MapPanes): void;
+    /**
+     * Draw the overlay. Called when the overlay is being drawn or updated.
+     *
+     * @internal
+     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
+     */
+    draw(projection: google.maps.MapCanvasProjection): void;
+}
+type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
+/**
+ * A function that works out what tooltip to show.
+ *
+ * It's called every time the tooltip is about to be shown and is passed the object that the
+ * tooltip is attached to. It can return the content for the tooltip, a TooltipOptions object,
+ * or a Tooltip object to show instead.
+ */
+type TooltipCallback = (target?: Map | Layer) => TooltipValue;
+type AttachTooltipValue = TooltipValue | TooltipCallback;
+/**
+ * Helper function to set up the tooltip object
+ *
+ * @param {TooltipValue} [options] The tooltip options or the tooltip class
+ * @returns {Tooltip}
+ */
+declare const tooltip: (options?: TooltipValue) => Tooltip;
+type TooltipConfig = {
+    attachConfig: AttachTooltipValue;
+    attachEvent?: 'click' | 'clickon' | 'hover';
+};
+/**
+ * A function that works out the tooltip to show for a data layer feature.
+ *
+ * It's the data layer version of TooltipCallback. It's called every time the tooltip is about to
+ * be shown and is passed the feature that the event happened on. It can return the content for
+ * the tooltip, a TooltipOptions object, or a Tooltip object to show instead.
+ */
+type DataTooltipCallback = (feature: DataFeature) => TooltipValue;
+type DataTooltipValue = TooltipValue | DataTooltipCallback;
+
+type GMInfoWindowOptions = {
+    ariaLabel?: string;
+    content?: string | HTMLElement | Text;
+    disableAutoPan?: boolean;
+    event?: string;
+    maxWidth?: number;
+    minWidth?: number;
+    pixelOffset?: Size;
+    position?: LatLng;
+    zIndex?: number;
+};
+type InfoWindowOptions = GMInfoWindowOptions & {
+    autoClose?: boolean;
+    focus?: boolean;
+    pixelOffset?: SizeValue;
+    position?: LatLngValue;
+    toggleDisplay?: boolean;
+};
+type InfoWindowEvent = 'close' | 'closeclick' | 'content_changed' | 'domready' | 'headercontent_changed' | 'headerdisabled_changed' | 'position_changed' | 'ready' | 'visible' | 'zindex_changed';
+/**
+ * InfoWindow class
+ */
+declare class InfoWindow extends Layer {
+    #private;
+    /**
+     * Constructor
+     *
+     * @param {InfoWindowOptions | string | HTMLElement | Text} [options] The InfoWindow options
+     */
+    constructor(options?: InfoWindowOptions | string | HTMLElement | Text);
+    /**
+     * Get the aria label for the InfoWindow
+     *
+     * @returns {string|undefined}
+     */
+    get ariaLabel(): string | undefined;
+    /**
+     * Set the aria label for the InfoWindow
+     *
+     * @param {string|number} ariaLabel The aria label for the InfoWindow
+     */
+    set ariaLabel(ariaLabel: string | number);
+    /**
+     * Get the content for the InfoWindow
+     *
+     * @returns {string|HTMLElement|Text|undefined}
+     */
+    get content(): string | HTMLElement | Text | undefined;
+    /**
+     * Set the content for the InfoWindow
+     *
+     * @param {string|HTMLElement|Text} content The content for the InfoWindow
+     */
+    set content(content: string | HTMLElement | Text);
+    /**
+     * Get the disableAutoPan option for the InfoWindow
+     *
+     * @returns {boolean}
+     */
+    get disableAutoPan(): boolean;
+    /**
+     * Set the disableAutoPan option for the InfoWindow
+     *
+     * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
+     */
+    set disableAutoPan(disableAutoPan: boolean);
+    /**
+     * Returns the event to trigger the popup
+     *
+     * @returns {string}
+     */
+    get event(): string;
+    /**
+     * Set the event to trigger the popup
+     *
+     * @param {string} event The event to trigger the popup
+     */
+    set event(event: string);
+    /**
+     * Get the maxWidth option for the InfoWindow
+     *
+     * @returns {number|undefined}
+     */
+    get maxWidth(): number | undefined;
+    /**
+     * Set the maxWidth option for the InfoWindow
+     *
+     * @param {number|string} maxWidth The maxWidth option for the InfoWindow
+     */
+    set maxWidth(maxWidth: number | string);
+    /**
+     * Get the minWidth option for the InfoWindow
+     *
+     * @returns {number|undefined}
+     */
+    get minWidth(): number | undefined;
+    /**
+     * Set the minWidth option for the InfoWindow
+     *
+     * @param {number|string} minWidth The minWidth option for the InfoWindow
+     */
+    set minWidth(minWidth: number | string);
+    /**
+     * Get the pixelOffset option for the InfoWindow
+     *
+     * @returns {Size}
+     */
+    get pixelOffset(): Size;
+    /**
+     * Set the pixelOffset option for the InfoWindow
+     *
+     * @param {SizeValue} pixelOffset The pixelOffset option for the InfoWindow
+     */
+    set pixelOffset(pixelOffset: SizeValue);
+    /**
+     * Get the position option for the InfoWindow
+     *
+     * @returns {LatLng|undefined}
+     */
+    get position(): LatLng | undefined;
+    /**
+     * Set the position option for the InfoWindow
+     *
+     * @param {LatLngValue} position The position option for the InfoWindow
+     */
+    set position(position: LatLngValue);
+    /**
+     * Get the zIndex option for the InfoWindow
+     *
+     * @returns {number|undefined}
+     */
+    get zIndex(): number | undefined;
+    /**
+     * Set the zIndex option for the InfoWindow
+     *
+     * @param {number|string} zIndex The zIndex option for the InfoWindow
+     */
+    set zIndex(zIndex: number | string);
+    /**
+     * Attach the InfoWindow to a element
+     *
+     * By default the InfoWindow will be shown when the element is clicked on.
+     *
+     * @param {Map | Layer} element The element to attach the InfoWindow to
+     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the InfoWindow. Defaults to 'click'
+     *   - 'click' - Toggle the display of the InfoWindow when clicking on the element
+     *   - 'clickon' - Show the InfoWindow when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
+     *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
+     * @returns {Promise<InfoWindow>}
+     */
+    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<InfoWindow>;
+    /**
+     * Hide the info window
+     *
+     * Alias to hide()
+     *
+     * @returns {InfoWindow}
+     */
+    close(): InfoWindow;
+    /**
+     * Returns whether the InfoWindow already has content
+     *
+     * @returns {boolean}
+     */
+    hasContent(): boolean;
+    /**
+     * Hide the info window
+     *
+     * @returns {InfoWindow}
+     */
+    hide(): InfoWindow;
+    /**
+     * Returns whether the InfoWindow is open or not
+     *
+     * @returns {boolean}
+     */
+    isOpen(): boolean;
+    /**
+     * @inheritdoc
+     */
+    hasListener(type: InfoWindowEvent, callback?: EventCallback): boolean;
+    /**
+     * @inheritdoc
+     */
+    off(type?: InfoWindowEvent, callback?: EventCallback, options?: EventListenerOptions): void;
+    /**
+     * @inheritdoc
+     */
+    on(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onImmediate(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    once(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onceImmediate(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    only(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * @inheritdoc
+     */
+    onlyOnce(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
+    /**
+     * Add an event listener for when the info window is loaded and ready for use.
+     *
+     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
+     */
+    onReady(callback: EventCallback): void;
+    /**
+     * Show the info window
+     *
+     * Alias to show()
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {Promise<InfoWindow>}
+     */
+    open(element: Map | Layer): Promise<InfoWindow>;
+    /**
+     * Set the InfoWindow options
+     *
+     * @param {InfoWindowOptions} options The InfoWindow options
+     * @returns {InfoWindow}
+     */
+    setOptions(options: InfoWindowOptions): InfoWindow;
+    /**
+     * Set the InfoWindow content
+     *
+     * @param {string | HTMLElement | Text} content The InfoWindow content
+     * @returns {InfoWindow}
+     */
+    setContent(content: string | HTMLElement | Text): InfoWindow;
+    /**
+     * Set the InfoWindow position
+     *
+     * @param {LatLngValue} position The position for the InfoWindow
+     * @returns {InfoWindow}
+     */
+    setPosition(position: LatLngValue): InfoWindow;
+    /**
+     * Sets the zIndex value for the InfoWindow
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
+     *
+     * @param {number|string} zIndex The zindex value
+     * @returns {InfoWindow}
+     */
+    setZIndex(zIndex: number | string): InfoWindow;
+    /**
+     * Show the info window
+     *
+     * You need to pass in either an anchor object or a map object.
+     * If an anchor object is passed in then the info window will be displayed at the anchor's position.
+     * If a map object is passed in then the info window will be displayed at the position of the info window.
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     *      This should ideally be the Map or Marker object.
+     * @returns {Promise<InfoWindow>}
+     */
+    show(element: Map | Layer): Promise<InfoWindow>;
+    /**
+     * Toggle the display of the overlay on the map
+     *
+     * @param {Map | Layer} element The anchor object or map object.
+     * @returns {void}
+     */
+    toggle(element: Map | Layer): void;
+    /**
+     * Get the Google maps InfoWindow object
+     *
+     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
+     *
+     * @returns {google.maps.InfoWindow|undefined} The Google maps InfoWindow object, or undefined if the Google Maps library isn't loaded.
+     */
+    toGoogle(): google.maps.InfoWindow | undefined;
+}
+type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
+/**
+ * Helper function to set up the InfoWindow class
+ *
+ * @param {InfoWindowValue} [options] The InfoWindow options
+ * @returns {InfoWindow}
+ */
+declare const infoWindow: (options?: InfoWindowValue) => InfoWindow;
+
 type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
 type GMEvent = 'bounds_changed' | 'center_changed' | 'click' | 'contextmenu' | 'dblclick' | 'drag' | 'dragend' | 'dragstart' | 'heading_changed' | 'idle' | 'isfractionalzoomenabled_changed' | 'mapcapabilities_changed' | 'maptypeid_changed' | 'mousemove' | 'mouseout' | 'mouseover' | 'projection_changed' | 'renderingtype_changed' | 'tilesloaded' | 'tilt_changed' | 'zoom_changed';
@@ -3536,6 +4747,38 @@ type MapEvent = GMEvent | InternalEvent;
  */
 declare class Map extends Evented {
     #private;
+    /**
+     * Placeholders for the methods that the optional feature modules add to this class.
+     *
+     * Importing the popup, tooltip or InfoWindow module runs an include() that replaces each of
+     * these with the real method. The signatures here match the ones those modules install, so the
+     * types are the same either way. Only the body differs, and it only ever runs when the matching
+     * module hasn't been imported - which is possible when importing from '@aptuitiv/gmaps/core'
+     * rather than '@aptuitiv/gmaps'. Without these the call fails with "attachPopup is not a
+     * function", which doesn't say what to do about it.
+     *
+     * @param {AttachPopupValue} popupValue The content for the Popup, or the Popup options object, or
+     *      the Popup object, or a function that returns one of those.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the popup.
+     * @returns {Popup}
+     */
+    attachPopup(popupValue: AttachPopupValue, event?: 'click' | 'clickon' | 'hover'): Popup;
+    /**
+     * @inheritdoc
+     * @param {AttachTooltipValue|TooltipConfig} tooltipValue The content for the Tooltip, or the
+     *      Tooltip options object, or the Tooltip object, or a function that returns one of those.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the tooltip.
+     * @returns {Tooltip}
+     */
+    attachTooltip(tooltipValue: AttachTooltipValue | TooltipConfig, event?: 'click' | 'clickon' | 'hover'): Tooltip;
+    /**
+     * @inheritdoc
+     * @param {InfoWindowValue} infoWindowValue The content for the InfoWindow, or the InfoWindow
+     *      options object, or the InfoWindow object.
+     * @param {'click' | 'clickon' | 'hover'} [event] The event to trigger the InfoWindow.
+     * @returns {InfoWindow}
+     */
+    attachInfoWindow(infoWindowValue: InfoWindowValue, event?: 'click' | 'clickon' | 'hover'): InfoWindow;
     /**
      * Class constructor
      *
@@ -4330,717 +5573,6 @@ declare class Map extends Evented {
  */
 declare const map: (selector: string | HTMLElement, config?: MapOptions) => Map;
 
-type ResizeStart = {
-    neBounds: LatLng;
-    nwPos: {
-        x: number;
-        y: number;
-    };
-    swBounds: LatLng;
-    sePos: {
-        x: number;
-        y: number;
-    };
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-};
-/**
- * Base class to help with drawing overlays on the map.
- *
- * The methods are purposely left blank so you can override them in your own class.
- * The methods are called from the OverlayView class in the draw(), onAdd(), and onRemove() methods.
- */
-declare class Overlay extends Layer {
-    #private;
-    /**
-     * The corner being resized (nw, ne, sw, se)
-     *
-     * @protected
-     * @type {string}
-     */
-    resizeCorner: string;
-    /**
-     * The starting bounds when resizing begins
-     *
-     * @protected
-     * @type {object}
-     */
-    resizeStart?: ResizeStart;
-    /**
-     * Constructor
-     *
-     * @param {string} objectType The object type for the class
-     * @param {string} testObject The object that needs Google maps. This should be the name of the object that calls this method.
-     * @param {string} [testLibrary] An optional Google maps library class to check for. This needs to be part of the google.maps object.
-     */
-    constructor(objectType: string, testObject: string, testLibrary?: string);
-    /**
-     * Get the class name for the overlay element
-     *
-     * @returns {string}
-     */
-    get className(): string;
-    /**
-     * Set the class name(s) for the overlay element
-     *
-     * If you need multiple class names then separate them with a space.
-     *
-     * @param {string} className The class name(s) to add to the overlay.
-     *    This can be a space separated list of class names.
-     */
-    set className(className: string);
-    /**
-     * Returns whether dragging is enabled
-     *
-     * @returns {boolean}
-     */
-    get drag(): boolean;
-    /**
-     * Set whether dragging is enabled
-     *
-     * @param {boolean} drag Whether dragging is enabled
-     */
-    set drag(drag: boolean);
-    /**
-     * Returns the offset value
-     *
-     * @returns {Point}
-     */
-    get offset(): Point;
-    /**
-     * Set the x,y offset for the overlay
-     *
-     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
-     *
-     * @param {PointValue} value The offset value
-     */
-    set offset(value: PointValue);
-    /**
-     * Returns the position of the overlay
-     *
-     * @returns {LatLng|undefined}
-     */
-    get position(): LatLng | undefined;
-    /**
-     * Set the position of the overlay
-     *
-     * @param {LatLngValue|undefined} value The position of the overlay. Pass undefined to clear the position.
-     */
-    set position(value: LatLngValue | undefined);
-    /**
-     * Returns whether resizing is enabled
-     *
-     * @returns {boolean}
-     */
-    get resize(): boolean;
-    /**
-     * Set whether resizing is enabled
-     *
-     * @param {boolean} resize Whether resizing is enabled
-     */
-    set resize(resize: boolean);
-    /**
-     * Returns the styles for the overlay element
-     *
-     * @returns {object}
-     */
-    get styles(): object;
-    /**
-     * Set multiple styles for the overlay element
-     *
-     * @param {object} styles The styles to apply to the overlay element
-     */
-    set styles(styles: object);
-    /**
-     * Disable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableDrag(): Overlay;
-    /**
-     * Disable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    disableResize(): Overlay;
-    /**
-     * Display the overlay on the map
-     *
-     * Alias to show()
-     *
-     * @param {Map} map The Map object
-     * @returns {Promise<Overlay>}
-     */
-    display(map: Map): Promise<Overlay>;
-    /**
-     * Enable dragging for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableDrag(): Overlay;
-    /**
-     * Enable resizing for this overlay
-     *
-     * @returns {Overlay}
-     */
-    enableResize(): Overlay;
-    /**
-     * Get the bounds where the overlay should be displayed
-     *
-     * This method should be overridden by subclasses and not called directly.
-     *
-     * @returns {LatLngBounds|undefined}
-     */
-    getBounds(): LatLngBounds | undefined;
-    /**
-     * Computes the geographical coordinates from pixel coordinates in the map's container.
-     *
-     * This is a shortcut to getting the projection from the overlay and then calling
-     * fromContainerPixelToLatLng on the projection with the pixel value.
-     *
-     * @param {PointValue} x The Point value or the x numeric point value.
-     * @param {number} [y] The y value if x is a number.
-     * @returns {LatLng}
-     */
-    getContainerLatLngFromPixel(x: PointValue, y?: number): LatLng;
-    /**
-     * Computes the geographical coordinates from pixel coordinates in the div that holds the draggable map.
-     *
-     * This is a shortcut to getting the projection from the overlay and then calling
-     * fromDivPixelToLatLng on the projection with the pixel value.
-     *
-     * @param {PointValue} x The Point value or the x numeric point value.
-     * @param {number} [y] The y value if x is a number.
-     * @returns {LatLng}
-     */
-    getDivLatLngFromPixel(x: PointValue, y?: number): LatLng;
-    /**
-     * Get the offset value
-     *
-     * @returns {Point}
-     */
-    getOffset(): Point;
-    /**
-     * Get the overlay HTML element
-     *
-     * @returns {HTMLElement}
-     */
-    getOverlayElement(): HTMLElement;
-    /**
-     * Get the position of the overlay
-     *
-     * @returns {LatLng|undefined}
-     */
-    getPosition(): LatLng | undefined;
-    /**
-     * Returns the MapCanvasProjection object associated with this OverlayView.
-     *
-     * The projection is not initialized until onAdd is called by the API.
-     * This returns undefined if the Google maps overlay view hasn't been set up yet.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/overlay-view#MapCanvasProjection
-     *
-     * @returns {google.maps.MapCanvasProjection|undefined}
-     */
-    getProjection(): google.maps.MapCanvasProjection | undefined;
-    /**
-     * Get the current aspect ratio for resizing
-     *
-     * @returns {number}
-     */
-    getResizeAspectRatio(): number;
-    /**
-     * Returns whether the overlay has a position
-     *
-     * @returns {boolean}
-     */
-    hasPosition(): boolean;
-    /**
-     * Hide the overlay
-     *
-     * @returns {Overlay}
-     */
-    hide(): Overlay;
-    /**
-     * Returns whether the overlay is draggable
-     *
-     * @returns {boolean}
-     */
-    isDraggable(): boolean;
-    /**
-     * Moves the overlay to a new position.
-     *
-     * If the overlay is not visible, it will be shown.
-     * If it's already visible on the map, it will be moved to the new position.
-     *
-     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show
-     * @param {Map} [map] The Map object
-     * @returns {Promise<Overlay>}
-     */
-    move(position: LatLngValue | undefined, map?: Map): Promise<Overlay>;
-    /**
-     * Add an event listener for when dragging ends
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onDragEnd(callback: EventCallback): void;
-    /**
-     * Add an event listener for when dragging updates the overlay position
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onDrag(callback: EventCallback): void;
-    /**
-     * Add an event listener for when the overlay draggable property changes
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onDraggableChanged(callback: EventCallback): void;
-    /**
-     * Add an event listener for when dragging the overlay starts
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onDragStart(callback: EventCallback): void;
-    /**
-     * Add an event listener for when the overlay is opened.
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onOpen(callback: EventCallback): void;
-    /**
-     * Add an event listener for when resizing ends
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onResizeEnd(callback: EventCallback): void;
-    /**
-     * Add an event listener for when resizing updates the overlay position
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onResize(callback: EventCallback): void;
-    /**
-     * Add an event listener for when resizing the overlay starts
-     *
-     * @param {EventCallback} callback The callback function to call when the event is dispatched.
-     */
-    onResizeStart(callback: EventCallback): void;
-    /**
-     * Removes a class name from the overlay element
-     *
-     * @param {string} className The class name to remove from the overlay element
-     * @returns {Overlay}
-     */
-    removeClassName(className: string): Overlay;
-    /**
-     * Set the class name(s) for the overlay element
-     *
-     * If you need multiple class names then separate them with a space.
-     *
-     * @param {string} className The class name(s) to add to the overlay.
-     *    This can be a space separated list of class names.
-     * @returns {Overlay}
-     */
-    setClassName(className: string): Overlay;
-    /**
-     * Set the map object to display the overlay in
-     *
-     * Alias to show()
-     *
-     * @param {Map} map The Map object
-     * @returns {Promise<Overlay>}
-     */
-    setMap(map: Map): Promise<Overlay>;
-    /**
-     * Set the x,y offset for the overlay
-     *
-     * This lets you have the offset show a certain number of pixels from it's lat/lng position.
-     *
-     * @param {PointValue} offset The offset value
-     * @returns {Overlay}
-     */
-    setOffset(offset: PointValue): Overlay;
-    /**
-     * Set the position of the overlay
-     *
-     * @param {LatLngValue|undefined} position The latitude/longitude position of where the overlay should show.
-     *    Pass undefined to clear the position.
-     * @returns {Overlay}
-     */
-    setPosition(position: LatLngValue | undefined): Overlay;
-    /**
-     * Set the aspect ratio to maintain during resizing
-     *
-     * @param {number} aspectRatio The aspect ratio (width / height)
-     * @returns {Overlay}
-     */
-    setResizeAspectRatio(aspectRatio: number): Overlay;
-    /**
-     * Set one more styles for the overlay element. This will merge styles with an existing ones.
-     *
-     * @param {object} styles The styles to apply to the overlay element
-     * @returns {Overlay}
-     */
-    setStyles(styles: object): Overlay;
-    /**
-     * Add the overlay to the map.
-     *
-     * Alias for setMap()
-     *
-     * @param {Map} map The Map object
-     * @returns {Promise<Overlay>}
-     */
-    show(map: Map): Promise<Overlay>;
-    /**
-     * Set a single style on the overlay element
-     *
-     * @param {string} name The style name
-     * @param {string} value The style value
-     * @returns {Overlay}
-     */
-    style(name: string, value: string): Overlay;
-    /**
-     * Toggle the display of the overlay on the map
-     *
-     * @param {Map} map The map object
-     * @returns {void}
-     */
-    toggle(map: Map): void;
-    /**
-     * Update bounds from current position
-     *
-     * @protected
-     */
-    updateBoundsFromPosition(): void;
-    /**
-     * Update bounds from resize
-     *
-     * @protected
-     * @param {LatLng} neLatLng The new lat/lng position for the northeast corner
-     * @param {LatLng} swLatLng The new lat/lng position for the southwest corner
-     */
-    setBoundsFromResize(neLatLng: LatLng, swLatLng: LatLng): void;
-    /**
-     * Update bounds from resize
-     *
-     * @protected
-     * @param {LatLng} newLatLng The new lat/lng position
-     */
-    updateBoundsFromResize(newLatLng: LatLng): void;
-    /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-    /**
-     * Remove the overlay from the map.
-     * This method is called once following a call to setMap(null).
-     *
-     * This is called by the internal OverlayView class. It should not be called directly.
-     *
-     * @internal
-     */
-    remove(): void;
-}
-/**
- * Helper function to set up the overlay object
- *
- * @returns {Overlay}
- */
-declare const overlay: () => Overlay;
-
-type PopupOptions = {
-    autoClose?: boolean;
-    center?: boolean;
-    className?: string;
-    clearance?: SizeValue;
-    closeElement?: HTMLElement | string;
-    content: string | HTMLElement | Text;
-    event?: string;
-    fit?: boolean;
-    offset?: PointValue;
-    styles?: object;
-    theme?: string;
-};
-/**
- * Popup class
- */
-declare class Popup extends Overlay {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {PopupOptions | string | HTMLElement | Text} [options] The Popup options or content
-     */
-    constructor(options?: PopupOptions | string | HTMLElement | Text);
-    /**
-     * Get the autoClose value
-     *
-     * @returns {boolean}
-     */
-    get autoClose(): boolean;
-    /**
-     * Set the autoClose value
-     *
-     * @param {boolean} autoClose Whether to automatically hide other open popups when opening this one
-     */
-    set autoClose(autoClose: boolean);
-    /**
-     * Returns whether to center the popup horizontally on the element.
-     *
-     * @returns {boolean}
-     */
-    get center(): boolean;
-    /**
-     * Set whether to center the popup horizontally on the element. Useful if the popup is on a marker.
-     *
-     * @param {boolean} center Whether to center the popup on the element
-     */
-    set center(center: boolean);
-    /**
-     * Returns the amount of space between the popup and the map viewport edge.
-     * This is used when the map is panned to bring the popup into view.
-     *
-     * @returns {Size}
-     */
-    get clearance(): Size;
-    /**
-     * Set the amount of space between the popup and the map viewport edge
-     * This is used when the map is panned to bring the popup into view.
-     *
-     * @param {SizeValue} clearance The amount of space between the popup and the map viewport edge
-     */
-    set clearance(clearance: SizeValue);
-    /**
-     * Returns the element to close the popup. This can be a CSS selector or an HTMLElement.
-     *
-     * @returns {HTMLElement|string|undefined}
-     */
-    get closeElement(): HTMLElement | string | undefined;
-    /**
-     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
-     *
-     * @param {HTMLElement|string} closeElement The element to close the popup
-     */
-    set closeElement(closeElement: HTMLElement | string);
-    /**
-     * Returns the content for the popup
-     *
-     * @returns {string|HTMLElement|Text|undefined}
-     */
-    get content(): string | HTMLElement | Text | undefined;
-    /**
-     * Set the content for the popup
-     *
-     * @param {string|HTMLElement|Text} content The content for the popup
-     */
-    set content(content: string | HTMLElement | Text);
-    /**
-     * Get the overlay HTML element, writing any content that is waiting into it first.
-     *
-     * Everything that uses the element goes through here - add(), draw(), and anything outside
-     * the library - so the content is always there by the time it's looked at.
-     *
-     * @returns {HTMLElement}
-     */
-    getOverlayElement(): HTMLElement;
-    /**
-     * Returns the event to trigger the popup
-     *
-     * @returns {string}
-     */
-    get event(): string;
-    /**
-     * Set the event to trigger the popup
-     *
-     * @param {string} event The event to trigger the popup
-     */
-    set event(event: string);
-    /**
-     * Returns whether to fit the popup within the map viewport when it's displayed
-     *
-     * @returns {boolean}
-     */
-    get fit(): boolean;
-    /**
-     * Set whether to fit the popup within the map viewport when it's displayed
-     *
-     * @param {boolean} fit Whether to fit the popup within the map viewport when it's displayed
-     */
-    set fit(fit: boolean);
-    /**
-     * Returns the theme to use for the popup
-     *
-     * @returns {string}
-     */
-    get theme(): string;
-    /**
-     * Set the theme to use for the popup
-     *
-     * @param {string} theme The theme to use for the popup
-     */
-    set theme(theme: string);
-    /**
-     * Attach the popup to a element
-     *
-     * By default the popup will be shown when the element is clicked on.
-     *
-     * @param {Map | Layer} element The element to attach the popup to
-     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the popup. Defaults to 'click'
-     *   - 'click' - Toggle the display of the popup when clicking on the element
-     *   - 'clickon' - Show the popup when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
-     *   - 'hover' - Show the popup when hovering over the element. Hide the popup when the element is no longer hovered.
-     * @param {PopupCallback} [callback] A function that is called every time the popup is about to be shown.
-     *      It's passed the element that the popup is attached to and returns the content for the popup,
-     *      a PopupOptions object, or a Popup object to show instead.
-     * @returns {Promise<Popup>}
-     */
-    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover', callback?: PopupCallback): Promise<Popup>;
-    /**
-     * Hide the popup
-     *
-     * Alias to hide()
-     *
-     * @returns {Popup}
-     */
-    close(): Popup;
-    /**
-     * Returns whether the popup already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean;
-    /**
-     * Hide the popup
-     *
-     * @returns {Popup}
-     */
-    hide(): Popup;
-    /**
-     * Returns whether the popup is open or not
-     *
-     * @returns {boolean}
-     */
-    isOpen(): boolean;
-    /**
-     * Open the popup
-     *
-     * Alias to show()
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     * @returns {Promise<Popup>}
-     */
-    open(element: Map | Layer): Promise<Popup>;
-    /**
-     * Set the element to close the popup. This can be a CSS selector or an HTMLElement.
-     * The popup will be hidden when this element is clicked on.
-     *
-     * @param {HTMLElement|string} element The element to close the popup. This can be a CSS selector or an HTMLElement.
-     * @returns {Popup}
-     */
-    setCloseElement(element: HTMLElement | string): Popup;
-    /**
-     * Set the Popup content
-     *
-     * @param {string | HTMLElement | Text} content The Popup content
-     * @returns {Popup}
-     */
-    setContent(content: string | HTMLElement | Text): Popup;
-    /**
-     * Sets the options for the popup
-     *
-     * @param {PopupOptions} options Popup options
-     * @returns {Popup}
-     */
-    setOptions(options: PopupOptions): Popup;
-    /**
-     * Open the popup
-     *
-     * You need to pass in either an anchor object or a map object.
-     * If an anchor object is passed in then the popup will be displayed at the anchor's position.
-     * If a map object is passed in then the popup will be displayed at the position of the popup.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#Popup.open
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     *      This should ideally be the Map or Marker object and not the Google maps object.
-     *      If this is used internally then the Google maps object can be used.
-     * @returns {Promise<Popup>}
-     */
-    show(element: Map | Layer): Promise<Popup>;
-    /**
-     * Toggle the display of the overlay on the map
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     */
-    toggle(element: Map | Layer): void;
-    /**
-     * Add the overlay to the element. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-}
-type PopupValue = Popup | PopupOptions | string | HTMLElement | Text;
-/**
- * A function that works out what popup to show.
- *
- * It's called every time the popup is about to be shown and is passed the object that the popup
- * is attached to. It can return the content for the popup, a PopupOptions object, or a Popup
- * object to show instead.
- */
-type PopupCallback = (target?: Map | Layer) => PopupValue;
-type AttachPopupValue = PopupValue | PopupCallback;
-/**
- * Helper function to set up the Popup class
- *
- * @param {PopupValue} [options] The Popup options
- * @returns {Popup}
- */
-declare const popup: (options?: PopupValue) => Popup;
-/**
- * Helper function to close all open popups
- *
- * Usage:
- * G.closeAllPopups();
- *
- * @returns {void}
- */
-declare const closeAllPopups: () => void;
-/**
- * A function that works out the popup to show for a data layer feature.
- *
- * It's the data layer version of PopupCallback. It's called every time the popup is about to be
- * shown and is passed the feature that the event happened on. It can return the content for the
- * popup, a PopupOptions object, or a Popup object to show instead.
- */
-type DataPopupCallback = (feature: DataFeature) => PopupValue;
-type DataPopupValue = PopupValue | DataPopupCallback;
-
 /**
  * Base class to help with drawing stuff on the map.
  *
@@ -5056,6 +5588,32 @@ declare class Layer extends Evented {
      * is applied to the layer via the Tooltip mixin.
      */
     [x: string]: any;
+    /**
+     * Placeholders for the methods that the optional feature modules add to this class.
+     *
+     * Importing the popup, tooltip or InfoWindow module runs an include() that replaces these with
+     * the real methods. They only ever run when the matching module hasn't been imported, which is
+     * possible when importing from '@aptuitiv/gmaps/core' rather than '@aptuitiv/gmaps'. Without
+     * them the call fails with "attachPopup is not a function", which doesn't say what to do about
+     * it.
+     *
+     * @param {...any} args Ignored. The signature is permissive so that it doesn't narrow the real
+     *      method's signature for anyone calling it.
+     * @returns {any}
+     */
+    attachPopup(...args: any[]): any;
+    /**
+     * @inheritdoc
+     * @param {...any} args Ignored. See attachPopup().
+     * @returns {any}
+     */
+    attachTooltip(...args: any[]): any;
+    /**
+     * @inheritdoc
+     * @param {...any} args Ignored. See attachPopup().
+     * @returns {any}
+     */
+    attachInfoWindow(...args: any[]): any;
     /**
      * Get if the layer is visible or not
      *
@@ -6014,299 +6572,6 @@ declare class DataFeature extends Layer {
 }
 type DataFeatureValue = DataFeature | string | number;
 
-type GMInfoWindowOptions = {
-    ariaLabel?: string;
-    content?: string | HTMLElement | Text;
-    disableAutoPan?: boolean;
-    event?: string;
-    maxWidth?: number;
-    minWidth?: number;
-    pixelOffset?: Size;
-    position?: LatLng;
-    zIndex?: number;
-};
-type InfoWindowOptions = GMInfoWindowOptions & {
-    autoClose?: boolean;
-    focus?: boolean;
-    pixelOffset?: SizeValue;
-    position?: LatLngValue;
-    toggleDisplay?: boolean;
-};
-type InfoWindowEvent = 'close' | 'closeclick' | 'content_changed' | 'domready' | 'headercontent_changed' | 'headerdisabled_changed' | 'position_changed' | 'ready' | 'visible' | 'zindex_changed';
-/**
- * InfoWindow class
- */
-declare class InfoWindow extends Layer {
-    #private;
-    /**
-     * Constructor
-     *
-     * @param {InfoWindowOptions | string | HTMLElement | Text} [options] The InfoWindow options
-     */
-    constructor(options?: InfoWindowOptions | string | HTMLElement | Text);
-    /**
-     * Get the aria label for the InfoWindow
-     *
-     * @returns {string|undefined}
-     */
-    get ariaLabel(): string | undefined;
-    /**
-     * Set the aria label for the InfoWindow
-     *
-     * @param {string|number} ariaLabel The aria label for the InfoWindow
-     */
-    set ariaLabel(ariaLabel: string | number);
-    /**
-     * Get the content for the InfoWindow
-     *
-     * @returns {string|HTMLElement|Text|undefined}
-     */
-    get content(): string | HTMLElement | Text | undefined;
-    /**
-     * Set the content for the InfoWindow
-     *
-     * @param {string|HTMLElement|Text} content The content for the InfoWindow
-     */
-    set content(content: string | HTMLElement | Text);
-    /**
-     * Get the disableAutoPan option for the InfoWindow
-     *
-     * @returns {boolean}
-     */
-    get disableAutoPan(): boolean;
-    /**
-     * Set the disableAutoPan option for the InfoWindow
-     *
-     * @param {boolean} disableAutoPan The disableAutoPan option for the InfoWindow
-     */
-    set disableAutoPan(disableAutoPan: boolean);
-    /**
-     * Returns the event to trigger the popup
-     *
-     * @returns {string}
-     */
-    get event(): string;
-    /**
-     * Set the event to trigger the popup
-     *
-     * @param {string} event The event to trigger the popup
-     */
-    set event(event: string);
-    /**
-     * Get the maxWidth option for the InfoWindow
-     *
-     * @returns {number|undefined}
-     */
-    get maxWidth(): number | undefined;
-    /**
-     * Set the maxWidth option for the InfoWindow
-     *
-     * @param {number|string} maxWidth The maxWidth option for the InfoWindow
-     */
-    set maxWidth(maxWidth: number | string);
-    /**
-     * Get the minWidth option for the InfoWindow
-     *
-     * @returns {number|undefined}
-     */
-    get minWidth(): number | undefined;
-    /**
-     * Set the minWidth option for the InfoWindow
-     *
-     * @param {number|string} minWidth The minWidth option for the InfoWindow
-     */
-    set minWidth(minWidth: number | string);
-    /**
-     * Get the pixelOffset option for the InfoWindow
-     *
-     * @returns {Size}
-     */
-    get pixelOffset(): Size;
-    /**
-     * Set the pixelOffset option for the InfoWindow
-     *
-     * @param {SizeValue} pixelOffset The pixelOffset option for the InfoWindow
-     */
-    set pixelOffset(pixelOffset: SizeValue);
-    /**
-     * Get the position option for the InfoWindow
-     *
-     * @returns {LatLng|undefined}
-     */
-    get position(): LatLng | undefined;
-    /**
-     * Set the position option for the InfoWindow
-     *
-     * @param {LatLngValue} position The position option for the InfoWindow
-     */
-    set position(position: LatLngValue);
-    /**
-     * Get the zIndex option for the InfoWindow
-     *
-     * @returns {number|undefined}
-     */
-    get zIndex(): number | undefined;
-    /**
-     * Set the zIndex option for the InfoWindow
-     *
-     * @param {number|string} zIndex The zIndex option for the InfoWindow
-     */
-    set zIndex(zIndex: number | string);
-    /**
-     * Attach the InfoWindow to a element
-     *
-     * By default the InfoWindow will be shown when the element is clicked on.
-     *
-     * @param {Map | Layer} element The element to attach the InfoWindow to
-     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the InfoWindow. Defaults to 'click'
-     *   - 'click' - Toggle the display of the InfoWindow when clicking on the element
-     *   - 'clickon' - Show the InfoWindow when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
-     *   - 'hover' - Show the InfoWindow when hovering over the element. Hide the InfoWindow when the element is no longer hovered.
-     * @returns {Promise<InfoWindow>}
-     */
-    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover'): Promise<InfoWindow>;
-    /**
-     * Hide the info window
-     *
-     * Alias to hide()
-     *
-     * @returns {InfoWindow}
-     */
-    close(): InfoWindow;
-    /**
-     * Returns whether the InfoWindow already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean;
-    /**
-     * Hide the info window
-     *
-     * @returns {InfoWindow}
-     */
-    hide(): InfoWindow;
-    /**
-     * Returns whether the InfoWindow is open or not
-     *
-     * @returns {boolean}
-     */
-    isOpen(): boolean;
-    /**
-     * @inheritdoc
-     */
-    hasListener(type: InfoWindowEvent, callback?: EventCallback): boolean;
-    /**
-     * @inheritdoc
-     */
-    off(type?: InfoWindowEvent, callback?: EventCallback, options?: EventListenerOptions): void;
-    /**
-     * @inheritdoc
-     */
-    on(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
-    /**
-     * @inheritdoc
-     */
-    onImmediate(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
-    /**
-     * @inheritdoc
-     */
-    once(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void;
-    /**
-     * @inheritdoc
-     */
-    onceImmediate(type: InfoWindowEvent, callback?: EventCallback, config?: EventConfig): void;
-    /**
-     * @inheritdoc
-     */
-    only(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
-    /**
-     * @inheritdoc
-     */
-    onlyOnce(type: InfoWindowEvent, callback: EventCallback, config?: EventConfig): void;
-    /**
-     * Add an event listener for when the info window is loaded and ready for use.
-     *
-     * @param {EventCallback} [callback] The callback function to call when the event is dispatched.
-     */
-    onReady(callback: EventCallback): void;
-    /**
-     * Show the info window
-     *
-     * Alias to show()
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     * @returns {Promise<InfoWindow>}
-     */
-    open(element: Map | Layer): Promise<InfoWindow>;
-    /**
-     * Set the InfoWindow options
-     *
-     * @param {InfoWindowOptions} options The InfoWindow options
-     * @returns {InfoWindow}
-     */
-    setOptions(options: InfoWindowOptions): InfoWindow;
-    /**
-     * Set the InfoWindow content
-     *
-     * @param {string | HTMLElement | Text} content The InfoWindow content
-     * @returns {InfoWindow}
-     */
-    setContent(content: string | HTMLElement | Text): InfoWindow;
-    /**
-     * Set the InfoWindow position
-     *
-     * @param {LatLngValue} position The position for the InfoWindow
-     * @returns {InfoWindow}
-     */
-    setPosition(position: LatLngValue): InfoWindow;
-    /**
-     * Sets the zIndex value for the InfoWindow
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.setZIndex
-     *
-     * @param {number|string} zIndex The zindex value
-     * @returns {InfoWindow}
-     */
-    setZIndex(zIndex: number | string): InfoWindow;
-    /**
-     * Show the info window
-     *
-     * You need to pass in either an anchor object or a map object.
-     * If an anchor object is passed in then the info window will be displayed at the anchor's position.
-     * If a map object is passed in then the info window will be displayed at the position of the info window.
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow.open
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     *      This should ideally be the Map or Marker object.
-     * @returns {Promise<InfoWindow>}
-     */
-    show(element: Map | Layer): Promise<InfoWindow>;
-    /**
-     * Toggle the display of the overlay on the map
-     *
-     * @param {Map | Layer} element The anchor object or map object.
-     * @returns {void}
-     */
-    toggle(element: Map | Layer): void;
-    /**
-     * Get the Google maps InfoWindow object
-     *
-     * https://developers.google.com/maps/documentation/javascript/reference/info-window#InfoWindow
-     *
-     * @returns {google.maps.InfoWindow|undefined} The Google maps InfoWindow object, or undefined if the Google Maps library isn't loaded.
-     */
-    toGoogle(): google.maps.InfoWindow | undefined;
-}
-type InfoWindowValue = InfoWindow | InfoWindowOptions | string | HTMLElement | Text;
-/**
- * Helper function to set up the InfoWindow class
- *
- * @param {InfoWindowValue} [options] The InfoWindow options
- * @returns {InfoWindow}
- */
-declare const infoWindow: (options?: InfoWindowValue) => InfoWindow;
-
 type LoaderOptions = {
     apiKey?: string;
     libraries?: Libraries;
@@ -6467,209 +6732,6 @@ declare class Loader extends EventTarget {
  * @returns {Loader}
  */
 declare const loader: (config?: LoaderOptions) => Loader;
-
-type TooltipOptions = {
-    center?: boolean;
-    className?: string;
-    content?: string | HTMLElement | Text;
-    event?: string;
-    map?: Map;
-    offset?: PointValue;
-    position?: LatLngValue;
-    styles?: object;
-    theme?: string;
-};
-/**
- * Tooltip class
- */
-declare class Tooltip extends Overlay {
-    #private;
-    /**
-     * Whether attachTooltip() gives everything one shared Tooltip instead of one each.
-     *
-     * Defaults to true. Set it to false to go back to a Tooltip per layer, or pass
-     * { shared: false } to a single attachTooltip() call to opt just that one out.
-     *
-     * Passing an actual Tooltip object to attachTooltip() always uses that object, whatever
-     * this is set to.
-     *
-     * @type {boolean}
-     */
-    static useShared: boolean;
-    /**
-     * Constructor
-     *
-     * @param {TooltipOptions | string | HTMLElement | Text} [options] Tooltip options
-     */
-    constructor(options?: TooltipOptions | string | HTMLElement | Text);
-    /**
-     * Get the one Tooltip that everything shares, building it the first time it's needed.
-     *
-     * It's built with no options on purpose. A Tooltip built from an options object doesn't get
-     * the "tooltip" class name, only one built from a string or from nothing does, and the shared
-     * tooltip has to look like the per-layer ones it replaces.
-     *
-     * @returns {Tooltip}
-     */
-    static getShared(): Tooltip;
-    /**
-     * Throw away the shared tooltip, hiding it first if it's showing.
-     *
-     * The next thing that needs it builds a new one. Each thing keeps its own value, so they
-     * carry on working after this.
-     */
-    static clearShared(): void;
-    /**
-     * Returns whether to center the tooltip horizontally on the element.
-     *
-     * @returns {boolean}
-     */
-    get center(): boolean;
-    /**
-     * Set whether to center the tooltip horizontally on the element. Useful if the tooltip is on a marker.
-     *
-     * @param {boolean} center Whether to center the tooltip on the element
-     */
-    set center(center: boolean);
-    /**
-     * Returns the content for the tooltip
-     *
-     * @returns {string|HTMLElement|Text|undefined}
-     */
-    get content(): string | HTMLElement | Text | undefined;
-    /**
-     * Set the content for the tooltip
-     *
-     * @param {string|HTMLElement|Text} content The content for the tooltip
-     */
-    set content(content: string | HTMLElement | Text);
-    /**
-     * Get the overlay HTML element, writing any content that is waiting into it first.
-     *
-     * Everything that uses the element goes through here - add(), draw(), and anything outside
-     * the library - so the content is always there by the time it's looked at.
-     *
-     * @returns {HTMLElement}
-     */
-    getOverlayElement(): HTMLElement;
-    /**
-     * Returns the event to trigger the tooltip
-     *
-     * @returns {string}
-     */
-    get event(): string;
-    /**
-     * Set the event to trigger the tooltip
-     *
-     * @param {string} event The event to trigger the tooltip
-     */
-    set event(event: string);
-    /**
-     * Returns the theme to use for the tooltip
-     *
-     * @returns {string}
-     */
-    get theme(): string;
-    /**
-     * Set the theme to use for the tooltip
-     *
-     * @param {string} theme The theme to use for the tooltip
-     */
-    set theme(theme: string);
-    /**
-     * Attach the tooltip to a element
-     *
-     * By default the tooltip will be shown when hovering over the element.
-     *
-     * @param {Map | Layer} element The element to attach the tooltip to
-     * @param {'click'|'clickon'|'hover'} [event] The event to trigger the tooltip. Defaults to 'hover'
-     *   - 'click' - Toggle the display of the tooltip when clicking on the element
-     *   - 'clickon' - Show the tooltip when clicking on the element. It will always be shown and can't be hidden once the element is clicked.
-     *   - 'hover' - Show the tooltip when hovering over the element. Hide the tooltip when the element is no longer hovered.
-     * @param {TooltipCallback} [callback] A function that is called every time the tooltip is about to be shown.
-     *      It's passed the element that the tooltip is attached to and returns the content for the tooltip,
-     *      a TooltipOptions object, or a Tooltip object to show instead.
-     * @returns {Promise<Tooltip>}
-     */
-    attachTo(element: Map | Layer, event?: 'click' | 'clickon' | 'hover', callback?: TooltipCallback): Promise<Tooltip>;
-    /**
-     * Hide the tooltip
-     *
-     * A callback can return a different Tooltip to show, which is held in #activeTooltip. Hiding
-     * this one used to leave that one on the map with nothing referring to it. Only the hover
-     * wiring took it down, by hiding `#activeTooltip || this` on mouseout, so a tooltip shown by
-     * a click and then hidden directly stayed on the map. It's hidden and forgotten here instead,
-     * which is what Popup.hide() does for the same reason.
-     *
-     * The check against this one matters rather than being tidiness: a callback that returns
-     * content or an options object is applied to this tooltip and #activeTooltip is then set to
-     * this tooltip, so calling hide() on it without the check would call this method again and
-     * never stop.
-     *
-     * @returns {Tooltip}
-     */
-    hide(): Tooltip;
-    /**
-     * Returns whether the tooltip already has content
-     *
-     * @returns {boolean}
-     */
-    hasContent(): boolean;
-    /**
-     * Set the content for the tooltip
-     *
-     * @param {string|HTMLElement} content The content for the tooltip
-     * @returns {Tooltip}
-     */
-    setContent(content: string | HTMLElement): Tooltip;
-    /**
-     * Sets the options for the tooltip
-     *
-     * @param {TooltipOptions} options Tooltip options
-     * @returns {Tooltip}
-     */
-    setOptions(options: TooltipOptions): Tooltip;
-    /**
-     * Add the overlay to the map. Called once after setMap() is called on the overlay with a valid map.
-     *
-     * @internal
-     * @param {google.maps.MapPanes} panes The Google maps panes object
-     */
-    add(panes: google.maps.MapPanes): void;
-    /**
-     * Draw the overlay. Called when the overlay is being drawn or updated.
-     *
-     * @internal
-     * @param {google.maps.MapCanvasProjection} projection The Google maps projection object
-     */
-    draw(projection: google.maps.MapCanvasProjection): void;
-}
-type TooltipValue = Tooltip | TooltipOptions | string | HTMLElement | Text;
-/**
- * A function that works out what tooltip to show.
- *
- * It's called every time the tooltip is about to be shown and is passed the object that the
- * tooltip is attached to. It can return the content for the tooltip, a TooltipOptions object,
- * or a Tooltip object to show instead.
- */
-type TooltipCallback = (target?: Map | Layer) => TooltipValue;
-type AttachTooltipValue = TooltipValue | TooltipCallback;
-/**
- * Helper function to set up the tooltip object
- *
- * @param {TooltipValue} [options] The tooltip options or the tooltip class
- * @returns {Tooltip}
- */
-declare const tooltip: (options?: TooltipValue) => Tooltip;
-/**
- * A function that works out the tooltip to show for a data layer feature.
- *
- * It's the data layer version of TooltipCallback. It's called every time the tooltip is about to
- * be shown and is passed the feature that the event happened on. It can return the content for
- * the tooltip, a TooltipOptions object, or a Tooltip object to show instead.
- */
-type DataTooltipCallback = (feature: DataFeature) => TooltipValue;
-type DataTooltipValue = TooltipValue | DataTooltipCallback;
 
 type MarkerLabel = google.maps.MarkerLabel;
 type CustomData$1 = {
