@@ -61,6 +61,9 @@ export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 
 // Map events that are not part of the Google Maps API
 type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
+
+// A function registered with Map.addInitHook(), run against every map as it is created
+export type InitHook = (map: Map) => void;
 // Google Maps library map events
 type GMEvent =
     | 'bounds_changed'
@@ -392,6 +395,42 @@ export class Map extends Evented {
      *      The selector can be any valid selector for document.querySelector() can be used. Or, it can be an HTML element
      * @param {MapOptions} [options] The options object for the map
      */
+    /**
+     * Holds the functions to run against every map as it is created.
+     *
+     * Static, so that a plugin can add one without a reference to any particular map.
+     *
+     * @private
+     * @type {InitHook[]}
+     */
+    static #initHooks: InitHook[] = [];
+
+    /**
+     * Add a function to run against every map that is created from now on.
+     *
+     * This is how a plugin attaches itself to every map on a page without the site having to call
+     * it for each one. The function is called as the map is constructed, after its options have
+     * been set and before it has been rendered, with the map as both "this" and its first argument.
+     *
+     * Two things to know about it:
+     *
+     * 1. It only applies to maps created after the hook is added, not to ones that already exist.
+     *    A plugin therefore has to be loaded before the maps it means to attach to. In the browser
+     *    that means its script tag comes before the code that creates the map.
+     * 2. The map isn't rendered yet when the hook runs, so toGoogle() returns undefined. Anything
+     *    that needs the Google map object should wait for the "ready" event.
+     *
+     * A hook that throws is logged and the rest still run, so that one plugin can't stop a map
+     * from being created.
+     *
+     * @param {InitHook} callback The function to call for each new map
+     */
+    static addInitHook(callback: InitHook): void {
+        if (isFunction(callback)) {
+            Map.#initHooks.push(callback);
+        }
+    }
+
     constructor(selector: string | HTMLElement, options?: MapOptions) {
         super('map', 'Map');
 
@@ -411,6 +450,27 @@ export class Map extends Evented {
         if (isObject(options)) {
             this.setOptions(options);
         }
+
+        // Run last, so that a hook sees a map that has had its options applied
+        this.#runInitHooks();
+    }
+
+    /**
+     * Run the functions that were registered with addInitHook()
+     *
+     * @private
+     */
+    #runInitHooks(): void {
+        Map.#initHooks.forEach((hook) => {
+            try {
+                hook.call(this, this);
+            } catch (error) {
+                // One plugin's hook failing shouldn't stop the map from being created, or keep the
+                // other hooks from running. It's logged rather than swallowed so that it's findable.
+                // eslint-disable-next-line no-console
+                console.error('A map init hook threw an error. The map was still created.', error);
+            }
+        });
     }
 
     /**

@@ -1,7 +1,6 @@
 # Plan: Expand the plugin architecture
 
-Status: **Step 1 — revised 2026-09-18 after the tree-shaking work shipped. Smaller than it was:
-the delivery question it set out to answer is now largely settled.**
+Status: **Step 1 complete (2026-09-18). Next: step 2, `Control` and `Button`.**
 Created: 2026-09-18
 Target: `docs/docs-src/plugin.md`, `src/lib/Base.ts`, `src/lib/Map.ts`, `src/index.ts`, `src/browser.ts`
 
@@ -186,11 +185,46 @@ published foundation as plugins, in this repository or outside it.
 
 ### Extension points
 
-- [ ] **`Map.addInitHook(fn)`** — run for every map as it initialises, so a plugin can attach itself
-      without the site calling it. Hooks receive the map, must be cheap, and must not assume options.
-- [ ] Confirm `Base.include()` handles everything the documentation is about to claim for it, and
-      document its limits: methods only; anything holding state uses `extends`.
-- [ ] Decide and document how a plugin extends `MapOptions` in TypeScript (module augmentation).
+- [x] **`Map.addInitHook(fn)`** — done. Static, runs at the end of the constructor so a hook sees a
+      map with its options applied but not yet rendered. The map is both `this` and the first
+      argument. Future maps only — documented, because it means a plugin has to load before the maps
+      it attaches to. A throwing hook is logged and the rest still run, matching how the library
+      already handles non-fatal problems elsewhere. `InitHook` is exported. Six tests in
+      `test/Map-init-hooks.test.ts`, in their own file because the hooks are static and can't be
+      removed.
+- [x] **Confirm `Base.include()`'s limits — done, and they are sharper than "methods only".**
+      Verified by experiment, now written up in `docs/docs-src/plugin.md`:
+
+      | | Result |
+      |---|---|
+      | Methods | Work. This is what the library uses it for |
+      | A mutable property | **Shared by every instance**, because it lands on the prototype. A mixin with `items: []` gives every object the same array |
+      | Getters and setters | **Fixed.** They used not to survive — `Object.assign` copied the *value* a getter returned, once. `include()` now copies property descriptors, so accessors stay accessors. Leaflet's `include` still has the old behaviour |
+      | An existing member | **Overwritten silently.** Last plugin loaded wins — which is also how the feature placeholders get replaced by the real methods |
+      | `#private` fields | **Cannot be written at all.** A mixin mentioning one is a *syntax* error, not a runtime failure, because private names are lexically scoped to the class body |
+
+      So the rule for the conventions is: `include()` for methods and accessors, `extends` for
+      anything with private state or that needs to run at construction.
+- [x] **How a plugin extends `MapOptions` — decided: it doesn't.** A plugin takes its own options
+      through its own factory. Documented in `plugin.md`, including the Typescript module
+      augmentation recipe for anyone who does add to a library type.
+
+      **We are not adopting Leaflet's `mergeOptions`.** Leaflet keeps a plain `options` object on
+      each class prototype (`static mergeOptions(options) { this.prototype.options ??= {};
+      Object.assign(this.prototype.options, options); }`), copies it per instance in the
+      constructor, and plugins merge defaults into it and read `this.options.myOption` from an init
+      hook. This library has no equivalent: `Map.setOptions()` handles each option explicitly —
+      validating it, converting it, applying it to a map that may already be rendered — into a
+      private field, and silently drops anything it doesn't recognise. There is no bag to merge into,
+      and adding one would mean restructuring how `Map` holds its options.
+
+      It also cuts against a decision already made here: plugins expose factories rather than patch
+      core classes. A plugin adding to `MapOptions` is the same coupling in a different place — the
+      map's option surface would depend on which plugins a page loaded.
+
+      If a real need appears, the smaller change is for `Map` to keep unrecognised options and expose
+      them (`map.getOption(name)`), which a plugin could then read from an init hook. Not built:
+      nothing needs it.
 - [x] **A pattern for a plugin that installs methods on core classes** — done as part of the
       tree-shaking work and now the convention to document: register with `include()`, declare a
       placeholder on the target class with the *same signature* the real method has, and throw from
@@ -331,8 +365,10 @@ Split across the resequencing in section 5.
 - `Map.addInitHook()` exists, is tested and is documented.
 - The limits of `Base.include()` are confirmed and written down: methods only, `extends` for anything
   holding state.
-- The delivery mechanism is decided — section 6 recommends subpath entry points, so it needs a yes or
-  a no, not more analysis.
+- [x] The delivery mechanism is decided: **subpath entry points in this repository**
+  (`@aptuitiv/gmaps/button`). Not separate npm packages, which would add peer-dependency version
+  matching against a 0.x library for no benefit while plugins move at the library's pace, and not
+  root exports, which would grow `dist/browser.js` for every standalone-script user.
 
 **Step 2a — after `Control` and `Button` exist:**
 

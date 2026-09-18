@@ -643,6 +643,33 @@ map.zoomControl = G.zoomControl({
 - Methods inherited from [Evented](/api-reference/base-classes/evented#methods).
 - Methods inherited from [Base](/api-reference/base-classes/base#methods)
 
+### addInitHook
+
+`Map.addInitHook(callback: (map: Map) => void): void`
+
+A static method. Adds a function to run against every map created from then on, so that a plugin can attach itself to every map on a page without the site calling it for each one.
+
+The function is called as the map is constructed, after its options have been applied and before it has been rendered, with the map as both `this` and its first argument.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| callback | Function | Yes | The function to call for each new map. It's passed the map. |
+
+```js
+G.Map.addInitHook((map) => {
+    map.on('ready', () => {
+        console.log('This runs for every map on the page');
+    });
+});
+```
+
+Two things to know about it:
+
+- It only applies to maps created **after** the hook is added, not to ones that already exist. A plugin therefore has to be loaded before the maps it means to attach to. With the standalone browser script that means its `script` tag comes before the code that creates the map.
+- The map isn't rendered yet when the hook runs, so [toGoogle()](#togoogle) returns `undefined`. Anything that needs the Google map object should wait for the [ready event](#events).
+
+A hook that throws is logged to the console and the remaining hooks still run, so one plugin can't stop a map from being created.
+
 ### addCustomControl
 
 `addCustomControl(position: ControlPositionValue, element: HTMLElement): Map`

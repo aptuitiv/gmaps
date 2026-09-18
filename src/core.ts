@@ -57,7 +57,7 @@ export {
 } from './lib/LatLngBounds';
 export { default as Layer } from './lib/Layer';
 export { loader, Loader, LoaderOptions } from './lib/Loader';
-export { map, Map, MapType } from './lib/Map';
+export { InitHook, map, Map, MapType } from './lib/Map';
 export { fullscreenControl, FullscreenControl, FullscreenControlOptions } from './lib/Map/FullscreenControl';
 export { mapRestriction, MapRestriction, MapRestrictionOptions } from './lib/Map/MapRestriction';
 export { mapStyle, MapStyle, MapStyleOptions } from './lib/Map/MapStyle';

@@ -9,11 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Added `Map.addInitHook()`, a static method that runs a function against every map created from then on. It's how a plugin attaches itself to every map on a page without the site wiring it up for each one. The function is called at the end of the map's constructor, after its options have been applied and before it's rendered, with the map as both `this` and its first argument. It only applies to maps created after the hook is added, and a hook that throws is logged rather than stopping the map from being created. The `InitHook` type was added for it.
 - Added separate entry points so that a project can leave out the parts of the library it doesn't use. `@aptuitiv/gmaps` still contains everything and is unchanged. `@aptuitiv/gmaps/core` is everything except popups, tooltips and InfoWindows, and `@aptuitiv/gmaps/popup`, `@aptuitiv/gmaps/tooltip` and `@aptuitiv/gmaps/infowindow` add those back. Importing `latLng` from `/core` bundles about 8 KB where the main entry point bundles about 111 KB, and a map with markers is about 69 KB. See the new [installation documentation](https://aptuitiv.github.io/gmaps-docs/installation).
 - Added an installation section to the documentation with a page for each way of using the library: a bundler, the standalone browser script, and CommonJS.
 
 ### Fixed
 
+- `include()` now keeps getters and setters from a mixin as getters and setters. It used `Object.assign()`, which reads the value a getter returns and copies that, so an accessor in a mixin silently became a fixed value on the prototype. It now copies the property descriptors instead. Methods and plain properties are unaffected, and a property holding a mutable value is still shared by every instance, because it lives on the prototype.
 - `map.attachPopup()`, `map.attachTooltip()` and `map.attachInfoWindow()` are now typed. They worked at runtime but Typescript rejected them with "Property does not exist on type 'Map'", because `Map` doesn't extend `Layer` and so never picked up the type that made the same calls work on markers and polylines.
 
 ### Changed
