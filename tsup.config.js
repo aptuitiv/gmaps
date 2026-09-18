@@ -71,6 +71,13 @@ export default defineConfig([
                 js: `.esm.js`,
             }
         },
+        esbuildOptions(options) {
+            // Put the shared chunks in their own folder so that the top level of dist is just the
+            // entry points. The hash can't be dropped: esbuild names every shared chunk "chunk", so
+            // without it they all collide on one filename. It's content-based, so a chunk keeps its
+            // name until the code in it changes.
+            options.chunkNames = 'chunks/[name]-[hash]';
+        },
         platform: 'node',
         splitting: true,
         // Set here as well as in tsconfig.json. See the note on the browser build above.
