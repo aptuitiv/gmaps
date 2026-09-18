@@ -155,18 +155,93 @@ published foundation as plugins, in this repository or outside it.
 
 ### First-party plugin delivery
 
-Decide between:
+The choice is between **subpath exports from this package** (`@aptuitiv/gmaps/plugins/<name>`) and
+**separate npm packages** (`gmaps-<name>`, with the library as a `peerDependency`).
 
-- **Separate npm packages** (`gmaps-<name>`) — matches Leaflet, and makes our own plugins the first
-  users of the published conventions, which is the fastest way to find out whether those conventions
-  are any good.
-- **Subpath exports from this package** (`@aptuitiv/gmaps/plugins/<name>`) — one release cycle, one
-  documentation site, and no peer-dependency version matching. Still costs nothing to anyone who
-  doesn't import them.
+Four measurements should inform it. All were taken against the current build, bundling with esbuild
+and minifying:
 
-Recommendation: **subpath exports** for plugins we ship, because it is reversible and avoids
-version-matching a peer dependency against a library still on 0.x. A plugin that needs its own
-release pace can move out later; moving in is harder.
+| What was imported | Resulting bundle |
+|---|---|
+| `latLng` only, from `dist/index.esm.js` | 112,741 bytes |
+| `map` only, from `dist/index.esm.js` | 112,759 bytes |
+| `map`, `marker`, `popup`, `tooltip` | 112,804 bytes |
+| `latLng` only, from `src/index.ts` (source, not the shipped bundle) | 112,722 bytes |
+
+**A consumer gets the entire library no matter what they import** — the spread across those four is
+82 bytes. The last row matters: it is not an artefact of shipping a pre-bundled file, because
+building from source behaves the same.
+
+The cause is the mixin registration pattern itself. `src/index.ts` re-exports `Popup`, `Tooltip` and
+`InfoWindow`; each of those modules runs `Layer.include(...)` and `Map.include(...)` at the top level;
+`package.json:25-29` correctly lists them as having side effects, so a bundler must keep them; and
+keeping them retains `Layer`, `Map` and most of the graph behind them. This is not a bug — it is what
+makes `marker.attachPopup()` exist without the implementor importing anything. But it does mean the
+library cannot currently be tree-shaken below "core plus popup plus tooltip plus InfoWindow".
+
+**This is the argument for subpaths, and it is a stronger one than "it keeps the core tidy."** If a
+plugin is exported from the root *and* registers itself by side effect, every consumer pays for it
+forever with no way to opt out. A subpath is opt-in by import, which sidesteps the problem entirely.
+
+**Recommendation: subpath exports**, with two rules that make them work:
+
+1. **Plugin builds must treat the core as external.** A plugin entry built with `splitting: false`
+   and relative imports into `src/lib/` inlines a complete copy of the core — 113 KB, and two copies
+   of every class, which breaks the `instanceof Map` checks the library relies on (`Marker.#setMap()`)
+   and gives the consumer two `loader()` singletons. The plugin must import the core by package name
+   and mark it external. Self-referencing a package by name is legal once `exports` is declared;
+   confirm TypeScript resolves it before committing to this, since a plugin in a separate package
+   avoids the question entirely.
+2. **Plugins should expose factories rather than patch core classes.** `locationControl({ map })`
+   costs nothing; `map.addLocationControl()` requires a side-effect registration, which means the
+   sugar silently does not exist unless the plugin was imported. Popup and Tooltip chose the
+   registration route deliberately, and always being bundled is the price they pay for it. A plugin
+   should only take that route when the ergonomics clearly justify it, and must document that the
+   import is what creates the method.
+
+### Consuming a plugin
+
+**Bundler / npm (ESM):**
+
+```js
+import { map, marker, ControlPosition } from '@aptuitiv/gmaps';
+import { button } from '@aptuitiv/gmaps/plugins/button';
+```
+
+Both resolve to the same core instance as long as rule 1 above holds.
+
+**Standalone browser script:** an IIFE cannot import, so a plugin's browser build reads the global
+that `src/browser.ts` already sets up, and registers itself onto it:
+
+```html
+<script src="/js/gmaps.js"></script>
+<script src="/js/gmaps-button.js"></script>
+```
+
+```js
+G.button({ map: myMap, content: '...', onClick: () => {} });
+```
+
+The plugin's browser entry must not bundle the core — it reads `Control` and the rest off `globalThis.G`
+at load time, which also means script order matters and must be documented. This is exactly the
+pattern `docs/docs-src/plugin.md` already describes for third-party plugins, so first-party and
+third-party plugins end up being consumed the same way. That consistency is worth preserving
+deliberately.
+
+**Registration and `sideEffects`:** any plugin file that registers something at import time has to be
+listed in `package.json`'s `sideEffects` array, or a bundler may drop the registration and leave a
+method that the documentation promises and the runtime does not have.
+
+### What this does not change
+
+**Popup, Tooltip and InfoWindow stay exactly where they are** — root exports, registered by mixin.
+Moving them to subpaths would be breaking for every existing consumer, and worse than breaking: their
+methods would silently become undefined rather than failing loudly. They are also core by the
+library's own stated goals, which list custom styled popups and tooltips as things the library is
+for. They are the worked example of the mixin *mechanism*; that is separate from how they are
+*packaged*.
+
+Making them optional is a 1.0 conversation, not part of this step.
 
 ### Documentation — most of the value of this step
 
