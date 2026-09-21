@@ -56,21 +56,27 @@ import '@aptuitiv/gmaps/popup';
 
 ### What each one costs
 
-Approximate sizes of a bundle containing only the library, minified and not compressed. Measured with
-esbuild; your bundler will give slightly different numbers.
+Approximate sizes of a bundle containing only the library, minified and not compressed. Measured two
+ways, because results vary by bundler and it's worth knowing by how much.
 
-| What you import | Size |
-|---|---|
-| `latLng` from `/core` | 8 KB |
-| `map` and `marker` from `/core` | 69 KB |
-| `map`, `marker` and `polyline` from `/core`, plus `/popup` and `/tooltip` | 105 KB |
-| Anything from `@aptuitiv/gmaps` | 111 KB |
-| `@aptuitiv/gmaps/button`, on top of a map | about 4 KB |
-| `@aptuitiv/gmaps/location-control`, on top of a map with markers | about 5 KB |
+| What you import | esbuild | webpack |
+|---|---|---|
+| `latLng` from `/core` | 8 KB | 8 KB |
+| `map` and `marker` from `/core` | 70 KB | 70 KB |
+| `map` and `marker` from `/core`, plus `/button` | 74 KB | 74 KB |
+| `map` and `marker` from `/core`, plus `/popup` and `/tooltip` | 106 KB | 107 KB |
+| Anything from `@aptuitiv/gmaps` | 111 KB | 120 KB |
 
-Two things worth reading off that table. Most of the library's size is the map itself, so the saving
-is largest for pages that use very little. And popups and tooltips are the expensive part — if you
-use both, `/core` saves you almost nothing, and you may as well import from `@aptuitiv/gmaps`.
+The two agree closely on everything except the full bundle, where webpack's module wrapping and
+runtime add a few kilobytes. Your own figures will differ again once the rest of your code is in the
+bundle and compression is applied — treat these as the shape of the difference rather than exact
+numbers.
+
+Three things worth reading off that table. Most of the library's size is the map itself, so the
+saving is largest for pages that use very little. Popups and tooltips are the expensive part — if you
+use both, `/core` saves you almost nothing and you may as well import from `@aptuitiv/gmaps`. And
+everything else in the library put together costs a few kilobytes on top of a map, so leaving out
+things like geocoding or the data layer isn't where the wins are.
 
 ## When a feature hasn't been imported
 

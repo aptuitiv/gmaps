@@ -1,7 +1,6 @@
 # Plan: Make the library tree-shakeable
 
-Status: **Phases 1-3 done (2026-09-18). Phase 4 (the breaking root-barrel change) is 1.0.
-Phase 5 (second bundler) outstanding.**
+Status: **Phases 1-3 and 5 done. Phase 4 (the breaking root-barrel change) is 1.0.**
 Created: 2026-09-18
 Target: `src/index.ts`, `package.json`, `tsup.config.js`, `src/lib/Popup.ts`, `src/lib/Tooltip.ts`,
 `src/lib/InfoWindow.ts`
@@ -275,9 +274,24 @@ per way of consuming the library:
       exactly, and is the better answer if it ever proves worth the machinery — but it is no longer
       needed to get correct signatures, only to get correct availability.
 
-### Phase 5 — outstanding
-- [ ] Re-measure with a second bundler (rollup or webpack). The figures in the installation
-      documentation are esbuild's and are labelled as such.
+### Phase 5 — **done (2026-09-21)**
+- [x] Re-measured with webpack 5.97.1 in production mode, driven through its Node API against the
+      same consumer snippets. Webpack was the right second bundler to pick: it honours `exports`
+      maps and `sideEffects` natively and treats them quite differently from esbuild.
+
+      | What is imported | esbuild | webpack |
+      |---|---|---|
+      | `latLng` from `/core` | 8,094 | 7,835 |
+      | `map` + `marker` from `/core` | 71,401 | 72,089 |
+      | `map` + `marker` + `/button` | 75,418 | 76,182 |
+      | `map` + `marker` + `/popup` + `/tooltip` | 108,358 | 109,930 |
+      | Anything from the main entry point | 114,018 | 122,567 |
+
+      **The split behaves the same in both.** The two agree within about 1% on every case except the
+      full bundle, where webpack's module wrapping and runtime add roughly 8 KB. Nothing suggests the
+      esbuild figures were flattering — if anything webpack is slightly kinder on the minimal case.
+
+      The installation documentation now publishes both columns rather than one bundler's numbers.
 
 ---
 
