@@ -22,6 +22,10 @@ import { marker as markerFactory, Marker, MarkerOptions } from './Marker';
 // The blue dot. It's the convention on every map that shows the user's position, and it's built
 // from a Marker and an SvgSymbol, both of which the library already owns - so it isn't the library
 // deciding how a control looks. Pass marker options to change any of it, or marker: false for none.
+//
+// Deliberately no title. A marker title shows as a tooltip when the dot is hovered, which would
+// make it the only user-visible wording the library invents - everything else a visitor can read
+// is supplied by the caller. Pass marker: { title: 'My location' } to have one.
 const defaultMarkerOptions: MarkerOptions = {
     svgIcon: {
         // Moves the dot to the centre of the marker. The icon is 22x22 pixels.
@@ -32,7 +36,6 @@ const defaultMarkerOptions: MarkerOptions = {
         strokeColor: '#ffffff',
         strokeWeight: 2,
     },
-    title: 'My location',
 };
 
 export type LocationControlOptions = ButtonOptions & {

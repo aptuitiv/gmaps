@@ -241,11 +241,11 @@ describe('LocationControl', () => {
             expect(c.ownsMarker).toBe(false);
         });
 
-        it('has a hover title by default, which can be replaced or removed', () => {
-            expect(locationControl().marker?.title).toBe('My location');
-            expect(locationControl({ marker: { title: 'You are here' } }).marker?.title).toBe('You are here');
-            // An empty title has to actually remove it, or the default can't be turned off
-            expect(locationControl({ marker: { title: '' } }).marker?.title).toBeUndefined();
+        it('has no hover title unless one is asked for', () => {
+            // A marker title shows as a tooltip on hover. The library inventing that wording would
+            // make it the only user-visible text it supplies.
+            expect(locationControl().marker?.title).toBeUndefined();
+            expect(locationControl({ marker: { title: 'My location' } }).marker?.title).toBe('My location');
         });
 
         it('merges options over the default blue dot', () => {
