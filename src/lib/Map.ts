@@ -1052,6 +1052,39 @@ export class Map extends Evented {
     }
 
     /**
+     * Removes a custom control from the map
+     *
+     * This is the counterpart to addCustomControl(). It can't be done from outside the library:
+     * map.controls is an array of google.maps.MVCArray, so removing something means finding its
+     * index and calling removeAt() on the right one.
+     *
+     * The element is removed whether the map has been rendered or not. Before the map is rendered
+     * the controls are held in a queue, and an element taken out of that queue is never added.
+     *
+     * @param {HTMLElement} element The HTML element for the custom control to remove
+     * @returns {Map}
+     */
+    removeCustomControl(element: HTMLElement): Map {
+        if (this.#map) {
+            // Every position has to be searched. Nothing records which one an element went into,
+            // and the position could have been changed since it was added.
+            this.#map.controls.forEach((controls) => {
+                const items = controls.getArray();
+                // Walked backwards so that removing an item doesn't shift the ones still to check
+                for (let i = items.length - 1; i >= 0; i -= 1) {
+                    if (items[i] === element) {
+                        controls.removeAt(i);
+                    }
+                }
+            });
+        }
+        // Also drop it from the queue. The queue is flushed when the map renders, so an element
+        // left in it would be added to a map it had already been removed from.
+        this.#customControls = this.#customControls.filter((control) => control.element !== element);
+        return this;
+    }
+
+    /**
      * Adds a custom control to the map
      *
      * @param {ControlPositionValue} position The position to add the custom control

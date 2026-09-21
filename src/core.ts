@@ -46,6 +46,7 @@ export {
     FeatureOptions,
     LoadOptions,
 } from './lib/DataLayer';
+export { control, Control, ControlOptions, ControlValue } from './lib/Control';
 export { icon, Icon, IconOptions, IconValue } from './lib/Icon';
 export { latLng, LatLng, LatLngLiteral, LatLngLiteralExpanded, LatLngValue } from './lib/LatLng';
 export {

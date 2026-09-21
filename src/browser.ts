@@ -41,6 +41,8 @@ import {
     SymbolPath,
     READY_EVENT,
 } from './lib/constants';
+import { button, Button } from './lib/Button';
+import { control, Control } from './lib/Control';
 import { DataFeature } from './lib/DataFeature';
 import { dataLayer, DataLayer } from './lib/DataLayer';
 import { geocode, Geocode } from './lib/Geocode';
@@ -237,7 +239,11 @@ const G: GlobalObj = {
     PolylineIcon,
     popup,
     Popup,
+    button,
+    Button,
     closeAllPopups,
+    control,
+    Control,
     rotateControl,
     RotateControl,
     READY_EVENT,

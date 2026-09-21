@@ -678,6 +678,10 @@ Add a custom control to the map. Custom controls are often buttons that do somet
 
 The custom control is positioned on the map with the [ControlPosition values](/api-reference/constants#controlposition).
 
+:::tip
+This is the low-level call. It puts the element on the map and gives you nothing back, so the element can't be moved or taken off again afterwards. Use [Control](/api-reference/map-controls/control) instead if you need that, or [Button](/api-reference/map-controls/button) for something clickable.
+:::
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | position | [ControlPosition](/api-reference/constants#controlposition)  | Yes | The position on the map to display the control. |
@@ -691,6 +695,24 @@ customBtn.addEventListener('click', () => {
     console.log('Custom Control clicked');
 });
 map.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
+```
+
+### removeCustomControl
+
+`removeCustomControl(element: HTMLElement): Map`
+
+Remove a custom control from the map. This is the counterpart to [addCustomControl()](#addcustomcontrol).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| element | [HTMLElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement) | Yes | The element for the custom control to remove. |
+
+The element is removed whether or not the map has been rendered. Before it renders the controls are held in a queue, and an element taken out of that queue is never added.
+
+Every position is searched, because nothing records which one an element went into and the position may have changed since.
+
+```js
+map.removeCustomControl(customBtn);
 ```
 
 ### addGeoJson

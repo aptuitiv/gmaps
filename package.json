@@ -17,6 +17,16 @@
                 "default": "./dist/index.cjs"
             }
         },
+        "./button": {
+            "import": {
+                "types": "./dist/button.d.ts",
+                "default": "./dist/button.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
         "./core": {
             "import": {
                 "types": "./dist/core.d.ts",

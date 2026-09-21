@@ -13,6 +13,7 @@ import eslint from 'esbuild-plugin-eslint';
 const entry = [
     'src/index.ts',
     'src/core.ts',
+    'src/button.ts',
     'src/infowindow.ts',
     'src/popup.ts',
     'src/tooltip.ts',

@@ -237,6 +237,8 @@ const sidebars: SidebarsConfig = {
                         type: 'generated-index',
                     },
                     items: [
+                        'api-reference/map-controls/button',
+                        'api-reference/map-controls/control',
                         'api-reference/map-controls/fullscreen-control',
                         'api-reference/map-controls/map-type-control',
                         'api-reference/map-controls/rotate-control',

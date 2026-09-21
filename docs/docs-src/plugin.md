@@ -155,6 +155,29 @@ myMarker.on('my_event', (e) => {
 myMarker.test();
 ```
 
+## Write a control
+
+Anything positioned on the map — a button, a panel, a legend — should extend
+[Control](/api-reference/map-controls/control), which owns the element's lifecycle on the map:
+adding it, ordering it, moving it and taking it off again. The last of those can't be done from
+outside the library at all.
+
+```js
+class MyControl extends G.Control {
+    constructor(options) {
+        super({ tag: 'button', ...options });
+        this.element.addEventListener('click', () => {
+            // ...
+        });
+    }
+}
+```
+
+[Button](/api-reference/map-controls/button) is the worked example: it adds click handling, an
+enabled state and an active state on top of `Control`, and decides nothing about how any of it
+looks. A plugin that needs a clickable control can extend `Button` rather than starting from
+`Control`.
+
 ## Attach a plugin to every map
 
 `Map.addInitHook()` runs a function against every map as it's created, so a plugin can attach itself
