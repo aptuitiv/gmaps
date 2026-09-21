@@ -19,6 +19,7 @@
 =========================================================================== */
 
 import { Control, ControlOptions } from './Control';
+import { Map } from './Map';
 import { isBoolean, isFunction, isObject, isString, isStringWithValue } from './helpers';
 
 // How one state shows up in the DOM. Everything here is the implementor's vocabulary.
@@ -128,8 +129,7 @@ export class Button extends Control {
             this.element.setAttribute('type', 'button');
         }
 
-        this.element.addEventListener('click', this.#handleClick);
-        this.#setUpKeyboard();
+        this.#listen();
 
         // Applied up front, not only on the first change, so the DOM matches the starting state
         this.#applyEnabledState();
@@ -269,6 +269,37 @@ export class Button extends Control {
     toggle(): Button {
         this.active = !this.#active;
         return this;
+    }
+
+    /**
+     * Put the button on a map.
+     *
+     * The listeners are attached again here. remove() takes them off, and Control.addTo() calls
+     * remove() when the control is already on another map - so without this, a button that had been
+     * taken off a map, or moved from one map to another, stayed on the page but stopped responding.
+     *
+     * Attaching the same function twice does nothing, so re-adding a button that is already on a
+     * map can't end up with it firing twice.
+     *
+     * @param {Map} map The map to add the button to
+     * @returns {Button}
+     */
+    addTo(map: Map): Button {
+        // Called first, because it is what takes the button off any map it was already on, and
+        // that strips the listeners
+        super.addTo(map);
+        this.#listen();
+        return this;
+    }
+
+    /**
+     * Start listening for clicks, and for keys when the element isn't a native button
+     *
+     * @private
+     */
+    #listen(): void {
+        this.element.addEventListener('click', this.#handleClick);
+        this.#setUpKeyboard();
     }
 
     /**

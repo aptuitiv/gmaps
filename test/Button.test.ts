@@ -303,6 +303,74 @@ describe('Button', () => {
         });
     });
 
+    describe('being taken off a map and put back', () => {
+        it('still responds to clicks after being re-added', () => {
+            const element = document.createElement('div');
+            element.id = 'map1';
+            document.body.appendChild(element);
+            const map = new Map('#map1');
+            const onClick = vi.fn();
+            const b = button({ map, onClick });
+
+            b.remove();
+            b.addTo(map);
+            b.element.click();
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+        });
+
+        it('still responds after being moved to another map', () => {
+            ['map1', 'map2'].forEach((id) => {
+                const el = document.createElement('div');
+                el.id = id;
+                document.body.appendChild(el);
+            });
+            const first = new Map('#map1');
+            const second = new Map('#map2');
+            const onClick = vi.fn();
+            const b = button({ map: first, onClick });
+
+            // Moving between maps goes through remove() internally
+            b.addTo(second);
+            b.element.click();
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+        });
+
+        it('still responds to the keyboard after being re-added', () => {
+            const mapEl = document.createElement('div');
+            mapEl.id = 'map1';
+            document.body.appendChild(mapEl);
+            const map = new Map('#map1');
+            const onClick = vi.fn();
+            const b = button({ element: document.createElement('div'), map, onClick });
+
+            b.remove();
+            b.addTo(map);
+            b.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not end up firing twice', () => {
+            const mapEl = document.createElement('div');
+            mapEl.id = 'map1';
+            document.body.appendChild(mapEl);
+            const map = new Map('#map1');
+            const onClick = vi.fn();
+            const b = button({ map, onClick });
+
+            // Re-adding must not stack a second listener on the same element
+            b.addTo(map);
+            b.remove();
+            b.addTo(map);
+            b.addTo(map);
+            b.element.click();
+
+            expect(onClick).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('the factory', () => {
         it('gives back a Button that was passed to it', () => {
             const b = new Button();
