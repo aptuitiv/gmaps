@@ -93,7 +93,10 @@ export default defineConfig([
     // condition at this one file: the named exports are all there and nothing is duplicated.
     {
         dts: true,
-        entry: ['src/index.ts'],
+        // Built from src/cjs.ts, which pulls in the plugin entry points as well, but still written
+        // out as dist/index.cjs. The subpath "require" conditions all point at this one file, so it
+        // has to carry everything they export - see the comment at the top of src/cjs.ts.
+        entry: { index: 'src/cjs.ts' },
         format: ['cjs'],
         minify: false,
         outDir: 'dist',
