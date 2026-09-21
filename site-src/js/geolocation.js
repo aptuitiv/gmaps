@@ -30,6 +30,8 @@ const control = G.locationControl({
     content: 'My location',
     locateOptions: { enableHighAccuracy: true },
     map: map,
+    // The dot has no tooltip unless one is asked for, so that the library invents no wording
+    marker: { title: 'My location' },
     position: G.ControlPosition.LEFT_BOTTOM,
     zoom: 15,
 });
