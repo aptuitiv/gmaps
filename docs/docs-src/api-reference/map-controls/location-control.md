@@ -27,8 +27,8 @@ That's the whole feature. The map starts watching, a marker appears where the us
 ## What it does, in order
 
 1. Starts the map watching with [locate()](/api-reference/map#locate), unless `autoLocate` is off.
-2. On the **first** fix: shows the marker, puts the control on the map, and moves the map if `centerOnFirstFind` is set.
-3. On **later** fixes: moves the marker only. The map is deliberately left alone, so it doesn't yank itself back while the user is panning.
+2. When the location is **first** found: shows the marker, puts the control on the map, and moves the map if `centerOnFirstFind` is set.
+3. On **later** location updates: moves the marker only. The map is deliberately left alone, so it doesn't yank itself back while the user is panning.
 4. On an **error**: nothing appears. With the default `showWhenLocated` the control was never added, so a denied permission leaves no dead button on the map.
 
 ## Location control options
@@ -47,12 +47,18 @@ Type `LocationControlOptions`. Everything from [ButtonOptions](/api-reference/ma
 
 ### The marker
 
-The default is the blue dot that maps conventionally use for the user's position. It's a [Marker](/api-reference/marker) with an [SvgSymbol](/api-reference/utilities/svgsymbol), so anything you can do to a marker you can do to it.
+The default is a blue dot for the user's position. It's a [Marker](/api-reference/marker) with an [SvgSymbol](/api-reference/utilities/svgsymbol), so anything you can do to a marker you can do to it.
 
 Pass marker options to change part of it — they're merged over the default, so you can change just the colour:
 
 ```js
 locationControl({ map: map, marker: { svgIcon: { fillColor: '#c0392b' } } });
+```
+
+The dot has **no hover tooltip** unless you ask for one. A marker's `title` shows as a tooltip when it's hovered. Add one if you want it, in whatever language your site is in:
+
+```js
+locationControl({ map: map, marker: { title: 'My location' } });
 ```
 
 Pass `marker: false` for a control with no marker, or your own `Marker` to use instead. A marker you pass in is yours: the control hides it when it's removed rather than destroying it.
