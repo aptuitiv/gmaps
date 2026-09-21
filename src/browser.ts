@@ -102,6 +102,10 @@ type GlobalObj = {
     SymbolPath: typeof SymbolPath;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
+    button: typeof button;
+    Button: typeof Button;
+    control: typeof control;
+    Control: typeof Control;
     dataLayer: typeof dataLayer;
     DataLayer: typeof DataLayer;
     DataFeature: typeof DataFeature;
@@ -119,6 +123,8 @@ type GlobalObj = {
     LatLngBounds: typeof LatLngBounds;
     loader: typeof loader;
     Loader: typeof Loader;
+    locationControl: typeof locationControl;
+    LocationControl: typeof LocationControl;
     map: typeof map;
     Map: typeof Map;
     mapRestriction: typeof mapRestriction;
