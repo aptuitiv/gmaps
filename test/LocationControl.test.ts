@@ -222,6 +222,22 @@ describe('LocationControl', () => {
         });
     });
 
+    describe('when a fix arrives before the Google Maps library has loaded', () => {
+        it('does not throw', () => {
+            // The page asks for the location as soon as it loads, so a fix regularly arrives while
+            // the Maps script is still being fetched. Setting the marker position synchronously
+            // throws in that window - "The Google maps libray is not available".
+            uninstallGoogleMaps();
+
+            const map = testMap();
+            const c = locationControl({ map });
+
+            expect(() => findLocation()).not.toThrow();
+            expect(c.isLocated).toBe(true);
+            expect(c.location?.latitude).toBe(40.73061);
+        });
+    });
+
     describe('the marker', () => {
         it('can be left out', () => {
             const map = testMap();

@@ -265,9 +265,14 @@ export class LocationControl extends Button {
         this.#location = position;
 
         if (this.#marker) {
-            // Set synchronously so that the marker moves in the same frame as the fix, rather than
-            // a promise tick later
-            this.#marker.setPositionSync(position.latLng);
+            // setPosition() rather than setPositionSync(). The sync version needs the Google Maps
+            // library to have loaded already and throws if it hasn't, and a location fix can easily
+            // arrive first - the page asks for the location as soon as it loads, while the Maps
+            // script is still being fetched. This one waits for the library instead.
+            //
+            // Out-of-order fixes aren't a problem: each call records the position synchronously and
+            // then writes whatever the latest one is to the Google marker.
+            this.#marker.setPosition(position.latLng);
             if (isFirst) {
                 this.#marker.show(map);
             }
