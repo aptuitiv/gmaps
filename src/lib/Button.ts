@@ -50,8 +50,9 @@ export type ButtonOptions = ControlOptions & {
     active?: boolean;
     // Whether the button starts enabled. Defaults to true.
     enabled?: boolean;
-    // Called when the button is clicked, only while it is enabled
-    onClick?: (button: Button, event: MouseEvent) => void;
+    // Called when the button is activated, only while it is enabled. Activation is a click, or
+    // Enter or Space when the element isn't a native button.
+    onClick?: (button: Button, event: MouseEvent | KeyboardEvent) => void;
     // How each state shows up in the DOM. Leave it out for a button with no state.
     states?: ButtonStates;
     // The attribute a state's tooltip is written to. Defaults to title and aria-label.
@@ -76,8 +77,8 @@ export class Button extends Control {
     /** The class names the enabled or disabled state put on the element */
     #enabledClassName: string | undefined;
 
-    /** The callback for a click */
-    #onClick: ((button: Button, event: MouseEvent) => void) | undefined;
+    /** The callback for an activation */
+    #onClick: ((button: Button, event: MouseEvent | KeyboardEvent) => void) | undefined;
 
     /** How each state shows up in the DOM */
     #states: ButtonStates = {};
@@ -128,6 +129,7 @@ export class Button extends Control {
         }
 
         this.element.addEventListener('click', this.#handleClick);
+        this.#setUpKeyboard();
 
         // Applied up front, not only on the first change, so the DOM matches the starting state
         this.#applyEnabledState();
@@ -249,10 +251,10 @@ export class Button extends Control {
     /**
      * Add a callback for when the button is clicked
      *
-     * @param {(button: Button, event: MouseEvent) => void} callback The function to call
+     * @param {(button: Button, event: MouseEvent | KeyboardEvent) => void} callback The function to call
      * @returns {Button}
      */
-    onClick(callback: (button: Button, event: MouseEvent) => void): Button {
+    onClick(callback: (button: Button, event: MouseEvent | KeyboardEvent) => void): Button {
         if (isFunction(callback)) {
             this.#onClick = callback;
         }
@@ -276,9 +278,64 @@ export class Button extends Control {
      */
     remove(): Button {
         this.element.removeEventListener('click', this.#handleClick);
+        this.element.removeEventListener('keydown', this.#handleKeyDown);
         super.remove();
         return this;
     }
+
+    /**
+     * Give the element button semantics and keyboard handling when it isn't already a button.
+     *
+     * A click listener is attached to whatever element this is given, so an element that wasn't
+     * interactive before becomes interactive now. Something that can be clicked has to be reachable
+     * and operable with a keyboard too, and a div or a span is neither: it can't be tabbed to, and
+     * Enter and Space do nothing on it.
+     *
+     * Elements that already carry this are left alone - a real button, a link with an href, a form
+     * control - as is anything where the caller has set a role or a tabindex themselves, since they
+     * have said what they want it to be.
+     *
+     * @private
+     */
+    #setUpKeyboard(): void {
+        const {element} = this;
+        const nativelyInteractive =
+            element instanceof HTMLButtonElement ||
+            element instanceof HTMLInputElement ||
+            element instanceof HTMLSelectElement ||
+            element instanceof HTMLTextAreaElement ||
+            (element instanceof HTMLAnchorElement && element.hasAttribute('href'));
+
+        if (nativelyInteractive) {
+            return;
+        }
+
+        if (!element.hasAttribute('role')) {
+            element.setAttribute('role', 'button');
+        }
+        if (!element.hasAttribute('tabindex')) {
+            element.setAttribute('tabindex', '0');
+        }
+        element.addEventListener('keydown', this.#handleKeyDown);
+    }
+
+    /**
+     * Handle Enter and Space on an element that isn't a native button.
+     *
+     * Held as a field so that the same function can be removed again.
+     *
+     * @private
+     * @param {KeyboardEvent} event The keydown event
+     */
+    #handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+        }
+        // Space scrolls the page and Enter can submit a form, neither of which is wanted from
+        // something standing in for a button
+        event.preventDefault();
+        this.#handleClick(event);
+    };
 
     /**
      * Handle a click on the button
@@ -288,7 +345,7 @@ export class Button extends Control {
      * @private
      * @param {MouseEvent} event The click event
      */
-    #handleClick = (event: MouseEvent) => {
+    #handleClick = (event: MouseEvent | KeyboardEvent) => {
         // A disabled button is usually styled to look like it isn't there, but the listener is
         // still bound. Doing nothing here is what stops an invisible button from being clickable.
         if (!this.#enabled) {

@@ -89,7 +89,16 @@ A built button gets `type="button"`, so it can't submit a form it happens to be 
 
 `aria-disabled` is used rather than the `disabled` property because the element isn't necessarily a `button`, and a disabled control is often still meant to be reachable by keyboard.
 
-An element you pass in yourself is left alone — nothing is added to it.
+If you pass in an element that isn't a native button — a `div`, a `span`, an `a` with no `href` — it's given `role="button"` and `tabindex="0"`, and it activates on Enter and Space as well as on click. A click listener is attached to whatever element you provide, so something that wasn't interactive before is now, and it has to be reachable and operable with a keyboard.
+
+Nothing is changed on an element that already carries that: a real `button`, a link with an `href`, a form control. Nor is a `role` or `tabindex` you set yourself overwritten — if you've said what the element is, that stands.
+
+```js
+// This div can be tabbed to, and Enter or Space activates it
+button({ element: '.js-myControl', onClick: () => { /* ... */ } });
+```
+
+Space would otherwise scroll the page, so it's prevented on activation.
 
 ## Properties
 

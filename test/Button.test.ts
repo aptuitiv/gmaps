@@ -183,6 +183,97 @@ describe('Button', () => {
         });
     });
 
+    describe('an element that is not a native button', () => {
+        it('is given button semantics and made focusable', () => {
+            const element = document.createElement('div');
+            const b = button({ element });
+
+            // A click listener is attached to whatever it is given, so a div that was inert before
+            // is interactive now and has to be reachable and operable with a keyboard.
+            expect(b.element.getAttribute('role')).toBe('button');
+            expect(b.element.getAttribute('tabindex')).toBe('0');
+        });
+
+        it('activates on Enter and on Space', () => {
+            const onClick = vi.fn();
+            const b = button({ element: document.createElement('div'), onClick, toggle: true });
+
+            b.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            expect(onClick).toHaveBeenCalledTimes(1);
+            expect(b.active).toBe(true);
+
+            b.element.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+            expect(onClick).toHaveBeenCalledTimes(2);
+            expect(b.active).toBe(false);
+        });
+
+        it('stops Space scrolling the page', () => {
+            const b = button({ element: document.createElement('div') });
+            const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+            b.element.dispatchEvent(event);
+
+            expect(event.defaultPrevented).toBe(true);
+        });
+
+        it('ignores other keys', () => {
+            const onClick = vi.fn();
+            const b = button({ element: document.createElement('div'), onClick });
+            b.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+
+            expect(onClick).not.toHaveBeenCalled();
+        });
+
+        it('does not activate on a key while disabled', () => {
+            const onClick = vi.fn();
+            const b = button({ element: document.createElement('div'), enabled: false, onClick });
+            b.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+            expect(onClick).not.toHaveBeenCalled();
+        });
+
+        it('leaves a native button alone', () => {
+            const b = button({ className: 'MyBtn' });
+
+            // It is already focusable and already activates on Enter and Space
+            expect(b.element.hasAttribute('role')).toBe(false);
+            expect(b.element.hasAttribute('tabindex')).toBe(false);
+        });
+
+        it('leaves a link with an href alone', () => {
+            const element = document.createElement('a');
+            element.setAttribute('href', '/somewhere');
+            const b = button({ element });
+
+            expect(b.element.hasAttribute('role')).toBe(false);
+            expect(b.element.hasAttribute('tabindex')).toBe(false);
+        });
+
+        it('keeps a role and tabindex the caller set', () => {
+            const element = document.createElement('div');
+            element.setAttribute('role', 'switch');
+            element.setAttribute('tabindex', '-1');
+            const b = button({ element });
+
+            // They have said what they want it to be
+            expect(b.element.getAttribute('role')).toBe('switch');
+            expect(b.element.getAttribute('tabindex')).toBe('-1');
+        });
+
+        it('stops listening for keys once it is removed', () => {
+            const element = document.createElement('div');
+            const mapElement = document.createElement('div');
+            mapElement.id = 'map1';
+            document.body.appendChild(mapElement);
+            const onClick = vi.fn();
+            const b = button({ element, map: new Map('#map1'), onClick });
+
+            b.remove();
+            b.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+            expect(onClick).not.toHaveBeenCalled();
+        });
+    });
+
     describe('what it inherits from Control', () => {
         it('attaches to a map and comes off again', () => {
             const element = document.createElement('div');
