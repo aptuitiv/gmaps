@@ -1,8 +1,11 @@
 /* ===========================================================================
     Javascript for the Geolocation page
 
-    The map starts hidden. The user's location is requested right away and a
-    marker is shown at it. The toggle button shows and hides the map.
+    The map starts hidden. The user's location is requested right away, and the location control
+    shows it once there is something to show.
+
+    The control does the marker, the button and the panning. What's left here is the page's own
+    business: the status line, and the toggle that shows and hides the map.
 =========================================================================== */
 
 /* global G */
@@ -18,36 +21,26 @@ const statusElement = document.getElementById('locateStatus');
 const map = G.map(mapElement, { center: [39.8283, -98.5795], zoom: 4 });
 map.show();
 
-let marker = null;
-let userPosition = null;
+// The whole feature: a marker that follows the user, and a button that takes the map back to it.
+// The button only appears once a location has been found, so a denied permission leaves nothing
+// behind. centerOnFirstFind moves the map to the user the first time and then leaves it alone.
+const control = G.locationControl({
+    centerOnFirstFind: true,
+    className: 'TestBtn',
+    content: 'My location',
+    locateOptions: { enableHighAccuracy: true },
+    map: map,
+    position: G.ControlPosition.LEFT_BOTTOM,
+    zoom: 15,
+});
 
-map.onLocationFound((position) => {
-    userPosition = position.latLng;
-    if (marker === null) {
-        // The marker can be added while the map is still hidden. It shows up once the map is rendered.
-        marker = G.marker({
-            map: map,
-            position: userPosition,
-            svgIcon: {
-                anchor: { x: 11, y: 11 }, // Move the svg marker to the center of the map marker. The icon is 22x22 pixels.
-                fillColor: '#5284ed',
-                fillOpacity: 1,
-                path: 'M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0',
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-            },
-            title: 'You are here',
-        });
-        // Center on the user the first time only so that later updates don't undo the user panning the map
-        map.setCenter(userPosition);
-        map.zoom = 15;
-    } else {
-        marker.position = userPosition;
-    }
+// Everything below is the page's own, not the control's.
 
-    let status = `Your location: ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`;
-    if (typeof position.accuracy === 'number') {
-        status += ` (accurate to about ${Math.round(position.accuracy)} meters)`;
+control.on('located', () => {
+    const { accuracy, latitude, longitude } = control.location;
+    let status = `Your location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+    if (typeof accuracy === 'number') {
+        status += ` (accurate to about ${Math.round(accuracy)} meters)`;
     }
     statusElement.textContent = status;
 });
@@ -62,21 +55,18 @@ map.onLocationError((error) => {
     }
 });
 
-// Watch the user's location. watch is true by default, so the marker moves as the location changes.
-map.locate({ enableHighAccuracy: true });
-
 toggleButton.addEventListener('click', () => {
     const showMap = mapElement.hidden;
     mapElement.hidden = !showMap;
     toggleButton.textContent = showMap ? 'Hide map' : 'Show map';
     toggleButton.setAttribute('aria-expanded', String(showMap));
 
-    // The first time the map is shown it's rendered by show(). After that, resize it in case
-    // the marker moved while the map was hidden, and recenter on the user.
+    // The first time the map is shown it's rendered by show(). After that, resize it in case the
+    // marker moved while the map was hidden, and recenter on the user.
     if (showMap && map.getIsReady()) {
         map.resize();
-        if (userPosition !== null) {
-            map.setCenter(userPosition);
+        if (control.isLocated) {
+            map.setCenter(control.location.latLng);
         }
     }
 });

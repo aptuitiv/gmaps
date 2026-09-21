@@ -561,6 +561,18 @@ That's fine for something you add once and leave alone. To move it, take it off,
 step with what it controls, use `Control` or `Button` instead — or pass the element to
 [removeCustomControl()](/api-reference/map#removecustomcontrol) to take it off again.
 
+### Ready-made controls
+
+The library ships one control that does a job rather than just being a shape: the
+[location control](/api-reference/map-controls/location-control) shows the user's position and takes
+the map back to it.
+
+```js
+import { locationControl } from '@aptuitiv/gmaps/location-control';
+
+locationControl({ className: 'customButton', map: map });
+```
+
 ### Ordering controls at the same position
 
 Google puts the controls at a position in the order of an `index` property it reads off each element.

@@ -14,6 +14,7 @@ const entry = [
     'src/index.ts',
     'src/core.ts',
     'src/button.ts',
+    'src/location-control.ts',
     'src/infowindow.ts',
     'src/popup.ts',
     'src/tooltip.ts',

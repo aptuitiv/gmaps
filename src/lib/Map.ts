@@ -1615,9 +1615,8 @@ export class Map extends Evented {
      *  });
      * 2. Listen for the 'locationfound' event
      *  map.on('locationfound', (event) => {
-     *   // Do something with the position
-     *   // event is an instance of CustomEvent.
-     *   // event.detail contains the position data
+     *   // Do something with the position. The position data is merged onto the event object, so
+     *   // event.latitude, event.longitude and event.latLng are all there.
      *  });
      *
      * @param {LocateOptions|LocationOnSuccess} [options] The options for the locate() function. Or the callback function.
@@ -1671,7 +1670,13 @@ export class Map extends Evented {
                 console.error(err);
             };
             if (config.watch) {
-                this.#watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
+                // Only one watch at a time. This used to be assigned unconditionally, so calling
+                // locate() twice - which happens as soon as something like a location control calls
+                // it on a map the site is already locating - started a second watch and leaked the
+                // first, with no way left to clear it.
+                if (typeof this.#watchId === 'undefined') {
+                    this.#watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
+                }
             } else {
                 navigator.geolocation.getCurrentPosition(success, error, positionOptions);
             }
@@ -2529,8 +2534,20 @@ export class Map extends Evented {
         // There is only a watch to clear if locate() started watching the user's location
         if (navigator.geolocation && typeof this.#watchId !== 'undefined') {
             navigator.geolocation.clearWatch(this.#watchId);
+            // Cleared as well as stopped, so that a later locate() can start watching again and a
+            // second stopLocate() doesn't pass a dead id to clearWatch()
+            this.#watchId = undefined;
         }
         return this;
+    }
+
+    /**
+     * Get whether the map is currently watching the user's location
+     *
+     * @returns {boolean}
+     */
+    get isLocating(): boolean {
+        return typeof this.#watchId !== 'undefined';
     }
 
     /**

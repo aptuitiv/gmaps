@@ -51,6 +51,7 @@ import { infoWindow, InfoWindow } from './lib/InfoWindow';
 import { latLng, LatLng } from './lib/LatLng';
 import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
 import { loader, Loader } from './lib/Loader';
+import { locationControl, LocationControl } from './lib/LocationControl';
 import { map, Map } from './lib/Map';
 import { fullscreenControl, FullscreenControl } from './lib/Map/FullscreenControl';
 import { mapRestriction, MapRestriction } from './lib/Map/MapRestriction';
@@ -209,6 +210,8 @@ const G: GlobalObj = {
     LatLngBounds,
     loader,
     Loader,
+    locationControl,
+    LocationControl,
     map,
     Map,
     mapRestriction,

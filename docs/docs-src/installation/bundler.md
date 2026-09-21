@@ -35,14 +35,16 @@ import { tooltip } from '@aptuitiv/gmaps/tooltip';
 import { infoWindow } from '@aptuitiv/gmaps/infowindow';
 ```
 
-The [Button](/api-reference/map-controls/button) control has its own entry point too, and is the one
-thing that isn't in `@aptuitiv/gmaps` at all — import it when you want it:
+Two controls have their own entry points as well, and are the things that aren't in
+`@aptuitiv/gmaps` at all — import them when you want them:
 
 ```js
 import { button } from '@aptuitiv/gmaps/button';
+import { locationControl } from '@aptuitiv/gmaps/location-control';
 ```
 
-It's in the standalone browser script as `G.button()`, because that build contains everything.
+Both are in the standalone browser script as `G.button()` and `G.locationControl()`, because that
+build contains everything.
 
 Importing a feature anywhere in your code is enough — it doesn't have to be in the file that uses it,
 and you don't have to use what you imported. If you only want `attachPopup()` on your markers and
@@ -64,6 +66,7 @@ esbuild; your bundler will give slightly different numbers.
 | `map`, `marker` and `polyline` from `/core`, plus `/popup` and `/tooltip` | 105 KB |
 | Anything from `@aptuitiv/gmaps` | 111 KB |
 | `@aptuitiv/gmaps/button`, on top of a map | about 4 KB |
+| `@aptuitiv/gmaps/location-control`, on top of a map with markers | about 5 KB |
 
 Two things worth reading off that table. Most of the library's size is the map itself, so the saving
 is largest for pages that use very little. And popups and tooltips are the expensive part — if you

@@ -240,6 +240,7 @@ const sidebars: SidebarsConfig = {
                         'api-reference/map-controls/button',
                         'api-reference/map-controls/control',
                         'api-reference/map-controls/fullscreen-control',
+                        'api-reference/map-controls/location-control',
                         'api-reference/map-controls/map-type-control',
                         'api-reference/map-controls/rotate-control',
                         'api-reference/map-controls/scale-control',
