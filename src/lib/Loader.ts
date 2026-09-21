@@ -255,9 +255,15 @@ export class Loader extends EventTarget {
                                 resolve();
                             })
                             .catch((err) => {
+                                // Cleared so that a later load() starts again. It used to be left
+                                // set, so every call after a failure took the "already loading"
+                                // branch below and waited for a "load" event that was never going
+                                // to be dispatched.
+                                this.#isLoading = false;
                                 reject(err);
                             });
                     } else {
+                        this.#isLoading = false;
                         reject(new Error('The Google Maps API key is not set'));
                     }
                 } else {

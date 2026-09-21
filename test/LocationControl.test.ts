@@ -106,7 +106,7 @@ describe('LocationControl', () => {
         it('does nothing when clicked, because there is nowhere to go', () => {
             const map = testMap();
             const c = locationControl({ map, showWhenLocated: false });
-            const panTo = vi.spyOn(map, 'panTo');
+            const panTo = vi.spyOn(map, 'panTo').mockImplementation(() => {});
             c.element.click();
 
             expect(panTo).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe('LocationControl', () => {
 
         it('leaves the map where it is by default', () => {
             const map = testMap();
-            const panTo = vi.spyOn(map, 'panTo');
+            const panTo = vi.spyOn(map, 'panTo').mockImplementation(() => {});
             locationControl({ map });
             findLocation();
 
@@ -154,7 +154,7 @@ describe('LocationControl', () => {
 
         it('moves the map on the first fix when asked to', () => {
             const map = testMap();
-            const panTo = vi.spyOn(map, 'panTo');
+            const panTo = vi.spyOn(map, 'panTo').mockImplementation(() => {});
             locationControl({ map, centerOnFirstFind: true });
             findLocation();
 
@@ -165,7 +165,7 @@ describe('LocationControl', () => {
     describe('on later fixes', () => {
         it('moves the marker but not the map', () => {
             const map = testMap();
-            const panTo = vi.spyOn(map, 'panTo');
+            const panTo = vi.spyOn(map, 'panTo').mockImplementation(() => {});
             const c = locationControl({ map, centerOnFirstFind: true });
             findLocation();
             findLocation(41.5, -74.5);
@@ -202,7 +202,7 @@ describe('LocationControl', () => {
     describe('clicking', () => {
         it('pans to the location', () => {
             const map = testMap();
-            const panTo = vi.spyOn(map, 'panTo');
+            const panTo = vi.spyOn(map, 'panTo').mockImplementation(() => {});
             const c = locationControl({ map });
             findLocation();
             c.element.click();
@@ -212,7 +212,7 @@ describe('LocationControl', () => {
 
         it('centres instead when the action says so, and applies the zoom', () => {
             const map = testMap();
-            const setCenter = vi.spyOn(map, 'setCenter');
+            const setCenter = vi.spyOn(map, 'setCenter').mockImplementation(() => {});
             const c = locationControl({ action: 'center', map, zoom: 15 });
             findLocation();
             c.element.click();

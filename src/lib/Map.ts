@@ -1192,17 +1192,23 @@ export class Map extends Evented {
      * @returns {Promise<Map>}
      */
     fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this.#map) {
                 this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
                     resolve(this);
                 });
             } else {
-                this.init().then(() => {
-                    this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
-                        resolve(this);
-                    });
-                });
+                // Rejected rather than swallowed, because this method hands back a promise for the
+                // caller to handle. It used to leave the promise unsettled when the map failed to
+                // load, so an await on it never returned and the failure showed up as an unhandled
+                // rejection somewhere else entirely.
+                this.init()
+                    .then(() => {
+                        this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
+                            resolve(this);
+                        });
+                    })
+                    .catch(reject);
             }
         });
     }
@@ -1292,16 +1298,29 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     init(callback?: () => void): Promise<Map> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!this.#isInitialized && !this.#isReady) {
                 // The map has not been initialized or displayed
                 if (!this.#isInitializing) {
                     // The map is not initializing, so start the initialization process
                     this.#isInitializing = true;
-                    this.#load().then(() => {
-                        callCallback(callback);
-                        resolve(this);
-                    });
+                    this.#load()
+                        .then(() => {
+                            callCallback(callback);
+                            resolve(this);
+                        })
+                        .catch((error) => {
+                            // #load() rejects when the Google Maps library can't be loaded - a
+                            // missing API key, a network failure. This promise had no reject, so
+                            // the failure became an unhandled rejection and this promise was left
+                            // unsettled: anything awaiting init() waited for a map that was never
+                            // coming, and the error surfaced somewhere unrelated.
+                            //
+                            // The flag is cleared so that a later attempt starts a fresh load
+                            // rather than waiting on a "ready" event that will never be dispatched.
+                            this.#isInitializing = false;
+                            reject(error);
+                        });
                 } else {
                     // The map is initializing, so wait for it to finish
                     this.onceImmediate(MapEvents.READY, () => {
@@ -1971,10 +1990,16 @@ export class Map extends Evented {
         if (this.#map) {
             this.#map.panBy(x, y);
         } else {
-            this.init().then(() => {
-                // init() resolves after the Google map object is set up
-                this.#map!.panBy(x, y);
-            });
+            this.init()
+                .then(() => {
+                    // init() resolves after the Google map object is set up
+                    this.#map!.panBy(x, y);
+                })
+                .catch((error) => {
+                    // See the note in panTo()
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so panBy() did nothing.', error);
+                });
         }
     }
 
@@ -1989,10 +2014,19 @@ export class Map extends Evented {
         if (this.#map) {
             this.#map.panTo(latLng(value).toGoogle());
         } else {
-            this.init().then(() => {
-                // init() resolves after the Google map object is set up
-                this.#map!.panTo(latLng(value).toGoogle());
-            });
+            this.init()
+                .then(() => {
+                    // init() resolves after the Google map object is set up
+                    this.#map!.panTo(latLng(value).toGoogle());
+                })
+                .catch((error) => {
+                    // This method returns nothing, so there is no promise for the caller to catch.
+                    // Without this the failure surfaces as an unhandled rejection, which is a
+                    // console error in the browser that points at the library rather than at the
+                    // load that actually failed.
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so panTo() did nothing.', error);
+                });
         }
     }
 

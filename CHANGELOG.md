@@ -22,6 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `map.init()` now rejects when the Google Maps library can't be loaded. It had no reject at all, so a failure — a missing API key, a network problem — escaped as an unhandled rejection and left the promise unsettled. Anything waiting on the map waited for one that was never coming, and the error surfaced somewhere unrelated. A failed attempt also no longer blocks a later one.
+- `loader().load()` now clears its loading flag when a load fails, so a later call tries again. It used to be left set, so every call after a failure waited for a "load" event that was never going to be dispatched, and nothing could make the loader try again.
+- `map.panTo()` and `map.panBy()` on a map that hasn't been rendered now log when the map can't be loaded instead of leaving an unhandled rejection. Neither returns a promise, so there was nothing for the caller to catch.
+- `map.fitBounds()` on a map that hasn't been rendered now rejects when the map can't be loaded. It used to leave the promise unsettled, so an `await` on it never returned.
 - `map.locate()` no longer starts a second watch when it's called more than once. It used to assign the new watch id over the old one, so the first watch kept running with no way left to clear it. This happened as soon as anything called `locate()` on a map the page was already locating.
 - `map.stopLocate()` now clears the stored watch id, so that a later `locate()` can start watching again and a second `stopLocate()` doesn't hand a dead id to `clearWatch()`.
 - Corrected the `locate()` documentation, which said the position data arrives on `event.detail`. It's merged onto the event object itself, so `event.latitude`, `event.longitude` and `event.latLng` are what to read.

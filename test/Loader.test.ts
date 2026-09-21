@@ -163,3 +163,32 @@ describe('the loader() factory', () => {
     @googlemaps/js-api-loader. Worth doing when 6.6 is fixed - the fix (a shared load promise,
     plus dispatching the requested type) is what makes it testable.
 */
+
+describe('a failed load', () => {
+    it('rejects, and can be tried again', async () => {
+        // `new Loader()` rather than the loader() factory: this needs its own state, and the
+        // factory hands back a module-level singleton.
+        const l = new Loader();
+
+        await expect(l.load()).rejects.toThrow(/API key/);
+
+        // The loading flag used to be left set after a failure, so every later call took the
+        // "already loading" branch and waited for a "load" event that was never coming. A retry
+        // has to fail the same way rather than hanging.
+        await expect(l.load()).rejects.toThrow(/API key/);
+    });
+
+    it('gets past the failure once the problem is fixed', async () => {
+        const l = new Loader();
+        await expect(l.load()).rejects.toThrow(/API key/);
+
+        // Setting the key fixes this particular failure. The loader has to actually try again -
+        // before, the flag left set by the first failure meant it waited instead.
+        l.apiKey = 'test-key';
+
+        // It gets as far as asking Google for the library, which is where a unit test has to stop:
+        // that call needs a browser. Reaching a different failure is the proof that it got past
+        // the API key check rather than hanging or repeating itself.
+        await expect(l.load()).rejects.not.toThrow(/API key/);
+    });
+});

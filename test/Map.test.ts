@@ -233,6 +233,47 @@ describe('Map', () => {
         });
     });
 
+    describe('when the map cannot be loaded', () => {
+        it('rejects init() instead of never settling', async () => {
+            mapElement();
+            // No API key is set, so the loader rejects. init() used to have no reject at all: the
+            // failure escaped as an unhandled rejection and the promise was left unsettled, so
+            // anything awaiting the map waited for one that was never coming.
+            const m = new Map('#map1');
+
+            await expect(m.init()).rejects.toThrow(/API key/);
+        });
+
+        it('can try again after a failed load', async () => {
+            mapElement();
+            const m = new Map('#map1');
+
+            await expect(m.init()).rejects.toThrow(/API key/);
+            // A second attempt has to start a fresh load rather than waiting on a "ready" event
+            // that will never be dispatched
+            await expect(m.init()).rejects.toThrow(/API key/);
+        });
+
+        it('logs rather than leaking an unhandled rejection from panTo()', async () => {
+            mapElement();
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const m = new Map('#map1');
+
+            // panTo() returns nothing, so there is no promise for the caller to catch
+            expect(() => m.panTo([40.73061, -73.935242])).not.toThrow();
+            await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
+            expect(consoleError.mock.calls[0][0]).toContain('panTo()');
+        });
+
+        it('rejects fitBounds() instead of leaving it unsettled', async () => {
+            mapElement();
+            const m = new Map('#map1');
+
+            // This one hands back a promise, so the failure belongs to the caller
+            await expect(m.fitBounds([[40.7, -74.0], [40.8, -73.9]])).rejects.toThrow(/API key/);
+        });
+    });
+
     // Every Map allocates all six control objects in its constructor, whether or not the
     // caller ever touches them. That is the allocation side of P-4.
     describe('the controls', () => {
