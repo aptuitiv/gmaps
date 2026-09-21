@@ -110,7 +110,8 @@
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
         "test:watch": "vitest",
-        "typescriptTest": "tsc --traceResolution",
+        "typecheck": "tsc --noEmit",
+        "typescript-trace-resolution": "tsc --noEmit --traceResolution",
         "watch": "tsup --watch",
         "watch-all": "npm run watch & npm run css-watch & npm run site-serve"
     },
