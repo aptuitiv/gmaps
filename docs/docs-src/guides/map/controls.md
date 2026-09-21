@@ -509,7 +509,7 @@ const toggle = button({
 toggle.onChange((active) => (active ? trafficLayer.show() : trafficLayer.hide()));
 ```
 
-Two things that coult go wrong when using [addCustomControl()](/api-reference/map#addcustomcontrol) that can't happen with Button.
+Two things that could go wrong when using [addCustomControl()](/api-reference/map#addcustomcontrol) that can't happen with Button.
 
 1. A disabled button ignores clicks, so a button styled to look absent isn't still firing.
 2. Disabling a button also clears its active state, so it can't be left looking switched on while the thing it controls has gone.
@@ -517,7 +517,7 @@ Two things that coult go wrong when using [addCustomControl()](/api-reference/ma
 ### A control that isn't a button
 
 [Control](/api-reference/map-controls/control) is the same lifecycle without the click handling. It
-can wrap markup that's already on the page. Example usage would be showing a logo on the map or some component that handles it's own interactivity.
+can wrap markup that's already on the page. Example usage would be showing a logo on the map or some component that handles its own interactivity.
 
 ```js
 const legend = G.control({
