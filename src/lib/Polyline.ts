@@ -1926,7 +1926,7 @@ export class Polyline extends Layer {
                 this.#createPolylineObject();
             } else {
                 throw new Error(
-                    'The Google maps libray is not available so the polyline object cannot be created. Load the Google maps library first.',
+                    'The Google maps library is not available so the polyline object cannot be created. Load the Google maps library first.',
                 );
             }
         }

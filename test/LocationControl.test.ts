@@ -226,7 +226,7 @@ describe('LocationControl', () => {
         it('does not throw', () => {
             // The page asks for the location as soon as it loads, so a fix regularly arrives while
             // the Maps script is still being fetched. Setting the marker position synchronously
-            // throws in that window - "The Google maps libray is not available".
+            // throws in that window - "The Google maps library is not available".
             uninstallGoogleMaps();
 
             const map = testMap();

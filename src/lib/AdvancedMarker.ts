@@ -884,7 +884,7 @@ export class AdvancedMarker extends Layer {
                 this.#createMarkerObject();
             } else {
                 throw new Error(
-                    'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.'
+                    'The Google maps library is not available so the marker object cannot be created. Load the Google maps library first.',
                 );
             }
         }
