@@ -679,7 +679,9 @@ Add a custom control to the map. Custom controls are often buttons that do somet
 The custom control is positioned on the map with the [ControlPosition values](/api-reference/constants#controlposition).
 
 :::tip
-This is the low-level call. It puts the element on the map and gives you nothing back, so the element can't be moved or taken off again afterwards. Use [Control](/api-reference/map-controls/control) instead if you need that, or [Button](/api-reference/map-controls/button) for something clickable.
+This is the low-level call. It puts the element on the map and gives you nothing back, so moving it or taking it off later means keeping a reference to the element yourself and passing it to [removeCustomControl()](#removecustomcontrol).
+
+Use [Control](/api-reference/map-controls/control) instead if you need any of that, or [Button](/api-reference/map-controls/button) for something clickable. Both hold on to their element and handle their own lifecycle.
 :::
 
 | Parameter | Type | Required | Description |
@@ -702,6 +704,12 @@ map.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
 `removeCustomControl(element: HTMLElement): Map`
 
 Remove a custom control from the map. This is the counterpart to [addCustomControl()](#addcustomcontrol).
+
+:::tip
+This is the low-level call, and it needs the element itself — so it only helps if you kept a reference to it when you added it.
+
+If the control is a [Control](/api-reference/map-controls/control) or a [Button](/api-reference/map-controls/button), call [remove()](/api-reference/map-controls/control#remove) on it instead. It knows its own element, and a `Button` also stops listening for clicks on the way out, which this method doesn't do. This method takes the element off the map and leaves anything bound to it alone.
+:::
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

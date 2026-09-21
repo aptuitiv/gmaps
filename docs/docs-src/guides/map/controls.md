@@ -3,7 +3,7 @@
 
 # Map controls
 
-There are multiple map controls that you can configure for Google Maps. You can also add [custom controls](#custom-controls).
+There are multiple map controls that you can configure for Google Maps. You can also add your own with [Button](/api-reference/map-controls/button), [Control](/api-reference/map-controls/control), or [addCustomControl()](/api-reference/map#addcustomcontrol) — see [custom controls](#custom-controls).
 
 See the [Google maps controls documentation](https://developers.google.com/maps/documentation/javascript/controls) for more information about the built-in map controls.
 
@@ -459,11 +459,89 @@ map.zoomControl = existingControl.
 
 ## Custom controls
 
-Custom controls are typically a button or an element like a div that you'll treat as a button. The contents of the custom control can be whatever you want, although it's recommended to keep it small so as to not take up too much space.
+A custom control is any element you put on the map: a button, a legend, a logo, a message. There are
+three ways to add one, and which to use comes down to how much of its lifecycle you need to manage.
 
-Below is an example. This will create a button that once clicked it will display a message in the browser console log. (You would, of course, put in your own functionality.)
+| | Use it for |
+|---|---|
+| [Button](/api-reference/map-controls/button) | Anything clickable. Handles the click, and optionally an enabled state and an active state |
+| [Control](/api-reference/map-controls/control) | Anything else on the map, and as the base class when writing your own control |
+| [addCustomControl()](/api-reference/map#addcustomcontrol) | A one-off element you'll never need to move or remove |
 
-First you create the DOM element. Then you add a `click` event handler (or whatever event handler you need). Then you add it to the map with the [addCustomControl](../../api-reference/map.md#addcustomcontrol) method.
+None of them decide how a control looks. Every class name, every piece of content and every attribute
+comes from you, and the library ships no CSS for controls.
+
+### A button
+
+[Button](/api-reference/map-controls/button) is in its own entry point, so import it separately, or
+use `G.button()` with the standalone browser script.
+
+```js
+import { button } from '@aptuitiv/gmaps/button';
+
+button({
+    className: 'customButton',
+    content: 'Custom Control',
+    map: map,
+    position: G.ControlPosition.BLOCK_START_INLINE_CENTER,
+    onClick: () => {
+        console.log('Custom Control clicked');
+    },
+});
+```
+
+A button that toggles something needs to show which state it's in. You describe what each state looks
+like and the library applies it at the right time:
+
+```js
+const toggle = button({
+    className: 'customButton',
+    content: 'Traffic',
+    map: map,
+    position: G.ControlPosition.BLOCK_START_INLINE_CENTER,
+    toggle: true,
+    states: {
+        active: { attributes: { 'data-visible': 'yes' }, tooltip: 'Hide traffic' },
+        inactive: { attributes: { 'data-visible': 'no' }, tooltip: 'Show traffic' },
+    },
+});
+
+toggle.onChange((active) => (active ? trafficLayer.show() : trafficLayer.hide()));
+```
+
+Two things that coult go wrong when using [addCustomControl()](/api-reference/map#addcustomcontrol) that can't happen with Button.
+
+1. A disabled button ignores clicks, so a button styled to look absent isn't still firing.
+2. Disabling a button also clears its active state, so it can't be left looking switched on while the thing it controls has gone.
+
+### A control that isn't a button
+
+[Control](/api-reference/map-controls/control) is the same lifecycle without the click handling. It
+can wrap markup that's already on the page. Example usage would be showing a logo on the map or some component that handles it's own interactivity.
+
+```js
+const legend = G.control({
+    element: '.js-mapLegend',
+    map: map,
+    position: G.ControlPosition.RIGHT_TOP,
+});
+```
+
+Because you're given the control back, it can be moved or taken off again later:
+
+```js
+legend.position = G.ControlPosition.BLOCK_END_INLINE_START;
+legend.remove();
+legend.addTo(map);
+```
+
+`Control` is also the class to extend when writing a control of your own. See the
+[plugin guide](/plugin).
+
+### Adding an element directly
+
+[addCustomControl()](/api-reference/map#addcustomcontrol) is the low-level call the other two are
+built on. It puts an element on the map and that's all — you get no handle on what was added.
 
 ```js
 const customBtn = document.createElement('button');
@@ -476,5 +554,19 @@ customBtn.style.display = 'inline-block';
 customBtn.addEventListener('click', () => {
     console.log('Custom Control clicked');
 });
-map1.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
+map.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
+```
+
+That's fine for something you add once and leave alone. To move it, take it off, or keep its state in
+step with what it controls, use `Control` or `Button` instead — or pass the element to
+[removeCustomControl()](/api-reference/map#removecustomcontrol) to take it off again.
+
+### Ordering controls at the same position
+
+Google puts the controls at a position in the order of an `index` property it reads off each element.
+Lower numbers come first. `Control` and `Button` take it as an option:
+
+```js
+button({ content: 'First', index: 1, map: map, position: G.ControlPosition.LEFT_CENTER });
+button({ content: 'Second', index: 2, map: map, position: G.ControlPosition.LEFT_CENTER });
 ```
