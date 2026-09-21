@@ -323,7 +323,9 @@ The one genuinely breaking version of this — the main entry point dropping the
 
 ### Documentation — most of the value of this step
 
-- [ ] Rewrite `docs/docs-src/plugin.md`:
+- [x] Rewrite `docs/docs-src/plugin.md` — done. Restructured around what belongs in a plugin (the
+      headless contract and the two-question test), then the four ways to extend, writing a control,
+      plugin options, the worked example, conventions, accessibility and publishing:
       - What belongs in the core and what belongs in a plugin (the headless contract and the test).
       - The extension points: `extends`, `include()`, init hooks, and `Control` once it exists.
       - Conventions: `gmaps-<name>` npm naming, `@aptuitiv/gmaps` as a `peerDependency`, a lowercase
@@ -333,10 +335,13 @@ The one genuinely breaking version of this — the main entry point dropping the
       - Accessibility expectations for anything that renders UI: keyboard operation and screen reader
         support, since a plugin that renders a control is the only one who can get that right.
       - How to publish types.
-- [ ] Document Popup, Tooltip and InfoWindow as the in-tree examples of the mixin pattern — now a
-      stronger example than when this was written, since they ship as optional entry points with
-      their own documentation.
-- [ ] Add a plugin list page to the documentation site.
+- [x] Document Popup, Tooltip and InfoWindow as the in-tree example — done, as "A worked example:
+      how popups and tooltips do it". It covers all four parts of the pattern: registering with
+      `include()`, having their own entry point, being listed in `sideEffects`, and the placeholder
+      on the class they attach to.
+- [x] Add a plugin list page — done, `docs/docs-src/plugins.md`, listing the five that ship with the
+      library and inviting third-party ones by pull request. The sidebar entry for the guide is now
+      "Writing a plugin" so the two don't read as the same page.
 - [x] Entry points, what each costs, and browser script order — covered by
       `docs/docs-src/installation/`. The plugin documentation should link to those rather than
       repeat them.

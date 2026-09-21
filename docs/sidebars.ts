@@ -118,11 +118,6 @@ const sidebars: SidebarsConfig = {
                     ],
                 },
                 {
-                    type: 'doc',
-                    id: 'plugin',
-                    label: 'Plugins',
-                },
-                {
                     type: 'category',
                     label: 'Polylines',
                     link: {
@@ -173,6 +168,21 @@ const sidebars: SidebarsConfig = {
                             label: 'Styling a tooltip',
                         },
                     ],
+                },
+            ],
+        },
+        {
+            type: 'category',
+            label: 'Plugins',
+            link: {
+                type: 'doc',
+                id: 'plugins',
+            },
+            items: [
+                {
+                    type: 'doc',
+                    id: 'plugin',
+                    label: 'Writing a plugin',
                 },
             ],
         },

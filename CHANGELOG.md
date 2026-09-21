@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added `Map.addInitHook()`, a static method that runs a function against every map created from then on. It's how a plugin attaches itself to every map on a page without the site wiring it up for each one. The function is called at the end of the map's constructor, after its options have been applied and before it's rendered, with the map as both `this` and its first argument. It only applies to maps created after the hook is added, and a hook that throws is logged rather than stopping the map from being created. The `InitHook` type was added for it.
 - Added separate entry points so that a project can leave out the parts of the library it doesn't use. `@aptuitiv/gmaps` still contains everything and is unchanged. `@aptuitiv/gmaps/core` is everything except popups, tooltips and InfoWindows, and `@aptuitiv/gmaps/popup`, `@aptuitiv/gmaps/tooltip` and `@aptuitiv/gmaps/infowindow` add those back. Importing `latLng` from `/core` bundles about 8 KB where the main entry point bundles about 111 KB, and a map with markers is about 69 KB. See the new [installation documentation](https://aptuitiv.github.io/gmaps-docs/installation).
 - Added an installation section to the documentation with a page for each way of using the library: a bundler, the standalone browser script, and CommonJS.
+- Rewrote the plugin guide. It now covers what belongs in a plugin rather than the library, the four ways to extend it, writing a control, how a plugin takes options, a worked example built from how popups and tooltips register themselves, naming and packaging conventions, and accessibility expectations for anything that renders UI.
+- Added a plugin list page to the documentation.
 
 ### Fixed
 
