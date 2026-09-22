@@ -113,8 +113,9 @@ markerPositions.forEach((position, index) => {
 
     // Neither the tooltip nor the popup is given a map, and neither is the marker. The cluster
     // records which map the marker is on when it draws it, and that recorded map is what they
-    // both use to work out where to show themselves. Setting the map here as well would put the
-    // marker on the map outside of the cluster, on top of the cluster icon it belongs to.
+    // both use to work out where to show themselves. Setting the map here as well would be
+    // redundant - the cluster overrides it when it draws - and would leave the markers on the
+    // map unclustered until that first draw.
     markers.push(marker);
     // cluster.addMarker(marker);
 });

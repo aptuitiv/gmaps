@@ -16,9 +16,42 @@ const cluster = G.markerCluster(map);
 const marker = G.marker({
     position: G.latLng(0, 0),
 });
-marker.show(map);
 cluster.addMarker(marker);
 ```
+
+## Adding markers to a cluster
+
+Don't set the `map` on a marker that you add to a cluster, and don't call `marker.show(map)` on it.
+
+The cluster draws its markers itself. Each time it draws, it works out which markers stand on their own and which are replaced by a cluster icon, and it takes the replaced ones off the map.
+
+Setting the `map` on the marker is redundant and not necessary. Depending on on the timing for showing the cluster, it could also mean that the markers show on the map before they are clustered..
+
+It's better to let the cluster handle setting the `map` value.
+
+```js
+// Do this
+const cluster = G.markerCluster(map);
+const marker = G.marker({
+    position: G.latLng(0, 0),
+});
+cluster.addMarker(marker);
+```
+
+```js
+// Not this. The cluster overrides the map when it draws, so this achieves nothing except
+// showing the markers unclustered until then.
+const cluster = G.markerCluster(map);
+const marker = G.marker({
+    position: G.latLng(0, 0),
+    map: map,
+});
+cluster.addMarker(marker);
+```
+
+Popups and tooltips still work on a clustered marker. Both of them work out which map to show themselves on by asking the marker, and the cluster records its map on every marker it holds. 
+
+Taking a marker out of the cluster with [removeMarker](#removemarker), or emptying it with [clearMarkers](#clearmarkers), takes that map back off the marker again.
 
 ## Creating the MarkerCluster object
 
@@ -62,12 +95,10 @@ const markers = [];
 markers.push(G.marker({
     latitude: 48.2,
     longitude: 2.3,
-    map: map,
 }));
 markers.push(G.marker({
     latitude: 48.3,
     longitude: 2.2,
-    map: map,
 }));
 const cluster = G.markerCluster(map, markers);
 ```
@@ -87,12 +118,10 @@ const markers = [];
 markers.push(G.marker({
     latitude: 48.2,
     longitude: 2.3,
-    map: map,
 }));
 markers.push(G.marker({
     latitude: 48.3,
     longitude: 2.2,
-    map: map,
 }));
 const clusterOptions = {
     defaultRenderOptions: {
@@ -208,7 +237,6 @@ const cluster = G.markerCluster(map, {
 const marker = G.marker({
     position: G.latLng(0, 0),
 });
-marker.show(map);
 cluster.addMarker(marker);
 ```
 
@@ -319,7 +347,6 @@ const cluster = G.markerCluster(map, {
 const marker = G.marker({
     position: G.latLng(0, 0),
 });
-marker.show(map);
 cluster.addMarker(marker);
 ```
 
@@ -479,7 +506,6 @@ Add a marker to the cluster. If the Google Maps library hasn't loaded yet, the m
 const cluster = G.markerCluster(map);
 const marker = G.marker({
     position: G.latLng(0, 0),
-    map: map
 });
 cluster.addMarker(marker);
 ```
@@ -500,11 +526,9 @@ const cluster = G.markerCluster(map);
 const markers = [
     G.marker({
         position: G.latLng(0, 0),
-        map: map
     }),
     G.marker({
         position: G.latLng(1, 2),
-        map: map
     })
 ];
 cluster.addMarkers(markers);
@@ -514,7 +538,7 @@ cluster.addMarkers(markers);
 
 `clearMarkers(draw: boolean = true): MarkerCluster`
 
-Clears all the markers in the marker cluster. This does not remove the markers from the map.
+Clears all the markers in the marker cluster. The cluster is what draws its markers, so they are no longer drawn, and the cluster's map is taken back off each of them.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -528,7 +552,7 @@ cluster.clearMarkers();
 
 `removeMarker(marker: Marker, draw: boolean = false): MarkerCluster`
 
-Removes a single marker from the cluster.
+Removes a single marker from the cluster. The marker is no longer drawn, and the cluster's map is taken back off it.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
