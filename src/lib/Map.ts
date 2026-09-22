@@ -62,8 +62,11 @@ export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 // Map events that are not part of the Google Maps API
 type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
 
-// A function registered with Map.addInitHook(), run against every map as it is created
-export type InitHook = (map: Map) => void;
+// A function registered with Map.addInitHook(), run against every map as it is created.
+// The map is both the "this" context and the first argument, so a normal function can use either.
+// Declaring "this" here is what lets a normal function use it without Typescript calling it an
+// implicit any. An arrow function, which has no "this" of its own, takes the argument instead.
+export type InitHook = (this: Map, map: Map) => void;
 // Google Maps library map events
 type GMEvent =
     | 'bounds_changed'
