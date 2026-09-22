@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Rewrote the plugin guide. It now covers what belongs in a plugin rather than the library, the four ways to extend it, writing a control, how a plugin takes options, a worked example built from how popups and tooltips register themselves, naming and packaging conventions, and accessibility expectations for anything that renders UI.
 - Added a plugin list page to the documentation.
 - Renamed the `typescriptTest` script to `typescript-trace-resolution`, which says what it does — it prints how Typescript resolves each module, for debugging an import that won't resolve. It also runs with `--noEmit` now. The tsconfig's `outDir` is `dist`, so running it used to write 120 unbundled files over the real build, and `files` publishes the whole `dist` folder.
+- Turned on the full `strict` family in `tsconfig.json`. It was `strictNullChecks` only, which left gaps that only showed up for people using the library: a published type that didn't declare its `this` context compiled here and failed for anyone with `strict` on. The source needed no changes to satisfy it.
 - Added an `npm run typecheck` script, which runs against all of `src`, and a CI step for it. The build doesn't cover everything: the browser build has no declaration step, so the types in `src/browser.ts` were stripped without ever being checked. Three additions to the `G` namespace went in with the `GlobalObj` type not updated to match, and nothing failed.
 
 ### Fixed
