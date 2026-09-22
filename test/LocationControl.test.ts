@@ -211,6 +211,19 @@ describe('LocationControl', () => {
             expect(panTo).toHaveBeenCalledTimes(1);
         });
 
+        it('still calls an onClick the caller passed in', () => {
+            const map = testMap();
+            const mine = vi.fn();
+            vi.spyOn(map, 'panTo').mockImplementation(() => {});
+            const c = locationControl({ map, onClick: mine });
+            findLocation();
+            c.element.click();
+
+            // The control used to set its own onClick over the top of this one, so a handler
+            // passed in was silently dropped
+            expect(mine).toHaveBeenCalledTimes(1);
+        });
+
         it('centres instead when the action says so, and applies the zoom', () => {
             const map = testMap();
             const setCenter = vi.spyOn(map, 'setCenter').mockImplementation(() => {});

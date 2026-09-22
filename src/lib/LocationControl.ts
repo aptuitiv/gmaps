@@ -140,7 +140,12 @@ export class LocationControl extends Button {
             this.#setUpMarker(undefined);
         }
 
-        this.onClick(() => this.panToLocation());
+        // Listened for rather than set through onClick(), which would overwrite an onClick the
+        // caller passed in and silently drop it. Both run now: the map moves and their handler is
+        // called.
+        this.on('click', () => {
+            this.panToLocation();
+        });
 
         if (map instanceof Map) {
             this.setMap(map);
