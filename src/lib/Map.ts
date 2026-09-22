@@ -2405,10 +2405,11 @@ export class Map extends Evented {
                 // The map library is loaded and this can be shown
                 display();
             } else {
-                // Wait for the loader to dispatch it's "load" event
-                loader().onceLoad(() => {
-                    display();
-                });
+                // Load it, rather than waiting for the "load" event, which is only dispatched on
+                // success - so a failed load, or nothing ever calling load(), left this promise
+                // unsettled. load() hands back the load that is already running when there is one,
+                // so this doesn't start a second.
+                loader().load().then(display).catch(reject);
             }
         });
     }

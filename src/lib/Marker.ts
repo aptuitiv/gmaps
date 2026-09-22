@@ -1589,7 +1589,13 @@ export class Marker extends Layer {
                 } else {
                     // Trigger the map to load if it's set.
                     if (map instanceof Map) {
-                        map.init();
+                        // The rejection is logged rather than dropped. init() rejects when the
+                        // Google Maps library can't be loaded, and a dropped rejection surfaces as
+                        // an unhandled error pointing at the library rather than at the failed load.
+                        map.init().catch((error) => {
+                            // eslint-disable-next-line no-console
+                            console.error('The map could not be loaded, so the marker was not set up.', error);
+                        });
                     }
 
                     // The Google maps object isn't available yet. Wait for it to load.

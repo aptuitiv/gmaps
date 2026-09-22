@@ -1399,7 +1399,11 @@ export class Overlay extends Layer {
         if (googleMap) {
             overlayView.setMap(googleMap);
         } else {
-            map.init();
+            // See the note in Marker: a dropped rejection becomes an unhandled error
+            map.init().catch((error) => {
+                // eslint-disable-next-line no-console
+                console.error('The map could not be loaded, so the overlay was not set up.', error);
+            });
             map.onReady(() => {
                 // The overlay could have been hidden, or moved to another map, while the map
                 // was being set up, so only attach it if it's still waiting for this one.

@@ -1907,7 +1907,11 @@ export class Polyline extends Layer {
 
                     // Trigger the map to load if it's set.
                     if (map instanceof Map) {
-                        map.init();
+                        // See the note in Marker: a dropped rejection becomes an unhandled error
+                        map.init().catch((error) => {
+                            // eslint-disable-next-line no-console
+                            console.error('The map could not be loaded, so the polyline was not set up.', error);
+                        });
                     }
                 }
             } else {

@@ -760,7 +760,11 @@ export class DataLayer extends Layer {
             this.#options.map = value;
             // Start the map loading. The layer is waiting for the Google maps library to load
             // and this makes sure that something is actually loading it.
-            value.init();
+            value.init().catch((error) => {
+                // See the note in Marker: a dropped rejection becomes an unhandled error
+                // eslint-disable-next-line no-console
+                console.error('The map could not be loaded, so the data layer was not set up.', error);
+            });
             await this.#enqueue(async (data) => {
                 // Wait for the map to be ready. The Google maps library loads before the map
                 // object is created, so toGoogle() is not set yet when the library finishes
