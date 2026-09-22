@@ -732,7 +732,7 @@ export class Popup extends Overlay {
      * @returns {Promise<Popup>}
      */
     show(element: Map | Layer): Promise<Popup> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const collection = PopupCollection.getInstance();
             if (collection.has(this) && this.#isOpen) {
                 if (this.#toggleDisplay) {
@@ -752,7 +752,8 @@ export class Popup extends Overlay {
                     this.#popupOffset = this.getOffset().clone();
                     super.show(element).then(() => {
                         resolve(this);
-                    });
+                    })
+                        .catch(reject);
                 } else if (element instanceof Marker) {
                     // If the anchor is a marker then add the anchor's anchorPoint to the offset.
                     // The anchorPoint for the marker contains the x/y values to add to the marker's position that

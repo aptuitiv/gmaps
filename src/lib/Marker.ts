@@ -1505,10 +1505,11 @@ export class Marker extends Layer {
      * @returns {Promise<google.maps.Marker>}
      */
     toGoogle(): Promise<google.maps.Marker> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGoogleMarker().then(() => {
                 resolve(this.#marker);
-            });
+            })
+                .catch(reject);
         });
     }
 
@@ -1575,7 +1576,7 @@ export class Marker extends Layer {
         if (this.#creationPromise) {
             return this.#creationPromise;
         }
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!this.#isSettingUp && !isObject(this.#marker)) {
                 this.#isSettingUp = true;
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
@@ -1600,21 +1601,31 @@ export class Marker extends Layer {
 
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().onMapLoad(() => {
-                        this.#createMarkerObject().then(() => {
-                            // Make sure that the map is still set.
-                            // It's unlikely, but possible, that the developer could have removed the map
-                            // from the marker before the Google maps object was available.
-                            const thisMap = this.getMap();
-                            if (this.#marker && thisMap) {
-                                this.#marker.setMap(thisMap.toGoogle() ?? null);
-                            } else if (this.#marker && map) {
-                                this.#marker.setMap(map.toGoogle() ?? null);
-                            }
-                            this.#dispatchReady();
-                            resolve();
+                    //
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched on
+                    // success - waiting on it alone meant a failed load left this promise unsettled
+                    // and the marker silently never appeared.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            this.#createMarkerObject().then(() => {
+                                // Make sure that the map is still set.
+                                // It's unlikely, but possible, that the developer could have removed the map
+                                // from the marker before the Google maps object was available.
+                                const thisMap = this.getMap();
+                                if (this.#marker && thisMap) {
+                                    this.#marker.setMap(thisMap.toGoogle() ?? null);
+                                } else if (this.#marker && map) {
+                                    this.#marker.setMap(map.toGoogle() ?? null);
+                                }
+                                this.#dispatchReady();
+                                resolve();
+                            });
+                        })
+                        .catch((error) => {
+                            this.#isSettingUp = false;
+                            reject(error);
                         });
-                    });
                 }
             } else {
                 // Only reached when the marker already exists. #isSettingUp is set in the branch

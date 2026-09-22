@@ -300,7 +300,13 @@ export class DataLayer extends Layer {
     set visible(value: boolean) {
         if (isBoolean(value)) {
             if (value) {
-                this.show();
+                // A property setter can't hand a promise back, so a failure is logged rather than
+                // dropped. show() rejects when the map can't be loaded, and a dropped rejection
+                // surfaces as an unhandled error pointing at the library.
+                this.show().catch((error) => {
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so the data layer was not shown.', error);
+                });
             } else {
                 this.hide();
             }

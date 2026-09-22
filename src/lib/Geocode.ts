@@ -440,20 +440,26 @@ export class Geocode extends Base {
             } else {
                 // The Google maps object isn't available yet. Wait for it to load.
                 // The developer may have set the map on the marker before the Google maps object was available.
-                loader().onMapLoad(() => {
-                    this.#runGeocode()
-                        .then((results) => {
-                            resolve(results);
-                        })
-                        .catch((status) => {
-                            // https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
-                            if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
-                                resolve(new GeocodeResults());
-                            } else {
-                                reject(status);
-                            }
-                        });
-                });
+                // whenMapLoaded() rather than the "map_load" event, which is only dispatched on
+                // success - waiting on it alone left this promise unsettled when the load failed,
+                // so the geocode never came back either way.
+                loader()
+                    .whenMapLoaded()
+                    .then(() => {
+                        this.#runGeocode()
+                            .then((results) => {
+                                resolve(results);
+                            })
+                            .catch((status) => {
+                                // https://developers.google.com/maps/documentation/javascript/reference/3.56/geocoder?hl=en#GeocoderStatus
+                                if (status === google.maps.GeocoderStatus.ZERO_RESULTS) {
+                                    resolve(new GeocodeResults());
+                                } else {
+                                    reject(status);
+                                }
+                            });
+                    })
+                    .catch(reject);
             }
         });
     }

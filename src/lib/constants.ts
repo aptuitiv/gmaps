@@ -315,6 +315,10 @@ export const LoaderEvents = Object.freeze({
     LOAD: 'load',
     // The API library is loaded and the map is loaded and visible.
     MAP_LOAD: 'map_load',
+    // The Google Maps library could not be loaded, or a map could not be displayed. Anything
+    // waiting for the map to load is told through this, so that it stops waiting instead of
+    // waiting for a "map_load" that is never coming.
+    LOAD_ERROR: 'load_error',
 });
 
 /**

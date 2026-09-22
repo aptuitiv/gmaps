@@ -175,13 +175,14 @@ export class LatLngBounds extends Base {
      * @returns {Promise<boolean>}
      */
     equals(other: LatLngBounds): Promise<boolean> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (other instanceof LatLngBounds) {
                 const bounds = this.#bounds;
                 if (bounds) {
                     other.toGoogle().then((googleLatLngBounds) => {
                         resolve(bounds.equals(googleLatLngBounds));
-                    });
+                    })
+                        .catch(reject);
                 } else {
                     // Calculate the equality manually.
                     //
@@ -520,10 +521,11 @@ export class LatLngBounds extends Base {
      * @returns {Promise<void>}
      */
     init(): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGoogleLatLngBounds().then(() => {
                 resolve();
-            });
+            })
+                .catch(reject);
         });
     }
 
@@ -592,10 +594,11 @@ export class LatLngBounds extends Base {
      * @returns {Promise<google.maps.LatLngBounds>}
      */
     toGoogle(): Promise<google.maps.LatLngBounds> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGoogleLatLngBounds().then((bounds) => {
                 resolve(bounds);
-            });
+            })
+                .catch(reject);
         });
     }
 
@@ -606,16 +609,22 @@ export class LatLngBounds extends Base {
      * @returns {Promise<google.maps.LatLngBounds>}
      */
     #setupGoogleLatLngBounds(): Promise<google.maps.LatLngBounds> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!isObject(this.#bounds)) {
                 if (checkForGoogleMaps('LatLngBounds', 'LatLngBounds', false)) {
                     resolve(this.#createLatLngBoundsObject());
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().onMapLoad(() => {
-                        resolve(this.#createLatLngBoundsObject());
-                    });
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched
+                    // on success - waiting on it alone left this promise unsettled when the load
+                    // failed.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            resolve(this.#createLatLngBoundsObject());
+                        })
+                        .catch(reject);
                 }
             } else {
                 resolve(this.#bounds);
@@ -710,11 +719,12 @@ export class LatLngBounds extends Base {
      * @returns {Promise<void>}
      */
     union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this.#bounds) {
                 this.#union(other).then(() => {
                     resolve();
-                });
+                })
+                    .catch(reject);
             } else {
                 this.#setupGoogleLatLngBounds().then(() => {
                     this.#union(other).then(() => {
@@ -734,14 +744,15 @@ export class LatLngBounds extends Base {
      * @returns {Promise<void>}
      */
     #union(other: LatLngBounds | google.maps.LatLngBounds): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             // The Google object is already set up at this point, so this returns the existing object.
             const bounds = this.#createLatLngBoundsObject();
             if (other instanceof LatLngBounds) {
                 other.toGoogle().then((googleLatLngBounds) => {
                     bounds.union(googleLatLngBounds);
                     resolve();
-                });
+                })
+                    .catch(reject);
             } else {
                 // Assume it's a Google Maps LatLngBounds object
                 bounds.union(other);

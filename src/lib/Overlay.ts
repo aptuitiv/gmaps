@@ -828,7 +828,7 @@ export class Overlay extends Layer {
      * @returns {Promise<Overlay>}
      */
     show(map: Map): Promise<Overlay> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (map instanceof Map) {
                 this.#setupGoogleOverlay();
                 if (this.#overlayView) {
@@ -839,16 +839,22 @@ export class Overlay extends Layer {
                     resolve(this);
                 } else {
                     // The Google maps library isn't loaded yet. Wait for it to load.
-                    loader().onMapLoad(() => {
-                        this.#setupGoogleOverlay();
-                        super.setMap(map);
-                        if (this.#overlayView) {
-                            this.#attachToGoogleMap(map);
-                            this.isVisible = true;
-                        }
-                        this.dispatch(OverlayEvents.OPEN);
-                        resolve(this);
-                    });
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched
+                    // on success - waiting on it alone left this promise unsettled when the load
+                    // failed, and the overlay silently never appeared.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            this.#setupGoogleOverlay();
+                            super.setMap(map);
+                            if (this.#overlayView) {
+                                this.#attachToGoogleMap(map);
+                                this.isVisible = true;
+                            }
+                            this.dispatch(OverlayEvents.OPEN);
+                            resolve(this);
+                        })
+                        .catch(reject);
                 }
             } else {
                 this.dispatch(OverlayEvents.OPEN);

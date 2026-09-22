@@ -75,6 +75,7 @@ You can use the plain text name for the event, or you can use the [event constan
 |----------|-------------|
 | load | The API library is loaded. |
 | map_load | The API library is loaded and the map is loaded and visible. |
+| load_error | The API library could not be loaded, or a map could not be displayed. Anything waiting for the map is told through this so that it stops waiting. |
 
 ## Properties
 
@@ -222,6 +223,27 @@ loader.onceLoad(() => {
     // Do something.
 });
 ```
+
+### whenMapLoaded
+
+`whenMapLoaded(): Promise<void>`
+
+Wait for a map to be displayed. This is what the library's own objects wait on — markers, polylines, overlays, geocoding — when they need the Google Maps objects and the library hasn't loaded yet.
+
+It resolves once a map has been displayed, and **rejects** if the library can't be loaded or a map can't be displayed.
+
+```js
+G.loader()
+    .whenMapLoaded()
+    .then(() => {
+        // The Google Maps objects exist and a map is on the page
+    })
+    .catch((error) => {
+        // The library could not be loaded, or the map could not be displayed
+    });
+```
+
+Prefer this over listening for the [map_load](#events) event when you need to know either way. That event is only dispatched on success, so waiting for it alone means waiting forever when a load fails.
 
 ### onceMapLoad
 

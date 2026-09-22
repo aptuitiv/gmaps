@@ -1445,12 +1445,13 @@ export class Polyline extends Layer {
      * @returns {Promise<Polyline>}
      */
     show(map?: Map): Promise<Polyline> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.visible = true;
             if (map) {
                 this.setMap(map).then(() => {
                     resolve(this);
-                });
+                })
+                    .catch(reject);
             } else {
                 resolve(this);
             }
@@ -1465,10 +1466,11 @@ export class Polyline extends Layer {
      * @returns {Promise<google.maps.Polyline>}
      */
     toGoogle(): Promise<google.maps.Polyline> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGooglePolyline().then((googlePolyline) => {
                 resolve(googlePolyline);
-            });
+            })
+                .catch(reject);
         });
     }
 
@@ -1879,7 +1881,7 @@ export class Polyline extends Layer {
      * @returns {Promise<google.maps.Polyline>} The Google maps Polyline object once it's set up
      */
     #setupGooglePolyline(map?: Map): Promise<google.maps.Polyline> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!isObject(this.#polyline)) {
                 if (checkForGoogleMaps('Polyline', 'Polyline', false)) {
                     const googlePolyline = this.#createPolylineObject();
@@ -1888,22 +1890,28 @@ export class Polyline extends Layer {
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the polyline before the Google maps object was available.
-                    loader().onMapLoad(() => {
-                        const googlePolyline = this.#createPolylineObject();
-                        // Make sure that the map is still set.
-                        // It's unlikely, but possible, that the developer could have removed the map
-                        // from the polyline before the Google maps object was available.
-                        const thisMap = this.getMap();
-                        if (thisMap) {
-                            googlePolyline.setMap(thisMap.toGoogle() ?? null);
-                            // Add the map to the highlight polyline as well if it's been set up
-                            if (this.#highlightPolyline && this.#highlightSetup) {
-                                this.#highlightPolyline.setMap(thisMap, false);
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched
+                    // on success - waiting on it alone left this promise unsettled when the load
+                    // failed, and the polyline silently never appeared.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            const googlePolyline = this.#createPolylineObject();
+                            // Make sure that the map is still set.
+                            // It's unlikely, but possible, that the developer could have removed the map
+                            // from the polyline before the Google maps object was available.
+                            const thisMap = this.getMap();
+                            if (thisMap) {
+                                googlePolyline.setMap(thisMap.toGoogle() ?? null);
+                                // Add the map to the highlight polyline as well if it's been set up
+                                if (this.#highlightPolyline && this.#highlightSetup) {
+                                    this.#highlightPolyline.setMap(thisMap, false);
+                                }
                             }
-                        }
-                        this.#dispatchReady();
-                        resolve(googlePolyline);
-                    });
+                            this.#dispatchReady();
+                            resolve(googlePolyline);
+                        })
+                        .catch(reject);
 
                     // Trigger the map to load if it's set.
                     if (map instanceof Map) {

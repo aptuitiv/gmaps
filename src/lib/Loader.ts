@@ -54,6 +54,20 @@ export class Loader extends EventTarget {
     #loadPromise: Promise<void> | undefined;
 
     /**
+     * The error from a load that failed, if one has.
+     *
+     * Kept so that anything asking to wait for the map afterwards is told straight away instead of
+     * waiting for a "map_load" that is never coming.
+     *
+     * @private
+     * @type {Error|undefined}
+     */
+    #loadError: Error | undefined;
+
+    /** Anything waiting for a map to be displayed */
+    #mapLoadedPromise: Promise<void> | undefined;
+
+    /**
      * Holds the loaded state
      *
      * @private
@@ -251,9 +265,10 @@ export class Loader extends EventTarget {
                 () => {
                     this.#loadPromise = undefined;
                 },
-                () => {
+                (error) => {
                     this.#isLoading = false;
                     this.#loadPromise = undefined;
+                    this.loadFailed(error instanceof Error ? error : new Error(String(error)));
                 },
             );
         }
@@ -300,11 +315,62 @@ export class Loader extends EventTarget {
                         await google.maps.importLibrary('marker');
                     }
                     this.#isLoaded = true;
+                    this.#loadError = undefined;
                     this.dispatch(LoaderEvents.LOAD);
                     resolve();
                 })
                 .catch(reject);
         });
+    }
+
+    /**
+     * Wait for a map to be displayed.
+     *
+     * This is what anything needing the Google Maps objects waits on - markers, polylines,
+     * overlays, geocoding. It resolves once a map has been displayed, and rejects if the library
+     * can't be loaded or a map can't be displayed.
+     *
+     * The rejection is the point of it. Listening for the "map_load" event alone means waiting for
+     * something that is only ever dispatched on success, so a failed load left every one of those
+     * objects waiting forever with nothing reported.
+     *
+     * @returns {Promise<void>}
+     */
+    whenMapLoaded(): Promise<void> {
+        if (this.#isMapLoaded) {
+            return Promise.resolve();
+        }
+        if (this.#loadError) {
+            return Promise.reject(this.#loadError);
+        }
+        if (!this.#mapLoadedPromise) {
+            this.#mapLoadedPromise = new Promise((resolve, reject) => {
+                this.on(LoaderEvents.MAP_LOAD, () => {
+                    resolve();
+                });
+                this.on(LoaderEvents.LOAD_ERROR, () => {
+                    reject(this.#loadError ?? new Error('The map could not be loaded'));
+                });
+            });
+        }
+        return this.#mapLoadedPromise;
+    }
+
+    /**
+     * Say that the library or a map failed to load, so that anything waiting for a map stops
+     * waiting.
+     *
+     * Called by the Loader itself when a load fails, and by the Map when it can't be displayed.
+     *
+     * @internal
+     * @param {Error} error The error that stopped it
+     */
+    loadFailed(error: Error): void {
+        this.#loadError = error;
+        // Let go of the waiting promise so that a later attempt gets a fresh one rather than the
+        // one that already rejected
+        this.#mapLoadedPromise = undefined;
+        this.dispatch(LoaderEvents.LOAD_ERROR);
     }
 
     /**

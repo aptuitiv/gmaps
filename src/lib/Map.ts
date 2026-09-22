@@ -1239,7 +1239,7 @@ export class Map extends Evented {
     #fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<void> {
         // This is only called after the map has been set up, so the Google map object exists.
         // The non-null assertions below rely on that.
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (bounds) {
                 latLngBounds(bounds)
                     .toGoogle()
@@ -1247,7 +1247,8 @@ export class Map extends Evented {
                         this.#handleZoomAfterFitBounds(maxZoom, minZoom);
                         this.#map!.fitBounds(googleBounds);
                         resolve();
-                    });
+                    })
+                        .catch(reject);
             } else if (this.#bounds) {
                 this.#bounds.toGoogle().then((googleBounds) => {
                     this.#handleZoomAfterFitBounds(maxZoom, minZoom);
@@ -1502,13 +1503,14 @@ export class Map extends Evented {
      * @returns {Promise<LatLngBounds | undefined>}
      */
     getBounds(): Promise<LatLngBounds | undefined> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const googleBounds = this.#map?.getBounds();
             if (googleBounds) {
                 const bounds = new LatLngBounds();
                 bounds.union(googleBounds).then(() => {
                     resolve(bounds);
-                });
+                })
+                    .catch(reject);
             } else {
                 // The map isn't set up yet, or it doesn't have bounds yet
                 // (Google returns undefined for the bounds until the map has been sized and positioned).
@@ -2398,7 +2400,13 @@ export class Map extends Evented {
                         callCallback(callback);
                         resolve(this);
                     })
-                    .catch(reject);
+                    .catch((error) => {
+                        // Tell anything waiting for a map that one isn't coming. Markers,
+                        // polylines and the rest wait on the loader for that, and a map that can't
+                        // be displayed leaves them waiting just as a failed script load would.
+                        loader().loadFailed(error instanceof Error ? error : new Error(String(error)));
+                        reject(error);
+                    });
             };
 
             if (checkForGoogleMaps('Map', 'Map', false)) {
@@ -2540,26 +2548,28 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     #setupMapObject = (element: HTMLElement): Promise<void> =>
-        new Promise((resolve) => {
+        new Promise((resolve, reject) => {
             // Get the map options
-            this.#getMapOptions().then((mapOptions) => {
-                const map = new google.maps.Map(element, mapOptions);
-                this.#map = map;
-                this.setEventGoogleObject(map);
+            this.#getMapOptions()
+                .then((mapOptions) => {
+                    const map = new google.maps.Map(element, mapOptions);
+                    this.#map = map;
+                    this.setEventGoogleObject(map);
 
-                // Keep a pinch on the map from zooming the whole page on iOS
-                this.#setupPreventPageZoom();
+                    // Keep a pinch on the map from zooming the whole page on iOS
+                    this.#setupPreventPageZoom();
 
-                // Add any custom controls to the map
-                if (this.#customControls.length > 0) {
-                    this.#customControls.forEach((control) => {
-                        map.controls[convertControlPosition(control.position)].push(control.element);
-                    });
-                }
-                this.#customControls = [];
+                    // Add any custom controls to the map
+                    if (this.#customControls.length > 0) {
+                        this.#customControls.forEach((control) => {
+                            map.controls[convertControlPosition(control.position)].push(control.element);
+                        });
+                    }
+                        this.#customControls = [];
 
-                resolve();
-            });
+                        resolve();
+                })
+                .catch(reject);
         });
 
     /**
