@@ -870,7 +870,13 @@ export class AdvancedMarker extends Layer {
                             }
                             resolve();
                         })
-                        .catch(reject);
+                        .catch((error) => {
+                            // Cleared so that a later attempt goes down this path again. Left set,
+                            // it sent the next one to the branch below to wait for an "initialized"
+                            // event that was never going to be dispatched.
+                            this.#isInitialized = false;
+                            reject(error);
+                        });
                 } else {
                     this.onceImmediate('initialized', () => {
                         resolve();
