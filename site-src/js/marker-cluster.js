@@ -2,10 +2,7 @@
     Javascript for the Marker Cluster page
 =========================================================================== */
 
-
 /* global G */
-
-
 
 const map = G.map('#map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 } });
 map.load();
@@ -46,8 +43,7 @@ clusterOptions = {
     //     console.log('Cluster clicked', event);
     //     console.log('Cluster clicked', cluster);
     // }
-}
-
+};
 
 // Image renderer options
 clusterOptions = {
@@ -58,8 +54,8 @@ clusterOptions = {
             25: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m3.png',
             50: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m4.png',
             100: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m5.png',
-        }
-    }
+        },
+    },
 };
 
 // Create the cluster object
