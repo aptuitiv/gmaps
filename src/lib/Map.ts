@@ -261,6 +261,18 @@ export class Map extends Evented {
     #isInitializing: boolean = false;
 
     /**
+     * The initialization that is currently running, so that callers arriving while it is in flight
+     * share it.
+     *
+     * They used to wait on the "ready" event instead, which only fires on success - so a failed
+     * load left every one of them waiting for a map that was never coming.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #initPromise: Promise<void> | undefined;
+
+    /**
      * Holds if the map is loaded and ready for use
      *
      * @private
@@ -1301,40 +1313,35 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     init(callback?: () => void): Promise<Map> {
-        return new Promise((resolve, reject) => {
-            if (!this.#isInitialized && !this.#isReady) {
-                // The map has not been initialized or displayed
-                if (!this.#isInitializing) {
-                    // The map is not initializing, so start the initialization process
-                    this.#isInitializing = true;
-                    this.#load()
-                        .then(() => {
-                            callCallback(callback);
-                            resolve(this);
-                        })
-                        .catch((error) => {
-                            // #load() rejects when the Google Maps library can't be loaded - a
-                            // missing API key, a network failure. This promise had no reject, so
-                            // the failure became an unhandled rejection and this promise was left
-                            // unsettled: anything awaiting init() waited for a map that was never
-                            // coming, and the error surfaced somewhere unrelated.
-                            //
-                            // The flag is cleared so that a later attempt starts a fresh load
-                            // rather than waiting on a "ready" event that will never be dispatched.
-                            this.#isInitializing = false;
-                            reject(error);
-                        });
-                } else {
-                    // The map is initializing, so wait for it to finish
-                    this.onceImmediate(MapEvents.READY, () => {
-                        callCallback(callback);
-                        resolve(this);
-                    });
-                }
-            } else {
-                callCallback(callback);
-                resolve(this);
-            }
+        if (this.#isInitialized || this.#isReady) {
+            callCallback(callback);
+            return Promise.resolve(this);
+        }
+
+        if (!this.#initPromise) {
+            this.#isInitializing = true;
+            this.#initPromise = this.#load();
+            // Forgotten once it settles. After a success the check above takes over, and after a
+            // failure a later call starts a fresh load rather than being handed the one that
+            // already failed.
+            this.#initPromise.then(
+                () => {
+                    this.#initPromise = undefined;
+                },
+                () => {
+                    // Cleared so that a later attempt starts again rather than waiting on a "ready"
+                    // event that is never going to be dispatched
+                    this.#isInitializing = false;
+                    this.#initPromise = undefined;
+                },
+            );
+        }
+
+        // Every caller hangs off the same initialization, so a failure settles all of them rather
+        // than only the one that started it
+        return this.#initPromise.then(() => {
+            callCallback(callback);
+            return this;
         });
     }
 

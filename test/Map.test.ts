@@ -255,6 +255,19 @@ describe('Map', () => {
             await expect(m.init()).rejects.toThrow(/API key/);
         });
 
+        it('settles a second caller that started waiting during the same load', async () => {
+            mapElement();
+            const m = new Map('#map1');
+
+            const first = m.init();
+            // Started while the first is still running, so it takes the "already initializing"
+            // path and waits for the ready event - which is never dispatched when the load fails
+            const second = m.init();
+
+            await expect(first).rejects.toThrow(/API key/);
+            await expect(second).rejects.toThrow(/API key/);
+        });
+
         it('can try again after a failed load', async () => {
             mapElement();
             const m = new Map('#map1');
