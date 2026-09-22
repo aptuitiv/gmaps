@@ -192,3 +192,29 @@ describe('a failed load', () => {
         await expect(l.load()).rejects.not.toThrow(/API key/);
     });
 });
+
+describe('two callers loading at once', () => {
+    it('settles both of them when the load fails', async () => {
+        // An api key, so it gets past that check and into the import, which fails asynchronously.
+        // That leaves a window where a second call sees a load already running.
+        const l = new Loader({ apiKey: 'test-key' });
+
+        const first = l.load();
+        const second = l.load();
+
+        await expect(first).rejects.toThrow();
+        // The second caller used to wait for a "load" event that was never going to be dispatched,
+        // so it hung rather than being told the load had failed.
+        await expect(second).rejects.toThrow();
+    });
+
+    it('does not hand a later caller the load that already failed', async () => {
+        const l = new Loader({ apiKey: 'test-key' });
+
+        await expect(Promise.all([l.load(), l.load()]).catch((e) => Promise.reject(e))).rejects.toThrow();
+
+        // The shared promise is let go of when it fails, so this starts a fresh attempt rather
+        // than being given the settled failure back
+        await expect(l.load()).rejects.toThrow();
+    });
+});

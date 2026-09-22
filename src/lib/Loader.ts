@@ -43,6 +43,17 @@ export class Loader extends EventTarget {
     #isLoading: boolean = false;
 
     /**
+     * The load that is currently running, so that callers arriving while it is in flight share it.
+     *
+     * They used to wait on the "load" event instead, which only ever fires on success - so a failed
+     * load left every one of them waiting for something that was never coming.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #loadPromise: Promise<void> | undefined;
+
+    /**
      * Holds the loaded state
      *
      * @private
@@ -226,58 +237,73 @@ export class Loader extends EventTarget {
      * @returns {Promise<void>}
      */
     load(callback?: () => void): Promise<void> {
+        if (this.#isLoaded) {
+            // The Google maps API has already loaded
+            callCallback(callback);
+            return Promise.resolve();
+        }
+
+        if (!this.#loadPromise) {
+            this.#loadPromise = this.#startLoad();
+            // Forgotten once it settles. On success the check above takes over, and on failure a
+            // later load() starts again rather than handing back the load that already failed.
+            this.#loadPromise.then(
+                () => {
+                    this.#loadPromise = undefined;
+                },
+                () => {
+                    this.#isLoading = false;
+                    this.#loadPromise = undefined;
+                },
+            );
+        }
+
+        // Every caller hangs off the same load, so they are all told about a failure rather than
+        // only the one that started it
+        return this.#loadPromise.then(() => {
+            callCallback(callback);
+        });
+    }
+
+    /**
+     * Start loading the Google maps API
+     *
+     * @private
+     * @returns {Promise<void>}
+     */
+    #startLoad(): Promise<void> {
         return new Promise((resolve, reject) => {
-            if (!this.#isLoaded) {
-                if (!this.#isLoading) {
-                    this.#isLoading = true;
-                    if (isStringWithValue(this.#apiKey)) {
-                        // Set up the Google maps loader
-                        // https://www.npmjs.com/package/@googlemaps/js-api-loader
-                        if (typeof this.#loader === 'undefined') {
-                            this.#loader = new GoogleLoader({
-                                apiKey: this.#apiKey,
-                                version: this.#version,
-                                libraries: this.#libraries,
-                            });
-                        }
-                        this.#loader
-                            .importLibrary('maps')
-                            .then(async () => {
-                                // Make sure that the advanced marker library is loaded. If its set in the libraries array, it will be loaded by the
-                                // Google maps loader. But, it may not be loaded by the time we need it. So, we will load it here.
-                                // It would be better if the Google maps loader could load multiple libraries at once or there was a way to wait for multiple libraries to load.
-                                if (this.#libraries.includes('marker')) {
-                                    await google.maps.importLibrary('marker');
-                                }
-                                this.#isLoaded = true;
-                                callCallback(callback);
-                                this.dispatch(LoaderEvents.LOAD);
-                                resolve();
-                            })
-                            .catch((err) => {
-                                // Cleared so that a later load() starts again. It used to be left
-                                // set, so every call after a failure took the "already loading"
-                                // branch below and waited for a "load" event that was never going
-                                // to be dispatched.
-                                this.#isLoading = false;
-                                reject(err);
-                            });
-                    } else {
-                        this.#isLoading = false;
-                        reject(new Error('The Google Maps API key is not set'));
-                    }
-                } else {
-                    // Wait for the Google maps API to load
-                    this.once(LoaderEvents.LOAD, () => {
-                        callCallback(callback);
-                        resolve();
-                    });
-                }
-            } else {
-                // The Google maps API has already loaded
-                callCallback(callback);
-                resolve();
+            if (!isStringWithValue(this.#apiKey)) {
+                reject(new Error('The Google Maps API key is not set'));
+                return;
             }
+
+            this.#isLoading = true;
+
+            // Set up the Google maps loader
+            // https://www.npmjs.com/package/@googlemaps/js-api-loader
+            if (typeof this.#loader === 'undefined') {
+                this.#loader = new GoogleLoader({
+                    apiKey: this.#apiKey,
+                    version: this.#version,
+                    libraries: this.#libraries,
+                });
+            }
+
+            this.#loader
+                .importLibrary('maps')
+                .then(async () => {
+                    // Make sure that the advanced marker library is loaded. If its set in the libraries array, it will be loaded by the
+                    // Google maps loader. But, it may not be loaded by the time we need it. So, we will load it here.
+                    // It would be better if the Google maps loader could load multiple libraries at once or there was a way to wait for multiple libraries to load.
+                    if (this.#libraries.includes('marker')) {
+                        await google.maps.importLibrary('marker');
+                    }
+                    this.#isLoaded = true;
+                    this.dispatch(LoaderEvents.LOAD);
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 
