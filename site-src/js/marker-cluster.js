@@ -75,14 +75,46 @@ for (let i = 0; i < 300; i += 1) {
 
 const markers = [];
 markerPositions.forEach((position, index) => {
+    const markerNumber = index + 1;
     const marker = G.marker({
         latitude: position.latitude,
         longitude: position.longitude,
-        title: 'Marker ' + (index + 1),
+        title: 'Marker ' + markerNumber,
+        // A custom tooltip, shown on hover. It's styled here rather than with a class so that
+        // this page doesn't need any CSS of its own.
+        tooltip: {
+            className: 'my-tooltip',
+            content: 'Marker ' + markerNumber,
+            offset: [0, 15],
+            styles: {
+                backgroundColor: '#14213d',
+                borderRadius: '3px',
+                color: '#ffffff',
+                fontSize: '12px',
+                padding: '3px 8px',
+            },
+            theme: 'none',
+        },
     });
-    // The marker isn't put on the map here. The cluster does that when it draws, and setting the
-    // map here as well would put the marker on the map outside of the cluster, so it would show
-    // on top of the cluster icon it's supposed to be part of.
+
+    // A popup, shown on click. The content is built the first time it's opened rather than for
+    // all 300 markers up front.
+    marker.attachPopup(() => ({
+        closeElement: 'button.close',
+        content: `
+            <h2 style="margin: 0 0 6px; font-size: 14px;">Marker ${markerNumber}</h2>
+            <p style="margin: 0 0 4px;">Latitude: ${position.latitude.toFixed(4)}</p>
+            <p style="margin: 0 0 8px;">Longitude: ${position.longitude.toFixed(4)}</p>
+            <button type="button" class="close">Close</button>
+        `,
+        styles: { maxWidth: '220px', padding: '10px 14px' },
+        theme: 'default',
+    }), 'click');
+
+    // Neither the tooltip nor the popup is given a map, and neither is the marker. The cluster
+    // records which map the marker is on when it draws it, and that recorded map is what they
+    // both use to work out where to show themselves. Setting the map here as well would put the
+    // marker on the map outside of the cluster, on top of the cluster icon it belongs to.
     markers.push(marker);
     // cluster.addMarker(marker);
 });
