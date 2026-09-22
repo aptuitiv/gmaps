@@ -73,15 +73,16 @@ for (let i = 0; i < 300; i += 1) {
     });
 }
 
-
 const markers = [];
-markerPositions.forEach((position) => {
+markerPositions.forEach((position, index) => {
     const marker = G.marker({
         latitude: position.latitude,
         longitude: position.longitude,
-        map: map,
+        title: 'Marker ' + (index + 1),
     });
-    marker.show(map);
+    // The marker isn't put on the map here. The cluster does that when it draws, and setting the
+    // map here as well would put the marker on the map outside of the cluster, so it would show
+    // on top of the cluster icon it's supposed to be part of.
     markers.push(marker);
     // cluster.addMarker(marker);
 });
