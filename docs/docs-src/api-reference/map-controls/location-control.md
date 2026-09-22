@@ -113,7 +113,7 @@ map.onLocationFound((position) => {
 | Method | Description |
 |--------|-------------|
 | panToLocation() | Move the map to the last known location. This is what clicking does, exposed so the same behaviour can go on your own UI. |
-| setMap(map) | Start watching on a map and show the control on it. The `map` option does this for you. |
+| setMap(map) | Start listening to a map and show the control on it. It also starts the watch, unless `autoLocate` is off. The `map` option does this for you. |
 | stop() | Stop watching, leaving the control and marker where they are. |
 | remove() | Take the control off the map, hide the marker and stop watching. |
 
@@ -121,7 +121,14 @@ map.onLocationFound((position) => {
 
 `stop()` and `remove()` only stop the watch if this control started it. If something else on the page called [locate()](/api-reference/map#locate) first, its updates keep coming.
 
-`remove()` also stops the control listening to the map, so a location found afterwards does nothing. Call [setMap()](#methods) again to start watching a map after removing it.
+`remove()` also stops the control listening to the map, so a location found afterwards does nothing. Call [setMap()](#methods) again to attach it to a map afterwards.
+
+That restarts the watch as well, unless `autoLocate` is off — with it off the control listens but never asks for a location, so call [map.locate()](/api-reference/map#locate) yourself:
+
+```js
+control.setMap(map);
+map.locate();
+```
 
 ## Using it with something else that locates
 
