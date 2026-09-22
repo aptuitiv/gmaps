@@ -33,7 +33,51 @@ That's the whole feature. The map starts watching, a marker appears where the us
 
 ## Location control options
 
-Type `LocationControlOptions`. Everything from [ButtonOptions](/api-reference/map-controls/button#button-options) as well.
+Type `LocationControlOptions`.
+
+The control **is** a button — it extends [Button](/api-reference/map-controls/button) — and it **has**
+a marker. That's why its own button appearance is configured at the top level, the same way you'd configure
+any button, while the marker it puts on the map is configured under `marker`:
+
+```js
+locationControl({
+    // The control's own appearance. It is the button.
+    className: 'MapBtn MapBtn-geo',
+    content: '<svg class="Icon"><use xlink:href="#icon-location" /></svg>',
+    position: ControlPosition.LEFT_BOTTOM,
+
+    // The marker it puts on the map, which is a separate object
+    marker: { svgIcon: { fillColor: '#c0392b' } },
+
+    // The control's own behaviour
+    action: 'center',
+    zoom: 15,
+});
+```
+
+[Marker](/api-reference/marker) works the same way: its own options are top-level and the tooltip it
+attaches is nested under `tooltip`.
+
+### The control's own options
+
+These come from [Button](/api-reference/map-controls/button#button-options) and
+[Control](/api-reference/map-controls/control#control-options). The ones you'll usually want include:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| attributes | object | Attributes to set on the element, such as a tooltip attribute your CSS reads. |
+| className | string | Class name(s) for the element. Nothing is styled for you. |
+| content | string \| HTMLElement \| Function | The contents — usually an icon. |
+| element | HTMLElement \| string | An existing element, or a selector for one, to use instead of building one. |
+| index | number | The order among the controls at the same position. |
+| onClick | Function | Called when the control is clicked, in addition to moving the map. |
+| position | [ControlPosition](/api-reference/constants#controlposition) | Where the control goes on the map. |
+| states | `ButtonStates` | What each state looks like, if you want the control to reflect one. |
+| tag | string | The element to build. Defaults to `button`. |
+
+See [ButtonOptions](/api-reference/map-controls/button#button-options) for the rest.
+
+### The control's own behaviour, and the marker
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
