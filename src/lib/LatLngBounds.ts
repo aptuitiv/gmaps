@@ -182,6 +182,7 @@ export class LatLngBounds extends Base {
                     other.toGoogle().then((googleLatLngBounds) => {
                         resolve(bounds.equals(googleLatLngBounds));
                     })
+                        .catch(reject)
                         .catch(reject);
                 } else {
                     // Calculate the equality manually.
@@ -540,9 +541,12 @@ export class LatLngBounds extends Base {
             if (other instanceof LatLngBounds) {
                 const bounds = this.#bounds;
                 if (bounds) {
-                    other.toGoogle().then((googleLatLngBounds) => {
-                        resolve(bounds.intersects(googleLatLngBounds));
-                    });
+                    other
+                        .toGoogle()
+                        .then((googleLatLngBounds) => {
+                            resolve(bounds.intersects(googleLatLngBounds));
+                        })
+                        .catch(reject);
                 } else {
                     // Calculate the intersection manually
                     const sw = this.getSouthWest();
@@ -726,11 +730,14 @@ export class LatLngBounds extends Base {
                 })
                     .catch(reject);
             } else {
-                this.#setupGoogleLatLngBounds().then(() => {
-                    this.#union(other).then(() => {
-                        resolve();
-                    });
-                });
+                this.#setupGoogleLatLngBounds()
+                    .then(() =>
+                        // Returned, so that a failure in #union() reaches the catch below
+                        this.#union(other).then(() => {
+                            resolve();
+                        }),
+                    )
+                    .catch(reject);
             }
         });
     }

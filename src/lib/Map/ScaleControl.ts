@@ -92,12 +92,15 @@ export class ScaleControl {
      */
     // eslint-disable-next-line class-methods-use-this
     toGoogle(): Promise<google.maps.ScaleControlOptions> {
-        return new Promise((resolve) => {
-            loader().onLoad(() => {
+        return new Promise((resolve, reject) => {
+            loader()
+                .whenLoaded()
+                .then(() => {
                 resolve({
                     style: google.maps.ScaleControlStyle.DEFAULT,
                 });
-            });
+            })
+                .catch(reject);
         });
     }
 }

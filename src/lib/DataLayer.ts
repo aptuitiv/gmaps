@@ -1136,16 +1136,19 @@ export class DataLayer extends Layer {
                 const defaultLayerMap = this.#defaultLayerMap;
                 if (defaultLayerMap instanceof Map) {
                     // This is the map's own data layer so wait for the map to be ready
-                    defaultLayerMap.init().then(() => {
-                        const googleMap = defaultLayerMap.toGoogle();
-                        if (!googleMap) {
-                            reject(new Error('The map must be set up before its data layer can be used.'));
-                            return;
-                        }
-                        const { data } = googleMap;
-                        this.#setDataObject(data);
-                        resolve(data);
-                    });
+                    defaultLayerMap
+                        .init()
+                        .then(() => {
+                            const googleMap = defaultLayerMap.toGoogle();
+                            if (!googleMap) {
+                                reject(new Error('The map must be set up before its data layer can be used.'));
+                                return;
+                            }
+                            const { data } = googleMap;
+                            this.#setDataObject(data);
+                            resolve(data);
+                        })
+                        .catch(reject);
                 } else if (checkForGoogleMaps('DataLayer', 'Data', false)) {
                     const data = new google.maps.Data();
                     this.#setDataObject(data);
@@ -1154,11 +1157,14 @@ export class DataLayer extends Layer {
                     // The Google maps library hasn't loaded yet. Wait for it.
                     // Only the library is needed to create the Data object. Attaching it to a
                     // map is left to setMap() and show(), which wait for the map to be ready.
-                    loader().onLoad(() => {
+                    loader()
+                        .whenLoaded()
+                        .then(() => {
                         const data = new google.maps.Data();
                         this.#setDataObject(data);
                         resolve(data);
-                    });
+                    })
+                        .catch(reject);
                 }
             });
         }

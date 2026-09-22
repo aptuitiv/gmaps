@@ -143,12 +143,15 @@ export class ZoomControl {
      * @returns {Promise<google.maps.ZoomControlOptions>}
      */
     toGoogle(): Promise<google.maps.ZoomControlOptions> {
-        return new Promise((resolve) => {
-            loader().onLoad(() => {
+        return new Promise((resolve, reject) => {
+            loader()
+                .whenLoaded()
+                .then(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
                 });
-            });
+            })
+                .catch(reject);
         });
     }
 }

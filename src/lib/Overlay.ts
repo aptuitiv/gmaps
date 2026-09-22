@@ -639,7 +639,8 @@ export class Overlay extends Layer {
                     this.show(mapObject).then(() => {
                         this.dispatch(OverlayEvents.OPEN);
                         resolve(this);
-                    });
+                    })
+                        .catch(reject);
                 }
             } else {
                 reject(new Error('Map object is not set'));

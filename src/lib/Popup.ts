@@ -759,46 +759,50 @@ export class Popup extends Overlay {
                     // The anchorPoint for the marker contains the x/y values to add to the marker's position that
                     // an InfoWindow should be displayed at. This can also be used with our Popup.
                     // We add the offset value for the Popup to the anchorPoint value.
-                    element.toGoogle().then((marker) => {
-                        /**
-                         * Try to get the anchor point for the marker.
-                         *
-                         * If the marker was just rendered and it's anchorPoint is not set yet, then
-                         * the anchorPoint will be undefined. This function will retry to get the anchorPoint
-                         * until it's defined or the max number of attempts is reached. The anchorPoint will typically
-                         * be defined shortly after the marker is rendered by the Google maps library.
-                         *
-                         * @param {number} [attempt] The number of attempts to get the anchor point. Defaults to 0.
-                         * @returns {void}
-                         */
-                        const tryGetAnchorPoint = (attempt: number = 0): void => {
-                            const anchorPoint = marker.get('anchorPoint');
-                            this.position = element.getPosition();
+                    element
+                        .toGoogle()
+                        .then((marker) => {
+                            /**
+                             * Try to get the anchor point for the marker.
+                             *
+                             * If the marker was just rendered and it's anchorPoint is not set yet, then
+                             * the anchorPoint will be undefined. This function will retry to get the anchorPoint
+                             * until it's defined or the max number of attempts is reached. The anchorPoint will typically
+                             * be defined shortly after the marker is rendered by the Google maps library.
+                             *
+                             * @param {number} [attempt] The number of attempts to get the anchor point. Defaults to 0.
+                             * @returns {void}
+                             */
+                            const tryGetAnchorPoint = (attempt: number = 0): void => {
+                                const anchorPoint = marker.get('anchorPoint');
+                                this.position = element.getPosition();
 
-                            // If anchorPoint is still undefined and we haven't exceeded max attempts, retry
-                            if (anchorPoint === undefined && attempt < 5) {
-                                const timeouts = [100, 200, 400, 600, 1000];
-                                const timeout = timeouts[attempt];
+                                // If anchorPoint is still undefined and we haven't exceeded max attempts, retry
+                                if (anchorPoint === undefined && attempt < 5) {
+                                    const timeouts = [100, 200, 400, 600, 1000];
+                                    const timeout = timeouts[attempt];
 
-                                setTimeout(() => {
-                                    tryGetAnchorPoint(attempt + 1);
-                                }, timeout);
-                                return;
-                            }
+                                    setTimeout(() => {
+                                        tryGetAnchorPoint(attempt + 1);
+                                    }, timeout);
+                                    return;
+                                }
 
-                            // Either anchorPoint is defined or we've exhausted retries - continue with displaying the popup
-                            if (anchorPoint instanceof google.maps.Point) {
-                                this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
-                            } else {
-                                this.#popupOffset = this.getOffset().clone();
-                            }
+                                // Either anchorPoint is defined or we've exhausted retries - continue with displaying the popup
+                                if (anchorPoint instanceof google.maps.Point) {
+                                    this.#popupOffset = this.getOffset().add(anchorPoint.x, anchorPoint.y);
+                                } else {
+                                    this.#popupOffset = this.getOffset().clone();
+                                }
 
-                            // Set the element value to display the popup and call the add() and draw() functions.
-                            const map = element.getMap();
-                            if (map) {
-                                super.show(map).then(() => {
-                                    resolve(this);
-                                });
+                                // Set the element value to display the popup and call the add() and draw() functions.
+                                const map = element.getMap();
+                                if (map) {
+                                    super.show(map)
+                                        .then(() => {
+                                            resolve(this);
+                                    })
+                                    .catch(reject);
                             } else {
                                 // The marker isn't on a map so there is nowhere to show the popup.
                                 // show() marked the popup as open and put it in the collection
@@ -813,18 +817,21 @@ export class Popup extends Overlay {
                             }
                         };
 
-                        // Start the retry mechanism
-                        tryGetAnchorPoint();
-                    });
+                            // Start the retry mechanism
+                            tryGetAnchorPoint();
+                        })
+                        .catch(reject);
                 } else {
                     // If the anchor is a Layer then the position should be set on the Popup.
                     // This is useful for Polylines and Polygons.
                     this.#popupOffset = this.getOffset().clone();
                     const map = element.getMap();
                     if (map) {
-                        super.show(map).then(() => {
-                            resolve(this);
-                        });
+                        super.show(map)
+                            .then(() => {
+                                resolve(this);
+                            })
+                            .catch(reject);
                     } else {
                         // The layer isn't on a map so there is nowhere to show the popup.
                         // See the comment in the marker branch above about why this is undone.

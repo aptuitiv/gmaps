@@ -224,6 +224,27 @@ loader.onceLoad(() => {
 });
 ```
 
+### whenLoaded
+
+`whenLoaded(): Promise<void>`
+
+Wait for the Google Maps library to load. Resolves once it's available, and **rejects** if it can't be loaded.
+
+```js
+G.loader()
+    .whenLoaded()
+    .then(() => {
+        // The Google Maps objects exist
+    })
+    .catch((error) => {
+        // The library could not be loaded
+    });
+```
+
+Prefer this over listening for the [load](#events) event when a failure matters. That event is only dispatched on success, so waiting for it alone means waiting forever when the load fails.
+
+Use [whenMapLoaded()](#whenmaploaded) instead if you need a map on the page rather than just the library.
+
 ### whenMapLoaded
 
 `whenMapLoaded(): Promise<void>`

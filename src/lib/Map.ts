@@ -1209,20 +1209,23 @@ export class Map extends Evented {
     fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map> {
         return new Promise((resolve, reject) => {
             if (this.#map) {
-                this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
-                    resolve(this);
-                });
+                this.#fitBounds(bounds, maxZoom, minZoom)
+                    .then(() => {
+                        resolve(this);
+                    })
+                    .catch(reject);
             } else {
                 // Rejected rather than swallowed, because this method hands back a promise for the
                 // caller to handle. It used to leave the promise unsettled when the map failed to
                 // load, so an await on it never returned and the failure showed up as an unhandled
                 // rejection somewhere else entirely.
                 this.init()
-                    .then(() => {
+                    .then(() =>
+                        // Returned, so that a failure in #fitBounds() reaches the catch below
                         this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
                             resolve(this);
-                        });
-                    })
+                        }),
+                    )
                     .catch(reject);
             }
         });
@@ -1248,13 +1251,16 @@ export class Map extends Evented {
                         this.#map!.fitBounds(googleBounds);
                         resolve();
                     })
-                        .catch(reject);
+                    .catch(reject);
             } else if (this.#bounds) {
-                this.#bounds.toGoogle().then((googleBounds) => {
-                    this.#handleZoomAfterFitBounds(maxZoom, minZoom);
-                    this.#map!.fitBounds(googleBounds);
-                    resolve();
-                });
+                this.#bounds
+                    .toGoogle()
+                    .then((googleBounds) => {
+                        this.#handleZoomAfterFitBounds(maxZoom, minZoom);
+                        this.#map!.fitBounds(googleBounds);
+                        resolve();
+                    })
+                    .catch(reject);
             } else {
                 resolve();
             }
@@ -2431,7 +2437,7 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     #showMap(): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
             if (!this.#isReady && !this.#isGettingMapOptions) {
                 // Get the DOM element to attach the map to
@@ -2463,15 +2469,22 @@ export class Map extends Evented {
                             entries.forEach((entry) => {
                                 if (entry.isIntersecting) {
                                     observer.disconnect();
-                                    this.#setupMapObject(element).then(() => {
-                                        // Set a brief timeout to make sure the map is fully set up before resolving the promise
-                                        // and dispatching the "ready" event.
-                                        // This ensures that the tiles properly load and that the map is fully set up.
-                                        setTimeout(() => {
-                                            this.#setMapAsReady();
-                                            resolve();
-                                        }, 100);
-                                    });
+                                    this.#setupMapObject(element)
+                                        .then(() => {
+                                            // Set a brief timeout to make sure the map is fully set up before resolving the promise
+                                            // and dispatching the "ready" event.
+                                            // This ensures that the tiles properly load and that the map is fully set up.
+                                            setTimeout(() => {
+                                                this.#setMapAsReady();
+                                                resolve();
+                                            }, 100);
+                                        })
+                                        .catch((error) => {
+                                            // Cleared so that a later attempt starts again rather
+                                            // than waiting on a ready event that is never coming
+                                            this.#isGettingMapOptions = false;
+                                            reject(error);
+                                        });
                                 }
                             });
                         },
@@ -2482,10 +2495,17 @@ export class Map extends Evented {
 
                     observer.observe(element);
                 } else {
-                    this.#setupMapObject(element).then(() => {
-                        this.#setMapAsReady();
-                        resolve();
-                    });
+                    this.#setupMapObject(element)
+                        .then(() => {
+                            this.#setMapAsReady();
+                            resolve();
+                        })
+                        .catch((error) => {
+                            // See the note on the other call: the flag has to be cleared or the
+                            // next attempt waits on a ready event that is never coming
+                            this.#isGettingMapOptions = false;
+                            reject(error);
+                        });
                 }
             } else if (!this.#isReady) {
                 // Wait for the map options to be set up and the map to be ready

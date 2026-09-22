@@ -1728,14 +1728,23 @@ export class Marker extends Layer {
                         if (isString(this.#options.icon)) {
                             markerOptions.icon = this.#options.icon;
                         } else if (this.#options.icon instanceof SvgSymbol) {
-                            this.#options.icon.toGoogle().then((markerIcon) => {
-                                if (this.#marker) {
-                                    this.#marker.setIcon(markerIcon);
-                                } else {
-                                    // The marker is created later, after the map is ready, so use the icon when it's created.
-                                    markerOptions.icon = markerIcon;
-                                }
-                            });
+                            this.#options.icon
+                                .toGoogle()
+                                .then((markerIcon) => {
+                                    if (this.#marker) {
+                                        this.#marker.setIcon(markerIcon);
+                                    } else {
+                                        // The marker is created later, after the map is ready, so use the icon when it's created.
+                                        markerOptions.icon = markerIcon;
+                                    }
+                                })
+                                .catch((error) => {
+                                    // Nothing is waiting on this - the marker is built either way,
+                                    // just without the icon. SvgSymbol.toGoogle() rejects when the
+                                    // library can't be loaded, so it is logged rather than dropped.
+                                    // eslint-disable-next-line no-console
+                                    console.error('The icon could not be set on the marker.', error);
+                                });
                         } else if (this.#options.icon instanceof Icon) {
                             markerOptions.icon = this.#options.icon.toGoogle();
                         }

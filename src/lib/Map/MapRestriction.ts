@@ -228,7 +228,8 @@ export class MapRestriction {
                     latLngBounds: bounds,
                     strictBounds: this.#strictBounds,
                 });
-            });
+            })
+                .catch(reject);
         });
     }
 }

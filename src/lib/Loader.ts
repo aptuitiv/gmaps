@@ -67,6 +67,9 @@ export class Loader extends EventTarget {
     /** Anything waiting for a map to be displayed */
     #mapLoadedPromise: Promise<void> | undefined;
 
+    /** Anything waiting for the library itself */
+    #loadedPromise: Promise<void> | undefined;
+
     /**
      * Holds the loaded state
      *
@@ -336,6 +339,35 @@ export class Loader extends EventTarget {
      *
      * @returns {Promise<void>}
      */
+    /**
+     * Wait for the Google Maps library to load.
+     *
+     * Resolves once the library is available, and rejects if it can't be loaded. Use this rather
+     * than listening for the "load" event when a failure matters: that event is only dispatched on
+     * success, so waiting for it alone means waiting forever when the load fails.
+     *
+     * @returns {Promise<void>}
+     */
+    whenLoaded(): Promise<void> {
+        if (this.#isLoaded) {
+            return Promise.resolve();
+        }
+        if (this.#loadError) {
+            return Promise.reject(this.#loadError);
+        }
+        if (!this.#loadedPromise) {
+            this.#loadedPromise = new Promise((resolve, reject) => {
+                this.on(LoaderEvents.LOAD, () => {
+                    resolve();
+                });
+                this.on(LoaderEvents.LOAD_ERROR, () => {
+                    reject(this.#loadError ?? new Error('The Google Maps library could not be loaded'));
+                });
+            });
+        }
+        return this.#loadedPromise;
+    }
+
     whenMapLoaded(): Promise<void> {
         if (this.#isMapLoaded) {
             return Promise.resolve();
@@ -367,9 +399,10 @@ export class Loader extends EventTarget {
      */
     loadFailed(error: Error): void {
         this.#loadError = error;
-        // Let go of the waiting promise so that a later attempt gets a fresh one rather than the
-        // one that already rejected
+        // Let go of the waiting promises so that a later attempt gets fresh ones rather than the
+        // ones that already rejected
         this.#mapLoadedPromise = undefined;
+        this.#loadedPromise = undefined;
         this.dispatch(LoaderEvents.LOAD_ERROR);
     }
 

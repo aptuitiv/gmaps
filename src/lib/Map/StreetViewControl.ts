@@ -198,14 +198,17 @@ export class StreetViewControl {
      * @returns {Promise<google.maps.StreetViewControlOptions>}
      */
     toGoogle(): Promise<google.maps.StreetViewControlOptions> {
-        return new Promise((resolve) => {
-            loader().onLoad(() => {
+        return new Promise((resolve, reject) => {
+            loader()
+                .whenLoaded()
+                .then(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
                     // The StreetViewSource values are the same strings that Google's StreetViewSource enum uses
                     sources: this.#sources as unknown as google.maps.StreetViewSource[],
                 });
-            });
+            })
+                .catch(reject);
         });
     }
 }
