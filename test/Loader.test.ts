@@ -11,9 +11,27 @@
     half is described in the comment on the last block.
 =========================================================================== */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Loader, loader } from '../src/lib/Loader';
 import { LoaderEvents } from '../src/lib/constants';
+
+// The Google loader is stood in for rather than built. The real one needs a browser, so the tests
+// that get as far as the import used to depend on it failing with "window is not defined" - an
+// accident of the environment rather than the thing being tested, and no proof the import was even
+// reached.
+const { importLibrary } = vi.hoisted(() => ({ importLibrary: vi.fn() }));
+
+vi.mock('@googlemaps/js-api-loader', () => ({
+    Loader: class {
+        importLibrary = importLibrary;
+    },
+}));
+
+beforeEach(() => {
+    importLibrary.mockReset();
+    // Loading the script is what fails in these tests unless one of them says otherwise
+    importLibrary.mockRejectedValue(new Error('The Google Maps script could not be loaded'));
+});
 
 describe('options', () => {
     it('takes the options in the constructor', () => {
@@ -178,18 +196,19 @@ describe('a failed load', () => {
         await expect(l.load()).rejects.toThrow(/API key/);
     });
 
-    it('gets past the failure once the problem is fixed', async () => {
+    it('gets as far as loading the script once the key is set', async () => {
         const l = new Loader();
         await expect(l.load()).rejects.toThrow(/API key/);
+        expect(importLibrary).not.toHaveBeenCalled();
 
         // Setting the key fixes this particular failure. The loader has to actually try again -
         // before, the flag left set by the first failure meant it waited instead.
         l.apiKey = 'test-key';
 
-        // It gets as far as asking Google for the library, which is where a unit test has to stop:
-        // that call needs a browser. Reaching a different failure is the proof that it got past
-        // the API key check rather than hanging or repeating itself.
-        await expect(l.load()).rejects.not.toThrow(/API key/);
+        await expect(l.load()).rejects.toThrow(/script could not be loaded/);
+        // Reaching the import is the proof that the retry got past the API key check rather than
+        // hanging or repeating the first failure
+        expect(importLibrary).toHaveBeenCalledWith('maps');
     });
 });
 
@@ -202,19 +221,23 @@ describe('two callers loading at once', () => {
         const first = l.load();
         const second = l.load();
 
-        await expect(first).rejects.toThrow();
+        await expect(first).rejects.toThrow(/script could not be loaded/);
         // The second caller used to wait for a "load" event that was never going to be dispatched,
         // so it hung rather than being told the load had failed.
-        await expect(second).rejects.toThrow();
+        await expect(second).rejects.toThrow(/script could not be loaded/);
+        // One import for the two callers - the second shared the load that was already running
+        expect(importLibrary).toHaveBeenCalledTimes(1);
     });
 
     it('does not hand a later caller the load that already failed', async () => {
         const l = new Loader({ apiKey: 'test-key' });
 
-        await expect(Promise.all([l.load(), l.load()]).catch((e) => Promise.reject(e))).rejects.toThrow();
+        await expect(Promise.all([l.load(), l.load()])).rejects.toThrow(/script could not be loaded/);
+        expect(importLibrary).toHaveBeenCalledTimes(1);
 
         // The shared promise is let go of when it fails, so this starts a fresh attempt rather
         // than being given the settled failure back
-        await expect(l.load()).rejects.toThrow();
+        await expect(l.load()).rejects.toThrow(/script could not be loaded/);
+        expect(importLibrary).toHaveBeenCalledTimes(2);
     });
 });
