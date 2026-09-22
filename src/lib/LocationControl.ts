@@ -43,6 +43,10 @@ const defaultMarkerOptions: MarkerOptions = {
 export type LocationControlOptions = ButtonOptions & {
     // What clicking the control does with the map. Defaults to 'pan'.
     action?: 'pan' | 'center';
+    // false for the marker on its own, with no control on the map. The location is still watched
+    // and the marker still follows it - there is just nothing to click. The options that describe
+    // the control's appearance are then unused. Defaults to true.
+    button?: boolean;
     // Whether the control calls map.locate() itself. Defaults to true.
     autoLocate?: boolean;
     // Whether to move the map to the user the first time a location is found. Defaults to false, so
@@ -74,6 +78,9 @@ export class LocationControl extends Button {
 
     /** Whether this control was the one that started the map watching */
     #startedLocating: boolean = false;
+
+    /** Whether there is a control to put on the map at all */
+    #hasButton: boolean = true;
 
     /** The last position that was found */
     #location: LocationPosition | undefined;
@@ -122,6 +129,9 @@ export class LocationControl extends Button {
             }
             if (isBoolean(options.autoLocate)) {
                 this.#autoLocate = options.autoLocate;
+            }
+            if (isBoolean(options.button)) {
+                this.#hasButton = options.button;
             }
             if (isBoolean(options.centerOnFirstFind)) {
                 this.#centerOnFirstFind = options.centerOnFirstFind;
@@ -209,7 +219,7 @@ export class LocationControl extends Button {
         this.#locationMap = map;
         this.#locationFoundListener = listener;
 
-        if (!this.#showWhenLocated) {
+        if (this.#hasButton && !this.#showWhenLocated) {
             this.addTo(map);
         }
 
@@ -329,7 +339,7 @@ export class LocationControl extends Button {
         }
 
         if (isFirst) {
-            if (this.#showWhenLocated && !this.isAttached) {
+            if (this.#hasButton && this.#showWhenLocated && !this.isAttached) {
                 this.addTo(map);
             }
             if (this.#centerOnFirstFind) {

@@ -262,6 +262,24 @@ describe('LocationControl', () => {
             expect(c.isAttached).toBe(true);
         });
 
+        it('can be the only thing shown, with no control on the map', () => {
+            const map = testMap();
+            const c = locationControl({ map, button: false });
+            findLocation();
+
+            // The dot follows the user; there is just nothing to click
+            expect(c.isAttached).toBe(false);
+            expect(c.marker?.position.lat).toBe(40.73061);
+            expect(c.isLocated).toBe(true);
+        });
+
+        it('stays off the map with button: false even when told to show up front', () => {
+            const map = testMap();
+            const c = locationControl({ map, button: false, showWhenLocated: false });
+
+            expect(c.isAttached).toBe(false);
+        });
+
         it('uses one that was passed in, and does not own it', () => {
             const map = testMap();
             const mine = marker({ title: 'Mine' });

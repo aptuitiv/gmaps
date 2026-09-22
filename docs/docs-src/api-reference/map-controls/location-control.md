@@ -82,6 +82,7 @@ See [ButtonOptions](/api-reference/map-controls/button#button-options) for the r
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | action | `'pan'` \| `'center'` | `pan` | What clicking does with the map. |
+| button | boolean | `true` | `false` for the marker on its own, with no control on the map. |
 | autoLocate | boolean | `true` | Whether the control calls [locate()](/api-reference/map#locate) itself. Set it to `false` if something else on the page already does. |
 | centerOnFirstFind | boolean | `false` | Whether to move the map to the user the first time a location is found. |
 | locateOptions | [LocateOptions](/api-reference/map#locate-options) | | Passed through to `locate()`. |
@@ -108,6 +109,26 @@ locationControl({ map: map, marker: { title: 'My location' } });
 ```
 
 Pass `marker: false` for a control with no marker, or your own `Marker` to use instead. A marker you pass in is yours: the control hides it when it's removed rather than destroying it.
+
+### Just the marker, with no control
+
+Pass `button: false` when you want the user's position shown but nothing to click — the page has its own UI, or the dot is all you wanted:
+
+```js
+locationControl({ map: map, button: false });
+```
+
+The location is still watched and the marker still follows it. Nothing is added to the map, so the options describing the control's appearance — `className`, `content`, `position` and the rest — are unused.
+
+`panToLocation()` still works, so your own UI can move the map:
+
+```js
+const location = locationControl({ map: map, button: false });
+
+document.querySelector('.js-findMe').addEventListener('click', () => {
+    location.panToLocation();
+});
+```
 
 ### Styling
 

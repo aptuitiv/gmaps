@@ -179,7 +179,9 @@ known — stays with the implementor, through the `locationfound` event that alr
 - [x] The first fix shows the marker and attaches the control; a second fix only moves the marker,
       attaches nothing more, and does not move the map.
 - [x] `locationerror` attaches nothing.
-- [x] `button: false` gives a marker only; `marker: false` gives a control only.
+- [x] `button: false` gives a marker only; `marker: false` gives a control only. (`marker: false`
+      shipped with the rest; `button: false` was missed and added later — this box was ticked in a
+      bulk edit rather than per item, which is how it went unnoticed.)
 - [x] Click pans by default, centres with `action: 'center'`, applies `zoom` when set.
 - [x] `remove()` stops the watch only when `autoLocate` was true.
 - [x] `autoLocate: false` doesn't call `locate()` but still reacts to the event.
