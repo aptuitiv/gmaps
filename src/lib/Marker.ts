@@ -549,6 +549,29 @@ export class Marker extends Layer {
     }
 
     /**
+     * Record the map that the marker is on without drawing it on that map.
+     *
+     * This is for the marker cluster. The cluster draws the markers itself, through their Google
+     * marker objects, so the marker ends up on a map without this class ever being told about it.
+     * Anything that needs to know which map the marker is on asks getMap(), and that would be
+     * null - a popup or a tooltip attached to a clustered marker works out where to show itself
+     * from it, and with nothing there neither of them shows at all.
+     *
+     * Only the map is recorded. The Google marker is deliberately left alone, because putting the
+     * marker on the map here as well is the thing that the cluster is there to avoid.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @param {Map|null} map The map that the marker is on, or null if it isn't on one any more
+     * @returns {Marker}
+     */
+    setMapReference(map: Map | null): Marker {
+        super.setMap(map);
+        return this;
+    }
+
+    /**
      * Initialize the marker
      *
      * This is used when another element (like a tooltip) needs to be attached to the marker,

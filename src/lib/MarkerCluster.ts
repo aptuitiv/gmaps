@@ -170,6 +170,25 @@ export class MarkerCluster extends Base {
     #pendingMarkers: Marker[] = [];
 
     /**
+     * The map that the cluster is on
+     *
+     * @private
+     * @type {Map|undefined}
+     */
+    #map: Map | undefined;
+
+    /**
+     * The markers that have been added to the cluster.
+     *
+     * The clusterer only holds the Google marker objects, so this is what the Marker objects are
+     * reached through when the map has to be taken back off them.
+     *
+     * @private
+     * @type {Set<Marker>}
+     */
+    #markers: Set<Marker> = new Set();
+
+    /**
      * The constructor for the MarkerCluster class
      *
      * @param {Map} map The map object
@@ -207,6 +226,7 @@ export class MarkerCluster extends Base {
      * @param {MarkerClusterOptions} [options] Options for the marker clusterer
      */
     #setupCluster(map: Map, markers?: Marker[] | MarkerClusterOptions, options?: MarkerClusterOptions) {
+        this.#map = map;
         const clusterOptions: MarkerClustererOptions = {
             map: map.toGoogle(),
         };
@@ -346,12 +366,53 @@ export class MarkerCluster extends Base {
 
         // Set the markers if they were passed in
         if (Array.isArray(markers)) {
+            this.#trackMarkers(markers, true);
             markers.forEach((marker) => {
                 if (marker instanceof Marker) {
                     clusterer.addMarker(marker.toGoogleSync(), true);
                 }
             });
+            // Each marker was added without drawing so that the cluster is only drawn once, here.
+            // The markers aren't put on the map anywhere else - the cluster is what draws them -
+            // so without this they don't appear until the map's next idle event.
+            clusterer.render();
         }
+
+        // Markers added before the cluster was set up were recorded without a map to give them,
+        // because there wasn't one yet. There is now.
+        this.#trackMarkers(Array.from(this.#markers), true);
+    }
+
+    /**
+     * Record that the markers are on the cluster's map, or that they have been taken off it.
+     *
+     * The cluster draws the markers through their Google marker objects, so without this the
+     * Marker objects are never told which map they are on and getMap() stays null. A popup or a
+     * tooltip attached to a clustered marker works out where to show itself from getMap(), and
+     * with nothing there neither of them shows at all.
+     *
+     * The map is only recorded on the marker. Drawing it is left to the cluster.
+     *
+     * @private
+     * @param {Marker[]} markers The markers that were added or taken out
+     * @param {boolean} added Whether the markers were added to the cluster or taken out of it
+     */
+    #trackMarkers(markers: Marker[], added: boolean) {
+        markers.forEach((marker) => {
+            if (marker instanceof Marker) {
+                if (added) {
+                    this.#markers.add(marker);
+                    // The cluster might not be set up yet, in which case there's no map to record.
+                    // #setupCluster() comes back to these once there is one.
+                    if (this.#map) {
+                        marker.setMapReference(this.#map);
+                    }
+                } else {
+                    this.#markers.delete(marker);
+                    marker.setMapReference(null);
+                }
+            }
+        });
     }
 
     /**
@@ -363,6 +424,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     addMarker(marker: Marker, draw: boolean = true): MarkerCluster {
+        this.#trackMarkers([marker], true);
         // Check to see if the Google Maps library is loaded.
         // If it is, add the marker. If not, delay adding the marker.
         if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
@@ -395,6 +457,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     addMarkers(markers: Marker[], draw: boolean = true): MarkerCluster {
+        this.#trackMarkers(markers, true);
         // Inline function to add the markers
         const add = (mks: Marker[], drw: boolean = true) => {
             // const markersToAdd: MarkerClustererMarker[] = [];
@@ -443,6 +506,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     clearMarkers(draw: boolean = true): MarkerCluster {
+        this.#trackMarkers(Array.from(this.#markers), false);
         this.#clusterer?.clearMarkers(!draw);
         return this;
     }
@@ -456,6 +520,7 @@ export class MarkerCluster extends Base {
      * @returns {MarkerCluster}
      */
     removeMarker(marker: Marker, draw: boolean = false): MarkerCluster {
+        this.#trackMarkers([marker], false);
         // If the Google marker was never created then it can't be in the clusterer, so there's
         // nothing to remove. toGoogleSync() would build one just to hand it over to be removed.
         if (!marker.hasGoogleMarker()) {
