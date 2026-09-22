@@ -234,6 +234,16 @@ describe('Map', () => {
     });
 
     describe('when the map element cannot be found', () => {
+        it('reports the same problem again rather than hanging on a second try', async () => {
+            const m = new Map('#no-such-element');
+
+            await expect(m.show()).rejects.toThrow(/map element could not be found/);
+            // The "getting map options" flag used to be set before the element was checked, so it
+            // was left set by the failure. A second attempt then took the "already setting up"
+            // path and waited for a ready event that was never going to be dispatched.
+            await expect(m.show()).rejects.toThrow(/map element could not be found/);
+        });
+
         it('rejects show() rather than hanging', async () => {
             // #showMap() throws when the selector matched nothing, which rejects its promise. That
             // rejection had nowhere to go: show() has no reject, so it was left unsettled and the

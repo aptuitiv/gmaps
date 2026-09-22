@@ -2425,8 +2425,6 @@ export class Map extends Evented {
         return new Promise((resolve) => {
             // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
             if (!this.#isReady && !this.#isGettingMapOptions) {
-                this.#isGettingMapOptions = true;
-
                 // Get the DOM element to attach the map to
                 const element = this.#element;
                 if (element === null) {
@@ -2434,6 +2432,12 @@ export class Map extends Evented {
                         'The map element could not be found. Make sure the map selector is correct and the element exists.',
                     );
                 }
+
+                // Set after the element has been checked, not before. Throwing with it already set
+                // left it set, so the next attempt took the "already setting up" path below and
+                // waited for a ready event that was never going to be dispatched - a second try
+                // hung instead of reporting the same problem.
+                this.#isGettingMapOptions = true;
 
                 // If the element is not visible then wait for it to be visible before setting up the map.
                 // This is intended to prevent issue where the map does not render correctly when it's first hidden.
