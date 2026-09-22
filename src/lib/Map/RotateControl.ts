@@ -143,12 +143,15 @@ export class RotateControl {
      * @returns {Promise<google.maps.RotateControlOptions>}
      */
     toGoogle(): Promise<google.maps.RotateControlOptions> {
-        return new Promise((resolve) => {
-            loader().onLoad(() => {
+        return new Promise((resolve, reject) => {
+            loader()
+                .whenLoaded()
+                .then(() => {
                 resolve({
                     position: convertControlPosition(this.#position),
                 });
-            });
+            })
+                .catch(reject);
         });
     }
 }

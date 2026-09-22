@@ -17,6 +17,16 @@
                 "default": "./dist/index.cjs"
             }
         },
+        "./button": {
+            "import": {
+                "types": "./dist/button.d.ts",
+                "default": "./dist/button.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
         "./core": {
             "import": {
                 "types": "./dist/core.d.ts",
@@ -31,6 +41,16 @@
             "import": {
                 "types": "./dist/infowindow.d.ts",
                 "default": "./dist/infowindow.esm.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./location-control": {
+            "import": {
+                "types": "./dist/location-control.d.ts",
+                "default": "./dist/location-control.esm.js"
             },
             "require": {
                 "types": "./dist/index.d.cts",
@@ -84,12 +104,14 @@
         "css": "postcss ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "css-watch": "postcss --watch ./site-src/css-src/main.css -o ./site-src/css/main.css",
         "lint": "eslint --fix --ext .js,.ts ./src",
+        "prepare": "npm run build",
         "site-build": "eleventy",
         "site-serve": "eleventy --serve --incremental",
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
         "test:watch": "vitest",
-        "typescriptTest": "tsc --traceResolution",
+        "typecheck": "tsc --noEmit",
+        "typescript-trace-resolution": "tsc --noEmit --traceResolution",
         "watch": "tsup --watch",
         "watch-all": "npm run watch & npm run css-watch & npm run site-serve"
     },

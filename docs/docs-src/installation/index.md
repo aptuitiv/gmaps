@@ -32,9 +32,13 @@ that want to leave out what they don't use.
 | `@aptuitiv/gmaps/popup` | Popups |
 | `@aptuitiv/gmaps/tooltip` | Tooltips |
 | `@aptuitiv/gmaps/infowindow` | InfoWindows |
+| `@aptuitiv/gmaps/button` | The [Button](/api-reference/map-controls/button) control |
+| `@aptuitiv/gmaps/location-control` | The [location control](/api-reference/map-controls/location-control) |
 
-Popups, tooltips and InfoWindows are separate because importing one of them adds methods to other
-objects — `attachPopup()` on a marker, for example. A bundler can't tell whether you're going to
+`Button` and the location control are separate because they're pieces of UI that plenty of maps don't need.
+
+Popups, tooltips and InfoWindows are separate for a different reason: importing one of them adds
+methods to other objects — `attachPopup()` on a marker, for example. A bundler can't tell whether you're going to
 call those methods, so it can never leave that code out. Splitting them into their own entry points
 is what makes it possible to.
 

@@ -639,7 +639,8 @@ export class Overlay extends Layer {
                     this.show(mapObject).then(() => {
                         this.dispatch(OverlayEvents.OPEN);
                         resolve(this);
-                    });
+                    })
+                        .catch(reject);
                 }
             } else {
                 reject(new Error('Map object is not set'));
@@ -828,7 +829,7 @@ export class Overlay extends Layer {
      * @returns {Promise<Overlay>}
      */
     show(map: Map): Promise<Overlay> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (map instanceof Map) {
                 this.#setupGoogleOverlay();
                 if (this.#overlayView) {
@@ -839,16 +840,22 @@ export class Overlay extends Layer {
                     resolve(this);
                 } else {
                     // The Google maps library isn't loaded yet. Wait for it to load.
-                    loader().onMapLoad(() => {
-                        this.#setupGoogleOverlay();
-                        super.setMap(map);
-                        if (this.#overlayView) {
-                            this.#attachToGoogleMap(map);
-                            this.isVisible = true;
-                        }
-                        this.dispatch(OverlayEvents.OPEN);
-                        resolve(this);
-                    });
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched
+                    // on success - waiting on it alone left this promise unsettled when the load
+                    // failed, and the overlay silently never appeared.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            this.#setupGoogleOverlay();
+                            super.setMap(map);
+                            if (this.#overlayView) {
+                                this.#attachToGoogleMap(map);
+                                this.isVisible = true;
+                            }
+                            this.dispatch(OverlayEvents.OPEN);
+                            resolve(this);
+                        })
+                        .catch(reject);
                 }
             } else {
                 this.dispatch(OverlayEvents.OPEN);
@@ -1399,7 +1406,11 @@ export class Overlay extends Layer {
         if (googleMap) {
             overlayView.setMap(googleMap);
         } else {
-            map.init();
+            // See the note in Marker: a dropped rejection becomes an unhandled error
+            map.init().catch((error) => {
+                // eslint-disable-next-line no-console
+                console.error('The map could not be loaded, so the overlay was not set up.', error);
+            });
             map.onReady(() => {
                 // The overlay could have been hidden, or moved to another map, while the map
                 // was being set up, so only attach it if it's still waiting for this one.

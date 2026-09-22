@@ -1505,10 +1505,11 @@ export class Marker extends Layer {
      * @returns {Promise<google.maps.Marker>}
      */
     toGoogle(): Promise<google.maps.Marker> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGoogleMarker().then(() => {
                 resolve(this.#marker);
-            });
+            })
+                .catch(reject);
         });
     }
 
@@ -1575,7 +1576,7 @@ export class Marker extends Layer {
         if (this.#creationPromise) {
             return this.#creationPromise;
         }
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!this.#isSettingUp && !isObject(this.#marker)) {
                 this.#isSettingUp = true;
                 if (checkForGoogleMaps('Marker', 'Marker', false)) {
@@ -1589,26 +1590,42 @@ export class Marker extends Layer {
                 } else {
                     // Trigger the map to load if it's set.
                     if (map instanceof Map) {
-                        map.init();
+                        // The rejection is logged rather than dropped. init() rejects when the
+                        // Google Maps library can't be loaded, and a dropped rejection surfaces as
+                        // an unhandled error pointing at the library rather than at the failed load.
+                        map.init().catch((error) => {
+                            // eslint-disable-next-line no-console
+                            console.error('The map could not be loaded, so the marker was not set up.', error);
+                        });
                     }
 
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().onMapLoad(() => {
-                        this.#createMarkerObject().then(() => {
-                            // Make sure that the map is still set.
-                            // It's unlikely, but possible, that the developer could have removed the map
-                            // from the marker before the Google maps object was available.
-                            const thisMap = this.getMap();
-                            if (this.#marker && thisMap) {
-                                this.#marker.setMap(thisMap.toGoogle() ?? null);
-                            } else if (this.#marker && map) {
-                                this.#marker.setMap(map.toGoogle() ?? null);
-                            }
-                            this.#dispatchReady();
-                            resolve();
+                    //
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched on
+                    // success - waiting on it alone meant a failed load left this promise unsettled
+                    // and the marker silently never appeared.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            this.#createMarkerObject().then(() => {
+                                // Make sure that the map is still set.
+                                // It's unlikely, but possible, that the developer could have removed the map
+                                // from the marker before the Google maps object was available.
+                                const thisMap = this.getMap();
+                                if (this.#marker && thisMap) {
+                                    this.#marker.setMap(thisMap.toGoogle() ?? null);
+                                } else if (this.#marker && map) {
+                                    this.#marker.setMap(map.toGoogle() ?? null);
+                                }
+                                this.#dispatchReady();
+                                resolve();
+                            });
+                        })
+                        .catch((error) => {
+                            this.#isSettingUp = false;
+                            reject(error);
                         });
-                    });
                 }
             } else {
                 // Only reached when the marker already exists. #isSettingUp is set in the branch
@@ -1656,7 +1673,7 @@ export class Marker extends Layer {
                 );
             } else {
                 throw new Error(
-                    'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.',
+                    'The Google maps library is not available so the marker object cannot be created. Load the Google maps library first.',
                 );
             }
         }
@@ -1711,14 +1728,23 @@ export class Marker extends Layer {
                         if (isString(this.#options.icon)) {
                             markerOptions.icon = this.#options.icon;
                         } else if (this.#options.icon instanceof SvgSymbol) {
-                            this.#options.icon.toGoogle().then((markerIcon) => {
-                                if (this.#marker) {
-                                    this.#marker.setIcon(markerIcon);
-                                } else {
-                                    // The marker is created later, after the map is ready, so use the icon when it's created.
-                                    markerOptions.icon = markerIcon;
-                                }
-                            });
+                            this.#options.icon
+                                .toGoogle()
+                                .then((markerIcon) => {
+                                    if (this.#marker) {
+                                        this.#marker.setIcon(markerIcon);
+                                    } else {
+                                        // The marker is created later, after the map is ready, so use the icon when it's created.
+                                        markerOptions.icon = markerIcon;
+                                    }
+                                })
+                                .catch((error) => {
+                                    // Nothing is waiting on this - the marker is built either way,
+                                    // just without the icon. SvgSymbol.toGoogle() rejects when the
+                                    // library can't be loaded, so it is logged rather than dropped.
+                                    // eslint-disable-next-line no-console
+                                    console.error('The icon could not be set on the marker.', error);
+                                });
                         } else if (this.#options.icon instanceof Icon) {
                             markerOptions.icon = this.#options.icon.toGoogle();
                         }

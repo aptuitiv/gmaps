@@ -1,10 +1,25 @@
 # Plan: Expand the plugin architecture
 
-Status: **Step 1 — in progress**
+Status: **Step 1 complete (2026-09-18). Next: step 2, `Control` and `Button`.**
 Created: 2026-09-18
 Target: `docs/docs-src/plugin.md`, `src/lib/Base.ts`, `src/lib/Map.ts`, `src/index.ts`, `src/browser.ts`
 
 Reference: [Leaflet plugin authoring guide](https://github.com/Leaflet/Leaflet/blob/main/PLUGIN-GUIDE.md)
+Depends on: `../done/tree-shaking.md`, which built and proved most of the machinery this needed.
+
+### What the tree-shaking work changed about this plan
+
+1. **The size argument for separate plugin entry points is gone.** Unused exports are now dropped:
+   importing `latLng` alone from `/core` bundles 8 KB where the whole library is 111 KB. A plugin
+   that only exports a class and a factory can live in the main barrel and cost nothing to anyone
+   who doesn't import it. Section 6 is rewritten around what's actually left.
+2. **The entry-point machinery exists and is proven.** Adding one is a line in the `entry` array in
+   `tsup.config.js` plus an `exports` entry. That was the expensive-looking part of this plan.
+3. **There is now a worked pattern for a feature that registers methods on core classes**, with a
+   placeholder that tells you what to import when you haven't. It should become the documented
+   convention rather than something each plugin invents.
+4. **Some of the documentation is already written** — the installation pages cover entry points and
+   the script order plugins depend on in the browser.
 
 ---
 
@@ -35,10 +50,21 @@ More than it appears:
 | Subclassing a library class | `class MyThing extends G.Marker` | Exists, documented |
 | **The library using its own plugin system** | `Layer.include(popupMixin)` / `Map.include(popupMixin)` — `src/lib/Popup.ts:1137-1138`; the same for `Tooltip.ts:852-853` and `InfoWindow.ts:878-879`, with `sideEffects` in `package.json:25-29` so bundlers keep the registration | Exists, **not documented as the pattern it is** |
 
-That last row is the important one. Popups, tooltips and InfoWindows are already optional features
-that register themselves into `Layer` and `Map` at module load. Three of the library's largest
-features are plugins in all but name. The architecture proposed here is not new to this codebase —
-it is what the codebase already does, written down and made available to everyone else.
+| **Separate entry points, with types and a browser story** | `src/core.ts`, `src/popup.ts`, `src/tooltip.ts`, `src/infowindow.ts`; splitting in `tsup.config.js`; `exports` and `sideEffects` in `package.json` | Exists, shipped |
+| **A placeholder for a method a feature module installs** | `src/lib/missingFeature.ts`, used by `Layer` and `Map` | Exists, shipped |
+| **Installation documentation** | `docs/docs-src/installation/` | Exists, covers entry points and browser script order |
+
+Two rows matter most.
+
+Popups, tooltips and InfoWindows already register themselves into `Layer` and `Map` at module load —
+three of the library's largest features are plugins in all but name. Since the tree-shaking work they
+are also *shipped* as optional modules with their own entry points, so they are no longer only a
+pattern to point at: they are a working example of the whole lifecycle, from source layout to build
+to `exports` map to documentation.
+
+And the placeholder pattern answers a question every registering plugin has: what happens when
+someone calls a method whose module they never imported. The answer is an error naming the import to
+add, rather than "attachPopup is not a function".
 
 ---
 
@@ -120,15 +146,27 @@ Applied to what is planned:
 Each step is reviewed and published before the next starts, so the conventions are proven by the
 things built on them rather than asserted up front.
 
-### Step 1 — this plan: the plugin system
+### Step 1 — this plan: the remaining extension points
 
-Expand the extension points and write the conventions. Nothing in the core changes behaviour.
+`Map.addInitHook()`, and confirming the limits of `Base.include()`. Small, and nothing in the core
+changes behaviour.
+
+**The conventions documentation has moved to step 2a.** Writing it first was the original plan, on
+the reasoning that conventions should guide the implementation. That is backwards here: the main
+thing a plugin author will extend is `Control`, and a guide to an extension point that doesn't exist
+yet can't carry a worked example or be checked against anything. Building `Control` and `Button`
+first gives the documentation two real examples to be written from, and they are small enough that
+little is at risk if the conventions turn out to want changing.
 
 ### Step 2 — `Control` and `Button`
 
 `Control` is the `L.Control` equivalent and the first thing the new documentation has to be able to
 describe. `Button` is the proof that `Control` is a usable base — if writing a button on top of it is
 awkward, the base is wrong, and it is much cheaper to learn that now than after publishing.
+
+### Step 2a — the plugin documentation
+
+Written once `Control` and `Button` exist, with them as the worked examples. See section 6.
 
 ### Step 3 — `LocationControl`
 
@@ -147,57 +185,91 @@ published foundation as plugins, in this repository or outside it.
 
 ### Extension points
 
-- [ ] **`Map.addInitHook(fn)`** — run for every map as it initialises, so a plugin can attach itself
-      without the site calling it. Hooks receive the map, must be cheap, and must not assume options.
-- [ ] Confirm `Base.include()` handles everything the documentation is about to claim for it, and
-      document its limits: methods only; anything holding state uses `extends`.
-- [ ] Decide and document how a plugin extends `MapOptions` in TypeScript (module augmentation).
+- [x] **`Map.addInitHook(fn)`** — done. Static, runs at the end of the constructor so a hook sees a
+      map with its options applied but not yet rendered. The map is both `this` and the first
+      argument. Future maps only — documented, because it means a plugin has to load before the maps
+      it attaches to. A throwing hook is logged and the rest still run, matching how the library
+      already handles non-fatal problems elsewhere. `InitHook` is exported. Six tests in
+      `test/Map-init-hooks.test.ts`, in their own file because the hooks are static and can't be
+      removed.
+- [x] **Confirm `Base.include()`'s limits — done, and they are sharper than "methods only".**
+      Verified by experiment, now written up in `docs/docs-src/plugin.md`:
+
+      | | Result |
+      |---|---|
+      | Methods | Work. This is what the library uses it for |
+      | A mutable property | **Shared by every instance**, because it lands on the prototype. A mixin with `items: []` gives every object the same array |
+      | Getters and setters | **Fixed.** They used not to survive — `Object.assign` copied the *value* a getter returned, once. `include()` now copies property descriptors, so accessors stay accessors. Leaflet's `include` still has the old behaviour |
+      | An existing member | **Overwritten silently.** Last plugin loaded wins — which is also how the feature placeholders get replaced by the real methods |
+      | `#private` fields | **Cannot be written at all.** A mixin mentioning one is a *syntax* error, not a runtime failure, because private names are lexically scoped to the class body |
+
+      So the rule for the conventions is: `include()` for methods and accessors, `extends` for
+      anything with private state or that needs to run at construction.
+- [x] **How a plugin extends `MapOptions` — decided: it doesn't.** A plugin takes its own options
+      through its own factory. Documented in `plugin.md`, including the Typescript module
+      augmentation recipe for anyone who does add to a library type.
+
+      **We are not adopting Leaflet's `mergeOptions`.** Leaflet keeps a plain `options` object on
+      each class prototype (`static mergeOptions(options) { this.prototype.options ??= {};
+      Object.assign(this.prototype.options, options); }`), copies it per instance in the
+      constructor, and plugins merge defaults into it and read `this.options.myOption` from an init
+      hook. This library has no equivalent: `Map.setOptions()` handles each option explicitly —
+      validating it, converting it, applying it to a map that may already be rendered — into a
+      private field, and silently drops anything it doesn't recognise. There is no bag to merge into,
+      and adding one would mean restructuring how `Map` holds its options.
+
+      It also cuts against a decision already made here: plugins expose factories rather than patch
+      core classes. A plugin adding to `MapOptions` is the same coupling in a different place — the
+      map's option surface would depend on which plugins a page loaded.
+
+      If a real need appears, the smaller change is for `Map` to keep unrecognised options and expose
+      them (`map.getOption(name)`), which a plugin could then read from an init hook. Not built:
+      nothing needs it.
+- [x] **A pattern for a plugin that installs methods on core classes** — done as part of the
+      tree-shaking work and now the convention to document: register with `include()`, declare a
+      placeholder on the target class with the *same signature* the real method has, and throw from
+      it with the import to add. The types come in through `import type`, so they cost nothing at
+      runtime and the signature is identical whether or not the plugin is loaded. `src/lib/Layer.ts`
+      and `src/lib/Map.ts` are the examples.
 
 ### First-party plugin delivery
 
-The choice is between **subpath exports from this package** (`@aptuitiv/gmaps/plugins/<name>`) and
-**separate npm packages** (`gmaps-<name>`, with the library as a `peerDependency`).
+The original question here was subpath exports versus separate npm packages, and it was argued on
+bundle size: anything re-exported from the barrel was paid for by every consumer, so a plugin had to
+be a separate entry point to be optional at all.
 
-Four measurements should inform it. All were taken against the current build, bundling with esbuild
-and minifying:
+**That argument no longer applies.** Unused exports are dropped now — `latLng` alone from `/core` is
+8 KB against 111 KB for the whole library. A plugin that exports a class and a factory and registers
+nothing costs nothing to anyone who doesn't import it, wherever it lives.
 
-| What was imported | Resulting bundle |
+So the decision is now made on narrower grounds. A separate entry point is worth it when one of these
+is true:
+
+| Reason | Applies to |
 |---|---|
-| `latLng` only, from `dist/index.esm.js` | 112,741 bytes |
-| `map` only, from `dist/index.esm.js` | 112,759 bytes |
-| `map`, `marker`, `popup`, `tooltip` | 112,804 bytes |
-| `latLng` only, from `src/index.ts` (source, not the shipped bundle) | 112,722 bytes |
+| **The plugin registers something** — it adds methods to core classes, so a bundler can never drop it, exactly as with popups and tooltips | A plugin adding `map.addLocationControl()` sugar, or anything using `include()` |
+| **The browser build** — `dist/browser.js` is an IIFE and all-or-nothing, so anything in the main barrel grows it for every standalone-script user, tree-shaking or not | Any plugin, if standalone-script users matter |
+| **It should be publishable on its own schedule** | Third-party plugins, and first-party ones that outgrow this repo |
 
-**A consumer gets the entire library no matter what they import** — the spread across those four is
-82 bytes. The last row matters: it is not an artefact of shipping a pre-bundled file, because
-building from source behaves the same.
+None of those apply to `Control`, which is core anyway. For `Button`, only the browser-build reason
+applies, and it is a judgement call about how much `browser.js` (currently ~172 KB) should carry.
 
-The cause is the mixin registration pattern itself. `src/index.ts` re-exports `Popup`, `Tooltip` and
-`InfoWindow`; each of those modules runs `Layer.include(...)` and `Map.include(...)` at the top level;
-`package.json:25-29` correctly lists them as having side effects, so a bundler must keep them; and
-keeping them retains `Layer`, `Map` and most of the graph behind them. This is not a bug — it is what
-makes `marker.attachPopup()` exist without the implementor importing anything. But it does mean the
-library cannot currently be tree-shaken below "core plus popup plus tooltip plus InfoWindow".
+**Recommendation:** ship first-party plugins as subpath entry points (`@aptuitiv/gmaps/button`),
+because the machinery now exists and costs a line in the `entry` array plus an `exports` entry, and
+because it keeps the core/plugin boundary visible in the imports rather than only in the
+documentation. Do **not** start separate npm packages for our own plugins: the peer-dependency
+version matching is real work and buys nothing while they move at the library's pace.
 
-**This is the argument for subpaths, and it is a stronger one than "it keeps the core tidy."** If a
-plugin is exported from the root *and* registers itself by side effect, every consumer pays for it
-forever with no way to opt out. A subpath is opt-in by import, which sidesteps the problem entirely.
+Two rules learned the hard way in the tree-shaking work, both of which belong in the plugin
+documentation:
 
-**Recommendation: subpath exports**, with two rules that make them work:
-
-1. **Plugin builds must treat the core as external.** A plugin entry built with `splitting: false`
-   and relative imports into `src/lib/` inlines a complete copy of the core — 113 KB, and two copies
-   of every class, which breaks the `instanceof Map` checks the library relies on (`Marker.#setMap()`)
-   and gives the consumer two `loader()` singletons. The plugin must import the core by package name
-   and mark it external. Self-referencing a package by name is legal once `exports` is declared;
-   confirm TypeScript resolves it before committing to this, since a plugin in a separate package
-   avoids the question entirely.
-2. **Plugins should expose factories rather than patch core classes.** `locationControl({ map })`
-   costs nothing; `map.addLocationControl()` requires a side-effect registration, which means the
-   sugar silently does not exist unless the plugin was imported. Popup and Tooltip chose the
-   registration route deliberately, and always being bundled is the price they pay for it. A plugin
-   should only take that route when the ergonomics clearly justify it, and must document that the
-   import is what creates the method.
+1. **A plugin that registers something must be listed in `sideEffects`**, or a bundler may drop a
+   bare `import '@aptuitiv/gmaps/<plugin>'` and leave a method the documentation promises and the
+   runtime doesn't have. Watch that the patterns match the *shipped* file names — patterns written
+   for the source files silently stop matching once the build renames them.
+2. **A plugin's browser build must not bundle the core.** It reads what it needs off `G` at load
+   time. Bundling its own copy would give the page two of every class and break the `instanceof`
+   checks the library relies on.
 
 ### Consuming a plugin
 
@@ -205,7 +277,7 @@ forever with no way to opt out. A subpath is opt-in by import, which sidesteps t
 
 ```js
 import { map, marker, ControlPosition } from '@aptuitiv/gmaps';
-import { button } from '@aptuitiv/gmaps/plugins/button';
+import { button } from '@aptuitiv/gmaps/button';
 ```
 
 Both resolve to the same core instance as long as rule 1 above holds.
@@ -234,18 +306,26 @@ method that the documentation promises and the runtime does not have.
 
 ### What this does not change
 
-**Popup, Tooltip and InfoWindow stay exactly where they are** — root exports, registered by mixin.
-Moving them to subpaths would be breaking for every existing consumer, and worse than breaking: their
-methods would silently become undefined rather than failing loudly. They are also core by the
-library's own stated goals, which list custom styled popups and tooltips as things the library is
-for. They are the worked example of the mixin *mechanism*; that is separate from how they are
-*packaged*.
+**Popup, Tooltip and InfoWindow keep their place in the main entry point.** This paragraph used to
+say they would stay root exports only, and that making them optional was a 1.0 conversation. The
+tree-shaking work did it sooner and without breaking anything: they are still exported from
+`@aptuitiv/gmaps`, exactly as before, and are *additionally* importable from their own entry points
+by anyone who starts from `/core`.
 
-Making them optional is a 1.0 conversation, not part of this step.
+So nothing here is a plugin that used to be core. They remain core by the library's stated goals,
+which list custom styled popups and tooltips among the things the library is for. What changed is
+only that not importing them is now possible — which is what makes them a complete worked example
+for a plugin author rather than only a pattern to point at.
+
+The one genuinely breaking version of this — the main entry point dropping them, so that
+`@aptuitiv/gmaps` means what `/core` means today — is still a 1.0 conversation, and is recorded in
+`../done/tree-shaking.md` rather than here.
 
 ### Documentation — most of the value of this step
 
-- [ ] Rewrite `docs/docs-src/plugin.md`:
+- [x] Rewrite `docs/docs-src/plugin.md` — done. Restructured around what belongs in a plugin (the
+      headless contract and the two-question test), then the four ways to extend, writing a control,
+      plugin options, the worked example, conventions, accessibility and publishing:
       - What belongs in the core and what belongs in a plugin (the headless contract and the test).
       - The extension points: `extends`, `include()`, init hooks, and `Control` once it exists.
       - Conventions: `gmaps-<name>` npm naming, `@aptuitiv/gmaps` as a `peerDependency`, a lowercase
@@ -255,8 +335,16 @@ Making them optional is a 1.0 conversation, not part of this step.
       - Accessibility expectations for anything that renders UI: keyboard operation and screen reader
         support, since a plugin that renders a control is the only one who can get that right.
       - How to publish types.
-- [ ] Document Popup, Tooltip and InfoWindow as the in-tree examples of the mixin pattern.
-- [ ] Add a plugin list page to the documentation site.
+- [x] Document Popup, Tooltip and InfoWindow as the in-tree example — done, as "A worked example:
+      how popups and tooltips do it". It covers all four parts of the pattern: registering with
+      `include()`, having their own entry point, being listed in `sideEffects`, and the placeholder
+      on the class they attach to.
+- [x] Add a plugin list page — done, `docs/docs-src/plugins.md`, listing the five that ship with the
+      library and inviting third-party ones by pull request. The sidebar entry for the guide is now
+      "Writing a plugin" so the two don't read as the same page.
+- [x] Entry points, what each costs, and browser script order — covered by
+      `docs/docs-src/installation/`. The plugin documentation should link to those rather than
+      repeat them.
 
 ---
 
@@ -268,15 +356,30 @@ Making them optional is a 1.0 conversation, not part of this step.
 | `include()` gets used for things it cannot do — private state, constructors | Say so plainly in the documentation. The library's own mixins are method-only, which is the example to point at |
 | Published extension points become API that is expensive to change | Keep the surface small. `Control` in particular is specified deliberately minimally |
 | Init hooks running for maps a plugin shouldn't touch | Hooks receive the map and opt in themselves; document that they must be cheap and must not assume any option is set |
+| A registering plugin's registration is silently dropped by a bundler | The `sideEffects` rule above, plus a test that imports the plugin for its effect alone and asserts the method exists — the shape `test/entry-points-core.test.ts` already uses |
 | Conventions written before anything uses them | That is what the sequence in section 5 is for — `Control`, `Button` and `LocationControl` are the first three users, and the conventions get corrected by them before anyone else depends on them |
 
 ---
 
-## 8. Definition of done for this step
+## 8. Definition of done
+
+Split across the resequencing in section 5.
+
+**Step 1 — before `Control` begins:**
 
 - `Map.addInitHook()` exists, is tested and is documented.
+- The limits of `Base.include()` are confirmed and written down: methods only, `extends` for anything
+  holding state.
+- [x] The delivery mechanism is decided: **subpath entry points in this repository**
+  (`@aptuitiv/gmaps/button`). Not separate npm packages, which would add peer-dependency version
+  matching against a 0.x library for no benefit while plugins move at the library's pace, and not
+  root exports, which would grow `dist/browser.js` for every standalone-script user.
+
+**Step 2a — after `Control` and `Button` exist:**
+
 - `docs/docs-src/plugin.md` is rewritten and covers the contract, the extension points, the
-  conventions and accessibility.
-- The delivery mechanism for first-party plugins is decided and documented.
-- Popup / Tooltip / InfoWindow are described as worked examples.
-- Reviewed and published before `Control` and `Button` begin.
+  conventions and accessibility, with `Control` and `Button` as the worked examples.
+- Popup / Tooltip / InfoWindow are documented as the registering-plugin example, including the
+  placeholder pattern and the `sideEffects` rule.
+- A plugin list page exists.
+- Reviewed and published before `LocationControl` begins.

@@ -734,7 +734,8 @@ export class InfoWindow extends Layer {
                         // Dispatch the event to say that the info window is ready
                         this.dispatch(InfoWindowEvents.READY);
                         resolve(this);
-                    });
+                    })
+                        .catch(reject);
                 }
             }
         });

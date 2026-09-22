@@ -41,13 +41,23 @@ class Base {
     /**
      * Include the mixin into the class
      *
+     * The mixin's own properties are copied onto the class prototype with their descriptors, so
+     * that getters and setters arrive as getters and setters. Object.assign() was used here before,
+     * which reads the value a getter returns and copies that instead, leaving a static value on the
+     * prototype and no accessor - and it did so silently, so a mixin written with a getter appeared
+     * to work until the value needed to change.
+     *
+     * Note that a property holding a mutable value is still shared by every instance, because it
+     * lives on the prototype rather than on each object. That is how prototypes work and isn't
+     * something this can fix. Assign in a method (this.thing = []) to give each object its own.
+     *
      * https://javascript.info/mixins
      * https://www.digitalocean.com/community/tutorials/js-using-js-mixins
      *
      * @param {any} mixin The mixin to include
      */
     static include(mixin: any) {
-        Object.assign(this.prototype, mixin);
+        Object.defineProperties(this.prototype, Object.getOwnPropertyDescriptors(mixin));
     }
 
     /**

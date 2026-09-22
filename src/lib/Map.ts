@@ -61,6 +61,12 @@ export type MapType = 'hybrid' | 'roadmap' | 'satellite' | 'terrain';
 
 // Map events that are not part of the Google Maps API
 type InternalEvent = 'locationerror' | 'locationfound' | 'ready';
+
+// A function registered with Map.addInitHook(), run against every map as it is created.
+// The map is both the "this" context and the first argument, so a normal function can use either.
+// Declaring "this" here is what lets a normal function use it without Typescript calling it an
+// implicit any. An arrow function, which has no "this" of its own, takes the argument instead.
+export type InitHook = (this: Map, map: Map) => void;
 // Google Maps library map events
 type GMEvent =
     | 'bounds_changed'
@@ -255,6 +261,18 @@ export class Map extends Evented {
     #isInitializing: boolean = false;
 
     /**
+     * The initialization that is currently running, so that callers arriving while it is in flight
+     * share it.
+     *
+     * They used to wait on the "ready" event instead, which only fires on success - so a failed
+     * load left every one of them waiting for a map that was never coming.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #initPromise: Promise<void> | undefined;
+
+    /**
      * Holds if the map is loaded and ready for use
      *
      * @private
@@ -392,6 +410,42 @@ export class Map extends Evented {
      *      The selector can be any valid selector for document.querySelector() can be used. Or, it can be an HTML element
      * @param {MapOptions} [options] The options object for the map
      */
+    /**
+     * Holds the functions to run against every map as it is created.
+     *
+     * Static, so that a plugin can add one without a reference to any particular map.
+     *
+     * @private
+     * @type {InitHook[]}
+     */
+    static #initHooks: InitHook[] = [];
+
+    /**
+     * Add a function to run against every map that is created from now on.
+     *
+     * This is how a plugin attaches itself to every map on a page without the site having to call
+     * it for each one. The function is called as the map is constructed, after its options have
+     * been set and before it has been rendered, with the map as both "this" and its first argument.
+     *
+     * Two things to know about it:
+     *
+     * 1. It only applies to maps created after the hook is added, not to ones that already exist.
+     *    A plugin therefore has to be loaded before the maps it means to attach to. In the browser
+     *    that means its script tag comes before the code that creates the map.
+     * 2. The map isn't rendered yet when the hook runs, so toGoogle() returns undefined. Anything
+     *    that needs the Google map object should wait for the "ready" event.
+     *
+     * A hook that throws is logged and the rest still run, so that one plugin can't stop a map
+     * from being created.
+     *
+     * @param {InitHook} callback The function to call for each new map
+     */
+    static addInitHook(callback: InitHook): void {
+        if (isFunction(callback)) {
+            Map.#initHooks.push(callback);
+        }
+    }
+
     constructor(selector: string | HTMLElement, options?: MapOptions) {
         super('map', 'Map');
 
@@ -411,6 +465,27 @@ export class Map extends Evented {
         if (isObject(options)) {
             this.setOptions(options);
         }
+
+        // Run last, so that a hook sees a map that has had its options applied
+        this.#runInitHooks();
+    }
+
+    /**
+     * Run the functions that were registered with addInitHook()
+     *
+     * @private
+     */
+    #runInitHooks(): void {
+        Map.#initHooks.forEach((hook) => {
+            try {
+                hook.call(this, this);
+            } catch (error) {
+                // One plugin's hook failing shouldn't stop the map from being created, or keep the
+                // other hooks from running. It's logged rather than swallowed so that it's findable.
+                // eslint-disable-next-line no-console
+                console.error('A map init hook threw an error. The map was still created.', error);
+            }
+        });
     }
 
     /**
@@ -992,6 +1067,39 @@ export class Map extends Evented {
     }
 
     /**
+     * Removes a custom control from the map
+     *
+     * This is the counterpart to addCustomControl(). It can't be done from outside the library:
+     * map.controls is an array of google.maps.MVCArray, so removing something means finding its
+     * index and calling removeAt() on the right one.
+     *
+     * The element is removed whether the map has been rendered or not. Before the map is rendered
+     * the controls are held in a queue, and an element taken out of that queue is never added.
+     *
+     * @param {HTMLElement} element The HTML element for the custom control to remove
+     * @returns {Map}
+     */
+    removeCustomControl(element: HTMLElement): Map {
+        if (this.#map) {
+            // Every position has to be searched. Nothing records which one an element went into,
+            // and the position could have been changed since it was added.
+            this.#map.controls.forEach((controls) => {
+                const items = controls.getArray();
+                // Walked backwards so that removing an item doesn't shift the ones still to check
+                for (let i = items.length - 1; i >= 0; i -= 1) {
+                    if (items[i] === element) {
+                        controls.removeAt(i);
+                    }
+                }
+            });
+        }
+        // Also drop it from the queue. The queue is flushed when the map renders, so an element
+        // left in it would be added to a map it had already been removed from.
+        this.#customControls = this.#customControls.filter((control) => control.element !== element);
+        return this;
+    }
+
+    /**
      * Adds a custom control to the map
      *
      * @param {ControlPositionValue} position The position to add the custom control
@@ -1099,17 +1207,26 @@ export class Map extends Evented {
      * @returns {Promise<Map>}
      */
     fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<Map> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this.#map) {
-                this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
-                    resolve(this);
-                });
-            } else {
-                this.init().then(() => {
-                    this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
+                this.#fitBounds(bounds, maxZoom, minZoom)
+                    .then(() => {
                         resolve(this);
-                    });
-                });
+                    })
+                    .catch(reject);
+            } else {
+                // Rejected rather than swallowed, because this method hands back a promise for the
+                // caller to handle. It used to leave the promise unsettled when the map failed to
+                // load, so an await on it never returned and the failure showed up as an unhandled
+                // rejection somewhere else entirely.
+                this.init()
+                    .then(() =>
+                        // Returned, so that a failure in #fitBounds() reaches the catch below
+                        this.#fitBounds(bounds, maxZoom, minZoom).then(() => {
+                            resolve(this);
+                        }),
+                    )
+                    .catch(reject);
             }
         });
     }
@@ -1125,7 +1242,7 @@ export class Map extends Evented {
     #fitBounds(bounds?: LatLngBoundsValue, maxZoom?: number, minZoom?: number): Promise<void> {
         // This is only called after the map has been set up, so the Google map object exists.
         // The non-null assertions below rely on that.
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (bounds) {
                 latLngBounds(bounds)
                     .toGoogle()
@@ -1133,13 +1250,17 @@ export class Map extends Evented {
                         this.#handleZoomAfterFitBounds(maxZoom, minZoom);
                         this.#map!.fitBounds(googleBounds);
                         resolve();
-                    });
+                    })
+                    .catch(reject);
             } else if (this.#bounds) {
-                this.#bounds.toGoogle().then((googleBounds) => {
-                    this.#handleZoomAfterFitBounds(maxZoom, minZoom);
-                    this.#map!.fitBounds(googleBounds);
-                    resolve();
-                });
+                this.#bounds
+                    .toGoogle()
+                    .then((googleBounds) => {
+                        this.#handleZoomAfterFitBounds(maxZoom, minZoom);
+                        this.#map!.fitBounds(googleBounds);
+                        resolve();
+                    })
+                    .catch(reject);
             } else {
                 resolve();
             }
@@ -1199,27 +1320,35 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     init(callback?: () => void): Promise<Map> {
-        return new Promise((resolve) => {
-            if (!this.#isInitialized && !this.#isReady) {
-                // The map has not been initialized or displayed
-                if (!this.#isInitializing) {
-                    // The map is not initializing, so start the initialization process
-                    this.#isInitializing = true;
-                    this.#load().then(() => {
-                        callCallback(callback);
-                        resolve(this);
-                    });
-                } else {
-                    // The map is initializing, so wait for it to finish
-                    this.onceImmediate(MapEvents.READY, () => {
-                        callCallback(callback);
-                        resolve(this);
-                    });
-                }
-            } else {
-                callCallback(callback);
-                resolve(this);
-            }
+        if (this.#isInitialized || this.#isReady) {
+            callCallback(callback);
+            return Promise.resolve(this);
+        }
+
+        if (!this.#initPromise) {
+            this.#isInitializing = true;
+            this.#initPromise = this.#load();
+            // Forgotten once it settles. After a success the check above takes over, and after a
+            // failure a later call starts a fresh load rather than being handed the one that
+            // already failed.
+            this.#initPromise.then(
+                () => {
+                    this.#initPromise = undefined;
+                },
+                () => {
+                    // Cleared so that a later attempt starts again rather than waiting on a "ready"
+                    // event that is never going to be dispatched
+                    this.#isInitializing = false;
+                    this.#initPromise = undefined;
+                },
+            );
+        }
+
+        // Every caller hangs off the same initialization, so a failure settles all of them rather
+        // than only the one that started it
+        return this.#initPromise.then(() => {
+            callCallback(callback);
+            return this;
         });
     }
 
@@ -1380,13 +1509,14 @@ export class Map extends Evented {
      * @returns {Promise<LatLngBounds | undefined>}
      */
     getBounds(): Promise<LatLngBounds | undefined> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const googleBounds = this.#map?.getBounds();
             if (googleBounds) {
                 const bounds = new LatLngBounds();
                 bounds.union(googleBounds).then(() => {
                     resolve(bounds);
-                });
+                })
+                    .catch(reject);
             } else {
                 // The map isn't set up yet, or it doesn't have bounds yet
                 // (Google returns undefined for the bounds until the map has been sized and positioned).
@@ -1500,12 +1630,16 @@ export class Map extends Evented {
         return new Promise((resolve, reject) => {
             loader()
                 .load()
-                .then(() => {
+                .then(() =>
+                    // Returned, so that a failure in #showMap() - it throws when the map element
+                    // can't be found - reaches the catch below. It used to be left to float, which
+                    // meant an unhandled rejection and a promise that never settled, so anything
+                    // waiting on the map waited forever.
                     this.#showMap().then(() => {
                         callCallback(callback);
                         resolve();
-                    });
-                })
+                    }),
+                )
                 .catch((err) => {
                     reject(err);
                 });
@@ -1522,9 +1656,8 @@ export class Map extends Evented {
      *  });
      * 2. Listen for the 'locationfound' event
      *  map.on('locationfound', (event) => {
-     *   // Do something with the position
-     *   // event is an instance of CustomEvent.
-     *   // event.detail contains the position data
+     *   // Do something with the position. The position data is merged onto the event object, so
+     *   // event.latitude, event.longitude and event.latLng are all there.
      *  });
      *
      * @param {LocateOptions|LocationOnSuccess} [options] The options for the locate() function. Or the callback function.
@@ -1578,7 +1711,13 @@ export class Map extends Evented {
                 console.error(err);
             };
             if (config.watch) {
-                this.#watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
+                // Only one watch at a time. This used to be assigned unconditionally, so calling
+                // locate() twice - which happens as soon as something like a location control calls
+                // it on a map the site is already locating - started a second watch and leaked the
+                // first, with no way left to clear it.
+                if (typeof this.#watchId === 'undefined') {
+                    this.#watchId = navigator.geolocation.watchPosition(success, error, positionOptions);
+                }
             } else {
                 navigator.geolocation.getCurrentPosition(success, error, positionOptions);
             }
@@ -1873,10 +2012,16 @@ export class Map extends Evented {
         if (this.#map) {
             this.#map.panBy(x, y);
         } else {
-            this.init().then(() => {
-                // init() resolves after the Google map object is set up
-                this.#map!.panBy(x, y);
-            });
+            this.init()
+                .then(() => {
+                    // init() resolves after the Google map object is set up
+                    this.#map!.panBy(x, y);
+                })
+                .catch((error) => {
+                    // See the note in panTo()
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so panBy() did nothing.', error);
+                });
         }
     }
 
@@ -1891,10 +2036,19 @@ export class Map extends Evented {
         if (this.#map) {
             this.#map.panTo(latLng(value).toGoogle());
         } else {
-            this.init().then(() => {
-                // init() resolves after the Google map object is set up
-                this.#map!.panTo(latLng(value).toGoogle());
-            });
+            this.init()
+                .then(() => {
+                    // init() resolves after the Google map object is set up
+                    this.#map!.panTo(latLng(value).toGoogle());
+                })
+                .catch((error) => {
+                    // This method returns nothing, so there is no promise for the caller to catch.
+                    // Without this the failure surfaces as an unhandled rejection, which is a
+                    // console error in the browser that points at the library rather than at the
+                    // load that actually failed.
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so panTo() did nothing.', error);
+                });
         }
     }
 
@@ -2240,23 +2394,36 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     show(callback?: () => void): Promise<Map> {
-        return new Promise((resolve) => {
-            if (checkForGoogleMaps('Map', 'Map', false)) {
-                // The map library is loaded and this can be shown
-                this.#showMap().then(() => {
-                    // Call the callback function if necessary
-                    callCallback(callback);
-                    resolve(this);
-                });
-            } else {
-                // Wait for the loader to dispatch it's "load" event
-                loader().onceLoad(() => {
-                    this.#showMap().then(() => {
+        return new Promise((resolve, reject) => {
+            // #showMap() throws when the map element can't be found, which rejects its promise.
+            // That had nowhere to go before: this promise had no reject, so a bad map selector
+            // left it unsettled and the error came out as an unhandled rejection rather than
+            // reaching whoever called show().
+            const display = () => {
+                this.#showMap()
+                    .then(() => {
                         // Call the callback function if necessary
                         callCallback(callback);
                         resolve(this);
+                    })
+                    .catch((error) => {
+                        // Tell anything waiting for a map that one isn't coming. Markers,
+                        // polylines and the rest wait on the loader for that, and a map that can't
+                        // be displayed leaves them waiting just as a failed script load would.
+                        loader().loadFailed(error instanceof Error ? error : new Error(String(error)));
+                        reject(error);
                     });
-                });
+            };
+
+            if (checkForGoogleMaps('Map', 'Map', false)) {
+                // The map library is loaded and this can be shown
+                display();
+            } else {
+                // Load it, rather than waiting for the "load" event, which is only dispatched on
+                // success - so a failed load, or nothing ever calling load(), left this promise
+                // unsettled. load() hands back the load that is already running when there is one,
+                // so this doesn't start a second.
+                loader().load().then(display).catch(reject);
             }
         });
     }
@@ -2270,11 +2437,9 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     #showMap(): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             // Only set up the map if it hasn't been set up yet or isn't in the process of being set up.
             if (!this.#isReady && !this.#isGettingMapOptions) {
-                this.#isGettingMapOptions = true;
-
                 // Get the DOM element to attach the map to
                 const element = this.#element;
                 if (element === null) {
@@ -2282,6 +2447,12 @@ export class Map extends Evented {
                         'The map element could not be found. Make sure the map selector is correct and the element exists.',
                     );
                 }
+
+                // Set after the element has been checked, not before. Throwing with it already set
+                // left it set, so the next attempt took the "already setting up" path below and
+                // waited for a ready event that was never going to be dispatched - a second try
+                // hung instead of reporting the same problem.
+                this.#isGettingMapOptions = true;
 
                 // If the element is not visible then wait for it to be visible before setting up the map.
                 // This is intended to prevent issue where the map does not render correctly when it's first hidden.
@@ -2298,15 +2469,22 @@ export class Map extends Evented {
                             entries.forEach((entry) => {
                                 if (entry.isIntersecting) {
                                     observer.disconnect();
-                                    this.#setupMapObject(element).then(() => {
-                                        // Set a brief timeout to make sure the map is fully set up before resolving the promise
-                                        // and dispatching the "ready" event.
-                                        // This ensures that the tiles properly load and that the map is fully set up.
-                                        setTimeout(() => {
-                                            this.#setMapAsReady();
-                                            resolve();
-                                        }, 100);
-                                    });
+                                    this.#setupMapObject(element)
+                                        .then(() => {
+                                            // Set a brief timeout to make sure the map is fully set up before resolving the promise
+                                            // and dispatching the "ready" event.
+                                            // This ensures that the tiles properly load and that the map is fully set up.
+                                            setTimeout(() => {
+                                                this.#setMapAsReady();
+                                                resolve();
+                                            }, 100);
+                                        })
+                                        .catch((error) => {
+                                            // Cleared so that a later attempt starts again rather
+                                            // than waiting on a ready event that is never coming
+                                            this.#isGettingMapOptions = false;
+                                            reject(error);
+                                        });
                                 }
                             });
                         },
@@ -2317,10 +2495,17 @@ export class Map extends Evented {
 
                     observer.observe(element);
                 } else {
-                    this.#setupMapObject(element).then(() => {
-                        this.#setMapAsReady();
-                        resolve();
-                    });
+                    this.#setupMapObject(element)
+                        .then(() => {
+                            this.#setMapAsReady();
+                            resolve();
+                        })
+                        .catch((error) => {
+                            // See the note on the other call: the flag has to be cleared or the
+                            // next attempt waits on a ready event that is never coming
+                            this.#isGettingMapOptions = false;
+                            reject(error);
+                        });
                 }
             } else if (!this.#isReady) {
                 // Wait for the map options to be set up and the map to be ready
@@ -2383,26 +2568,28 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     #setupMapObject = (element: HTMLElement): Promise<void> =>
-        new Promise((resolve) => {
+        new Promise((resolve, reject) => {
             // Get the map options
-            this.#getMapOptions().then((mapOptions) => {
-                const map = new google.maps.Map(element, mapOptions);
-                this.#map = map;
-                this.setEventGoogleObject(map);
+            this.#getMapOptions()
+                .then((mapOptions) => {
+                    const map = new google.maps.Map(element, mapOptions);
+                    this.#map = map;
+                    this.setEventGoogleObject(map);
 
-                // Keep a pinch on the map from zooming the whole page on iOS
-                this.#setupPreventPageZoom();
+                    // Keep a pinch on the map from zooming the whole page on iOS
+                    this.#setupPreventPageZoom();
 
-                // Add any custom controls to the map
-                if (this.#customControls.length > 0) {
-                    this.#customControls.forEach((control) => {
-                        map.controls[convertControlPosition(control.position)].push(control.element);
-                    });
-                }
-                this.#customControls = [];
+                    // Add any custom controls to the map
+                    if (this.#customControls.length > 0) {
+                        this.#customControls.forEach((control) => {
+                            map.controls[convertControlPosition(control.position)].push(control.element);
+                        });
+                    }
+                        this.#customControls = [];
 
-                resolve();
-            });
+                        resolve();
+                })
+                .catch(reject);
         });
 
     /**
@@ -2436,8 +2623,20 @@ export class Map extends Evented {
         // There is only a watch to clear if locate() started watching the user's location
         if (navigator.geolocation && typeof this.#watchId !== 'undefined') {
             navigator.geolocation.clearWatch(this.#watchId);
+            // Cleared as well as stopped, so that a later locate() can start watching again and a
+            // second stopLocate() doesn't pass a dead id to clearWatch()
+            this.#watchId = undefined;
         }
         return this;
+    }
+
+    /**
+     * Get whether the map is currently watching the user's location
+     *
+     * @returns {boolean}
+     */
+    get isLocating(): boolean {
+        return typeof this.#watchId !== 'undefined';
     }
 
     /**

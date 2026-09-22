@@ -82,7 +82,7 @@ G.map('#mapSelector', { center: [40.7128, -74.0060] }).load();
 [View the full details on Google's documentation page](https://developers.google.com/maps/documentation/javascript/load-maps-js-api#dynamic-library-import).
 
 :::warning
-The `G.loader` and `G.map` objects handle waiting for the map library to be loaded before displaying the map and elements on the map. They allow the `show()` function on the map object to be called,  elements like markers to be assigned to the map, and events to be watched before the Google Maps API is loaded. This is done with some internal event watchers. You don't have that option with this method. You **must** completely load the Google Maps API and the maps libray before doing anything with the `G` library.
+The `G.loader` and `G.map` objects handle waiting for the map library to be loaded before displaying the map and elements on the map. They allow the `show()` function on the map object to be called,  elements like markers to be assigned to the map, and events to be watched before the Google Maps API is loaded. This is done with some internal event watchers. You don't have that option with this method. You **must** completely load the Google Maps API and the maps library before doing anything with the `G` library.
 :::
 
 ```javascript
@@ -107,7 +107,7 @@ initMap();
 [View the full details on Google's documentation page](https://developers.google.com/maps/documentation/javascript/load-maps-js-api#js-api-loader).
 
 :::warning
-The `G.loader` and `G.map` objects handle waiting for the map library to be loaded before displaying the map and elements on the map. They allow the `show()` function on the map object to be called,  elements like markers to be assigned to the map, and events to be watched before the Google Maps API is loaded. This is done with some internal event watchers. You don't have that option with this method. You **must** completely load the Google Maps API and the maps libray before doing anything with the `G` library.
+The `G.loader` and `G.map` objects handle waiting for the map library to be loaded before displaying the map and elements on the map. They allow the `show()` function on the map object to be called,  elements like markers to be assigned to the map, and events to be watched before the Google Maps API is loaded. This is done with some internal event watchers. You don't have that option with this method. You **must** completely load the Google Maps API and the maps library before doing anything with the `G` library.
 :::
 
 ```js
@@ -130,7 +130,7 @@ loader.importLibrary('maps').then(() => {
 [View the full details on Google's documentation page](https://developers.google.com/maps/documentation/javascript/load-maps-js-api#use-legacy-tag).
 
 :::warning
-The `G.loader` and `G.map` objects handle waiting for the map library to be loaded before displaying the map and elements on the map. They allow the `show()` function on the map object to be called,  elements like markers to be assigned to the map, and events to be watched before the Google Maps API is loaded. This is done with some internal event watchers. You don't have that option with this method. You **must** completely load the Google Maps API and the maps libray before doing anything with the `G` library.
+The `G.loader` and `G.map` objects handle waiting for the map library to be loaded before displaying the map and elements on the map. They allow the `show()` function on the map object to be called,  elements like markers to be assigned to the map, and events to be watched before the Google Maps API is loaded. This is done with some internal event watchers. You don't have that option with this method. You **must** completely load the Google Maps API and the maps library before doing anything with the `G` library.
 :::
 
 Load the Google Maps Javascript API:

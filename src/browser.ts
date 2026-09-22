@@ -41,6 +41,8 @@ import {
     SymbolPath,
     READY_EVENT,
 } from './lib/constants';
+import { button, Button } from './lib/Button';
+import { control, Control } from './lib/Control';
 import { DataFeature } from './lib/DataFeature';
 import { dataLayer, DataLayer } from './lib/DataLayer';
 import { geocode, Geocode } from './lib/Geocode';
@@ -49,6 +51,7 @@ import { infoWindow, InfoWindow } from './lib/InfoWindow';
 import { latLng, LatLng } from './lib/LatLng';
 import { latLngBounds, LatLngBounds } from './lib/LatLngBounds';
 import { loader, Loader } from './lib/Loader';
+import { locationControl, LocationControl } from './lib/LocationControl';
 import { map, Map } from './lib/Map';
 import { fullscreenControl, FullscreenControl } from './lib/Map/FullscreenControl';
 import { mapRestriction, MapRestriction } from './lib/Map/MapRestriction';
@@ -99,6 +102,10 @@ type GlobalObj = {
     SymbolPath: typeof SymbolPath;
     autocompleteSearchBox: typeof autocompleteSearchBox;
     AutocompleteSearchBox: typeof AutocompleteSearchBox;
+    button: typeof button;
+    Button: typeof Button;
+    control: typeof control;
+    Control: typeof Control;
     dataLayer: typeof dataLayer;
     DataLayer: typeof DataLayer;
     DataFeature: typeof DataFeature;
@@ -116,6 +123,8 @@ type GlobalObj = {
     LatLngBounds: typeof LatLngBounds;
     loader: typeof loader;
     Loader: typeof Loader;
+    locationControl: typeof locationControl;
+    LocationControl: typeof LocationControl;
     map: typeof map;
     Map: typeof Map;
     mapRestriction: typeof mapRestriction;
@@ -207,6 +216,8 @@ const G: GlobalObj = {
     LatLngBounds,
     loader,
     Loader,
+    locationControl,
+    LocationControl,
     map,
     Map,
     mapRestriction,
@@ -237,7 +248,11 @@ const G: GlobalObj = {
     PolylineIcon,
     popup,
     Popup,
+    button,
+    Button,
     closeAllPopups,
+    control,
+    Control,
     rotateControl,
     RotateControl,
     READY_EVENT,

@@ -184,9 +184,18 @@ export class MarkerCluster extends Base {
         if (checkForGoogleMaps('MarkerCluster', 'Marker', false)) {
             this.#setupCluster(map, markers, options);
         } else {
-            loader().onMapLoad(() => {
-                this.#setupCluster(map, markers, options);
-            });
+            // Nothing is waiting on a promise here, so a failure is logged rather than thrown.
+            // Waiting on the "map_load" event alone meant a failed load left the cluster never set
+            // up and nothing said why.
+            loader()
+                .whenMapLoaded()
+                .then(() => {
+                    this.#setupCluster(map, markers, options);
+                })
+                .catch((error) => {
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so the marker cluster was not set up.', error);
+                });
         }
     }
 
@@ -363,10 +372,16 @@ export class MarkerCluster extends Base {
             });
         } else {
             this.#pendingMarkers.push(marker);
-            loader().onMapLoad(() => {
-                this.addMarkers(this.#pendingMarkers, draw);
-                this.#pendingMarkers = [];
-            });
+            loader()
+                .whenMapLoaded()
+                .then(() => {
+                    this.addMarkers(this.#pendingMarkers, draw);
+                    this.#pendingMarkers = [];
+                })
+                .catch((error) => {
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so the markers were not clustered.', error);
+                });
         }
         return this;
     }
@@ -406,10 +421,16 @@ export class MarkerCluster extends Base {
             markers.forEach((marker) => {
                 this.#pendingMarkers.push(marker);
             });
-            loader().onMapLoad(() => {
-                add(this.#pendingMarkers, draw);
-                this.#pendingMarkers = [];
-            });
+            loader()
+                .whenMapLoaded()
+                .then(() => {
+                    add(this.#pendingMarkers, draw);
+                    this.#pendingMarkers = [];
+                })
+                .catch((error) => {
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so the markers were not clustered.', error);
+                });
         }
         return this;
     }

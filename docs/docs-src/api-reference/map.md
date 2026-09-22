@@ -643,6 +643,33 @@ map.zoomControl = G.zoomControl({
 - Methods inherited from [Evented](/api-reference/base-classes/evented#methods).
 - Methods inherited from [Base](/api-reference/base-classes/base#methods)
 
+### addInitHook
+
+`Map.addInitHook(callback: (map: Map) => void): void`
+
+A static method. Adds a function to run against every map created from then on, so that a plugin can attach itself to every map on a page without the site calling it for each one.
+
+The function is called as the map is constructed, after its options have been applied and before it has been rendered, with the map as both `this` and its first argument.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| callback | Function | Yes | The function to call for each new map. It's passed the map. |
+
+```js
+G.Map.addInitHook((map) => {
+    map.on('ready', () => {
+        console.log('This runs for every map on the page');
+    });
+});
+```
+
+Two things to know about it:
+
+- It only applies to maps created **after** the hook is added, not to ones that already exist. A plugin therefore has to be loaded before the maps it means to attach to. With the standalone browser script that means its `script` tag comes before the code that creates the map.
+- The map isn't rendered yet when the hook runs, so [toGoogle()](#togoogle) returns `undefined`. Anything that needs the Google map object should wait for the [ready event](#events).
+
+A hook that throws is logged to the console and the remaining hooks still run, so one plugin can't stop a map from being created.
+
 ### addCustomControl
 
 `addCustomControl(position: ControlPositionValue, element: HTMLElement): Map`
@@ -650,6 +677,12 @@ map.zoomControl = G.zoomControl({
 Add a custom control to the map. Custom controls are often buttons that do something when clicked. For example, you could have a button that toggles the display of something on the map.
 
 The custom control is positioned on the map with the [ControlPosition values](/api-reference/constants#controlposition).
+
+:::tip
+This is the low-level call. It puts the element on the map and gives you nothing back, so moving it or taking it off later means keeping a reference to the element yourself and passing it to [removeCustomControl()](#removecustomcontrol).
+
+Use [Control](/api-reference/map-controls/control) instead if you need any of that, or [Button](/api-reference/map-controls/button) for something clickable. Both hold on to their element and handle their own lifecycle.
+:::
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -664,6 +697,30 @@ customBtn.addEventListener('click', () => {
     console.log('Custom Control clicked');
 });
 map.addCustomControl(G.ControlPosition.BLOCK_START_INLINE_CENTER, customBtn);
+```
+
+### removeCustomControl
+
+`removeCustomControl(element: HTMLElement): Map`
+
+Remove a custom control from the map. This is the counterpart to [addCustomControl()](#addcustomcontrol).
+
+:::tip
+This is the low-level call, and it needs the element itself — so it only helps if you kept a reference to it when you added it.
+
+If the control is a [Control](/api-reference/map-controls/control) or a [Button](/api-reference/map-controls/button), call [remove()](/api-reference/map-controls/control#remove) on it instead. It knows its own element, and a `Button` also stops listening for clicks on the way out, which this method doesn't do. This method takes the element off the map and leaves anything bound to it alone.
+:::
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| element | [HTMLElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement) | Yes | The element for the custom control to remove. |
+
+The element is removed whether or not the map has been rendered. Before it renders the controls are held in a queue, and an element taken out of that queue is never added.
+
+Every position is searched, because nothing records which one an element went into and the position may have changed since.
+
+```js
+map.removeCustomControl(customBtn);
 ```
 
 ### addGeoJson

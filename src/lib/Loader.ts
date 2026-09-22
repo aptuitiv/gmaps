@@ -43,6 +43,34 @@ export class Loader extends EventTarget {
     #isLoading: boolean = false;
 
     /**
+     * The load that is currently running, so that callers arriving while it is in flight share it.
+     *
+     * They used to wait on the "load" event instead, which only ever fires on success - so a failed
+     * load left every one of them waiting for something that was never coming.
+     *
+     * @private
+     * @type {Promise<void>|undefined}
+     */
+    #loadPromise: Promise<void> | undefined;
+
+    /**
+     * The error from a load that failed, if one has.
+     *
+     * Kept so that anything asking to wait for the map afterwards is told straight away instead of
+     * waiting for a "map_load" that is never coming.
+     *
+     * @private
+     * @type {Error|undefined}
+     */
+    #loadError: Error | undefined;
+
+    /** Anything waiting for a map to be displayed */
+    #mapLoadedPromise: Promise<void> | undefined;
+
+    /** Anything waiting for the library itself */
+    #loadedPromise: Promise<void> | undefined;
+
+    /**
      * Holds the loaded state
      *
      * @private
@@ -226,53 +254,156 @@ export class Loader extends EventTarget {
      * @returns {Promise<void>}
      */
     load(callback?: () => void): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (!this.#isLoaded) {
-                if (!this.#isLoading) {
-                    this.#isLoading = true;
-                    if (isStringWithValue(this.#apiKey)) {
-                        // Set up the Google maps loader
-                        // https://www.npmjs.com/package/@googlemaps/js-api-loader
-                        if (typeof this.#loader === 'undefined') {
-                            this.#loader = new GoogleLoader({
-                                apiKey: this.#apiKey,
-                                version: this.#version,
-                                libraries: this.#libraries,
-                            });
-                        }
-                        this.#loader
-                            .importLibrary('maps')
-                            .then(async () => {
-                                // Make sure that the advanced marker library is loaded. If its set in the libraries array, it will be loaded by the
-                                // Google maps loader. But, it may not be loaded by the time we need it. So, we will load it here.
-                                // It would be better if the Google maps loader could load multiple libraries at once or there was a way to wait for multiple libraries to load.
-                                if (this.#libraries.includes('marker')) {
-                                    await google.maps.importLibrary('marker');
-                                }
-                                this.#isLoaded = true;
-                                callCallback(callback);
-                                this.dispatch(LoaderEvents.LOAD);
-                                resolve();
-                            })
-                            .catch((err) => {
-                                reject(err);
-                            });
-                    } else {
-                        reject(new Error('The Google Maps API key is not set'));
-                    }
-                } else {
-                    // Wait for the Google maps API to load
-                    this.once(LoaderEvents.LOAD, () => {
-                        callCallback(callback);
-                        resolve();
-                    });
-                }
-            } else {
-                // The Google maps API has already loaded
-                callCallback(callback);
-                resolve();
-            }
+        if (this.#isLoaded) {
+            // The Google maps API has already loaded
+            callCallback(callback);
+            return Promise.resolve();
+        }
+
+        if (!this.#loadPromise) {
+            this.#loadPromise = this.#startLoad();
+            // Forgotten once it settles. On success the check above takes over, and on failure a
+            // later load() starts again rather than handing back the load that already failed.
+            this.#loadPromise.then(
+                () => {
+                    this.#loadPromise = undefined;
+                },
+                (error) => {
+                    this.#isLoading = false;
+                    this.#loadPromise = undefined;
+                    this.loadFailed(error instanceof Error ? error : new Error(String(error)));
+                },
+            );
+        }
+
+        // Every caller hangs off the same load, so they are all told about a failure rather than
+        // only the one that started it
+        return this.#loadPromise.then(() => {
+            callCallback(callback);
         });
+    }
+
+    /**
+     * Start loading the Google maps API
+     *
+     * @private
+     * @returns {Promise<void>}
+     */
+    #startLoad(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (!isStringWithValue(this.#apiKey)) {
+                reject(new Error('The Google Maps API key is not set'));
+                return;
+            }
+
+            this.#isLoading = true;
+
+            // Set up the Google maps loader
+            // https://www.npmjs.com/package/@googlemaps/js-api-loader
+            if (typeof this.#loader === 'undefined') {
+                this.#loader = new GoogleLoader({
+                    apiKey: this.#apiKey,
+                    version: this.#version,
+                    libraries: this.#libraries,
+                });
+            }
+
+            this.#loader
+                .importLibrary('maps')
+                .then(async () => {
+                    // Make sure that the advanced marker library is loaded. If its set in the libraries array, it will be loaded by the
+                    // Google maps loader. But, it may not be loaded by the time we need it. So, we will load it here.
+                    // It would be better if the Google maps loader could load multiple libraries at once or there was a way to wait for multiple libraries to load.
+                    if (this.#libraries.includes('marker')) {
+                        await google.maps.importLibrary('marker');
+                    }
+                    this.#isLoaded = true;
+                    this.#loadError = undefined;
+                    this.dispatch(LoaderEvents.LOAD);
+                    resolve();
+                })
+                .catch(reject);
+        });
+    }
+
+    /**
+     * Wait for a map to be displayed.
+     *
+     * This is what anything needing the Google Maps objects waits on - markers, polylines,
+     * overlays, geocoding. It resolves once a map has been displayed, and rejects if the library
+     * can't be loaded or a map can't be displayed.
+     *
+     * The rejection is the point of it. Listening for the "map_load" event alone means waiting for
+     * something that is only ever dispatched on success, so a failed load left every one of those
+     * objects waiting forever with nothing reported.
+     *
+     * @returns {Promise<void>}
+     */
+    /**
+     * Wait for the Google Maps library to load.
+     *
+     * Resolves once the library is available, and rejects if it can't be loaded. Use this rather
+     * than listening for the "load" event when a failure matters: that event is only dispatched on
+     * success, so waiting for it alone means waiting forever when the load fails.
+     *
+     * @returns {Promise<void>}
+     */
+    whenLoaded(): Promise<void> {
+        if (this.#isLoaded) {
+            return Promise.resolve();
+        }
+        if (this.#loadError) {
+            return Promise.reject(this.#loadError);
+        }
+        if (!this.#loadedPromise) {
+            this.#loadedPromise = new Promise((resolve, reject) => {
+                this.on(LoaderEvents.LOAD, () => {
+                    resolve();
+                });
+                this.on(LoaderEvents.LOAD_ERROR, () => {
+                    reject(this.#loadError ?? new Error('The Google Maps library could not be loaded'));
+                });
+            });
+        }
+        return this.#loadedPromise;
+    }
+
+    whenMapLoaded(): Promise<void> {
+        if (this.#isMapLoaded) {
+            return Promise.resolve();
+        }
+        if (this.#loadError) {
+            return Promise.reject(this.#loadError);
+        }
+        if (!this.#mapLoadedPromise) {
+            this.#mapLoadedPromise = new Promise((resolve, reject) => {
+                this.on(LoaderEvents.MAP_LOAD, () => {
+                    resolve();
+                });
+                this.on(LoaderEvents.LOAD_ERROR, () => {
+                    reject(this.#loadError ?? new Error('The map could not be loaded'));
+                });
+            });
+        }
+        return this.#mapLoadedPromise;
+    }
+
+    /**
+     * Say that the library or a map failed to load, so that anything waiting for a map stops
+     * waiting.
+     *
+     * Called by the Loader itself when a load fails, and by the Map when it can't be displayed.
+     *
+     * @internal
+     * @param {Error} error The error that stopped it
+     */
+    loadFailed(error: Error): void {
+        this.#loadError = error;
+        // Let go of the waiting promises so that a later attempt gets fresh ones rather than the
+        // ones that already rejected
+        this.#mapLoadedPromise = undefined;
+        this.#loadedPromise = undefined;
+        this.dispatch(LoaderEvents.LOAD_ERROR);
     }
 
     /**

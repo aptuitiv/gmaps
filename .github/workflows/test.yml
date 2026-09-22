@@ -48,5 +48,8 @@ jobs:
             - name: Run tests
               run: npm test
 
+            - name: Typecheck
+              run: npm run typecheck
+
             - name: Lint
               run: npx eslint ./src
