@@ -55,6 +55,8 @@ Pass marker options to change part of it — they're merged over the default, so
 locationControl({ map: map, marker: { svgIcon: { fillColor: '#c0392b' } } });
 ```
 
+`svgIcon` is merged a level deeper than the other options, so the rest of the icon — the path that draws the dot, the white outline — is kept. Pass a whole SVG string or an [SvgSymbol](/api-reference/utilities/svgsymbol) instead and it's used as it is, with nothing merged into it.
+
 The dot has **no hover tooltip** unless you ask for one. A marker's `title` shows as a tooltip when it's hovered. Add one if you want it, in whatever language your site is in:
 
 ```js

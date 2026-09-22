@@ -12,6 +12,7 @@ import { locationControl, LocationControl } from '../src/lib/LocationControl';
 import { ControlPosition } from '../src/lib/constants';
 import { Map } from '../src/lib/Map';
 import { marker } from '../src/lib/Marker';
+import { svgSymbol } from '../src/lib/SvgSymbol';
 import { installGoogleMaps, uninstallGoogleMaps } from './support/googleMaps';
 
 /** The success callback the stub was given, so a test can deliver a fix whenever it likes */
@@ -262,6 +263,41 @@ describe('LocationControl', () => {
             // make it the only user-visible text it supplies.
             expect(locationControl().marker?.title).toBeUndefined();
             expect(locationControl({ marker: { title: 'My location' } }).marker?.title).toBe('My location');
+        });
+
+        it('keeps the rest of the icon when one part of it is overridden', () => {
+            // The documented way to recolour the dot. A shallow merge replaces the whole svgIcon,
+            // losing the path that draws it - so the marker has a colour and no shape.
+            const c = locationControl({ marker: { svgIcon: { fillColor: '#c0392b' } } });
+            const symbol = c.marker?.icon as unknown as {
+                fillColor?: string;
+                path?: string;
+                strokeColor?: string;
+                strokeWeight?: number;
+            };
+
+            expect(symbol).toBeDefined();
+            expect(symbol.fillColor).toBe('#c0392b');
+            expect(symbol.path).toBe('M3 11a8 8 0 1 0 16 0a8 8 0 1 0 -16 0');
+            expect(symbol.strokeColor).toBe('#ffffff');
+            expect(symbol.strokeWeight).toBe(2);
+        });
+
+        it('takes a whole svg string as given', () => {
+            // A string is the entire icon, so there is nothing to merge it into
+            const svg = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="5" /></svg>';
+            const c = locationControl({ marker: { svgIcon: svg } });
+
+            expect(typeof c.marker?.icon).toBe('string');
+            expect(c.marker?.icon as string).toContain('data:image/svg+xml;base64,');
+        });
+
+        it('takes a built SvgSymbol as given', () => {
+            const symbol = svgSymbol({ path: 'M0 0 L10 10', fillColor: '#00ff00' });
+            const c = locationControl({ marker: { svgIcon: symbol } });
+
+            // Already built, so it is used rather than spread into a new object
+            expect((c.marker?.icon as unknown as { path?: string }).path).toBe('M0 0 L10 10');
         });
 
         it('merges options over the default blue dot', () => {

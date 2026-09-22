@@ -19,6 +19,7 @@ import { isBoolean, isNumber, isObject } from './helpers';
 import { Map } from './Map';
 import { LocateOptions, LocationPosition } from './Map/types';
 import { marker as markerFactory, Marker, MarkerOptions } from './Marker';
+import { SvgSymbol, SvgSymbolOptions } from './SvgSymbol';
 
 // The blue dot. It's the convention on every map that shows the user's position, and it's built
 // from a Marker and an SvgSymbol, both of which the library already owns - so it isn't the library
@@ -350,9 +351,25 @@ export class LocationControl extends Button {
             this.#ownsMarker = false;
             return;
         }
-        const options: MarkerOptions = isObject(value)
-            ? { ...defaultMarkerOptions, ...(value as MarkerOptions) }
-            : { ...defaultMarkerOptions };
+        const overrides: MarkerOptions = isObject(value) ? (value as MarkerOptions) : {};
+        const options: MarkerOptions = { ...defaultMarkerOptions, ...overrides };
+
+        // svgIcon is merged a level deeper than the rest. It is the one default made of parts, and
+        // a plain overwrite would drop the path that draws the dot when someone sets only the
+        // colour - leaving a marker with a colour and no shape.
+        //
+        // Only a plain options object is merged. A string is a whole SVG and an SvgSymbol is
+        // already built, so either is taken as given.
+        if (
+            isObject(overrides.svgIcon) &&
+            !(overrides.svgIcon instanceof SvgSymbol) &&
+            isObject(defaultMarkerOptions.svgIcon)
+        ) {
+            options.svgIcon = {
+                ...(defaultMarkerOptions.svgIcon as SvgSymbolOptions),
+                ...(overrides.svgIcon as SvgSymbolOptions),
+            };
+        }
         this.#marker = markerFactory(options);
         this.#ownsMarker = true;
     }
