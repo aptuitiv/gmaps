@@ -233,6 +233,17 @@ describe('Map', () => {
         });
     });
 
+    describe('when the map element cannot be found', () => {
+        it('rejects show() rather than hanging', async () => {
+            // #showMap() throws when the selector matched nothing, which rejects its promise. That
+            // rejection had nowhere to go: show() has no reject, so it was left unsettled and the
+            // error surfaced as an unhandled rejection instead of reaching the caller.
+            const m = new Map('#no-such-element');
+
+            await expect(m.show()).rejects.toThrow(/map element could not be found/);
+        });
+    });
+
     describe('when the map cannot be loaded', () => {
         it('rejects init() instead of never settling', async () => {
             mapElement();

@@ -1615,12 +1615,16 @@ export class Map extends Evented {
         return new Promise((resolve, reject) => {
             loader()
                 .load()
-                .then(() => {
+                .then(() =>
+                    // Returned, so that a failure in #showMap() - it throws when the map element
+                    // can't be found - reaches the catch below. It used to be left to float, which
+                    // meant an unhandled rejection and a promise that never settled, so anything
+                    // waiting on the map waited forever.
                     this.#showMap().then(() => {
                         callCallback(callback);
                         resolve();
-                    });
-                })
+                    }),
+                )
                 .catch((err) => {
                     reject(err);
                 });
@@ -2375,22 +2379,28 @@ export class Map extends Evented {
      * @returns {Promise<void>}
      */
     show(callback?: () => void): Promise<Map> {
-        return new Promise((resolve) => {
-            if (checkForGoogleMaps('Map', 'Map', false)) {
-                // The map library is loaded and this can be shown
-                this.#showMap().then(() => {
-                    // Call the callback function if necessary
-                    callCallback(callback);
-                    resolve(this);
-                });
-            } else {
-                // Wait for the loader to dispatch it's "load" event
-                loader().onceLoad(() => {
-                    this.#showMap().then(() => {
+        return new Promise((resolve, reject) => {
+            // #showMap() throws when the map element can't be found, which rejects its promise.
+            // That had nowhere to go before: this promise had no reject, so a bad map selector
+            // left it unsettled and the error came out as an unhandled rejection rather than
+            // reaching whoever called show().
+            const display = () => {
+                this.#showMap()
+                    .then(() => {
                         // Call the callback function if necessary
                         callCallback(callback);
                         resolve(this);
-                    });
+                    })
+                    .catch(reject);
+            };
+
+            if (checkForGoogleMaps('Map', 'Map', false)) {
+                // The map library is loaded and this can be shown
+                display();
+            } else {
+                // Wait for the loader to dispatch it's "load" event
+                loader().onceLoad(() => {
+                    display();
                 });
             }
         });
