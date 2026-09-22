@@ -119,6 +119,8 @@ map.onLocationFound((position) => {
 
 `stop()` and `remove()` only stop the watch if this control started it. If something else on the page called [locate()](/api-reference/map#locate) first, its updates keep coming.
 
+`remove()` also stops the control listening to the map, so a location found afterwards does nothing. Call [setMap()](#methods) again to start watching a map after removing it.
+
 ## Using it with something else that locates
 
 If the page already calls `locate()` — often to get the position before the map is even shown — turn `autoLocate` off. The control still reacts to every fix:

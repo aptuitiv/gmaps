@@ -344,6 +344,77 @@ describe('LocationControl', () => {
         });
     });
 
+    describe('after it has been removed', () => {
+        it('does not put itself back on the map when a location arrives later', () => {
+            const map = testMap();
+            const c = locationControl({ map });
+
+            // Removed before any location has been found, which is the window where the control
+            // has not been added yet and is still listening
+            c.remove();
+            findLocation();
+
+            expect(c.isAttached).toBe(false);
+        });
+
+        it('stops the watch it started even though it was never attached', () => {
+            const map = testMap();
+            const c = locationControl({ map });
+
+            // With the default showWhenLocated the control is not on the map until a fix arrives,
+            // so it has no map to reach for when it is asked to stop
+            c.remove();
+
+            expect(clearedWatches).toHaveLength(1);
+        });
+
+        it('stops listening to the map', () => {
+            const map = testMap();
+            const c = locationControl({ map });
+            c.remove();
+            findLocation();
+
+            expect(c.isLocated).toBe(false);
+        });
+    });
+
+    describe('when it is moved to another map', () => {
+        it('stops listening to the one it left', () => {
+            const first = testMap();
+            const element = document.createElement('div');
+            element.id = 'map2';
+            document.body.appendChild(element);
+            const second = new Map('#map2');
+
+            const c = locationControl({ map: first });
+            // A listener left behind on the first map would put the control onto it when a location
+            // turned up, because that handler still thinks it belongs there
+            const addedToFirst = vi.spyOn(first, 'addCustomControl');
+
+            c.setMap(second);
+            findLocation();
+
+            expect(addedToFirst).not.toHaveBeenCalled();
+            expect(c.map).toBe(second);
+        });
+
+        it('stops the watch it started on the map it left', () => {
+            const first = testMap();
+            const element = document.createElement('div');
+            element.id = 'map2';
+            document.body.appendChild(element);
+            const second = new Map('#map2');
+
+            const c = locationControl({ map: first });
+            expect(clearedWatches).toHaveLength(0);
+
+            c.setMap(second);
+
+            // The watch on the first map was this control's doing, so it is this control's to stop
+            expect(clearedWatches).toHaveLength(1);
+        });
+    });
+
     describe('the factory', () => {
         it('gives back a LocationControl that was passed to it', () => {
             const c = new LocationControl();

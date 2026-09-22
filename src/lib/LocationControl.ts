@@ -14,6 +14,7 @@
 =========================================================================== */
 
 import { Button, ButtonOptions } from './Button';
+import { EventCallback } from './Evented';
 import { isBoolean, isNumber, isObject } from './helpers';
 import { Map } from './Map';
 import { LocateOptions, LocationPosition } from './Map/types';
@@ -75,6 +76,18 @@ export class LocationControl extends Button {
 
     /** The last position that was found */
     #location: LocationPosition | undefined;
+
+    /**
+     * The map being watched, and the listener watching it.
+     *
+     * Held separately from Control's map, which is only set while the control is actually on the
+     * map. With the default showWhenLocated it isn't, until a location has been found - so there
+     * was no way to reach the map to stop the watch, or to take the listener off again.
+     */
+    #locationMap: Map | undefined;
+
+    /** The locationfound listener, kept so that it can be removed */
+    #locationFoundListener: EventCallback | undefined;
 
     /** Options for map.locate() */
     #locateOptions: LocateOptions | undefined;
@@ -177,11 +190,18 @@ export class LocationControl extends Button {
             return this;
         }
 
-        map.on('locationfound', (event) => {
+        // Let go of any map this control was already watching, so that moving it doesn't leave a
+        // listener running on the one it came from
+        this.#detach();
+
+        const listener: EventCallback = (event) => {
             // dispatch() merges the data it is given onto the event object, so the position's
             // fields are on the event itself rather than under a "detail" property
             this.#handleLocationFound(map, event as unknown as LocationPosition);
-        });
+        };
+        map.on('locationfound', listener);
+        this.#locationMap = map;
+        this.#locationFoundListener = listener;
 
         if (!this.#showWhenLocated) {
             this.addTo(map);
@@ -229,12 +249,33 @@ export class LocationControl extends Button {
      * @returns {LocationControl}
      */
     remove(): LocationControl {
-        this.stop();
+        this.#detach();
         if (this.#marker) {
             this.#marker.hide();
         }
         super.remove();
         return this;
+    }
+
+    /**
+     * Stop watching and let go of the map.
+     *
+     * Taking the listener off matters as much as stopping the watch: a location found after the
+     * control was removed used to run the handler anyway, and with the default showWhenLocated -
+     * where the control isn't on the map until the first fix - that put a removed control back on
+     * the map. Something else on the page locating is enough to trigger it.
+     *
+     * Call setMap() again to start watching a map after this.
+     *
+     * @private
+     */
+    #detach(): void {
+        this.stop();
+        if (this.#locationMap && this.#locationFoundListener) {
+            this.#locationMap.off('locationfound', this.#locationFoundListener);
+        }
+        this.#locationMap = undefined;
+        this.#locationFoundListener = undefined;
     }
 
     /**
@@ -247,7 +288,10 @@ export class LocationControl extends Button {
      */
     stop(): LocationControl {
         if (this.#startedLocating) {
-            this.map?.stopLocate();
+            // The stored map, not Control's. With the default showWhenLocated the control isn't on
+            // a map until a location has been found, so Control's is undefined in exactly the case
+            // where the watch most needs stopping.
+            this.#locationMap?.stopLocate();
             this.#startedLocating = false;
         }
         return this;
