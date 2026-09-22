@@ -1,6 +1,9 @@
 # Plan: Expand the plugin architecture
 
-Status: **Step 1 complete (2026-09-18). Next: step 2, `Control` and `Button`.**
+Status: **Complete (2026-09-22).** Step 1 (extension points and conventions), step 2 (`Control` and
+`Button`), step 2a (the plugin documentation) and step 3 (`LocationControl`) are all done, each with
+its own plan in this folder. The "Later" work in section 5 — the map type switcher UI and a legend —
+is recorded as decisions in `ai-plans/scratch/`.
 Created: 2026-09-18
 Target: `docs/docs-src/plugin.md`, `src/lib/Base.ts`, `src/lib/Map.ts`, `src/index.ts`, `src/browser.ts`
 
