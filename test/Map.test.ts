@@ -233,6 +233,81 @@ describe('Map', () => {
         });
     });
 
+    describe('when the map element cannot be found', () => {
+        it('reports the same problem again rather than hanging on a second try', async () => {
+            const m = new Map('#no-such-element');
+
+            await expect(m.show()).rejects.toThrow(/map element could not be found/);
+            // The "getting map options" flag used to be set before the element was checked, so it
+            // was left set by the failure. A second attempt then took the "already setting up"
+            // path and waited for a ready event that was never going to be dispatched.
+            await expect(m.show()).rejects.toThrow(/map element could not be found/);
+        });
+
+        it('rejects show() rather than hanging', async () => {
+            // #showMap() throws when the selector matched nothing, which rejects its promise. That
+            // rejection had nowhere to go: show() has no reject, so it was left unsettled and the
+            // error surfaced as an unhandled rejection instead of reaching the caller.
+            const m = new Map('#no-such-element');
+
+            await expect(m.show()).rejects.toThrow(/map element could not be found/);
+        });
+    });
+
+    describe('when the map cannot be loaded', () => {
+        it('rejects init() instead of never settling', async () => {
+            mapElement();
+            // No API key is set, so the loader rejects. init() used to have no reject at all: the
+            // failure escaped as an unhandled rejection and the promise was left unsettled, so
+            // anything awaiting the map waited for one that was never coming.
+            const m = new Map('#map1');
+
+            await expect(m.init()).rejects.toThrow(/API key/);
+        });
+
+        it('settles a second caller that started waiting during the same load', async () => {
+            mapElement();
+            const m = new Map('#map1');
+
+            const first = m.init();
+            // Started while the first is still running, so it takes the "already initializing"
+            // path and waits for the ready event - which is never dispatched when the load fails
+            const second = m.init();
+
+            await expect(first).rejects.toThrow(/API key/);
+            await expect(second).rejects.toThrow(/API key/);
+        });
+
+        it('can try again after a failed load', async () => {
+            mapElement();
+            const m = new Map('#map1');
+
+            await expect(m.init()).rejects.toThrow(/API key/);
+            // A second attempt has to start a fresh load rather than waiting on a "ready" event
+            // that will never be dispatched
+            await expect(m.init()).rejects.toThrow(/API key/);
+        });
+
+        it('logs rather than leaking an unhandled rejection from panTo()', async () => {
+            mapElement();
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const m = new Map('#map1');
+
+            // panTo() returns nothing, so there is no promise for the caller to catch
+            expect(() => m.panTo([40.73061, -73.935242])).not.toThrow();
+            await vi.waitFor(() => expect(consoleError).toHaveBeenCalled());
+            expect(consoleError.mock.calls[0][0]).toContain('panTo()');
+        });
+
+        it('rejects fitBounds() instead of leaving it unsettled', async () => {
+            mapElement();
+            const m = new Map('#map1');
+
+            // This one hands back a promise, so the failure belongs to the caller
+            await expect(m.fitBounds([[40.7, -74.0], [40.8, -73.9]])).rejects.toThrow(/API key/);
+        });
+    });
+
     // Every Map allocates all six control objects in its constructor, whether or not the
     // caller ever touches them. That is the allocation side of P-4.
     describe('the controls', () => {

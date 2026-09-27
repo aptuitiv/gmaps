@@ -21,19 +21,13 @@ Some of the goals of this library include:
 
 ## Install
 
-Download from NPM.
-
 ```bash
 npm install @aptuitiv/gmaps
 ```
 
-You will find a copy of the files in `node_modules/@aptuitiv/gmaps/dist`.
-
-The files that you'd use are:
-
-- `node_modules/@aptuitiv/gmaps/dist/index.esm.js` - This is the ESM version of the library and it is used when you use `include` in your node Javascript code to include this package.
-- `node_modules/@aptuitiv/gmaps/dist/index.cjs.js` - This is the CommonJS version of the library and it is used when you use `require` in your node Javascript code to include this package.
-- `node_modules/@aptuitiv/gmaps/dist/browser.js` - This is the minified version that you should use if you are including this library for use in the browser as a stand-alone script file.
+How you use it from there depends on how your site's Javascript is built.
+**[See the installation pages](/installation)** for a bundler, a standalone browser script, or
+CommonJS — and for the entry points that let you leave out the parts of the library you don't use.
 
 ## Available objects
 

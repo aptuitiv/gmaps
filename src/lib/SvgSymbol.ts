@@ -467,8 +467,10 @@ export class SvgSymbol extends Base {
      * @returns {Promise<google.maps.Symbol>}
      */
     toGoogle(): Promise<google.maps.Symbol> {
-        return new Promise((resolve) => {
-            loader().onLoad(() => {
+        return new Promise((resolve, reject) => {
+            loader()
+                .whenLoaded()
+                .then(() => {
                 const { anchor, labelOrigin, ...rest } = this.#options;
                 const options: google.maps.Symbol = { ...rest };
                 if (typeof anchor !== 'undefined') {
@@ -481,7 +483,8 @@ export class SvgSymbol extends Base {
                     options.path = convertSymbolPath(options.path as string);
                 }
                 resolve(options);
-            });
+            })
+                .catch(reject);
         });
     }
 }

@@ -2,10 +2,7 @@
     Javascript for the Marker Cluster page
 =========================================================================== */
 
-
 /* global G */
-
-
 
 const map = G.map('#map1', { apiKey: apiKey, center: { latitude: 48.864716, longitude: 2.3522 } });
 map.load();
@@ -46,8 +43,7 @@ clusterOptions = {
     //     console.log('Cluster clicked', event);
     //     console.log('Cluster clicked', cluster);
     // }
-}
-
+};
 
 // Image renderer options
 clusterOptions = {
@@ -58,8 +54,8 @@ clusterOptions = {
             25: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m3.png',
             50: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m4.png',
             100: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m5.png',
-        }
-    }
+        },
+    },
 };
 
 // Create the cluster object
@@ -77,15 +73,49 @@ for (let i = 0; i < 300; i += 1) {
     });
 }
 
-
 const markers = [];
-markerPositions.forEach((position) => {
+markerPositions.forEach((position, index) => {
+    const markerNumber = index + 1;
     const marker = G.marker({
         latitude: position.latitude,
         longitude: position.longitude,
-        map: map,
+        title: 'Marker ' + markerNumber,
+        // A custom tooltip, shown on hover. It's styled here rather than with a class so that
+        // this page doesn't need any CSS of its own.
+        tooltip: {
+            className: 'my-tooltip',
+            content: 'Marker ' + markerNumber,
+            offset: [0, 15],
+            styles: {
+                backgroundColor: '#14213d',
+                borderRadius: '3px',
+                color: '#ffffff',
+                fontSize: '12px',
+                padding: '3px 8px',
+            },
+            theme: 'none',
+        },
     });
-    marker.show(map);
+
+    // A popup, shown on click. The content is built the first time it's opened rather than for
+    // all 300 markers up front.
+    marker.attachPopup(() => ({
+        closeElement: 'button.close',
+        content: `
+            <h2 style="margin: 0 0 6px; font-size: 14px;">Marker ${markerNumber}</h2>
+            <p style="margin: 0 0 4px;">Latitude: ${position.latitude.toFixed(4)}</p>
+            <p style="margin: 0 0 8px;">Longitude: ${position.longitude.toFixed(4)}</p>
+            <button type="button" class="close">Close</button>
+        `,
+        styles: { maxWidth: '220px', padding: '10px 14px' },
+        theme: 'default',
+    }), 'click');
+
+    // Neither the tooltip nor the popup is given a map, and neither is the marker. The cluster
+    // records which map the marker is on when it draws it, and that recorded map is what they
+    // both use to work out where to show themselves. Setting the map here as well would be
+    // redundant - the cluster overrides it when it draws - and would leave the markers on the
+    // map unclustered until that first draw.
     markers.push(marker);
     // cluster.addMarker(marker);
 });

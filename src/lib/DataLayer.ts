@@ -300,7 +300,13 @@ export class DataLayer extends Layer {
     set visible(value: boolean) {
         if (isBoolean(value)) {
             if (value) {
-                this.show();
+                // A property setter can't hand a promise back, so a failure is logged rather than
+                // dropped. show() rejects when the map can't be loaded, and a dropped rejection
+                // surfaces as an unhandled error pointing at the library.
+                this.show().catch((error) => {
+                    // eslint-disable-next-line no-console
+                    console.error('The map could not be loaded, so the data layer was not shown.', error);
+                });
             } else {
                 this.hide();
             }
@@ -760,7 +766,11 @@ export class DataLayer extends Layer {
             this.#options.map = value;
             // Start the map loading. The layer is waiting for the Google maps library to load
             // and this makes sure that something is actually loading it.
-            value.init();
+            value.init().catch((error) => {
+                // See the note in Marker: a dropped rejection becomes an unhandled error
+                // eslint-disable-next-line no-console
+                console.error('The map could not be loaded, so the data layer was not set up.', error);
+            });
             await this.#enqueue(async (data) => {
                 // Wait for the map to be ready. The Google maps library loads before the map
                 // object is created, so toGoogle() is not set yet when the library finishes
@@ -1126,16 +1136,19 @@ export class DataLayer extends Layer {
                 const defaultLayerMap = this.#defaultLayerMap;
                 if (defaultLayerMap instanceof Map) {
                     // This is the map's own data layer so wait for the map to be ready
-                    defaultLayerMap.init().then(() => {
-                        const googleMap = defaultLayerMap.toGoogle();
-                        if (!googleMap) {
-                            reject(new Error('The map must be set up before its data layer can be used.'));
-                            return;
-                        }
-                        const { data } = googleMap;
-                        this.#setDataObject(data);
-                        resolve(data);
-                    });
+                    defaultLayerMap
+                        .init()
+                        .then(() => {
+                            const googleMap = defaultLayerMap.toGoogle();
+                            if (!googleMap) {
+                                reject(new Error('The map must be set up before its data layer can be used.'));
+                                return;
+                            }
+                            const { data } = googleMap;
+                            this.#setDataObject(data);
+                            resolve(data);
+                        })
+                        .catch(reject);
                 } else if (checkForGoogleMaps('DataLayer', 'Data', false)) {
                     const data = new google.maps.Data();
                     this.#setDataObject(data);
@@ -1144,11 +1157,14 @@ export class DataLayer extends Layer {
                     // The Google maps library hasn't loaded yet. Wait for it.
                     // Only the library is needed to create the Data object. Attaching it to a
                     // map is left to setMap() and show(), which wait for the map to be ready.
-                    loader().onLoad(() => {
+                    loader()
+                        .whenLoaded()
+                        .then(() => {
                         const data = new google.maps.Data();
                         this.#setDataObject(data);
                         resolve(data);
-                    });
+                    })
+                        .catch(reject);
                 }
             });
         }

@@ -6,6 +6,7 @@
 =========================================================================== */
 
 import { LayerEvents } from './constants';
+import { missingFeatureMessage } from './missingFeature';
 import { EventCallback, Evented } from './Evented';
 import { Map } from './Map';
 import { Popup } from './Popup';
@@ -24,6 +25,44 @@ class Layer extends Evented {
      * is applied to the layer via the Tooltip mixin.
      */
     [x: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    /**
+     * Placeholders for the methods that the optional feature modules add to this class.
+     *
+     * Importing the popup, tooltip or InfoWindow module runs an include() that replaces these with
+     * the real methods. They only ever run when the matching module hasn't been imported, which is
+     * possible when importing from '@aptuitiv/gmaps/core' rather than '@aptuitiv/gmaps'. Without
+     * them the call fails with "attachPopup is not a function", which doesn't say what to do about
+     * it.
+     *
+     * @param {...any} args Ignored. The signature is permissive so that it doesn't narrow the real
+     *      method's signature for anyone calling it.
+     * @returns {any}
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, class-methods-use-this
+    attachPopup(...args: any[]): any {
+        throw new Error(missingFeatureMessage('attachPopup', 'popup'));
+    }
+
+    /**
+     * @inheritdoc
+     * @param {...any} args Ignored. See attachPopup().
+     * @returns {any}
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, class-methods-use-this
+    attachTooltip(...args: any[]): any {
+        throw new Error(missingFeatureMessage('attachTooltip', 'tooltip'));
+    }
+
+    /**
+     * @inheritdoc
+     * @param {...any} args Ignored. See attachPopup().
+     * @returns {any}
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, class-methods-use-this
+    attachInfoWindow(...args: any[]): any {
+        throw new Error(missingFeatureMessage('attachInfoWindow', 'infowindow'));
+    }
 
     /**
      * Holds if the layer is visible or not

@@ -235,6 +235,7 @@ G.LoaderEvents.MAP_LOAD
 |----------|-------------|
 | LOAD | The event fired when the API library is loaded. |
 | MAP_LOAD | The event fired when the API library is loaded and the map is loaded and visible. |
+| LOAD_ERROR | The event fired when the API library could not be loaded, or a map could not be displayed. |
 
 ## MapEvents
 

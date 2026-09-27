@@ -388,8 +388,10 @@ export class MapTypeControl {
      * @returns {Promise<google.maps.MapTypeControlOptions>}
      */
     toGoogle(): Promise<google.maps.MapTypeControlOptions> {
-        return new Promise((resolve) => {
-            loader().onLoad(() => {
+        return new Promise((resolve, reject) => {
+            loader()
+                .whenLoaded()
+                .then(() => {
                 resolve({
                     mapTypeIds: this.#mapTypeIds,
                     position: convertControlPosition(this.#position),
@@ -398,7 +400,8 @@ export class MapTypeControl {
                     // style: 2,
                     style: convertMapTypeControlStyle(this.#style),
                 });
-            });
+            })
+                .catch(reject);
         });
     }
 }

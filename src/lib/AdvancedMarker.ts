@@ -319,10 +319,11 @@ export class AdvancedMarker extends Layer {
      * @returns {Promise<void>}
      */
     init(): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGoogleMarker().then(() => {
                 resolve();
-            });
+            })
+                .catch(reject);
         });
     }
 
@@ -810,10 +811,11 @@ export class AdvancedMarker extends Layer {
      * @returns {Promise<google.maps.marker.AdvancedMarkerElement>}
      */
     toGoogle(): Promise<google.maps.marker.AdvancedMarkerElement> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             this.#setupGoogleMarker().then(() => {
                 resolve(this.#marker);
-            });
+            })
+                .catch(reject);
         });
     }
 
@@ -840,7 +842,7 @@ export class AdvancedMarker extends Layer {
      * @returns {Promise<void>}
      */
     #setupGoogleMarker(): Promise<void> {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!isObject(this.#marker)) {
                 // The lowercase "marker" refers to the AdvancedMarker library
                 if (checkForGoogleMaps('Marker', 'marker', false)) {
@@ -852,17 +854,29 @@ export class AdvancedMarker extends Layer {
                     this.#isInitialized = true;
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().onMapLoad(() => {
-                        this.#createMarkerObject();
-                        // Make sure that the map is still set.
-                        // It's unlikely, but possible, that the developer could have removed the map
-                        // from the marker before the Google maps object was available.
-                        const map = this.getMap();
-                        if (this.#marker && map) {
-                            this.#marker.map = map.toGoogle();
-                        }
-                        resolve();
-                    });
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched
+                    // on success - waiting on it alone left this promise unsettled when the load
+                    // failed.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            this.#createMarkerObject();
+                            // Make sure that the map is still set.
+                            // It's unlikely, but possible, that the developer could have removed the map
+                            // from the marker before the Google maps object was available.
+                            const map = this.getMap();
+                            if (this.#marker && map) {
+                                this.#marker.map = map.toGoogle();
+                            }
+                            resolve();
+                        })
+                        .catch((error) => {
+                            // Cleared so that a later attempt goes down this path again. Left set,
+                            // it sent the next one to the branch below to wait for an "initialized"
+                            // event that was never going to be dispatched.
+                            this.#isInitialized = false;
+                            reject(error);
+                        });
                 } else {
                     this.onceImmediate('initialized', () => {
                         resolve();
@@ -884,7 +898,7 @@ export class AdvancedMarker extends Layer {
                 this.#createMarkerObject();
             } else {
                 throw new Error(
-                    'The Google maps libray is not available so the marker object cannot be created. Load the Google maps library first.'
+                    'The Google maps library is not available so the marker object cannot be created. Load the Google maps library first.',
                 );
             }
         }

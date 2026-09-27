@@ -241,9 +241,15 @@ export class PlacesSearchBox extends Evented {
                 } else {
                     // The Google maps object isn't available yet. Wait for it to load.
                     // The developer may have set the map on the marker before the Google maps object was available.
-                    loader().onMapLoad(() => {
-                        this.#createPlacesSearchBox().then(resolve).catch(reject);
-                    });
+                    // whenMapLoaded() rather than the "map_load" event, which is only dispatched
+                    // on success - waiting on it alone left this promise unsettled when the load
+                    // failed.
+                    loader()
+                        .whenMapLoaded()
+                        .then(() => {
+                            this.#createPlacesSearchBox().then(resolve).catch(reject);
+                        })
+                        .catch(reject);
                 }
             });
             // A failure is not remembered. Initializing throws when there's no input element, and

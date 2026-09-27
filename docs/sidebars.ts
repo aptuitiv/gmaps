@@ -19,6 +19,31 @@ const sidebars: SidebarsConfig = {
         'intro',
         {
             type: 'category',
+            label: 'Installation',
+            link: {
+                type: 'doc',
+                id: 'installation/index',
+            },
+            items: [
+                {
+                    type: 'doc',
+                    id: 'installation/bundler',
+                    label: 'Bundler (ESM)',
+                },
+                {
+                    type: 'doc',
+                    id: 'installation/browser',
+                    label: 'Standalone browser script',
+                },
+                {
+                    type: 'doc',
+                    id: 'installation/commonjs',
+                    label: 'CommonJS',
+                },
+            ],
+        },
+        {
+            type: 'category',
             label: 'Guides',
             link: {
                 type: 'generated-index',
@@ -93,11 +118,6 @@ const sidebars: SidebarsConfig = {
                     ],
                 },
                 {
-                    type: 'doc',
-                    id: 'plugin',
-                    label: 'Plugins',
-                },
-                {
                     type: 'category',
                     label: 'Polylines',
                     link: {
@@ -148,6 +168,21 @@ const sidebars: SidebarsConfig = {
                             label: 'Styling a tooltip',
                         },
                     ],
+                },
+            ],
+        },
+        {
+            type: 'category',
+            label: 'Plugins',
+            link: {
+                type: 'doc',
+                id: 'plugins',
+            },
+            items: [
+                {
+                    type: 'doc',
+                    id: 'plugin',
+                    label: 'Writing a plugin',
                 },
             ],
         },
@@ -212,7 +247,10 @@ const sidebars: SidebarsConfig = {
                         type: 'generated-index',
                     },
                     items: [
+                        'api-reference/map-controls/button',
+                        'api-reference/map-controls/control',
                         'api-reference/map-controls/fullscreen-control',
+                        'api-reference/map-controls/location-control',
                         'api-reference/map-controls/map-type-control',
                         'api-reference/map-controls/rotate-control',
                         'api-reference/map-controls/scale-control',

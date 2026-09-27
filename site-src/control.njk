@@ -1,0 +1,98 @@
+---
+title: "Control and Button Test Page"
+layout: "base.njk"
+---
+
+<h1>Control and Button</h1>
+
+<p>
+    Controls attached to the map. The styling here is all on this page &mdash; the library ships no
+    CSS for controls and picks no class names.
+</p>
+
+<ul>
+    <li><strong>Reset</strong> is an action button. It has no state and just does something.</li>
+    <li>
+        <strong>Show/hide the marker</strong> is a toggle. It reports its state through
+        <code>data-visible</code>, which the CSS on this page styles, and swaps its tooltip.
+    </li>
+    <li>
+        <strong>Layer</strong> starts disabled and enables itself after two seconds, standing in for
+        data that has to load first. While it's disabled it's styled to look absent &mdash; click it
+        anyway and nothing happens, which is the point.
+    </li>
+    <li><strong>The legend</strong> is a plain <code>Control</code> wrapping markup already on the page.</li>
+    <li>
+        <strong>Move the legend</strong> and <strong>Remove the legend</strong> show the parts
+        <code>addCustomControl()</code> can't do on its own.
+    </li>
+</ul>
+
+<div style="margin: 10px 0">
+    <button id="moveLegend" type="button">Move the legend</button>
+    <button id="removeLegend" type="button">Remove the legend</button>
+    <button id="addLegend" type="button">Add the legend back</button>
+</div>
+
+<p id="status" aria-live="polite" style="margin: 10px 0">&nbsp;</p>
+
+<div id="map" class="mapContainer"></div>
+
+{# The legend starts here on the page and is moved onto the map by the Control, the way a
+   server-rendered legend would be. #}
+<div id="legend" class="TestLegend" hidden>
+    <p class="TestLegend-title">Legend</p>
+    <p class="TestLegend-item">A marker you can hide</p>
+</div>
+
+<style>
+    /* Everything below is this page's own styling. None of it comes from the library. */
+    .TestBtn {
+        background-color: #fff;
+        border: none;
+        border-radius: 2px;
+        box-shadow: 0 1px 4px -1px rgb(0 0 0 / 30%);
+        color: #333;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 14px;
+        margin: 10px;
+        padding: 8px 12px;
+    }
+
+    .TestBtn[aria-disabled='true'] {
+        background: none;
+        box-shadow: none;
+        color: transparent;
+        cursor: default;
+    }
+
+    .TestBtn[data-visible='yes'] {
+        background-color: #5284ed;
+        color: #fff;
+    }
+
+    .TestLegend {
+        background-color: #fff;
+        border-radius: 2px;
+        box-shadow: 0 1px 4px -1px rgb(0 0 0 / 30%);
+        font-size: 13px;
+        margin: 10px;
+        padding: 8px 12px;
+    }
+
+    .TestLegend[hidden] {
+        display: none;
+    }
+
+    .TestLegend-title {
+        font-weight: 700;
+        margin: 0 0 4px;
+    }
+
+    .TestLegend-item {
+        margin: 0;
+    }
+</style>
+
+<script src="{{ '/js/control.js'|url|safe}}"></script>

@@ -22,7 +22,9 @@
         "rootDir": "src",
         "outDir": "dist",
         "skipLibCheck": true,
-        // Using a value that might be undefined without checking it first is an error.
-        "strictNullChecks": true
+        // All of the strict family. It was strictNullChecks only, which left gaps that only
+        // showed up for consumers: a published type that didn't declare its "this" compiles here
+        // and fails for anyone with strict on.
+        "strict": true
     }
 }

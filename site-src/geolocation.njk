@@ -4,7 +4,32 @@ layout: "base.njk"
 ---
 
 <h1>Geolocation</h1>
-<p>The map starts hidden. Your location is requested when the page loads and a marker is placed at it. The marker keeps moving if your location changes.</p>
+<p>
+    The map starts hidden. Your location is requested when the page loads, and the
+    <strong>location control</strong> puts a marker at it once there is something to show. The marker
+    keeps moving if your location changes; the map is only moved the first time, so it doesn't yank
+    itself back while you're panning.
+</p>
+<p>
+    The button in the bottom left appears only after a location is found &mdash; deny permission and
+    no dead button is left on the map. Clicking it pans back to you. The styling is this page's own;
+    the library ships no CSS for controls.
+</p>
+
+<style>
+    .TestBtn {
+        background-color: #fff;
+        border: none;
+        border-radius: 2px;
+        box-shadow: 0 1px 4px -1px rgb(0 0 0 / 30%);
+        color: #333;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 14px;
+        margin: 10px;
+        padding: 8px 12px;
+    }
+</style>
 <div style="margin: 10px 0">
     <button id="toggleMap" type="button" aria-controls="locateMap" aria-expanded="false">Show map</button>
 </div>
