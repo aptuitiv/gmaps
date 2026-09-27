@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## [0.30.0] - 2026-09-27
+
 ### Added
 
 - Added `loader().whenLoaded()` and `loader().whenMapLoaded()`. The first resolves once the Google Maps library is available, the second once a map has been displayed, and **both reject** if the library can't be loaded or the map can't be displayed. These are what everything in the library waits on now. Added the `load_error` loader event that they use.
