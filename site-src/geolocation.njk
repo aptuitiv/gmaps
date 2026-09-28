@@ -15,6 +15,13 @@ layout: "base.njk"
     no dead button is left on the map. Clicking it pans back to you. The styling is this page's own;
     the library ships no CSS for controls.
 </p>
+<p>
+    The readouts below come from two different events. <code>locationfound</code> on the
+    <strong>map</strong> is the raw Geolocation fix and carries the position data &mdash; use it for
+    anything that isn't about the control. <code>located</code> on the <strong>control</strong> only
+    says the control now has something to show. Move around, or use your browser's device emulation,
+    and the <code>locationfound</code> counter goes up each time a new position arrives.
+</p>
 
 <style>
     .TestBtn {
@@ -34,6 +41,10 @@ layout: "base.njk"
     <button id="toggleMap" type="button" aria-controls="locateMap" aria-expanded="false">Show map</button>
 </div>
 <p id="locateStatus" aria-live="polite" style="margin: 10px 0">Requesting your location...</p>
+<p id="locateRaw" style="margin: 10px 0; font-family: monospace; font-size: 13px">
+    Waiting for the first <code>locationfound</code> event...
+</p>
+<p id="locateControlStatus" style="margin: 10px 0">The control has nothing to show yet.</p>
 <div id="locateMap" class="mapContainer" hidden></div>
 
 <script src="{{ '/js/geolocation.js'|url|safe}}"></script>
