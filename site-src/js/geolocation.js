@@ -5,7 +5,13 @@
     shows it once there is something to show.
 
     The control does the marker, the button and the panning. What's left here is the page's own
-    business: the status line, and the toggle that shows and hides the map.
+    business: the readouts, and the toggle that shows and hides the map.
+
+    Two events are used, and the page shows both so that the difference is visible:
+      - map 'locationfound' is the raw Geolocation fix. It carries the position data and fires
+        every time the browser reports a new one, whether or not a control is on the map.
+      - control 'located' says the control has something to show. It carries no position data;
+        the position is read back off the control.
 =========================================================================== */
 
 /* global G */
@@ -15,6 +21,9 @@ G.loader({ apiKey: apiKey }).load();
 const mapElement = document.getElementById('locateMap');
 const toggleButton = document.getElementById('toggleMap');
 const statusElement = document.getElementById('locateStatus');
+const rawElement = document.getElementById('locateRaw');
+const controlElement = document.getElementById('locateControlStatus');
+const firstElement = document.getElementById('locateFirst');
 
 // Start centered on the US until the user's location is found.
 // show() waits until the hidden map element is visible before it renders the map.
@@ -38,13 +47,31 @@ const control = G.locationControl({
 
 // Everything below is the page's own, not the control's.
 
-control.on('located', () => {
-    const { accuracy, latitude, longitude } = control.location;
-    let status = `Your location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-    if (typeof accuracy === 'number') {
-        status += ` (accurate to about ${Math.round(accuracy)} meters)`;
+// The raw Geolocation fix. This is the event to use for anything that isn't about the control -
+// filling in a "search near me" field, logging, showing the accuracy. The position data is merged
+// onto the event object, so position.latitude, position.longitude and position.latLng are all
+// there. It fires again every time the browser reports a new position, because locate() watches
+// by default.
+let foundCount = 0;
+map.onLocationFound((position) => {
+    foundCount += 1;
+
+    let status = `Your location: ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`;
+    if (typeof position.accuracy === 'number') {
+        status += ` (accurate to about ${Math.round(position.accuracy)} meters)`;
     }
     statusElement.textContent = status;
+
+    // Everything the event carried. The optional values are only set when the device reports
+    // them, so a desktop browser usually shows just accuracy.
+    const fields = ['accuracy', 'altitude', 'altitudeAccuracy', 'heading', 'speed'];
+    const reported = fields
+        .filter((field) => typeof position[field] === 'number')
+        .map((field) => `${field}: ${position[field]}`);
+    // latLng is a LatLng object, not a plain pair, so it's ready to hand to any other method
+    reported.unshift(`latLng: ${position.latLng.lat}, ${position.latLng.lng}`);
+    reported.push(`timestamp: ${new Date(position.timestamp).toLocaleTimeString()}`);
+    rawElement.textContent = `locationfound fired ${foundCount} time(s) - ${reported.join(', ')}`;
 });
 
 map.onLocationError((error) => {
@@ -55,6 +82,24 @@ map.onLocationError((error) => {
     } else {
         statusElement.textContent = `Unable to get your location: ${error.message}`;
     }
+    rawElement.textContent = `locationerror fired - code ${error.code}`;
+});
+
+// Just the first fix, and then stop listening. once() is the one to use here.
+//
+// onlyOnce() would NOT work on this page: as well as firing once, it asks to be the only
+// listener for the type, and the location control above is already listening for
+// 'locationfound' on this map. It would be refused and the callback would never run.
+map.once('locationfound', (position) => {
+    firstElement.textContent = `First location found was ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`;
+    console.log('first location found', position);
+});
+
+// The control's own event. It says "there is now something on the map", which is a different
+// question from "the browser reported a position".
+control.on('located', () => {
+    const { latitude, longitude } = control.location;
+    controlElement.textContent = `Control is showing ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
 });
 
 toggleButton.addEventListener('click', () => {

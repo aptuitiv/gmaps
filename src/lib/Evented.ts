@@ -606,12 +606,29 @@ export class Evented extends Base {
                     listenerOptions.once = true;
                 }
                 if (typeof config.only === 'boolean' && config.only === true) {
-                    (this.#onlyEventListeners ??= []).push(type);
                     if (this.hasListener(type)) {
-                        // This is an event that should only be called once and only one listener should be added.
-                        // If the event has already been dispatched then call the callback immediately.
-                        addListener = false;
+                        // Something is already listening for this type, so only() can't have the
+                        // sole listener it promises. The listener is refused.
+                        //
+                        // Returning here rather than setting addListener to false: the rest of
+                        // this block is for a listener that's being added, and the callImmediate
+                        // branch at the end of it would otherwise call the callback once, with a
+                        // bare { type } and no event data, for a listener that was refused. The
+                        // other refusal - the type already marked below - never reaches that
+                        // branch, because the guard on this whole block is addListener.
+                        //
+                        // The type is deliberately NOT marked here. Marking it used to happen
+                        // first, unconditionally, which locked the type down on behalf of a
+                        // listener that was never added: every later on() for that type was
+                        // dropped too, and nothing cleared the mark because the only() listener
+                        // it was protecting didn't exist. A map with a LocationControl on it -
+                        // which listens for "locationfound" itself - was left unable to take any
+                        // "locationfound" listener at all after one refused onlyOnce() call.
+                        return;
                     }
+                    // The mark is what stops a later on() adding a second listener for this
+                    // type. #afterListenersRemoved() clears it once this listener has gone.
+                    (this.#onlyEventListeners ??= []).push(type);
                 }
 
                 // Set up the context to bind the callback function to
