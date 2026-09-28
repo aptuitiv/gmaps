@@ -606,11 +606,22 @@ export class Evented extends Base {
                     listenerOptions.once = true;
                 }
                 if (typeof config.only === 'boolean' && config.only === true) {
-                    (this.#onlyEventListeners ??= []).push(type);
                     if (this.hasListener(type)) {
-                        // This is an event that should only be called once and only one listener should be added.
-                        // If the event has already been dispatched then call the callback immediately.
+                        // Something is already listening for this type, so only() can't have the
+                        // sole listener it promises. The listener is refused.
+                        //
+                        // The type is deliberately NOT marked here. Marking it used to happen
+                        // first, unconditionally, which locked the type down on behalf of a
+                        // listener that was never added: every later on() for that type was
+                        // dropped too, and nothing cleared the mark because the only() listener
+                        // it was protecting didn't exist. A map with a LocationControl on it -
+                        // which listens for "locationfound" itself - was left unable to take any
+                        // "locationfound" listener at all after one refused onlyOnce() call.
                         addListener = false;
+                    } else {
+                        // The mark is what stops a later on() adding a second listener for this
+                        // type. #afterListenersRemoved() clears it once this listener has gone.
+                        (this.#onlyEventListeners ??= []).push(type);
                     }
                 }
 
