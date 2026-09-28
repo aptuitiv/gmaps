@@ -281,6 +281,87 @@ describe('Map.locate()', () => {
         });
     });
 
+    describe('once() and onlyOnce()', () => {
+        it('once() fires for the first fix only', () => {
+            const map = testMap();
+            const found = vi.fn();
+            map.once('locationfound', found);
+            map.locate();
+            findLocation({ latitude: 1, longitude: 2 });
+            findLocation({ latitude: 3, longitude: 4 });
+
+            expect(found).toHaveBeenCalledTimes(1);
+            expect(found.mock.calls[0][0].latitude).toBe(1);
+        });
+
+        it('once() still gets the position data', () => {
+            const map = testMap();
+            const found = vi.fn();
+            map.once('locationfound', found);
+            map.locate();
+            findLocation();
+
+            expect(found.mock.calls[0][0].latLng).toBeInstanceOf(LatLng);
+        });
+
+        it('once() works alongside a listener that stays', () => {
+            const map = testMap();
+            const every = vi.fn();
+            const first = vi.fn();
+            map.onLocationFound(every);
+            map.once('locationfound', first);
+            map.locate();
+            findLocation();
+            findLocation();
+
+            expect(every).toHaveBeenCalledTimes(2);
+            expect(first).toHaveBeenCalledTimes(1);
+        });
+
+        /*
+            onlyOnce() asks for two things: fire once, AND be the sole listener for the type.
+            Anything else already listening for "locationfound" - a LocationControl is the usual
+            one, since it listens on the map it is given - means the second promise can't be kept
+            and the listener is refused. once() is what a page wants in that situation.
+        */
+        it('onlyOnce() is refused when something else already listens for locationfound', () => {
+            const map = testMap();
+            const sole = vi.fn();
+            map.onLocationFound(vi.fn());
+            map.onlyOnce('locationfound', sole);
+            map.locate();
+            findLocation();
+
+            expect(sole).not.toHaveBeenCalled();
+        });
+
+        it('a refused onlyOnce() does not stop later locationfound listeners being added', () => {
+            const map = testMap();
+            const refused = vi.fn();
+            const later = vi.fn();
+            map.onLocationFound(vi.fn());
+            map.onlyOnce('locationfound', refused);
+            map.onLocationFound(later);
+            map.locate();
+            findLocation();
+
+            expect(refused).not.toHaveBeenCalled();
+            expect(later).toHaveBeenCalledTimes(1);
+        });
+
+        it('onlyOnce() works when nothing else is listening for locationfound', () => {
+            const map = testMap();
+            const sole = vi.fn();
+            map.onlyOnce('locationfound', sole);
+            map.locate();
+            findLocation();
+            findLocation();
+
+            expect(sole).toHaveBeenCalledTimes(1);
+            expect(sole.mock.calls[0][0].latitude).toBe(40.73061);
+        });
+    });
+
     describe('the callback form', () => {
         it('calls a callback passed as the only argument', () => {
             const map = testMap();
