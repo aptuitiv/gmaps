@@ -23,6 +23,7 @@ const toggleButton = document.getElementById('toggleMap');
 const statusElement = document.getElementById('locateStatus');
 const rawElement = document.getElementById('locateRaw');
 const controlElement = document.getElementById('locateControlStatus');
+const firstElement = document.getElementById('locateFirst');
 
 // Start centered on the US until the user's location is found.
 // show() waits until the hidden map element is visible before it renders the map.
@@ -82,6 +83,16 @@ map.onLocationError((error) => {
         statusElement.textContent = `Unable to get your location: ${error.message}`;
     }
     rawElement.textContent = `locationerror fired - code ${error.code}`;
+});
+
+// Just the first fix, and then stop listening. once() is the one to use here.
+//
+// onlyOnce() would NOT work on this page: as well as firing once, it asks to be the only
+// listener for the type, and the location control above is already listening for
+// 'locationfound' on this map. It would be refused and the callback would never run.
+map.once('locationfound', (position) => {
+    firstElement.textContent = `First location found was ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`;
+    console.log('first location found', position);
 });
 
 // The control's own event. It says "there is now something on the map", which is a different
