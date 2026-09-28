@@ -392,6 +392,119 @@ describe('Evented', () => {
             expect(second).toHaveBeenCalledTimes(1);
         });
 
+        /*
+            The other way round: only() asked for a type something was already listening for.
+            It can't have the sole listener it promises, so it's refused - but it used to mark
+            the type on the way to refusing, and the mark it left had no listener behind it for
+            #afterListenersRemoved() to clear. The type was locked for the life of the object,
+            so every ordinary on() for it afterwards was silently dropped as well.
+        */
+        it('refuses an only() listener when the type already has one', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const second = vi.fn();
+            e.on('click', first);
+            e.only('click', second);
+            e.dispatch('click');
+
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(second).not.toHaveBeenCalled();
+        });
+
+        /*
+            only() and onlyOnce() both set callImmediate, which calls the callback straight away
+            when the type has already been dispatched. A refused listener must not get that: it
+            was never registered, so calling it once - with a bare { type } and none of the event
+            data - hands the caller half a subscription. The other refusal, where the type is
+            already marked, never reached that branch because the whole config block is guarded
+            by addListener; this one returns so that both refusals behave the same way.
+        */
+        it('does not call a refused only() callback for an event that already fired', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const refused = vi.fn();
+            e.on('click', first);
+            e.dispatch('click');
+
+            e.only('click', refused);
+            e.dispatch('click');
+
+            expect(refused).not.toHaveBeenCalled();
+            expect(first).toHaveBeenCalledTimes(2);
+        });
+
+        it('does not call a refused onlyOnce() callback for an event that already fired', () => {
+            const e = makeEvented();
+            const refused = vi.fn();
+            e.on('click', vi.fn());
+            e.dispatch('click');
+
+            e.onlyOnce('click', refused);
+
+            expect(refused).not.toHaveBeenCalled();
+        });
+
+        it('still calls an accepted only() callback for an event that already fired', () => {
+            const e = makeEvented();
+            const accepted = vi.fn();
+            // Nothing is listening, so only() gets the type and callImmediate still applies
+            e.dispatch('click');
+            e.only('click', accepted);
+
+            expect(accepted).toHaveBeenCalledTimes(1);
+            expect(accepted.mock.calls[0][0].type).toBe('click');
+        });
+
+        it('leaves the type usable after an only() listener was refused', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const refused = vi.fn();
+            const later = vi.fn();
+            e.on('click', first);
+            e.only('click', refused);
+
+            // Nothing was registered by the only() call, so nothing is being protected and an
+            // ordinary listener added afterwards has to work
+            e.on('click', later);
+            e.dispatch('click');
+
+            expect(refused).not.toHaveBeenCalled();
+            expect(first).toHaveBeenCalledTimes(1);
+            expect(later).toHaveBeenCalledTimes(1);
+        });
+
+        it('leaves the type usable after an onlyOnce() listener was refused', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const refused = vi.fn();
+            const later = vi.fn();
+            e.on('click', first);
+            e.onlyOnce('click', refused);
+            e.on('click', later);
+            e.dispatch('click');
+
+            expect(refused).not.toHaveBeenCalled();
+            expect(later).toHaveBeenCalledTimes(1);
+        });
+
+        it('accepts an only() listener once the type has been cleared', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const sole = vi.fn();
+            const blocked = vi.fn();
+            e.on('click', first);
+            e.only('click', sole); // refused - first is listening
+            e.off('click', first);
+
+            // The type is free now, so only() gets what it asks for and still locks it down
+            e.only('click', sole);
+            e.on('click', blocked);
+            e.dispatch('click');
+
+            expect(sole).toHaveBeenCalledTimes(1);
+            expect(blocked).not.toHaveBeenCalled();
+        });
+
         // The onlyOnce listener is removed by removeCalledOnceListeners() after it fires, which
         // leaves the type with none - so the marker has to go as well.
         it('frees the type after an onlyOnce listener has fired', () => {

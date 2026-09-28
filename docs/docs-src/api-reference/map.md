@@ -1239,6 +1239,14 @@ map.onLocationFound((position) => {
 });
 ```
 
+If you only want to listen to the first `locationfound` event then use the [once()](/api-reference/base-classes/evented#once) event instead.
+
+```js
+map.once('locationfound', (position) => {
+    // Do something
+});
+```
+
 ### onBoundsChanged
 
 `onBoundsChanged(callback: EventCallback): void`
