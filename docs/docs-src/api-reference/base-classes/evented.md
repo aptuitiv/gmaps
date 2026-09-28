@@ -351,6 +351,15 @@ map.only('click', () => {
 });
 ```
 
+`only()` claims the event type. Once it has, any later `on()`, `once()` or `only()` for the same
+type on the same object is ignored, and the type is released again when the listener is removed.
+
+It works the other way too: if something is **already** listening for the type then `only()` can't
+be the sole listener, so the callback is not added at all. That includes listeners set up by the
+library's own components. A [LocationControl](/api-reference/map-controls/location-control)
+listens for `locationfound` on the map it's given, so `only('locationfound', …)` on that map is
+ignored. Use [on()](#on) or [once()](#once) unless you specifically need to keep other listeners out.
+
 ### onlyOnce
 
 `onlyOnce(type: string, callback: EventCallback, config?: EventConfig): void`
@@ -370,6 +379,10 @@ map.onlyOnce('visible', () => {
     // Do something
 });
 ```
+
+Like [only()](#only), this is not added at all if something is already listening for the type. If
+you want "call my callback for the first event and then stop" and you don't care whether anything
+else is listening, use [once()](#once) instead.
 
 ### setEventGoogleObject
 
