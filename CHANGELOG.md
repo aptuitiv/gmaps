@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## [0.31.0] - 2026-09-28
+
+### Fixed
+
+- Fixed how `once`, `only`, and `onlyOnce` events are handled. If `onlyOnce` was used but other events were already registered for the event then it could silently ignore all events for that event type.
+
 ## [0.30.0] - 2026-09-27
 
 ### Added
