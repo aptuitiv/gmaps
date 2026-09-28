@@ -411,6 +411,50 @@ describe('Evented', () => {
             expect(second).not.toHaveBeenCalled();
         });
 
+        /*
+            only() and onlyOnce() both set callImmediate, which calls the callback straight away
+            when the type has already been dispatched. A refused listener must not get that: it
+            was never registered, so calling it once - with a bare { type } and none of the event
+            data - hands the caller half a subscription. The other refusal, where the type is
+            already marked, never reached that branch because the whole config block is guarded
+            by addListener; this one returns so that both refusals behave the same way.
+        */
+        it('does not call a refused only() callback for an event that already fired', () => {
+            const e = makeEvented();
+            const first = vi.fn();
+            const refused = vi.fn();
+            e.on('click', first);
+            e.dispatch('click');
+
+            e.only('click', refused);
+            e.dispatch('click');
+
+            expect(refused).not.toHaveBeenCalled();
+            expect(first).toHaveBeenCalledTimes(2);
+        });
+
+        it('does not call a refused onlyOnce() callback for an event that already fired', () => {
+            const e = makeEvented();
+            const refused = vi.fn();
+            e.on('click', vi.fn());
+            e.dispatch('click');
+
+            e.onlyOnce('click', refused);
+
+            expect(refused).not.toHaveBeenCalled();
+        });
+
+        it('still calls an accepted only() callback for an event that already fired', () => {
+            const e = makeEvented();
+            const accepted = vi.fn();
+            // Nothing is listening, so only() gets the type and callImmediate still applies
+            e.dispatch('click');
+            e.only('click', accepted);
+
+            expect(accepted).toHaveBeenCalledTimes(1);
+            expect(accepted.mock.calls[0][0].type).toBe('click');
+        });
+
         it('leaves the type usable after an only() listener was refused', () => {
             const e = makeEvented();
             const first = vi.fn();
