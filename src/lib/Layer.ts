@@ -174,6 +174,22 @@ class Layer extends Evented {
     }
 
     /**
+     * Hide or show the browser's own tooltip for the layer's title while a tooltip or popup is
+     * shown for it on hover, so that the two aren't shown on top of each other.
+     *
+     * Only markers have a title, so this does nothing for other layers.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @param {boolean} isHidden Whether the browser's tooltip is hidden
+     */
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars -- This is intended to be overridden by subclasses
+    hideNativeTitle(isHidden: boolean): void {
+        // Nothing to do by default
+    }
+
+    /**
      * Set the Popup object that the layer is added to
      *
      * @internal

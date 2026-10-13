@@ -184,6 +184,7 @@ type HoverElement = {
     // names, still fits.
     on(type: string, callback: EventCallback): void;
     getFocusTarget?: () => FocusTarget | undefined;
+    hideNativeTitle?: (isHidden: boolean) => void;
 };
 
 /**
@@ -196,6 +197,10 @@ type HoverElement = {
  */
 export const attachHover = (element: HoverElement, handlers: HoverHandlers): void => {
     element.on('mouseover', (e) => {
+        // A marker keeps its title so that it has a name for screen readers, but the browser
+        // would show the title as its own tooltip on top of this one. It's taken off while the
+        // pointer is on the marker, even after Escape, and put back when the pointer leaves.
+        element.hideNativeTitle?.(true);
         if (isHoverDismissed(element)) {
             return;
         }
@@ -213,6 +218,7 @@ export const attachHover = (element: HoverElement, handlers: HoverHandlers): voi
         });
     }
     element.on('mouseout', () => {
+        element.hideNativeTitle?.(false);
         hoverEnded(element);
         handlers.current().hideSoon();
     });

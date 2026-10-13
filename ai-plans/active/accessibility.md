@@ -1,6 +1,6 @@
 # Plan: Accessibility fixes for overlays, markers, clusters and buttons
 
-Status: **Steps 1–2 complete (2026-10-13).**
+Status: **Steps 1–3 complete (2026-10-13).**
 
 Created: 2026-10-13
 Target: `src/lib/Popup.ts`, `src/lib/Tooltip.ts`, `src/lib/Overlay.ts`, `src/lib/Marker.ts`,
@@ -224,34 +224,62 @@ tooltips, and the role default. CHANGELOG — Added, Changed and Fixed.
 
 ---
 
-### Step 3 — Marker with both `title` and `tooltip` has no accessible name
+### Step 3 — Marker with both `title` and `tooltip` has no accessible name ✅
 
 **Problem.** When both are given, the title becomes the tooltip content and is never set on the
-Google marker (`Marker.ts:1318-1335`, `AdvancedMarker.ts:677-686`). The reason is to avoid a native
-browser tooltip showing on top of the custom one. But Google uses `title` as the accessible name of a
-clickable marker, and these markers are clickable (`gmpClickable = true`, `AdvancedMarker.ts:943`).
-So the marker can be focused but has no name.
+Google marker (`Marker.ts` `setOptions()`). The reason is to avoid a native browser tooltip showing
+on top of the custom one. But Google uses `title` as the accessible name of a clickable marker. So
+the marker can be focused but has no name.
 
 **Scope:** `Marker` only. AdvancedMarker isn't public and won't be for a while, so it's left alone
 here and picked up when it's finished.
 
+**Investigation** (headless Chrome, Maps JS weekly, 2026-10-13, with `.env` key):
+
+- A legacy, **unoptimized**, clickable marker is a `<div role="button">` with
+  `aria-label="<title>"` and roving tabindex (the first marker is `0`, the rest `-1`). The native
+  hover tooltip comes from an `<area title="<title>">` inside it.
+- A marker without a title is the same `role="button"` div with no `aria-label`: focusable, no
+  name. Confirmed the problem.
+- `setTitle('...')` updates both. `setTitle('')` / `setTitle(null)` clears the `<area>` title
+  (asynchronously, within 50ms) but **leaves the `aria-label` as it was**.
+- **Optimized** markers have no element on the page at all, so they can't be reached by keyboard
+  or screen reader whatever the title. The library leaves `optimized` to Google, which optimizes by
+  default. Not fixed here: changing the default costs performance. Documented in `marker.md`.
+- A DOM `mouseover` on the `<area>` fires the marker's `mouseover`, so the library sees hover.
+
 **Changes.**
 
-- [ ] **Investigate first** (browser, not jsdom). Write down the answers here before changing code:
-  - Legacy `google.maps.Marker`: there's no DOM access, so the only lever is `title`. Does setting
-    it with a custom tooltip produce a visible double tooltip?
-- [ ] `Marker`: if a native double tooltip is the only way to give it a name, set the title anyway.
-      A name matters more than a duplicate hover hint. Note it in the docs. Keep it in sync when
-      `title` is changed later through the setter.
-- [ ] The tooltip content default (`{ content: options.title }`) stays as it is.
+- [x] The title is always set on the Google marker, tooltip or not. The tooltip content default
+      (`{ content: options.title }`) stays as it is. `marker.title` now returns it in this case too.
+- [x] Instead of accepting a double tooltip, the title is taken off the Google marker while the
+      pointer is on it, and put back on mouseout. New internal `Layer.hideNativeTitle(isHidden)`
+      (no-op by default, Marker overrides), called from `attachHover()` on mouseover / mouseout, so
+      it covers hover tooltips and hover popups, and nothing else (a title-only marker, or a click
+      tooltip, keeps the native tooltip). It's idempotent, so mousemove-driven repeat mouseovers
+      don't call Google again. It stays off after Escape until the pointer leaves.
+- [x] `setTitle()` while hovered keeps the Google title off and puts the new one on at mouseout.
+- Keyboard focus never triggers this, so the name is always there for keyboard users. While
+  hovered, Google keeps the `aria-label` anyway (see above), but nothing relies on that.
 
-**Tests** (`test/Marker.test.ts`):
-- [ ] With title + tooltip, the marker still exposes the title as its name, by whichever mechanism
-      was chosen.
-- [ ] Changing `title` afterwards updates the name.
-- [ ] Title alone and tooltip alone behave as before.
+**Tests** (`test/hover.test.ts`, "a marker's title", 10 tests):
+- [x] With title + tooltip, the title goes into the Google constructor options and is the tooltip
+      content.
+- [x] Off on mouseover, back on mouseout. Only once for repeated mouseovers. Off after Escape until
+      the pointer leaves. Changed while hovered goes on at mouseout. Hover popup too.
+- [x] Title alone, click tooltip, and tooltip alone make no hover `setTitle` calls.
+- [x] Mutation-checked: ignoring the hidden flag in `#setTitle` fails 1 test.
 
-**Docs:** `marker.md` — how `title` and `tooltip` interact. CHANGELOG.
+**Docs:** `marker.md` — new Accessibility section (title as name, title + tooltip, optimized
+markers can't be focused), `title` / `tooltip` option and property rows. `tooltip.md` — links to it.
+CHANGELOG — Fixed.
+
+**Still to do by hand:**
+
+- A real-mouse check in Chrome, Firefox and Safari that no native tooltip appears over the custom
+  one. The title comes off on mouseover, well before the browser's tooltip delay, but whether a
+  browser that already started its timer still shows the old text can't be checked headless.
+- A screen reader check that an unoptimized marker with title + tooltip is announced by its title.
 
 ---
 

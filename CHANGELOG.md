@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - `attachTooltip()`, `attachPopup()` and `attachInfoWindow()` did nothing on an `AdvancedMarker`, because it never dispatched its `ready` event.
+- A marker with both a `title` and a `tooltip` had no name for screen readers, because the title was only used as the tooltip content and never set on the marker. The title is now set on the marker, and it's taken off only while the pointer is on the marker, so the browser doesn't show it as a second tooltip on top of the custom one. This also applies to a popup shown on hover. The marker's `title` property now returns the title in this case too.
 
 ## [0.31.0] - 2026-09-28
 

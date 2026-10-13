@@ -133,8 +133,8 @@ Type `MarkerOptions`
 | optimized | boolean | | Whether to optimize the rendering of the marker. Optimization renders many markers as a single static element, which helps when there are a large number of markers. If not set then Google decides. Optimization has no effect on vector maps. |
 | position | [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type) | | The Marker position |
 | svgIcon | string or [SvgSymbolOptions](/api-reference/utilities/svgsymbol#svgsymbol-options) or [SvgSymbol](/api-reference/utilities/svgsymbol) | | An SVG icon for the marker. A string is the full SVG markup (the whole `<svg>` element, not just the path code). An object is passed to [G.svgSymbol()](/api-reference/utilities/svgsymbol). This is ignored if `icon` is set. See [SVG icons](#svg-icons). |
-| title | string | | The title for the marker. If a custom [tooltip](/api-reference/tooltip) is not used, this will show as a default tooltip on the marker. |
-| tooltip | [TooltipValue](/api-reference/tooltip#tooltipvalue-type) | | The tooltip for the marker. This will show when hovering over the marker. If `title` is also set, it's used as the tooltip content when the tooltip options don't set `content`, and the default title tooltip isn't shown. |
+| title | string | | The title for the marker. Screen readers use it as the marker's name. If a custom [tooltip](/api-reference/tooltip) is not used, the browser also shows it as a tooltip when the marker is hovered. See [Accessibility](#accessibility). |
+| tooltip | [TooltipValue](/api-reference/tooltip#tooltipvalue-type) | | The tooltip for the marker. This will show when hovering over the marker. If `title` is also set, it's used as the tooltip content when the tooltip options don't set `content`. The title is still the marker's name, but the browser's own title tooltip isn't shown on top of this one. |
 
 ## SVG icons
 
@@ -176,6 +176,25 @@ const marker = G.marker({
 ```
 
 To change the icon after the marker is created, use [setIcon()](#seticon).
+
+## Accessibility
+
+Give every marker that can be clicked a `title`. Google uses it as the marker's name for screen readers. A marker without one can still be reached with the keyboard, but it has no name.
+
+A `title` and a `tooltip` work together:
+
+```js
+const marker = G.marker({
+    latitude: 48.85,
+    longitude: 2.35,
+    title: 'Trail 12',
+    tooltip: {},
+});
+```
+
+The title is the marker's name, and it's also the tooltip content because the tooltip doesn't set any. The browser shows a title as its own tooltip, so while the pointer is on the marker the title is taken off and only the custom tooltip shows. It's put back when the pointer leaves. This works the same for a popup shown on `hover`.
+
+Google only puts a marker on the page as something that can take keyboard focus when it isn't optimized. An optimized marker is drawn along with the others as one image, so a keyboard or screen reader user can't reach it at all. If those users need to get to your markers, set `optimized: false`. That's slower with a large number of markers, so it's a trade-off. This is how Google's markers worked when we tested in October 2026.
 
 ## Events
 
@@ -257,7 +276,7 @@ marker.onReady(() => {
 | map | [Map](/api-reference/map) | The map that the marker should show on. Set it to `null` to remove the marker from the map. |
 | optimized | boolean or undefined | Whether the marker rendering is optimized. It's `undefined` if it hasn't been set, in which case Google decides. Setting it calls [setOptimized()](#setoptimized). |
 | position | [LatLng](/api-reference/utilities/latlng) | The Marker position. If the marker was dragged, this is its current position. It can be set with a [LatLngValue](/api-reference/utilities/latlng#latlngvalue-type). |
-| title | string | The title for the marker. If a custom [tooltip](/api-reference/tooltip) is not used, this will show as a default tooltip on the marker. |
+| title | string | The title for the marker. Screen readers use it as the marker's name. If a custom [tooltip](/api-reference/tooltip) is not used, the browser also shows it as a tooltip when the marker is hovered. |
 
 ## Methods
 

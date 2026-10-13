@@ -9,6 +9,8 @@
       hiding, and reaching the overlay cancels that.
     - Escape hides it, and it isn't shown again until the pointer or focus leaves.
     - role="tooltip", a stable id, and aria-describedby on the focused marker.
+    - A marker with a title and a tooltip keeps its title, which is its name for screen readers,
+      but takes it off the Google marker while hovered so the browser doesn't show it too.
 
     Covers Tooltip, Popup and the data layer, which all go through hoverOverlay.ts.
 =========================================================================== */
@@ -17,10 +19,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { advancedMarker } from '../src/lib/AdvancedMarker';
 import { HOVER_HIDE_DELAY } from '../src/lib/constants';
 import { dataLayer } from '../src/lib/DataLayer';
+import { marker } from '../src/lib/Marker';
 import { polyline } from '../src/lib/Polyline';
 import { closeAllPopups, popup } from '../src/lib/Popup';
 import { Tooltip } from '../src/lib/Tooltip';
-import { installGoogleMaps, uninstallGoogleMaps } from './support/googleMaps';
+import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
 import { fakeMap } from './support/fakeMap';
 
 /**
@@ -353,6 +356,105 @@ describe('hover overlays', () => {
             press(document.body, 'Escape');
             map.dispatch('mousemove', { latLng });
             expect(t.isVisible).toBe(false);
+        });
+    });
+
+    describe("a marker's title", () => {
+        /**
+         * The titles set on the Google marker after it was built, in order
+         *
+         * @returns {Array<string|null|undefined>}
+         */
+        const titlesSet = () => mapsStats.callsTo('Marker', 'setTitle').map((c) => c.args[0]);
+
+        /**
+         * A legacy marker on a map, built with the given options
+         *
+         * @param {object} options The marker options
+         * @returns {Promise<Marker>}
+         */
+        const onMap = async (options: Parameters<typeof marker>[0]) => {
+            const m = marker({ position: [48.85, 2.35], ...(options as object) });
+            await m.setMap(fakeMap());
+            await tick();
+            return m;
+        };
+
+        it('is still set on the Google marker when there is a tooltip', async () => {
+            const m = await onMap({ title: 'Trail 12', tooltip: {} });
+            expect(m.title).toBe('Trail 12');
+            expect(mapsStats.callsTo('Marker', 'constructor')[0].args[0]).toMatchObject({ title: 'Trail 12' });
+        });
+
+        it('is still the tooltip content', async () => {
+            const m = await onMap({ title: 'Trail 12', tooltip: {} });
+            m.dispatch('mouseover', { latLng });
+            expect(Tooltip.getShared().getOverlayElement().textContent).toBe('Trail 12');
+        });
+
+        it('is taken off while hovered and put back when the pointer leaves', async () => {
+            const m = await onMap({ title: 'Trail 12', tooltip: {} });
+            m.dispatch('mouseover', { latLng });
+            expect(titlesSet()).toEqual([null]);
+            m.dispatch('mouseout', {});
+            expect(titlesSet()).toEqual([null, 'Trail 12']);
+        });
+
+        it('is only taken off once while the pointer moves over the marker', async () => {
+            const m = await onMap({ title: 'Trail 12', tooltip: {} });
+            m.dispatch('mouseover', { latLng });
+            m.dispatch('mouseover', { latLng });
+            expect(titlesSet()).toEqual([null]);
+        });
+
+        it('stays off after Escape until the pointer leaves', async () => {
+            const m = await onMap({ title: 'Trail 12', tooltip: {} });
+            m.dispatch('mouseover', { latLng });
+            press(document, 'Escape');
+            m.dispatch('mouseover', { latLng });
+            expect(titlesSet()).toEqual([null]);
+            m.dispatch('mouseout', {});
+            expect(titlesSet()).toEqual([null, 'Trail 12']);
+        });
+
+        it('changed while hovered is put on when the pointer leaves', async () => {
+            const m = await onMap({ title: 'Trail 12', tooltip: 'Trail 12' });
+            m.dispatch('mouseover', { latLng });
+            m.setTitleSync('Trail 13');
+            expect(m.title).toBe('Trail 13');
+            expect(titlesSet()).toEqual([null, null]);
+            m.dispatch('mouseout', {});
+            expect(titlesSet()).toEqual([null, null, 'Trail 13']);
+        });
+
+        it('is taken off for a hover popup too', async () => {
+            const m = await onMap({ title: 'Trail 12' });
+            m.attachPopup('Trail 12 details', 'hover');
+            await tick();
+            m.dispatch('mouseover', { latLng });
+            expect(titlesSet()).toEqual([null]);
+        });
+
+        it('is left alone when there is no tooltip', async () => {
+            const m = await onMap({ title: 'Trail 12' });
+            m.dispatch('mouseover', { latLng });
+            m.dispatch('mouseout', {});
+            expect(titlesSet()).toEqual([]);
+        });
+
+        it('is left alone for a tooltip shown by a click', async () => {
+            const m = await onMap({ title: 'Trail 12' });
+            m.attachTooltip('Trail 12', 'click');
+            await tick();
+            m.dispatch('mouseover', { latLng });
+            expect(titlesSet()).toEqual([]);
+        });
+
+        it('makes no Google calls on hover for a marker without one', async () => {
+            const m = await onMap({ tooltip: 'Trail 12' });
+            m.dispatch('mouseover', { latLng });
+            m.dispatch('mouseout', {});
+            expect(titlesSet()).toEqual([]);
         });
     });
 

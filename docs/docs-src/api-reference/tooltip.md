@@ -228,7 +228,7 @@ A tooltip, or a popup, that's shown on `hover` works like this:
 - **Escape hides it**, without moving the pointer. It isn't shown again until the pointer has left the thing that showed it. If a [popup](/api-reference/popup) opened by a click is also open, the first Escape hides the tooltip and the next one closes the popup.
 - **It has `role="tooltip"`**, so assistive technology knows what it is.
 
-A tooltip isn't shown for keyboard focus. Google draws markers, polylines and data layer features itself, and gives no way to know when one of them has keyboard focus. A keyboard or screen reader user can't get to the tooltip, so don't put anything in it that they need and can't get any other way. For a marker, put that in its `title`: Google uses the title as the marker's name for screen readers when the marker can be clicked.
+A tooltip isn't shown for keyboard focus. Google draws markers, polylines and data layer features itself, and gives no way to know when one of them has keyboard focus. A keyboard or screen reader user can't get to the tooltip, so don't put anything in it that they need and can't get any other way. For a marker, put that in its `title`: Google uses the title as the marker's name for screen readers when the marker can be clicked. A marker with both keeps its title, and the browser's own title tooltip isn't shown while the custom one is. See [marker accessibility](/api-reference/marker#accessibility).
 
 ## Sharing one tooltip
 
