@@ -129,8 +129,10 @@ export class Button extends Control {
     #tooltipAttribute: string | undefined;
 
     /**
-     * The aria-label that a tooltip last wrote, so that it can be told apart from one the caller set.
-     * Only ours is ever taken off.
+     * The aria-label that a tooltip wrote, while the tooltip still owns it. Undefined when it doesn't,
+     * including once a state's attributes have set or removed aria-label. Only one the tooltip owns
+     * is ever replaced or taken off, so the caller's aria-label always stays, even when it says the
+     * same thing.
      */
     #tooltipAriaLabel: string | undefined;
 
@@ -471,6 +473,10 @@ export class Button extends Control {
 
         if (isObject(style.attributes)) {
             Object.entries(style.attributes).forEach(([name, value]) => {
+                if (name.toLowerCase() === 'aria-label') {
+                    // The state has said what the aria-label is, so the tooltip no longer owns it
+                    this.#tooltipAriaLabel = undefined;
+                }
                 if (value === null) {
                     this.element.removeAttribute(name);
                 } else {
@@ -547,15 +553,18 @@ export class Button extends Control {
             return;
         }
         const value = this.#tooltip;
+        const current = this.element.getAttribute('aria-label');
+        // The value check catches the caller changing it directly on the element afterwards
+        const isOurs = typeof this.#tooltipAriaLabel !== 'undefined' && current === this.#tooltipAriaLabel;
         if (value !== null && !hasVisibleText(this.element)) {
-            this.element.setAttribute('aria-label', value);
-            this.#tooltipAriaLabel = value;
+            // Never replace an aria-label the caller set
+            if (current === null || isOurs) {
+                this.element.setAttribute('aria-label', value);
+                this.#tooltipAriaLabel = value;
+            }
         } else {
-            // Take off the aria-label a tooltip set before, but never one the caller set
-            if (
-                typeof this.#tooltipAriaLabel !== 'undefined' &&
-                this.element.getAttribute('aria-label') === this.#tooltipAriaLabel
-            ) {
+            // Take off the aria-label the tooltip set, but never one the caller set
+            if (isOurs) {
                 this.element.removeAttribute('aria-label');
             }
             this.#tooltipAriaLabel = undefined;

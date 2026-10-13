@@ -271,6 +271,31 @@ describe('Button', () => {
             expect(b.element.getAttribute('aria-label')).toBe('Map layers');
         });
 
+        it('never replaces an aria-label the caller set on an icon-only button', () => {
+            const element = withContent('<svg aria-hidden="true"></svg>');
+            element.setAttribute('aria-label', 'Map layers');
+            const b = button({ element, states: layerStates, toggle: true });
+            expect(b.element.getAttribute('aria-label')).toBe('Map layers');
+            expect(b.element.getAttribute('title')).toBe('Show the layer');
+            b.activate();
+            expect(b.element.getAttribute('aria-label')).toBe('Map layers');
+        });
+
+        it('keeps a state aria-label that says the same as the tooltip', () => {
+            const b = button({
+                states: {
+                    enabled: { tooltip: 'Zoom in' },
+                    active: { attributes: { 'aria-label': 'Zoom in' }, text: 'Zoom in' },
+                    inactive: { text: '' },
+                },
+                toggle: true,
+            });
+            expect(b.element.getAttribute('aria-label')).toBe('Zoom in');
+            b.activate();
+            // The state set it, so it's the state's now, even though the value matches
+            expect(b.element.getAttribute('aria-label')).toBe('Zoom in');
+        });
+
         it('leaves an aria-label a state set itself', () => {
             const b = button({
                 element: withContent('Layers'),

@@ -107,7 +107,7 @@ If `tooltipAttribute` isn't set, a state's `tooltip` always goes in `title`. Whe
 - **An icon-only button** has nothing else to name it, so the tooltip is also its `aria-label`. Text inside an `svg`, or inside anything with `aria-hidden="true"` or the `hidden` attribute, doesn't count as text that can be seen.
 - **A button with visible text** is already named by that text, so the tooltip isn't written to `aria-label`. An `aria-label` would replace the text as the button's name. Voice control users press a button by saying what they see on it, and that wouldn't work if the name said something else.
 
-It's checked again whenever a state sets a `tooltip` or `text`, after the text is set. If a state gives an icon-only button some text, the `aria-label` the tooltip set is taken off, even when the tooltip came from a different state. If the text goes again, the `aria-label` comes back. An `aria-label` you set yourself, on the element or with a state's `attributes`, is never taken off.
+It's checked again whenever a state sets a `tooltip` or `text`, after the text is set. If a state gives an icon-only button some text, the `aria-label` the tooltip set is taken off, even when the tooltip came from a different state. If the text goes again, the `aria-label` comes back. An `aria-label` you set yourself, on the element or with a state's `attributes`, is never replaced or taken off, even if it says the same as the tooltip.
 
 With `tooltipAttribute` set, the tooltip only goes in that attribute, and `title` and `aria-label` are left alone.
 
