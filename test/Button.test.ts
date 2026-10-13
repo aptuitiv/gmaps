@@ -214,6 +214,15 @@ describe('Button', () => {
             expect(b.element.getAttribute('aria-label')).toBe('Show the layer');
         });
 
+        it('ignores text that is hidden', () => {
+            const b = button({
+                element: withContent('<svg aria-hidden="true"></svg><span hidden>Loading</span>'),
+                states: layerStates,
+                toggle: true,
+            });
+            expect(b.element.getAttribute('aria-label')).toBe('Show the layer');
+        });
+
         it('takes its aria-label off when a state gives the button text', () => {
             const b = button({
                 states: {

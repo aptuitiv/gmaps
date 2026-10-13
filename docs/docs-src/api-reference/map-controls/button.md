@@ -104,7 +104,7 @@ Space would otherwise scroll the page, so it's prevented on activation.
 
 If `tooltipAttribute` isn't set, a state's `tooltip` always goes in `title`. Whether it also goes in `aria-label` depends on whether the button has text that can be seen:
 
-- **An icon-only button** has nothing else to name it, so the tooltip is also its `aria-label`. Text inside an `svg`, or inside anything with `aria-hidden="true"`, doesn't count as text that can be seen.
+- **An icon-only button** has nothing else to name it, so the tooltip is also its `aria-label`. Text inside an `svg`, or inside anything with `aria-hidden="true"` or the `hidden` attribute, doesn't count as text that can be seen.
 - **A button with visible text** is already named by that text, so the tooltip isn't written to `aria-label`. An `aria-label` would replace the text as the button's name. Voice control users press a button by saying what they see on it, and that wouldn't work if the name said something else.
 
 It's checked every time a state is applied, after the state's `text`. If a state gives an icon-only button some text, the `aria-label` the tooltip set is taken off. An `aria-label` you set yourself, on the element or with a state's `attributes`, is never taken off.

@@ -74,8 +74,9 @@ export type ButtonOptions = ControlOptions & {
 /**
  * Whether an element has text that can be seen.
  *
- * Text inside an svg (like a <title>) or inside anything with aria-hidden="true" doesn't count. An
- * icon-only button often has one of those, and still has nothing on screen to read.
+ * Text inside an svg (like a <title>), inside anything with aria-hidden="true", or inside anything
+ * with the hidden attribute doesn't count. An icon-only button often has one of those, and still has
+ * nothing on screen to read.
  *
  * @param {HTMLElement} element The element to check
  * @returns {boolean}
@@ -88,7 +89,10 @@ const hasVisibleText = (element: HTMLElement): boolean => {
             let parent = node.parentElement;
             let isHidden = false;
             while (parent && parent !== element && !isHidden) {
-                isHidden = parent instanceof SVGElement || parent.getAttribute('aria-hidden') === 'true';
+                isHidden =
+                    parent instanceof SVGElement ||
+                    parent.getAttribute('aria-hidden') === 'true' ||
+                    parent.hasAttribute('hidden');
                 parent = parent.parentElement;
             }
             if (!isHidden) {

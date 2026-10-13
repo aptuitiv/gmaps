@@ -213,7 +213,7 @@ document.getElementById('addLegend').addEventListener('click', () => {
 --------------------------------------------------------------------------- */
 
 /**
- * The text you can see on a button. Text inside an svg or something aria-hidden doesn't count,
+ * The text you can see on a button. Text inside an svg, or something aria-hidden or hidden, doesn't count,
  * the same as the library's own check.
  *
  * @param {HTMLElement} element The button element
@@ -221,7 +221,7 @@ document.getElementById('addLegend').addEventListener('click', () => {
  */
 const visibleText = (element) => {
     const copy = element.cloneNode(true);
-    copy.querySelectorAll('svg, [aria-hidden="true"]').forEach((hidden) => hidden.remove());
+    copy.querySelectorAll('svg, [aria-hidden="true"], [hidden]').forEach((hidden) => hidden.remove());
     return copy.textContent.trim();
 };
 
