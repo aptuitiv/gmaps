@@ -17,6 +17,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { markerCluster } from '../src/lib/MarkerCluster';
 import { marker } from '../src/lib/Marker';
+import { DefaultRenderer } from '../src/lib/MarkerCluster/DefaultRender';
+import { ImageRenderer } from '../src/lib/MarkerCluster/ImageRenderer';
 import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
 import { fakeMap } from './support/fakeMap';
 
@@ -108,6 +110,8 @@ vi.mock('@googlemaps/markerclusterer', () => {
 
     return {
         MarkerClusterer,
+        // The default renderer asks this. The fake map has no map ID, so advanced markers aren't available.
+        MarkerUtils: { isAdvancedMarkerAvailable: () => false },
         GridAlgorithm: class GridAlgorithm extends StubAlgorithm {},
         NoopAlgorithm: class NoopAlgorithm extends StubAlgorithm {},
         SuperClusterAlgorithm: class SuperClusterAlgorithm extends StubAlgorithm {},
@@ -259,6 +263,102 @@ describe('MarkerCluster', () => {
             cluster.addMarkers([m]);
             await tick();
             expect(m.getMap()).toBe(map);
+        });
+    });
+
+    // Google uses a marker's title as its name for screen readers. A cluster marker can be clicked
+    // to zoom in, so it needs one, and when the number isn't shown it's the only thing that says
+    // how many markers are in the cluster.
+    describe('the cluster marker title', () => {
+        /**
+         * Render a cluster with a renderer and get the options its Google marker was built with
+         *
+         * @param {DefaultRenderer|ImageRenderer} renderer The renderer
+         * @param {number} count The number of markers in the cluster
+         * @returns {string|undefined} The title the Google marker was built or updated with
+         */
+        const renderTitle = (renderer: DefaultRenderer | ImageRenderer, count: number = 12): string | undefined => {
+            const cluster = { count, position: new google.maps.LatLng(48.85, 2.35) };
+            const stats = { clusters: { markers: { mean: 5 } } };
+            const before = mapsStats.calls.length;
+            renderer.render(cluster as any, stats as any, {} as any);
+            // The default renderer passes it to the constructor, the image renderer calls setTitle()
+            const titles = mapsStats.calls
+                .slice(before)
+                .filter((c) => c.target === 'Marker' && (c.method === 'setTitle' || c.method === 'constructor'))
+                .map((c) => (c.method === 'setTitle' ? c.args[0] : c.args[0]?.title))
+                .filter((title) => typeof title !== 'undefined');
+            return titles.at(-1);
+        };
+
+        /**
+         * An image renderer with an image set
+         *
+         * @returns {ImageRenderer}
+         */
+        const imageRenderer = (): ImageRenderer => {
+            const renderer = new ImageRenderer();
+            renderer.setImage('https://example.com/cluster.png');
+            return renderer;
+        };
+
+        it('the default renderer says how many markers there are', () => {
+            expect(renderTitle(new DefaultRenderer())).toBe('Cluster of 12 markers');
+        });
+
+        it('the image renderer says how many markers there are', () => {
+            expect(renderTitle(imageRenderer())).toBe('Cluster of 12 markers');
+        });
+
+        it('the image renderer has the title when the number is not shown', () => {
+            const renderer = imageRenderer();
+            renderer.setShowNumber(false);
+            expect(renderTitle(renderer)).toBe('Cluster of 12 markers');
+        });
+
+        it('the image renderer has the title when the number is shown', () => {
+            const renderer = imageRenderer();
+            renderer.setShowNumber(true);
+            expect(renderTitle(renderer, 3)).toBe('Cluster of 3 markers');
+        });
+
+        it('a template replaces {count} for both renderers', () => {
+            const renderers = [new DefaultRenderer(), imageRenderer()];
+            renderers.forEach((renderer) => {
+                renderer.setTitle('Groupe de {count} marqueurs');
+                expect(renderTitle(renderer, 7)).toBe('Groupe de 7 marqueurs');
+            });
+        });
+
+        it('a function is passed the count for both renderers', () => {
+            const renderers = [new DefaultRenderer(), imageRenderer()];
+            renderers.forEach((renderer) => {
+                renderer.setTitle((count) => `${count} trails`);
+                expect(renderTitle(renderer, 4)).toBe('4 trails');
+            });
+        });
+
+        it('ignores an empty title', () => {
+            const renderer = new DefaultRenderer();
+            renderer.setTitle('');
+            expect(renderTitle(renderer)).toBe('Cluster of 12 markers');
+        });
+
+        it('the image renderer passes its title to the fallback renderer', () => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const renderer = new ImageRenderer();
+            renderer.setTitle('{count} places');
+            expect(renderTitle(renderer, 9)).toBe('9 places');
+        });
+
+        it('is set from the cluster options', async () => {
+            const map = fakeMap();
+            markerCluster(map, { imageRendererOptions: { image: 'https://example.com/cluster.png', title: '{count} stops' } });
+            markerCluster(map, { defaultRenderOptions: { title: (count) => `${count} trails` } });
+            await tick();
+            const [imageCluster, defaultCluster] = (MarkerClusterer as any).instances.slice(-2);
+            expect(renderTitle(imageCluster.options.renderer, 5)).toBe('5 stops');
+            expect(renderTitle(defaultCluster.options.renderer, 6)).toBe('6 trails');
         });
     });
 });

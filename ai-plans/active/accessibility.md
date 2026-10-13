@@ -1,6 +1,6 @@
 # Plan: Accessibility fixes for overlays, markers, clusters and buttons
 
-Status: **Steps 1–3 complete (2026-10-13).**
+Status: **Steps 1–4 complete (2026-10-13).**
 
 Created: 2026-10-13
 Target: `src/lib/Popup.ts`, `src/lib/Tooltip.ts`, `src/lib/Overlay.ts`, `src/lib/Marker.ts`,
@@ -244,8 +244,14 @@ here and picked up when it's finished.
 - `setTitle('...')` updates both. `setTitle('')` / `setTitle(null)` clears the `<area>` title
   (asynchronously, within 50ms) but **leaves the `aria-label` as it was**.
 - **Optimized** markers have no element on the page at all, so they can't be reached by keyboard
-  or screen reader whatever the title. The library leaves `optimized` to Google, which optimizes by
-  default. Not fixed here: changing the default costs performance. Documented in `marker.md`.
+  or screen reader whatever the title. Corrected during step 4, with more probes:
+  - A marker is only a focusable `role="button"` when it has a **click listener**. Without one it
+    has no button, even with `optimized: false`. So hover-only markers can't be focused.
+  - `optimized: true` means no button, click listener or not.
+  - With `optimized` unset (the library's default), clickable markers got buttons up to 255 on the
+    map and none at 270+: past roughly 256 Google optimizes them all. `optimized: false` kept 300
+    focusable.
+  - Not changed here: the default stays with Google. Documented in `marker.md`.
 - A DOM `mouseover` on the `<area>` fires the marker's `mouseover`, so the library sees hover.
 
 **Changes.**
@@ -283,26 +289,34 @@ CHANGELOG — Fixed.
 
 ---
 
-### Step 4 — Image cluster markers have no accessible name
+### Step 4 — Image cluster markers have no accessible name ✅
 
-**Problem.** `DefaultRender` sets `title: "Cluster of N markers"`, but `ImageRenderer.render()`
-(`MarkerCluster/ImageRenderer.ts:367-374`) sets no title. The cluster marker is clickable (it zooms
-in), so it can be focused with no name. When `showNumber` is false, nothing conveys the count at all.
+**Problem.** `DefaultRender` sets `title: "Cluster of N markers"`, but `ImageRenderer.render()` set
+no title. The cluster marker is clickable (the clusterer adds a click listener for
+`onClusterClick`, which defaults to zooming in), so Google makes it a focusable button, with no name.
+When `showNumber` is false, nothing conveyed the count at all.
 
 **Changes.**
 
-- [ ] Call `clusterMarker.setTitleSync(...)` in `ImageRenderer.render()`, using the same
-      `Cluster of ${count} markers` wording as `DefaultRender`.
-- [ ] Make the wording configurable on both renderers: a `title` option that is a string template or
-      a `(count) => string` function, so sites can localise it. Default stays the same.
-- [ ] Put the default text in one place that both renderers use, not two literals.
+- [x] New `src/lib/MarkerCluster/clusterTitle.ts`: the `ClusterTitle` type (string or
+      `(count) => string`), `DEFAULT_CLUSTER_TITLE = 'Cluster of {count} markers'`,
+      `getClusterTitle()` (replaces every `{count}`) and `isClusterTitle()`. The one place the
+      default text lives.
+- [x] Both renderers have `setTitle()` (ignores empty strings and other values) and use
+      `getClusterTitle()`. `ImageRenderer.render()` calls `clusterMarker.setTitleSync(...)`, with
+      `showNumber` true or false. The image renderer's fallback `DefaultRenderer` gets its title.
+- [x] `title` option on `DefaultRenderOptions` and `ImageRendererOptions`, wired in
+      `MarkerCluster`.
 
-**Tests** (`test/MarkerCluster.test.ts`):
-- [ ] An image-rendered cluster has a title containing the count, with `showNumber` both true and
-      false.
-- [ ] A custom title function or template is used by both renderers.
+**Tests** (`test/MarkerCluster.test.ts`, "the cluster marker title", 9 tests): default and image
+renderers' default title; image renderer with `showNumber` true and false; template and function on
+both; empty title ignored; fallback renderer gets the title; both options reach the renderers. The
+clusterer mock gained `MarkerUtils.isAdvancedMarkerAvailable`. Mutation-checked: removing the
+`setTitleSync` call fails 6 tests.
 
-**Docs:** `marker-cluster.md` — the new option. CHANGELOG.
+**Docs:** `marker-cluster.md` — `title` rows in both option tables, the fallback note, and a new
+"Cluster marker title" section. `marker.md` — the Accessibility section corrected to the click
+listener / 256 marker findings. CHANGELOG — Added and Fixed.
 
 ---
 

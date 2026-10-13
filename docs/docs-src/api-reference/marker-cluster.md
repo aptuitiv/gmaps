@@ -323,12 +323,13 @@ These are the options for the default renderer.
 | middleOpacity | number | 0.4 | The opacity to use for the middle ring of the marker. Must be between 0 and 1. |
 | outerOpacity | number | 0.2 | The opacity to use for the outer ring of the marker. Must be between 0 and 1. |
 | showNumber | boolean | true | Whether to show the number of markers in the cluster. |
+| title | string or function | 'Cluster of {count} markers' | The title for the cluster markers, which screen readers use as their name. See [Cluster marker title](#cluster-marker-title). |
 
 ## Image renderer
 
 The image renderer displays an image for the cluster marker. The number of markers in the cluster shows in the middle of the cluster marker.
 
-If no valid images are set with the `image` or `images` option, the clusters are drawn with the [default renderer](#default-renderer) instead and a warning is logged to the console. The `showNumber`, `labelFontFamily`, and `labelFontSize` options are passed on to the default renderer.
+If no valid images are set with the `image` or `images` option, the clusters are drawn with the [default renderer](#default-renderer) instead and a warning is logged to the console. The `showNumber`, `title`, `labelFontFamily`, and `labelFontSize` options are passed on to the default renderer.
 
 **Example usage.**
 
@@ -425,6 +426,32 @@ These are the options for the image renderer.
 | labelFontSize | number or string | '12px' | The font size of the label text (equivalent to the CSS font-size property). Use a string with a unit, like `'14px'`. |
 | labelFontWeight | string | | The font weight of the label text (equivalent to the CSS font-weight property). |
 | showNumber | boolean | true | Whether to show the number of markers in the cluster. |
+| title | string or function | 'Cluster of {count} markers' | The title for the cluster markers, which screen readers use as their name. See [Cluster marker title](#cluster-marker-title). |
+
+## Cluster marker title
+
+Clicking a cluster marker zooms in, so keyboard users can reach it too, and screen readers use its title as its name. The title is also the only way a screen reader user knows how many markers are in the cluster, even when `showNumber` is `false`. Both renderers set it to "Cluster of 12 markers" by default.
+
+Use the `title` option to change it, for example to translate it. It can be a string where `{count}` is replaced with the number of markers in the cluster:
+
+```js
+const cluster = G.markerCluster(map, {
+    imageRendererOptions: {
+        image: 'https://mysite.com/marker.svg',
+        title: 'Groupe de {count} marqueurs',
+    },
+});
+```
+
+Or a function that's passed the number of markers and returns the title:
+
+```js
+const cluster = G.markerCluster(map, {
+    defaultRenderOptions: {
+        title: (count) => `${count} trails`,
+    },
+});
+```
 
 ## Styling the label text
 

@@ -181,6 +181,8 @@ To change the icon after the marker is created, use [setIcon()](#seticon).
 
 Give every marker that can be clicked a `title`. Google uses it as the marker's name for screen readers. A marker without one can still be reached with the keyboard, but it has no name.
 
+Google only makes a marker something keyboard users can reach when it has a click listener: [onClick()](#onclick), or a popup, tooltip or InfoWindow opened by a click. A marker with only a `hover` tooltip can't be reached with the keyboard.
+
 A `title` and a `tooltip` work together:
 
 ```js
@@ -194,7 +196,7 @@ const marker = G.marker({
 
 The title is the marker's name, and it's also the tooltip content because the tooltip doesn't set any. The browser shows a title as its own tooltip, so while the pointer is on the marker the title is taken off and only the custom tooltip shows. It's put back when the pointer leaves. This works the same for a popup shown on `hover`.
 
-Google only puts a marker on the page as something that can take keyboard focus when it isn't optimized. An optimized marker is drawn along with the others as one image, so a keyboard or screen reader user can't reach it at all. If those users need to get to your markers, set `optimized: false`. That's slower with a large number of markers, so it's a trade-off. This is how Google's markers worked when we tested in October 2026.
+An optimized marker is drawn along with the others as one image, so a keyboard or screen reader user can't reach it at all, even if it can be clicked. Setting `optimized: true` does this. If `optimized` isn't set, Google decides: when we tested, markers that could be clicked weren't optimized until there were more than about 256 of them on the map, and then they all were. If keyboard users need to reach a large number of markers, set `optimized: false`. That's slower, so it's a trade-off. Clustering keeps the number of markers on the map down, and the cluster markers can be reached with the keyboard. This is how Google's markers worked when we tested in October 2026.
 
 ## Events
 

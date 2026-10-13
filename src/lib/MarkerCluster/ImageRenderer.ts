@@ -43,6 +43,7 @@
 
 import { Cluster, ClusterStats, Renderer } from '@googlemaps/markerclusterer';
 import { DefaultRenderer } from './DefaultRender';
+import { ClusterTitle, DEFAULT_CLUSTER_TITLE, getClusterTitle, isClusterTitle } from './clusterTitle';
 import { getBoolean, isObject, isStringOrNumber } from '../helpers';
 import { marker, MarkerLabel } from '../Marker';
 import { icon } from '../Icon';
@@ -168,6 +169,14 @@ export class ImageRenderer implements Renderer {
     #showNumber: boolean = true;
 
     /**
+     * Holds the title for the cluster marker, which is its name for screen readers
+     *
+     * @private
+     * @type {ClusterTitle}
+     */
+    #title: ClusterTitle = DEFAULT_CLUSTER_TITLE;
+
+    /**
      * Set the map object to use for the cluster marker
      *
      * @param {Map} map The map object
@@ -275,6 +284,18 @@ export class ImageRenderer implements Renderer {
     }
 
     /**
+     * Set the title for the cluster markers. Screen readers use it as the cluster marker's name.
+     *
+     * @param {ClusterTitle} title A string where "{count}" is replaced with the number of markers in the
+     *   cluster, or a function that's passed the number and returns the title.
+     */
+    setTitle(title: ClusterTitle): void {
+        if (isClusterTitle(title)) {
+            this.#title = title;
+        }
+    }
+
+    /**
      * Get the image for the cluster.
      *
      * This returns undefined if no valid images were set.
@@ -367,6 +388,9 @@ export class ImageRenderer implements Renderer {
         const clusterMarker = marker();
         clusterMarker.setPositionSync({ lat: position.lat(), lng: position.lng() });
         clusterMarker.setIconSync(markerImage);
+        // The cluster marker can be clicked to zoom in, so it needs a name. It's also the only way
+        // a screen reader user knows how many markers there are when the number isn't shown.
+        clusterMarker.setTitleSync(getClusterTitle(this.#title, count));
         // The new marker doesn't have a label, so only set it if the number should be shown
         if (this.#showNumber) {
             clusterMarker.setLabelSync(label);
@@ -390,6 +414,7 @@ export class ImageRenderer implements Renderer {
             );
             const renderer = new DefaultRenderer();
             renderer.setShowNumber(this.#showNumber);
+            renderer.setTitle(this.#title);
             if (this.#labelFontFamily) {
                 renderer.setFontFamily(this.#labelFontFamily);
             }

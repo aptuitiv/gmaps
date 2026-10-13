@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - A popup close element that isn't a native button, like a `<div>`, is now given `role="button"` and `tabindex="0"`, and Enter and Space close the popup.
 - Tooltips and hover popups now have `role="tooltip"`.
 - Pressing Escape hides a tooltip or popup shown on hover, without moving the pointer. It isn't shown again until the pointer leaves the thing that showed it. When a popup opened by a click is also open, the first Escape hides the hover content and the next one closes the popup.
+- Added the `title` option to the marker cluster default and image renderers. It sets the cluster marker's title, which screen readers use as its name. It can be a string where `{count}` is replaced with the number of markers, or a function that's passed the number. The default is still "Cluster of {count} markers".
 
 ### Changed
 
@@ -25,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `attachTooltip()`, `attachPopup()` and `attachInfoWindow()` did nothing on an `AdvancedMarker`, because it never dispatched its `ready` event.
 - A marker with both a `title` and a `tooltip` had no name for screen readers, because the title was only used as the tooltip content and never set on the marker. The title is now set on the marker, and it's taken off only while the pointer is on the marker, so the browser doesn't show it as a second tooltip on top of the custom one. This also applies to a popup shown on hover. The marker's `title` property now returns the title in this case too.
+- Cluster markers drawn by the image renderer had no title, so screen readers had no name for them, and no way to know how many markers were in the cluster when `showNumber` is `false`. They now get the same "Cluster of N markers" title as the default renderer.
 
 ## [0.31.0] - 2026-09-28
 
