@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 /* ===========================================================================
     Tests for the AdvancedMarker class.
 
@@ -15,6 +17,9 @@
        these tests should fail rather than pass against an API that doesn't exist.
     2. The class uses "marker" as its Google library name, so checkForGoogleMaps() looks for
        google.maps.marker. Uninstalling the stub is what simulates the library not being loaded.
+
+    It runs under jsdom because opening a popup on the marker builds the popup's element.
+    Without a document that failed after the test had finished, as an unhandled rejection.
 =========================================================================== */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -347,5 +352,6 @@ describe('AdvancedMarker ready', () => {
         m.dispatch('click', {});
         await tick();
         expect(p.isOpen()).toBe(true);
+        expect(p.isVisible).toBe(true);
     });
 });
