@@ -69,7 +69,7 @@ Type `ButtonOptions`. Everything from [ControlOptions](/api-reference/map-contro
 | enabled | boolean | `true` | Whether the button starts enabled. |
 | onClick | Function | | Called when the button is clicked, only while it's enabled. Passed the button and the DOM event. |
 | states | `ButtonStates` | | How each state shows up in the DOM. Leave it out for a button with no state. |
-| tooltipAttribute | string | | The attribute a state's `tooltip` is written to. Defaults to `title` and `aria-label`. |
+| tooltipAttribute | string | | The attribute a state's `tooltip` is written to. If it's not set, the tooltip is written to `title`, and to `aria-label` when the button has no visible text. See [The tooltip and the button's name](#the-tooltip-and-the-buttons-name). |
 | toggle | boolean | `false` | Whether a click flips the active state. |
 
 ### Button states
@@ -81,7 +81,7 @@ Type `ButtonStates`, with a `ButtonStateStyle` for each of `active`, `inactive`,
 | attributes | object | Attributes to set while this state holds. A `null` value removes the attribute. |
 | className | string | Class name(s) to add while this state holds. Removed when the state ends, so the active and inactive class names don't accumulate. |
 | text | string \| object | Text for the button, or `{ selector, text }` for an element inside it. |
-| tooltip | string \| null | Tooltip text, written to `tooltipAttribute`. `null` removes it. |
+| tooltip | string \| null | Tooltip text, written to `tooltipAttribute`, or to `title` and maybe `aria-label` if that isn't set. `null` removes it. It's applied after `text`. |
 
 ### Accessibility
 
@@ -99,6 +99,17 @@ button({ element: '.js-myControl', onClick: () => { /* ... */ } });
 ```
 
 Space would otherwise scroll the page, so it's prevented on activation.
+
+### The tooltip and the button's name
+
+If `tooltipAttribute` isn't set, a state's `tooltip` always goes in `title`. Whether it also goes in `aria-label` depends on whether the button has text that can be seen:
+
+- **An icon-only button** has nothing else to name it, so the tooltip is also its `aria-label`. Text inside an `svg`, or inside anything with `aria-hidden="true"`, doesn't count as text that can be seen.
+- **A button with visible text** is already named by that text, so the tooltip isn't written to `aria-label`. An `aria-label` would replace the text as the button's name. Voice control users press a button by saying what they see on it, and that wouldn't work if the name said something else.
+
+It's checked every time a state is applied, after the state's `text`. If a state gives an icon-only button some text, the `aria-label` the tooltip set is taken off. An `aria-label` you set yourself, on the element or with a state's `attributes`, is never taken off.
+
+With `tooltipAttribute` set, the tooltip only goes in that attribute, and `title` and `aria-label` are left alone.
 
 ## Properties
 

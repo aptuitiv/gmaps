@@ -1,6 +1,6 @@
 # Plan: Accessibility fixes for overlays, markers, clusters and buttons
 
-Status: **Steps 1–5 complete (2026-10-13).**
+Status: **Steps 1–6 complete (2026-10-13).**
 
 Created: 2026-10-13
 Target: `src/lib/Popup.ts`, `src/lib/Tooltip.ts`, `src/lib/Overlay.ts`, `src/lib/Marker.ts`,
@@ -356,35 +356,35 @@ checking `bgColor` / `textColor` once `centerOpacity` is applied.
 
 ---
 
-### Step 6 — Button tooltip overriding visible text
+### Step 6 — Button tooltip overriding visible text ✅
 
-**Problem.** A state's `tooltip` is written to both `title` and `aria-label` by default
-(`Button.ts:476-485`). If the button has visible text that differs from the tooltip, `aria-label`
-replaces that text as the accessible name. That breaks WCAG 2.5.3 (Label in Name): voice-control
-users can't activate the button by saying what they see. Icon-only buttons, the common case, are
-fine as they are.
+**Problem.** A state's `tooltip` was written to both `title` and `aria-label` by default. If the
+button has visible text that differs from the tooltip, `aria-label` replaces that text as the
+accessible name. That breaks WCAG 2.5.3 (Label in Name): voice-control users can't activate the
+button by saying what they see. Icon-only buttons, the common case, were fine.
 
-**Changes.**
+**Changes** (`src/lib/Button.ts`):
 
-- [ ] In `#applyTooltip()`, when no `tooltipAttribute` is set: always write `title`. Only write
-      `aria-label` when the element has no visible text content.
-  - "Visible text" = trimmed `textContent`, ignoring text inside `svg` elements and anything with
-    `aria-hidden="true"`.
-  - Check this at the time the tooltip is applied, because a state's `text` can change the content.
-    Apply `text` before `tooltip` within a state so the check sees the new text.
-- [ ] If an `aria-label` this code set earlier is no longer wanted (the button now has text), remove
-      it. Only remove one we set ourselves, never one the caller set.
-- [ ] An explicit `tooltipAttribute` keeps its current behaviour exactly.
+- [x] `#applyTooltip()` with no `tooltipAttribute` always writes (or removes) `title`. It writes
+      `aria-label` only when the element has no visible text.
+  - Module function `hasVisibleText()`: walks the text nodes, and ignores ones with an `svg` or
+    `aria-hidden="true"` ancestor between the text and the button.
+  - Checked every time a state is applied. `#applyState()` now applies `text` before `tooltip`.
+- [x] `#tooltipAriaLabel` records the value we last wrote. Our `aria-label` is taken off when the
+      button gets text or the tooltip goes to `null`, but only if the attribute still holds that
+      value. A caller's own `aria-label`, or one a state's `attributes` set, is never removed.
+  - A small behaviour change: `tooltip: null` used to remove any `aria-label`. Now it only removes
+    ours.
+- [x] An explicit `tooltipAttribute` writes and removes only that attribute, as before.
 
-**Tests** (`test/Button.test.ts`):
-- [ ] Icon-only button: both `title` and `aria-label` are set (unchanged).
-- [ ] Button with visible text: `title` is set and `aria-label` isn't.
-- [ ] A state change that adds text removes our `aria-label`. A caller-supplied `aria-label` is never
-      removed.
-- [ ] `tooltipAttribute: 'data-tooltip'` behaves as before.
+**Tests** (`test/Button.test.ts`, "the tooltip and the accessible name", 9 tests): icon-only gets
+both; visible text gets `title` only; svg text and `aria-hidden` text are ignored; a state that adds
+text takes our `aria-label` off; `null` takes it off; the caller's `aria-label` is never removed;
+a state's own `aria-label` is left alone; `tooltipAttribute` as before. Mutation-checked: applying
+the tooltip before the text fails 1 test.
 
-**Docs:** `docs/docs-src/api-reference/map-controls/` button page — when `aria-label` is and isn't
-written. CHANGELOG.
+**Docs:** `map-controls/button.md` — the option and state rows, and a new "The tooltip and the
+button's name" section. CHANGELOG — Changed.
 
 ---
 

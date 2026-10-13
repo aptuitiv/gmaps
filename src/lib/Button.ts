@@ -38,8 +38,8 @@ export type ButtonStateStyle = {
     className?: string;
     // Text for the button, or for an element inside it
     text?: string | { selector: string; text: string };
-    // Tooltip text, written to the attribute named by tooltipAttribute, or to title and aria-label.
-    // A null value removes it.
+    // Tooltip text, written to the attribute named by tooltipAttribute, or to title. It's also written
+    // to aria-label when the button has no visible text. A null value removes it.
     tooltip?: string | null;
 };
 
@@ -64,10 +64,39 @@ export type ButtonOptions = ControlOptions & {
     onClick?: (button: Button, event: MouseEvent | KeyboardEvent) => void;
     // How each state shows up in the DOM. Leave it out for a button with no state.
     states?: ButtonStates;
-    // The attribute a state's tooltip is written to. Defaults to title and aria-label.
+    // The attribute a state's tooltip is written to. Defaults to title, plus aria-label when the button has no
+    // visible text.
     tooltipAttribute?: string;
     // Whether a click flips the active state. Defaults to false.
     toggle?: boolean;
+};
+
+/**
+ * Whether an element has text that can be seen.
+ *
+ * Text inside an svg (like a <title>) or inside anything with aria-hidden="true" doesn't count. An
+ * icon-only button often has one of those, and still has nothing on screen to read.
+ *
+ * @param {HTMLElement} element The element to check
+ * @returns {boolean}
+ */
+const hasVisibleText = (element: HTMLElement): boolean => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if ((node.textContent ?? '').trim().length > 0) {
+            // Only what's between the text and the button matters, not anything the button is in
+            let parent = node.parentElement;
+            let isHidden = false;
+            while (parent && parent !== element && !isHidden) {
+                isHidden = parent instanceof SVGElement || parent.getAttribute('aria-hidden') === 'true';
+                parent = parent.parentElement;
+            }
+            if (!isHidden) {
+                return true;
+            }
+        }
+    }
+    return false;
 };
 
 /**
@@ -94,6 +123,12 @@ export class Button extends Control {
 
     /** The attribute a state's tooltip is written to */
     #tooltipAttribute: string | undefined;
+
+    /**
+     * The aria-label that a tooltip last wrote, so that it can be told apart from one the caller set.
+     * Only ours is ever taken off.
+     */
+    #tooltipAriaLabel: string | undefined;
 
     /** Whether a click flips the active state */
     #toggle: boolean = false;
@@ -434,10 +469,6 @@ export class Button extends Control {
             });
         }
 
-        if (typeof style.tooltip !== 'undefined') {
-            this.#applyTooltip(style.tooltip);
-        }
-
         if (isString(style.text)) {
             this.element.textContent = style.text;
         } else if (isObject(style.text)) {
@@ -445,6 +476,11 @@ export class Button extends Control {
             if (target) {
                 target.textContent = style.text.text;
             }
+        }
+
+        // After the text, because whether the tooltip is also the aria-label depends on it
+        if (typeof style.tooltip !== 'undefined') {
+            this.#applyTooltip(style.tooltip);
         }
 
         if (isStringWithValue(style.className)) {
@@ -457,18 +493,44 @@ export class Button extends Control {
     /**
      * Set or remove the tooltip for the current state
      *
+     * With tooltipAttribute set, the tooltip only goes in that attribute. Otherwise it goes in
+     * title, and in aria-label when the button has no visible text. An icon-only button needs it
+     * as its name. A button with visible text already has a name, and an aria-label that said
+     * something different would replace it, so voice control users couldn't say what they see to
+     * press it (WCAG 2.5.3).
+     *
      * @private
      * @param {string|null} value The tooltip text, or null to remove it
      */
     #applyTooltip(value: string | null): void {
-        const attributes = this.#tooltipAttribute ? [this.#tooltipAttribute] : ['title', 'aria-label'];
-        attributes.forEach((attribute) => {
+        if (this.#tooltipAttribute) {
             if (value === null) {
-                this.element.removeAttribute(attribute);
+                this.element.removeAttribute(this.#tooltipAttribute);
             } else {
-                this.element.setAttribute(attribute, value);
+                this.element.setAttribute(this.#tooltipAttribute, value);
             }
-        });
+            return;
+        }
+
+        if (value === null) {
+            this.element.removeAttribute('title');
+        } else {
+            this.element.setAttribute('title', value);
+        }
+
+        if (value !== null && !hasVisibleText(this.element)) {
+            this.element.setAttribute('aria-label', value);
+            this.#tooltipAriaLabel = value;
+        } else {
+            // Take off the aria-label a tooltip set before, but never one the caller set
+            if (
+                typeof this.#tooltipAriaLabel !== 'undefined' &&
+                this.element.getAttribute('aria-label') === this.#tooltipAriaLabel
+            ) {
+                this.element.removeAttribute('aria-label');
+            }
+            this.#tooltipAriaLabel = undefined;
+        }
     }
 }
 

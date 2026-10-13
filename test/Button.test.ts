@@ -168,6 +168,106 @@ describe('Button', () => {
         });
     });
 
+    // The tooltip is the name of an icon-only button. A button with visible text already has a
+    // name, and an aria-label that said something else would replace it, so a voice control user
+    // couldn't say what they see to press it (WCAG 2.5.3, Label in Name).
+    describe('the tooltip and the accessible name', () => {
+        /**
+         * A button element with the given HTML inside it
+         *
+         * @param {string} html The HTML
+         * @returns {HTMLButtonElement}
+         */
+        const withContent = (html: string): HTMLButtonElement => {
+            const element = document.createElement('button');
+            element.innerHTML = html;
+            return element;
+        };
+
+        it('is the aria-label of an icon-only button', () => {
+            const b = button({ states: layerStates, toggle: true });
+            expect(b.element.getAttribute('title')).toBe('Show the layer');
+            expect(b.element.getAttribute('aria-label')).toBe('Show the layer');
+        });
+
+        it('is not the aria-label of a button with visible text', () => {
+            const b = button({ element: withContent('Layers'), states: layerStates, toggle: true });
+            expect(b.element.getAttribute('title')).toBe('Show the layer');
+            expect(b.element.hasAttribute('aria-label')).toBe(false);
+        });
+
+        it('ignores text inside an svg', () => {
+            const b = button({
+                element: withContent('<svg><title>Layers icon</title><path d="M0 0" /></svg>'),
+                states: layerStates,
+                toggle: true,
+            });
+            expect(b.element.getAttribute('aria-label')).toBe('Show the layer');
+        });
+
+        it('ignores text that is aria-hidden', () => {
+            const b = button({
+                element: withContent('<span aria-hidden="true">☰</span>'),
+                states: layerStates,
+                toggle: true,
+            });
+            expect(b.element.getAttribute('aria-label')).toBe('Show the layer');
+        });
+
+        it('takes its aria-label off when a state gives the button text', () => {
+            const b = button({
+                states: {
+                    active: { text: 'Hide', tooltip: 'Hide the layer' },
+                    inactive: { tooltip: 'Show the layer' },
+                },
+                toggle: true,
+            });
+            expect(b.element.getAttribute('aria-label')).toBe('Show the layer');
+            b.activate();
+            expect(b.element.textContent).toBe('Hide');
+            expect(b.element.getAttribute('title')).toBe('Hide the layer');
+            expect(b.element.hasAttribute('aria-label')).toBe(false);
+        });
+
+        it('takes its aria-label off when the tooltip is removed', () => {
+            const b = button({ states: layerStates, toggle: true });
+            b.disable();
+            expect(b.element.hasAttribute('aria-label')).toBe(false);
+        });
+
+        it('never takes off an aria-label the caller set', () => {
+            const element = withContent('Layers');
+            element.setAttribute('aria-label', 'Map layers');
+            const b = button({ element, states: layerStates, toggle: true });
+            expect(b.element.getAttribute('aria-label')).toBe('Map layers');
+            b.activate();
+            b.disable();
+            expect(b.element.getAttribute('aria-label')).toBe('Map layers');
+        });
+
+        it('leaves an aria-label a state set itself', () => {
+            const b = button({
+                element: withContent('Layers'),
+                states: {
+                    active: { attributes: { 'aria-label': 'Layers, showing' }, tooltip: 'Hide the layer' },
+                    inactive: { tooltip: 'Show the layer' },
+                },
+                toggle: true,
+            });
+            b.activate();
+            expect(b.element.getAttribute('aria-label')).toBe('Layers, showing');
+        });
+
+        it('only goes in the custom attribute when tooltipAttribute is set', () => {
+            const b = button({ states: layerStates, toggle: true, tooltipAttribute: 'data-tooltip' });
+            expect(b.element.getAttribute('data-tooltip')).toBe('Show the layer');
+            expect(b.element.hasAttribute('title')).toBe(false);
+            expect(b.element.hasAttribute('aria-label')).toBe(false);
+            b.disable();
+            expect(b.element.hasAttribute('data-tooltip')).toBe(false);
+        });
+    });
+
     describe('wrapping an element the site rendered', () => {
         it('uses it as it is and still applies state to it', () => {
             const element = document.createElement('a');

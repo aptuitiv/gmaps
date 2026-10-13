@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The InfoWindow `focus` option now defaults to `true`, so focus moves into an InfoWindow when it opens. InfoWindows shown on hover never take focus.
 - A tooltip or popup shown on hover now waits 100 milliseconds before hiding when the pointer leaves the thing that showed it, so the pointer can be moved onto it. Moving the pointer off it hides it.
 - The default `colorRangeBottom` cluster color is now `#b00000` instead of `#ff0000`. The white number on the old red only had about 3.3:1 contrast once the circle's opacity is applied over a light map, below the 4.5:1 that text needs. The new red has about 4.6:1. Set `colorRangeBottom` to `'#ff0000'` to keep the old color.
+- A button state's `tooltip` is now only written to `aria-label` when the button has no visible text. Before, it was always written there, and on a button with visible text it replaced that text as the button's name, so voice control users couldn't press it by saying what they see. It's still written to `title`, and icon-only buttons work as before. An `aria-label` you set yourself is never taken off. Buttons with `tooltipAttribute` set aren't affected.
 
 ### Fixed
 
