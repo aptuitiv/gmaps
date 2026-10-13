@@ -70,8 +70,8 @@ type GMMarkerOptions = {
     optimized?: boolean;
     // The position for the marker.
     position?: LatLng;
-    // The title for the marker. If a custom tooltip is not used, this will show as a default tooltip on the marker
-    // that shows when you hover over a link with a title.
+    // The title for the marker. Screen readers use it as the marker's name. If a custom tooltip is not used,
+    // the browser also shows it as a tooltip when the marker is hovered.
     title?: string;
     // Whether the marker is visible on the map. Defaults to true.
     // A marker that isn't visible isn't drawn, so nothing is created on the Google map for it
@@ -161,6 +161,15 @@ export class Marker extends Layer {
      * @type {boolean}
      */
     #isCreationDeferred: boolean = false;
+
+    /**
+     * Holds whether the title is taken off the Google marker while a tooltip or popup is shown
+     * for it on hover. See hideNativeTitle().
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isNativeTitleHidden: boolean = false;
 
     /**
      * Holds if the marker is setting up
@@ -1314,15 +1323,11 @@ export class Marker extends Layer {
             }
         }
 
-        // Set the title and tooltip
-        if (options.tooltip) {
-            let { tooltip } = options;
-            if (options.title && isObject(tooltip) && !(tooltip instanceof HTMLElement || tooltip instanceof Text)) {
-                // The title will be a custom tooltip that is added to the map container if the tooltip content isn't already set
-                tooltip = { ...{ content: options.title }, ...tooltip };
-            }
-            this.attachTooltip(tooltip);
-        } else if (options.title) {
+        // Set the title and tooltip.
+        // The title is set even when there's a tooltip, because it's the marker's name for screen
+        // readers. It's taken off while the tooltip is showing so that the browser doesn't show
+        // it as a second tooltip. See hideNativeTitle().
+        if (options.title) {
             // Held on the options rather than assigned through the public setter. The setter
             // awaits #setupGoogleMarker(), so setting a title used to build the Google marker
             // immediately - and because the value was applied after the await, the marker was
@@ -1333,6 +1338,14 @@ export class Marker extends Layer {
                 // The Google Maps marker is set up. Fully set the title.
                 this.title = options.title;
             }
+        }
+        if (options.tooltip) {
+            let { tooltip } = options;
+            if (options.title && isObject(tooltip) && !(tooltip instanceof HTMLElement || tooltip instanceof Text)) {
+                // The title will be a custom tooltip that is added to the map container if the tooltip content isn't already set
+                tooltip = { ...{ content: options.title }, ...tooltip };
+            }
+            this.attachTooltip(tooltip);
         }
 
         // Set simple options
@@ -1475,7 +1488,35 @@ export class Marker extends Layer {
         } else if (isNullOrUndefined(value)) {
             this.#options.title = undefined;
         }
-        this.#marker.setTitle(this.#options.title);
+        // While a hover tooltip is showing the title stays off the Google marker. The new one is
+        // put on when the pointer leaves.
+        this.#marker.setTitle(this.#isNativeTitleHidden ? null : (this.#options.title ?? null));
+    }
+
+    /**
+     * Hide or show the browser's own tooltip for the title while a tooltip or popup is shown for
+     * the marker on hover.
+     *
+     * The title is the marker's name for screen readers, so it stays set. But the browser shows it
+     * as its own tooltip too, which would sit on top of the custom one. So it's taken off the
+     * Google marker while the pointer is on the marker, and put back when the pointer leaves.
+     *
+     * Google keeps the marker's aria-label when the title is taken off, so the name is still there
+     * while it's hovered. Either way, keyboard focus doesn't trigger this.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @param {boolean} isHidden Whether the browser's tooltip is hidden
+     */
+    hideNativeTitle(isHidden: boolean): void {
+        if (this.#isNativeTitleHidden === isHidden) {
+            return;
+        }
+        this.#isNativeTitleHidden = isHidden;
+        if (this.#marker && this.#options.title) {
+            this.#marker.setTitle(isHidden ? null : this.#options.title);
+        }
     }
 
     /**

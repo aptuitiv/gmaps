@@ -24,6 +24,7 @@ import { Marker } from './Marker';
 import { checkForGoogleMaps, getNumber, isFunction, isNumber, isNumberString, isObject } from './helpers';
 import { ClusterColor, ClusterColors, DefaultRenderer } from './MarkerCluster/DefaultRender';
 import { ClusterImages, ClusterImageValue, ImageRenderer } from './MarkerCluster/ImageRenderer';
+import { ClusterTitle } from './MarkerCluster/clusterTitle';
 import Base from './Base';
 import { loader } from './Loader';
 
@@ -54,6 +55,10 @@ export type DefaultRenderOptions = {
     outerOpacity?: number;
     // Whether to show the number of markers in the cluster
     showNumber?: boolean;
+    // The title for the cluster markers, which screen readers use as their name. A string where "{count}" is
+    // replaced with the number of markers in the cluster, or a function that's passed the number and returns
+    // the title. Defaults to "Cluster of {count} markers".
+    title?: ClusterTitle;
 };
 
 export type ImageRendererOptions = {
@@ -80,6 +85,10 @@ export type ImageRendererOptions = {
     labelFontWeight?: string;
     // Whether to show the number of markers in the cluster
     showNumber?: boolean;
+    // The title for the cluster markers, which screen readers use as their name. A string where "{count}" is
+    // replaced with the number of markers in the cluster, or a function that's passed the number and returns
+    // the title. Defaults to "Cluster of {count} markers".
+    title?: ClusterTitle;
 };
 
 // Options for the marker cluster
@@ -325,6 +334,9 @@ export class MarkerCluster extends Base {
                 if (typeof renderOptions.showNumber !== 'undefined') {
                     renderer.setShowNumber(renderOptions.showNumber);
                 }
+                if (typeof renderOptions.title !== 'undefined') {
+                    renderer.setTitle(renderOptions.title);
+                }
                 clusterOptions.renderer = renderer;
             } else if (isObject(optionsToUse.imageRendererOptions)) {
                 const renderer = new ImageRenderer();
@@ -352,6 +364,9 @@ export class MarkerCluster extends Base {
                 }
                 if (typeof renderOptions.showNumber !== 'undefined') {
                     renderer.setShowNumber(renderOptions.showNumber);
+                }
+                if (typeof renderOptions.title !== 'undefined') {
+                    renderer.setTitle(renderOptions.title);
                 }
                 clusterOptions.renderer = renderer;
             }

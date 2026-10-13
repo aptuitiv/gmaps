@@ -14,6 +14,11 @@
 // Set a constant so that the READY event can be used in multiple places.
 export const READY_EVENT = 'ready';
 
+// How long, in milliseconds, a tooltip or popup shown on hover waits before hiding once the pointer
+// leaves the thing that showed it. It's long enough to move the pointer onto the tooltip without it
+// disappearing, which WCAG 1.4.13 asks for, and short enough not to feel like it's lingering.
+export const HOVER_HIDE_DELAY = 100;
+
 /**
  * The events that this library dispatches itself, which the Google Maps API knows nothing about.
  *

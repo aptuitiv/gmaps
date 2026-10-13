@@ -45,7 +45,8 @@ type GMInfoWindowOptions = {
 export type InfoWindowOptions = GMInfoWindowOptions & {
     // Whether to automatically close other open InfoWindows when opening this one
     autoClose?: boolean;
-    // Whether focus should be set on the info window when it is opened. Defaults to false.
+    // Whether focus should be set on the info window when it is opened. Defaults to true.
+    // An info window shown on hover never takes focus.
     focus?: boolean;
     // The offset, in pixels, of the tip of the info window from the point on the map at whose geographical coordinates the info window is anchored.
     // If an InfoWindow is opened with an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property.
@@ -97,7 +98,7 @@ export class InfoWindow extends Layer {
      * @private
      * @type {boolean}
      */
-    #focus: boolean = false;
+    #focus: boolean = true;
 
     /**
      * Whether the InfoWindow is attached to an element
@@ -412,6 +413,8 @@ export class InfoWindow extends Layer {
             await element.init().then(() => {
                 element.onceImmediate(READY_EVENT, () => {
                     const triggerEvent = event || this.#event;
+                    // Kept so that show() knows a hover is showing it, and doesn't move focus
+                    this.#event = triggerEvent;
 
                     if (triggerEvent === 'clickon' || triggerEvent === 'hover') {
                         // Don't toggle the display of the InfoWindow for the clickon and hover events.
@@ -718,7 +721,7 @@ export class InfoWindow extends Layer {
                 if (element instanceof Map) {
                     googleInfoWindow.open({
                         map: element.toGoogle(),
-                        shouldFocus: this.#focus,
+                        shouldFocus: this.#shouldFocus(),
                     });
                     this.setMap(element);
                     // Dispatch the event to say that the info window is ready
@@ -728,7 +731,7 @@ export class InfoWindow extends Layer {
                     element.toGoogle().then((marker) => {
                         googleInfoWindow.open({
                             anchor: marker,
-                            shouldFocus: this.#focus,
+                            shouldFocus: this.#shouldFocus(),
                         });
                         this.setMap(element.getMap());
                         // Dispatch the event to say that the info window is ready
@@ -755,6 +758,19 @@ export class InfoWindow extends Layer {
         } else {
             this.show(element);
         }
+    }
+
+    /**
+     * Whether Google should move focus into the info window as it opens.
+     *
+     * Never for hover. The pointer resting on something mustn't pull a keyboard user away from
+     * where they are.
+     *
+     * @private
+     * @returns {boolean}
+     */
+    #shouldFocus(): boolean {
+        return this.#focus && this.#event !== 'hover';
     }
 
     /**

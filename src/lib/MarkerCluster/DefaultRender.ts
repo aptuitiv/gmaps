@@ -34,6 +34,7 @@
 
 import { Cluster, ClusterStats, MarkerUtils, Renderer } from '@googlemaps/markerclusterer';
 import { getBoolean, getNumber, isNumber, isObject, isString, isStringWithValue } from '../helpers';
+import { ClusterTitle, DEFAULT_CLUSTER_TITLE, getClusterTitle, isClusterTitle } from './clusterTitle';
 
 export type ClusterColor = {
     bgColor: string;
@@ -53,9 +54,13 @@ export class DefaultRenderer implements Renderer {
     /**
      * The color to use for the cluster if it has less than the average number of markers in a cluster.
      *
+     * The label is white, 12px, on the centre circle drawn at #centerOpacity, so the map shows
+     * through it. Over the lightest map (white) this needs to be dark enough for 4.5:1 contrast.
+     * '#ff0000' was only about 3.3:1. '#b00000' is about 4.6:1. The blue default is about 5.5:1.
+     *
      * @type {string|ClusterColor}
      */
-    #colorRangeBottom: string | ClusterColor = '#ff0000';
+    #colorRangeBottom: string | ClusterColor = '#b00000';
 
     /**
      * The color to use for the cluster if it has more than the average number of markers in a cluster.
@@ -105,6 +110,13 @@ export class DefaultRenderer implements Renderer {
      * @type {boolean}
      */
     #showNumber: boolean = true;
+
+    /**
+     * Holds the title for the cluster marker, which is its name for screen readers
+     *
+     * @type {ClusterTitle}
+     */
+    #title: ClusterTitle = DEFAULT_CLUSTER_TITLE;
 
     /**
      * Set the color to use for the cluster if it has less than the average number of markers in a cluster.
@@ -228,6 +240,18 @@ export class DefaultRenderer implements Renderer {
     }
 
     /**
+     * Set the title for the cluster markers. Screen readers use it as the cluster marker's name.
+     *
+     * @param {ClusterTitle} title A string where "{count}" is replaced with the number of markers in the
+     *   cluster, or a function that's passed the number and returns the title.
+     */
+    setTitle(title: ClusterTitle): void {
+        if (isClusterTitle(title)) {
+            this.#title = title;
+        }
+    }
+
+    /**
      * Get the color for the cluster.
      *
      * @param {number} count The number of markers in the cluster.
@@ -305,7 +329,7 @@ export class DefaultRenderer implements Renderer {
         }" dominant-baseline="middle" font-family="${this.#labelFontFamily}">${this.#showNumber ? count : ''}</text>
             </svg>`;
 
-        const title = `Cluster of ${count} markers`;
+        const title = getClusterTitle(this.#title, count);
         // adjust zIndex to be above other markers
         const zIndex: number = Number(google.maps.Marker.MAX_ZINDEX) + count;
 

@@ -24,7 +24,7 @@ import {
     isObject,
     isString,
 } from './helpers';
-import { OverlayEvents } from './constants';
+import { HOVER_HIDE_DELAY, OverlayEvents } from './constants';
 import { LatLngBounds } from './LatLngBounds';
 
 type ResizeStart = {
@@ -37,6 +37,9 @@ type ResizeStart = {
     width: number;
     height: number;
 };
+
+// Counts up to give each overlay element its own id
+let overlayIdCounter = 0;
 
 /**
  * Base class to help with drawing overlays on the map.
@@ -105,6 +108,33 @@ export class Overlay extends Layer {
      * @type {HTMLElement|undefined}
      */
     #overlay: HTMLElement | undefined;
+
+    /**
+     * The timer for hideSoon(), so that it can be cancelled
+     *
+     * @private
+     * @type {ReturnType<typeof setTimeout>|undefined}
+     */
+    #hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+    /**
+     * Whether the overlay is showing because something was hovered or focused.
+     *
+     * While it is, moving the pointer off the overlay hides it, the same as moving it off the
+     * thing that showed it.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isHoverShown: boolean = false;
+
+    /**
+     * The id given to the overlay element, so that something else can refer to it
+     *
+     * @private
+     * @type {string|undefined}
+     */
+    #overlayId: string | undefined;
 
     /**
      * The class names for the overlay element, held here until the element is built.
@@ -229,6 +259,17 @@ export class Overlay extends Layer {
             }
             Object.keys(this.#styles).forEach((name) => {
                 (element.style as unknown as { [key: string]: string })[name] = this.#styles[name];
+            });
+            // The pointer moving from the thing that was hovered onto the overlay starts the
+            // delayed hide, and reaching the overlay cancels it. That's what lets the pointer
+            // rest on a tooltip without it disappearing.
+            element.addEventListener('mouseenter', () => {
+                this.#cancelHideSoon();
+            });
+            element.addEventListener('mouseleave', () => {
+                if (this.#isHoverShown) {
+                    this.hideSoon();
+                }
             });
             this.#overlay = element;
         }
@@ -593,6 +634,8 @@ export class Overlay extends Layer {
      * @returns {Overlay}
      */
     hide(): Overlay {
+        this.#cancelHideSoon();
+        this.#isHoverShown = false;
         if (this.#overlayView) {
             this.#overlayView.setMap(null);
             this.removeMap();
@@ -621,6 +664,7 @@ export class Overlay extends Layer {
      * @returns {Promise<Overlay>}
      */
     move(position: LatLngValue | undefined, map?: Map): Promise<Overlay> {
+        this.#cancelHideSoon();
         return new Promise((resolve, reject) => {
             let mapObject = map;
             if (typeof mapObject === 'undefined') {
@@ -829,6 +873,7 @@ export class Overlay extends Layer {
      * @returns {Promise<Overlay>}
      */
     show(map: Map): Promise<Overlay> {
+        this.#cancelHideSoon();
         return new Promise((resolve, reject) => {
             if (map instanceof Map) {
                 this.#setupGoogleOverlay();
@@ -889,6 +934,71 @@ export class Overlay extends Layer {
             }
         }
         return this;
+    }
+
+    /**
+     * Hide the overlay after a short delay, unless it's shown again or the pointer moves onto it first.
+     *
+     * Used when the pointer leaves the thing that showed the overlay on hover. Hiding straight
+     * away would make it impossible to move the pointer onto the overlay.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     */
+    hideSoon(): void {
+        this.#cancelHideSoon();
+        this.#hideTimer = setTimeout(() => {
+            this.#hideTimer = undefined;
+            this.hide();
+        }, HOVER_HIDE_DELAY);
+    }
+
+    /**
+     * Mark the overlay as shown by hovering or focusing something
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     */
+    markHoverShown(): void {
+        this.#isHoverShown = true;
+    }
+
+    /**
+     * Get the id of the overlay element, giving it one the first time.
+     *
+     * The id stays the same for as long as the overlay exists, however many things it's shown for.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {string}
+     */
+    getOverlayId(): string {
+        if (!this.#overlayId) {
+            overlayIdCounter += 1;
+            this.#overlayId = `gmaps-overlay-${overlayIdCounter}`;
+        }
+        // getOverlayElement() rather than #element(), so that a subclass that writes its content
+        // into the element first gets to do that.
+        const element = this.getOverlayElement();
+        if (element.id !== this.#overlayId) {
+            element.id = this.#overlayId;
+        }
+        return this.#overlayId;
+    }
+
+    /**
+     * Cancel a hide that hideSoon() is waiting to do
+     *
+     * @private
+     */
+    #cancelHideSoon(): void {
+        if (this.#hideTimer) {
+            clearTimeout(this.#hideTimer);
+            this.#hideTimer = undefined;
+        }
     }
 
     /**

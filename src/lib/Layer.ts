@@ -8,8 +8,18 @@
 import { LayerEvents } from './constants';
 import { missingFeatureMessage } from './missingFeature';
 import { EventCallback, Evented } from './Evented';
+import type { LatLng } from './LatLng';
 import { Map } from './Map';
 import { Popup } from './Popup';
+
+/**
+ * The element on the page that takes keyboard focus for a layer, and where an overlay shown for
+ * that focus goes on the map.
+ */
+export type FocusTarget = {
+    element: HTMLElement;
+    position: LatLng | undefined;
+};
 
 /**
  * Base class to help with drawing stuff on the map.
@@ -143,6 +153,40 @@ class Layer extends Evented {
     // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
     init(): Promise<void> {
         return Promise.resolve();
+    }
+
+    /**
+     * Get the element on the page that takes keyboard focus for this layer.
+     *
+     * A tooltip or popup shown on hover is also shown when this element is focused, so that it
+     * works with a keyboard too. Most layers don't have one: Google draws legacy markers, polylines
+     * and data features itself, and gives us no element of theirs to listen to. The advanced marker
+     * is an element on the page, so it overrides this.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @returns {FocusTarget|undefined}
+     */
+    // eslint-disable-next-line class-methods-use-this -- This is intended to be overridden by subclasses
+    getFocusTarget(): FocusTarget | undefined {
+        return undefined;
+    }
+
+    /**
+     * Hide or show the browser's own tooltip for the layer's title while a tooltip or popup is
+     * shown for it on hover, so that the two aren't shown on top of each other.
+     *
+     * Only markers have a title, so this does nothing for other layers.
+     *
+     * This is not intended to be called outside of this library.
+     *
+     * @internal
+     * @param {boolean} isHidden Whether the browser's tooltip is hidden
+     */
+    // eslint-disable-next-line class-methods-use-this, @typescript-eslint/no-unused-vars -- This is intended to be overridden by subclasses
+    hideNativeTitle(isHidden: boolean): void {
+        // Nothing to do by default
     }
 
     /**

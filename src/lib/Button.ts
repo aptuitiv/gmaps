@@ -20,7 +20,15 @@
 
 import { Control, ControlOptions } from './Control';
 import { Map } from './Map';
-import { isBoolean, isFunction, isObject, isString, isStringWithValue } from './helpers';
+import {
+    isActivationKey,
+    isBoolean,
+    isFunction,
+    isObject,
+    isString,
+    isStringWithValue,
+    makeButtonLike,
+} from './helpers';
 
 // How one state shows up in the DOM. Everything here is the implementor's vocabulary.
 export type ButtonStateStyle = {
@@ -30,8 +38,8 @@ export type ButtonStateStyle = {
     className?: string;
     // Text for the button, or for an element inside it
     text?: string | { selector: string; text: string };
-    // Tooltip text, written to the attribute named by tooltipAttribute, or to title and aria-label.
-    // A null value removes it.
+    // Tooltip text, written to the attribute named by tooltipAttribute, or to title. It's also written
+    // to aria-label when the button has no visible text. A null value removes it.
     tooltip?: string | null;
 };
 
@@ -56,10 +64,43 @@ export type ButtonOptions = ControlOptions & {
     onClick?: (button: Button, event: MouseEvent | KeyboardEvent) => void;
     // How each state shows up in the DOM. Leave it out for a button with no state.
     states?: ButtonStates;
-    // The attribute a state's tooltip is written to. Defaults to title and aria-label.
+    // The attribute a state's tooltip is written to. Defaults to title, plus aria-label when the button has no
+    // visible text.
     tooltipAttribute?: string;
     // Whether a click flips the active state. Defaults to false.
     toggle?: boolean;
+};
+
+/**
+ * Whether an element has text that can be seen.
+ *
+ * Text inside an svg (like a <title>), inside anything with aria-hidden="true", or inside anything
+ * with the hidden attribute doesn't count. An icon-only button often has one of those, and still has
+ * nothing on screen to read.
+ *
+ * @param {HTMLElement} element The element to check
+ * @returns {boolean}
+ */
+const hasVisibleText = (element: HTMLElement): boolean => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if ((node.textContent ?? '').trim().length > 0) {
+            // Only what's between the text and the button matters, not anything the button is in
+            let parent = node.parentElement;
+            let isHidden = false;
+            while (parent && parent !== element && !isHidden) {
+                isHidden =
+                    parent instanceof SVGElement ||
+                    parent.getAttribute('aria-hidden') === 'true' ||
+                    parent.hasAttribute('hidden');
+                parent = parent.parentElement;
+            }
+            if (!isHidden) {
+                return true;
+            }
+        }
+    }
+    return false;
 };
 
 /**
@@ -86,6 +127,20 @@ export class Button extends Control {
 
     /** The attribute a state's tooltip is written to */
     #tooltipAttribute: string | undefined;
+
+    /**
+     * The aria-label that a tooltip wrote, while the tooltip still owns it. Undefined when it doesn't,
+     * including once a state's attributes have set or removed aria-label. Only one the tooltip owns
+     * is ever replaced or taken off, so the caller's aria-label always stays, even when it says the
+     * same thing.
+     */
+    #tooltipAriaLabel: string | undefined;
+
+    /**
+     * The tooltip the states last set, so that the aria-label can be worked out again when a state
+     * changes the text without setting a tooltip
+     */
+    #tooltip: string | null = null;
 
     /** Whether a click flips the active state */
     #toggle: boolean = false;
@@ -318,36 +373,15 @@ export class Button extends Control {
      * Give the element button semantics and keyboard handling when it isn't already a button.
      *
      * A click listener is attached to whatever element this is given, so an element that wasn't
-     * interactive before becomes interactive now. Something that can be clicked has to be reachable
-     * and operable with a keyboard too, and a div or a span is neither: it can't be tabbed to, and
-     * Enter and Space do nothing on it.
-     *
-     * Elements that already carry this are left alone - a real button, a link with an href, a form
-     * control - as is anything where the caller has set a role or a tabindex themselves, since they
-     * have said what they want it to be.
+     * interactive before becomes interactive now. See makeButtonLike() for what is and isn't
+     * changed.
      *
      * @private
      */
     #setUpKeyboard(): void {
-        const {element} = this;
-        const nativelyInteractive =
-            element instanceof HTMLButtonElement ||
-            element instanceof HTMLInputElement ||
-            element instanceof HTMLSelectElement ||
-            element instanceof HTMLTextAreaElement ||
-            (element instanceof HTMLAnchorElement && element.hasAttribute('href'));
-
-        if (nativelyInteractive) {
-            return;
+        if (makeButtonLike(this.element)) {
+            this.element.addEventListener('keydown', this.#handleKeyDown);
         }
-
-        if (!element.hasAttribute('role')) {
-            element.setAttribute('role', 'button');
-        }
-        if (!element.hasAttribute('tabindex')) {
-            element.setAttribute('tabindex', '0');
-        }
-        element.addEventListener('keydown', this.#handleKeyDown);
     }
 
     /**
@@ -359,7 +393,7 @@ export class Button extends Control {
      * @param {KeyboardEvent} event The keydown event
      */
     #handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key !== 'Enter' && event.key !== ' ') {
+        if (!isActivationKey(event)) {
             return;
         }
         // Space scrolls the page and Enter can submit a form, neither of which is wanted from
@@ -439,16 +473,16 @@ export class Button extends Control {
 
         if (isObject(style.attributes)) {
             Object.entries(style.attributes).forEach(([name, value]) => {
+                if (name.toLowerCase() === 'aria-label') {
+                    // The state has said what the aria-label is, so the tooltip no longer owns it
+                    this.#tooltipAriaLabel = undefined;
+                }
                 if (value === null) {
                     this.element.removeAttribute(name);
                 } else {
                     this.element.setAttribute(name, value);
                 }
             });
-        }
-
-        if (typeof style.tooltip !== 'undefined') {
-            this.#applyTooltip(style.tooltip);
         }
 
         if (isString(style.text)) {
@@ -458,6 +492,16 @@ export class Button extends Control {
             if (target) {
                 target.textContent = style.text.text;
             }
+        }
+
+        // After the text, because whether the tooltip is also the aria-label depends on it. A state
+        // can change the text without a tooltip of its own, like an active state that adds a word to
+        // an icon-only button whose tooltip comes from the enabled state. The aria-label is worked
+        // out again then too, so the old one doesn't stay and hide the new text.
+        if (typeof style.tooltip !== 'undefined') {
+            this.#applyTooltip(style.tooltip);
+        } else if (typeof style.text !== 'undefined') {
+            this.#applyTooltipAriaLabel();
         }
 
         if (isStringWithValue(style.className)) {
@@ -470,18 +514,61 @@ export class Button extends Control {
     /**
      * Set or remove the tooltip for the current state
      *
+     * With tooltipAttribute set, the tooltip only goes in that attribute. Otherwise it goes in
+     * title, and in aria-label when the button has no visible text. An icon-only button needs it
+     * as its name. A button with visible text already has a name, and an aria-label that said
+     * something different would replace it, so voice control users couldn't say what they see to
+     * press it (WCAG 2.5.3).
+     *
      * @private
      * @param {string|null} value The tooltip text, or null to remove it
      */
     #applyTooltip(value: string | null): void {
-        const attributes = this.#tooltipAttribute ? [this.#tooltipAttribute] : ['title', 'aria-label'];
-        attributes.forEach((attribute) => {
+        if (this.#tooltipAttribute) {
             if (value === null) {
-                this.element.removeAttribute(attribute);
+                this.element.removeAttribute(this.#tooltipAttribute);
             } else {
-                this.element.setAttribute(attribute, value);
+                this.element.setAttribute(this.#tooltipAttribute, value);
             }
-        });
+            return;
+        }
+
+        if (value === null) {
+            this.element.removeAttribute('title');
+        } else {
+            this.element.setAttribute('title', value);
+        }
+        this.#tooltip = value;
+        this.#applyTooltipAriaLabel();
+    }
+
+    /**
+     * Write the tooltip to aria-label if the button has no visible text, or take off the one a
+     * tooltip wrote before if it now has some. See #applyTooltip().
+     *
+     * @private
+     */
+    #applyTooltipAriaLabel(): void {
+        if (this.#tooltipAttribute) {
+            return;
+        }
+        const value = this.#tooltip;
+        const current = this.element.getAttribute('aria-label');
+        // The value check catches the caller changing it directly on the element afterwards
+        const isOurs = typeof this.#tooltipAriaLabel !== 'undefined' && current === this.#tooltipAriaLabel;
+        if (value !== null && !hasVisibleText(this.element)) {
+            // Never replace an aria-label the caller set
+            if (current === null || isOurs) {
+                this.element.setAttribute('aria-label', value);
+                this.#tooltipAriaLabel = value;
+            }
+        } else {
+            // Take off the aria-label the tooltip set, but never one the caller set
+            if (isOurs) {
+                this.element.removeAttribute('aria-label');
+            }
+            this.#tooltipAriaLabel = undefined;
+        }
     }
 }
 

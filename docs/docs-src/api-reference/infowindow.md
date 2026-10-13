@@ -126,7 +126,7 @@ Type `InfoWindowOptions`
 | content | string or [HTMLElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement) or [Text](https://developer.mozilla.org/en-US/docs/Web/API/Text)  | | The content for the InfoWindow. |
 | disableAutoPan | boolean | | Whether to disable panning the map to make the InfoWindow fully visible when it shows. |
 | event | string | 'click' | The event to trigger the display of the InfoWindow. Allowed values are `click`, `clickon`, and `hover`. This is an alternate way of setting the trigger event than passing the event to [attachTo](#attachto) or [attachInfoWindow](/api-reference/base-classes/layer#attachinfowindow). |
-| focus | boolean | false | Whether focus should be moved to the InfoWindow when it's opened. |
+| focus | boolean | true | Whether focus should be moved to the InfoWindow when it's opened. An InfoWindow shown on hover never takes focus. If you open an InfoWindow when the page loads you probably want to set this to `false`. |
 | maxWidth | number | | The maximum width of the InfoWindow, regardless of content's width |
 | minWidth | number | | The minimum width of the InfoWindow, regardless of content's width |
 | pixelOffset | [SizeValue](/api-reference/utilities/size#sizevalue-type) | [0, -4] | The offset, in pixels, of the tip of the info window from the point on the map at whose geographical coordinates the info window is anchored. If an InfoWindow is opened from an anchor, the pixelOffset will be calculated from the anchor's anchorPoint property. |

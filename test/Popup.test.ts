@@ -17,7 +17,7 @@
 =========================================================================== */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Popup, popup } from '../src/lib/Popup';
+import { closeAllPopups, Popup, popup } from '../src/lib/Popup';
 import { Tooltip, tooltip } from '../src/lib/Tooltip';
 import { marker } from '../src/lib/Marker';
 import { polyline } from '../src/lib/Polyline';
@@ -457,5 +457,303 @@ describe('showing a popup on a layer that is not on a map', () => {
         await tick();
 
         expect(p.isOpen()).toBe(true);
+    });
+});
+
+/* ===========================================================================
+    Accessibility: focus, Escape, role and name, and a keyboard close element.
+
+    The Google stub doesn't call onAdd() or draw(), so openOnPage() does what Google would: put
+    the element in a pane on the page and draw it. Focus only moves on the first draw, because
+    the element isn't on the page before then.
+=========================================================================== */
+describe('popup accessibility', () => {
+    let pane: HTMLElement;
+
+    /**
+     * Show the popup, then add and draw it the way Google would
+     *
+     * @param {Popup} p The popup
+     * @returns {Promise<Popup>}
+     */
+    const openOnPage = async (p: Popup): Promise<Popup> => {
+        p.position = { lat: 48.85, lng: 2.35 };
+        // Fitting pans the map, which the fake map can't do, and isn't what these tests are about
+        p.fit = false;
+        await p.show(fakeMap());
+        p.add({ floatPane: pane } as unknown as google.maps.MapPanes);
+        p.draw(fakeProjection());
+        return p;
+    };
+
+    /**
+     * A button on the page, outside any popup, with focus on it
+     *
+     * @returns {HTMLButtonElement}
+     */
+    const focusedOpener = (): HTMLButtonElement => {
+        const opener = document.createElement('button');
+        document.body.appendChild(opener);
+        opener.focus();
+        return opener;
+    };
+
+    /**
+     * Press a key on an element
+     *
+     * @param {EventTarget} target Where the key is pressed
+     * @param {string} key The key
+     * @returns {KeyboardEvent}
+     */
+    const press = (target: EventTarget, key: string): KeyboardEvent => {
+        const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+        target.dispatchEvent(event);
+        return event;
+    };
+
+    beforeEach(() => {
+        installGoogleMaps();
+        pane = document.createElement('div');
+        document.body.appendChild(pane);
+    });
+
+    afterEach(() => {
+        closeAllPopups();
+        document.body.innerHTML = '';
+        uninstallGoogleMaps();
+    });
+
+    describe('role and name', () => {
+        it("defaults the role to 'dialog'", async () => {
+            const p = await openOnPage(popup('Trail 12'));
+            expect(p.getOverlayElement().getAttribute('role')).toBe('dialog');
+        });
+
+        it("has the 'tooltip' role on hover", async () => {
+            const p = popup({ content: 'Trail 12', event: 'hover' });
+            await openOnPage(p);
+            expect(p.getOverlayElement().getAttribute('role')).toBe('tooltip');
+            expect(p.getOverlayElement().hasAttribute('tabindex')).toBe(false);
+        });
+
+        it('uses the role it was given', async () => {
+            const p = await openOnPage(popup({ content: 'Trail 12', role: 'region' }));
+            expect(p.getOverlayElement().getAttribute('role')).toBe('region');
+        });
+
+        it('writes ariaLabel to the element', async () => {
+            const p = await openOnPage(popup({ content: 'Trail 12', ariaLabel: 'Trail details' }));
+            expect(p.getOverlayElement().getAttribute('aria-label')).toBe('Trail details');
+        });
+
+        it('updates aria-label when it changes on an open popup', async () => {
+            const p = await openOnPage(popup({ content: 'Trail 12', ariaLabel: 'Trail details' }));
+            p.ariaLabel = 'Other';
+            expect(p.getOverlayElement().getAttribute('aria-label')).toBe('Other');
+            p.ariaLabel = '';
+            expect(p.getOverlayElement().hasAttribute('aria-label')).toBe(false);
+        });
+
+        // Attaching a popup to thousands of layers relies on the element being built lazily
+        it('does not build the element to set the name on a popup that is not shown', () => {
+            const p = popup({ content: 'Trail 12' });
+            const getElement = vi.spyOn(p, 'getOverlayElement');
+            p.ariaLabel = 'Trail details';
+            p.role = 'region';
+            expect(getElement).not.toHaveBeenCalled();
+        });
+
+        it('makes the popup focusable from code but not part of the tab order', async () => {
+            const p = await openOnPage(popup('Trail 12'));
+            expect(p.getOverlayElement().getAttribute('tabindex')).toBe('-1');
+        });
+    });
+
+    describe('moving focus in', () => {
+        it('defaults focus to true', () => {
+            expect(popup('x').focus).toBe(true);
+        });
+
+        it('focuses the first focusable element', async () => {
+            const p = await openOnPage(popup('<p>Trail 12</p><a href="#">More</a><button>Close</button>'));
+            expect(document.activeElement).toBe(p.getOverlayElement().querySelector('a'));
+        });
+
+        it('skips elements that cannot take focus', async () => {
+            const p = await openOnPage(
+                popup('<button disabled>A</button><span tabindex="-1">B</span><button class="c">C</button>'),
+            );
+            expect(document.activeElement).toBe(p.getOverlayElement().querySelector('.c'));
+        });
+
+        it('focuses the popup itself when nothing in it can take focus', async () => {
+            const p = await openOnPage(popup('<p>Trail 12</p>'));
+            expect(document.activeElement).toBe(p.getOverlayElement());
+        });
+
+        it('only moves focus on the first draw, not on every frame', async () => {
+            const p = await openOnPage(popup('<button>Close</button>'));
+            const opener = focusedOpener();
+            p.draw(fakeProjection());
+            expect(document.activeElement).toBe(opener);
+        });
+
+        it('leaves focus where it is with focus: false', async () => {
+            const opener = focusedOpener();
+            await openOnPage(popup({ content: '<button>Close</button>', focus: false }));
+            expect(document.activeElement).toBe(opener);
+        });
+
+        it('never takes focus on hover', async () => {
+            const opener = focusedOpener();
+            await openOnPage(popup({ content: '<button>Close</button>', event: 'hover' }));
+            expect(document.activeElement).toBe(opener);
+        });
+    });
+
+    describe('giving focus back', () => {
+        it('gives focus back to the opener when it closes', async () => {
+            const opener = focusedOpener();
+            const p = await openOnPage(popup('<button>Close</button>'));
+            p.hide();
+            expect(document.activeElement).toBe(opener);
+        });
+
+        it('does not take focus back when the user has moved it elsewhere', async () => {
+            focusedOpener();
+            const p = await openOnPage(popup('<button>Close</button>'));
+            const elsewhere = focusedOpener();
+            p.hide();
+            expect(document.activeElement).toBe(elsewhere);
+        });
+
+        it('does nothing when the opener has been removed from the page', async () => {
+            const opener = focusedOpener();
+            const p = await openOnPage(popup('<button>Close</button>'));
+            opener.remove();
+            expect(() => p.hide()).not.toThrow();
+            expect(document.activeElement).not.toBe(opener);
+        });
+
+        it('gives focus back when closed by closeAllPopups()', async () => {
+            const opener = focusedOpener();
+            await openOnPage(popup('<button>Close</button>'));
+            closeAllPopups();
+            expect(document.activeElement).toBe(opener);
+        });
+
+        // The first popup hands focus back to the opener, which is then where the second one
+        // gives it back to - not to an element inside a popup that's gone.
+        it('gives focus back to the original opener when autoClose replaces one popup with another', async () => {
+            const opener = focusedOpener();
+            await openOnPage(popup('<button>First</button>'));
+            const second = await openOnPage(popup('<button>Second</button>'));
+            expect(document.activeElement).toBe(second.getOverlayElement().querySelector('button'));
+            second.hide();
+            expect(document.activeElement).toBe(opener);
+        });
+    });
+
+    describe('Escape', () => {
+        it('closes the popup from inside it', async () => {
+            const p = await openOnPage(popup('<button>Close</button>'));
+            press(document.activeElement!, 'Escape');
+            expect(p.isOpen()).toBe(false);
+        });
+
+        it('closes the popup when focus is outside it', async () => {
+            const opener = focusedOpener();
+            const p = await openOnPage(popup({ content: 'Trail 12', focus: false }));
+            press(opener, 'Escape');
+            expect(p.isOpen()).toBe(false);
+        });
+
+        it('gives focus back when Escape closes the popup', async () => {
+            const opener = focusedOpener();
+            await openOnPage(popup('<button>Close</button>'));
+            press(document.activeElement!, 'Escape');
+            expect(document.activeElement).toBe(opener);
+        });
+
+        it('closes only the most recently opened popup', async () => {
+            const first = await openOnPage(popup({ content: 'First', autoClose: false }));
+            const second = await openOnPage(popup({ content: 'Second', autoClose: false }));
+            press(document.body, 'Escape');
+            expect(second.isOpen()).toBe(false);
+            expect(first.isOpen()).toBe(true);
+            press(document.body, 'Escape');
+            expect(first.isOpen()).toBe(false);
+        });
+
+        it('does nothing to a closed popup', async () => {
+            const p = await openOnPage(popup('Trail 12'));
+            p.hide();
+            const hide = vi.spyOn(p, 'hide');
+            press(document.body, 'Escape');
+            expect(hide).not.toHaveBeenCalled();
+        });
+
+        it('leaves a hover popup alone', async () => {
+            const p = await openOnPage(popup({ content: 'Trail 12', event: 'hover' }));
+            const hide = vi.spyOn(p, 'hide');
+            press(document.body, 'Escape');
+            expect(hide).not.toHaveBeenCalled();
+        });
+
+        it('ignores an Escape that something else already handled', async () => {
+            const p = await openOnPage(popup('<input type="text">'));
+            const input = p.getOverlayElement().querySelector('input')!;
+            input.addEventListener('keydown', (e) => e.preventDefault());
+            press(input, 'Escape');
+            expect(p.isOpen()).toBe(true);
+        });
+
+        // clickon shows the popup through move() rather than show()
+        it('closes a clickon popup', async () => {
+            const line = polyline({ path });
+            const p = line.attachPopup('Trail 12', 'clickon');
+            await line.setMap(fakeMap());
+            await tick();
+            line.dispatch('click', { latLng: { lat: 48.85, lng: 2.35 } });
+            await tick();
+            expect(p.isOpen()).toBe(true);
+
+            press(document.body, 'Escape');
+            expect(p.isOpen()).toBe(false);
+            expect(p.isVisible).toBe(false);
+        });
+
+        it('ignores other keys', async () => {
+            const p = await openOnPage(popup('Trail 12'));
+            press(document.body, 'Enter');
+            expect(p.isOpen()).toBe(true);
+        });
+    });
+
+    describe('a keyboard close element', () => {
+        it('gives a div button semantics', async () => {
+            const p = await openOnPage(popup({ content: '<div class="close">x</div>', closeElement: '.close' }));
+            const close = p.getOverlayElement().querySelector('.close')!;
+            expect(close.getAttribute('role')).toBe('button');
+            expect(close.getAttribute('tabindex')).toBe('0');
+        });
+
+        it('closes the popup with Enter and Space', async () => {
+            const p = await openOnPage(popup({ content: '<div class="close">x</div>', closeElement: '.close' }));
+            const event = press(p.getOverlayElement().querySelector('.close')!, 'Enter');
+            expect(p.isOpen()).toBe(false);
+            expect(event.defaultPrevented).toBe(true);
+
+            await openOnPage(p);
+            press(p.getOverlayElement().querySelector('.close')!, ' ');
+            expect(p.isOpen()).toBe(false);
+        });
+
+        it('leaves a real button alone', async () => {
+            const p = await openOnPage(popup({ content: '<button class="close">x</button>', closeElement: '.close' }));
+            const close = p.getOverlayElement().querySelector('.close')!;
+            expect(close.hasAttribute('role')).toBe(false);
+            expect(close.hasAttribute('tabindex')).toBe(false);
+        });
     });
 });
