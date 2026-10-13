@@ -267,6 +267,14 @@ The first color should have a key of 0 or 1 to handle clusters with 1 or more ma
 
 The value can either be a color string or a `ClusterColor`.
 
+### Color contrast
+
+The number on a cluster marker is text, so it needs a contrast ratio of at least 4.5:1 against the circle behind it to be readable ([WCAG 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)). The default colors meet this.
+
+When you choose your own colors, check the contrast against the color the circle actually ends up, not the `bgColor` you set. The centre circle is drawn at `centerOpacity` (0.7 by default), so the map shows through it. Mix the color with white at that opacity, because white is the lightest the map can be, and check `textColor` against the result. For example, white text on `#ff0000` is about 4:1 on its own, and about 3.3:1 at 0.7 opacity over white. A darker color, or a `centerOpacity` of 1, fixes it.
+
+The library doesn't check the colors you set.
+
 ### Setting the marker colors
 
 There are two ways to set the colors of the markers.
@@ -315,7 +323,7 @@ These are the options for the default renderer.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | centerOpacity | number | 0.7 | The opacity to use for the center of the marker. Must be between 0 and 1. |
-| colorRangeBottom | string or [ClusterColor](#cluster-colors-object) | '#ff0000' | The color to use for the cluster if it has less than or equal to the average number of markers in all clusters. |
+| colorRangeBottom | string or [ClusterColor](#cluster-colors-object) | '#b00000' | The color to use for the cluster if it has less than or equal to the average number of markers in all clusters. |
 | colorRangeTop | string or [ClusterColor](#cluster-colors-object) | '#0000ff' | The color to use for the cluster if it has more than the average number of markers in all clusters. |
 | colors | [ClusterColors](#cluster-colors-object) | | An object that holds the colors for the clusters. If this is set then `colorRangeBottom` and `colorRangeTop` are not used. |
 | labelFontFamily | string | 'roboto,arial,sans-serif' | The font family for the cluster marker label. |

@@ -1,6 +1,6 @@
 # Plan: Accessibility fixes for overlays, markers, clusters and buttons
 
-Status: **Steps 1–4 complete (2026-10-13).**
+Status: **Steps 1–5 complete (2026-10-13).**
 
 Created: 2026-10-13
 Target: `src/lib/Popup.ts`, `src/lib/Tooltip.ts`, `src/lib/Overlay.ts`, `src/lib/Marker.ts`,
@@ -320,31 +320,39 @@ listener / 256 marker findings. CHANGELOG — Added and Fixed.
 
 ---
 
-### Step 5 — Default cluster colors fail contrast
+### Step 5 — Default cluster colors fail contrast ✅
 
 **Problem.** The default label is white, 12px, on `#ff0000` / `#0000ff`, with the centre circle at
-0.7 opacity over the map (`MarkerCluster/DefaultRender.ts:58-72, 100, 260`). White on solid
-`#ff0000` is already only about 4:1. At 0.7 opacity over a light map it drops to roughly 3:1, below
-the 4.5:1 that normal text needs.
+0.7 opacity over the map (`MarkerCluster/DefaultRender.ts`). White on solid `#ff0000` is only
+about 4:1. At 0.7 opacity over a white map it drops to about 3.3:1, below the 4.5:1 that normal text
+needs.
 
-**Changes.**
+**Computed ratios** (white label, centre circle blended over white):
 
-- [ ] Pick defaults that meet 4.5:1 for the label against the centre circle *as rendered*, i.e.
-      blended at `centerOpacity` over the worst-case light map background (treat it as white). Two
-      levers:
-  - darker defaults for `colorRangeBottom` (e.g. a deep red in the `#b00000` range) and
-    `colorRangeTop`, and/or
-  - a default `centerOpacity` of `1`.
-  - Pick the combination that changes the look least. Record the computed ratios here.
-- [ ] Don't validate user-supplied colors at runtime. Explain the contrast requirement in the docs
-      instead.
-- [ ] This is a visible change to the defaults, so call it out under **Changed** in the CHANGELOG.
+| Color | 0.7 opacity | 1.0 opacity |
+|---|---|---|
+| `#ff0000` (old) | 3.28 | 4.00 |
+| `#d00000` | 3.99 | 5.70 |
+| `#c00000` | 4.27 | 6.48 |
+| `#b00000` (new) | 4.56 | 7.38 |
+| `#0000ff` | 5.52 | 8.59 |
 
-**Tests:** assert the new default values, and add a small contrast helper in the test file that
-checks they're ≥ 4.5:1 after blending.
+**Decision.** Only the red fails, and the blue already passes at 0.7. So the change that alters the
+look least is `colorRangeBottom` `#ff0000` → `#b00000`, keeping `centerOpacity` at 0.7. That keeps
+the see-through look. Making the circle solid would change every cluster's look and still needs a
+darker red.
 
-**Docs:** `marker-cluster.md` — the new defaults, and a note on choosing `bgColor` / `textColor`
-with enough contrast once opacity is applied.
+- [x] `#colorRangeBottom` default is `'#b00000'`, with the ratios in a comment.
+- [x] User colors aren't checked at runtime. The docs explain how to check them.
+- [x] CHANGELOG **Changed**, with how to keep the old color.
+
+**Tests** (`test/MarkerCluster.test.ts`, "the default cluster colors", 4 tests): the colors are
+read out of the rendered SVG icon. Below/at the average gives `#b00000`, above gives `#0000ff`, both
+at 0.7 with a white label. A WCAG contrast helper in the test file checks both are ≥ 4.5:1 after
+blending, and fails the old red.
+
+**Docs:** `marker-cluster.md` — the `colorRangeBottom` default, and a new "Color contrast" section on
+checking `bgColor` / `textColor` once `centerOpacity` is applied.
 
 ---
 

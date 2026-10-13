@@ -361,4 +361,93 @@ describe('MarkerCluster', () => {
             expect(renderTitle(defaultCluster.options.renderer, 6)).toBe('6 trails');
         });
     });
+
+    // The number on the default cluster marker is text, so it needs 4.5:1 contrast against the
+    // centre circle as it's drawn: the cluster color at the centre opacity, over the map. White
+    // is the lightest the map can be, so that's what it's checked against.
+    describe('the default cluster colors', () => {
+        /**
+         * The relative luminance of a color (WCAG)
+         *
+         * @param {number[]} rgb The red, green and blue values, 0-255
+         * @returns {number}
+         */
+        const luminance = (rgb: number[]): number => {
+            const [r, g, b] = rgb.map((value) => {
+                const c = value / 255;
+                return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+            });
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+
+        /**
+         * The contrast ratio between two colors (WCAG)
+         *
+         * @param {number[]} a The first color
+         * @param {number[]} b The second color
+         * @returns {number}
+         */
+        const contrast = (a: number[], b: number[]): number => {
+            const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+            return (light + 0.05) / (dark + 0.05);
+        };
+
+        /**
+         * Turn a "#rrggbb" color into its red, green and blue values
+         *
+         * @param {string} hex The color
+         * @returns {number[]}
+         */
+        const rgb = (hex: string): number[] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+        /**
+         * Render a cluster with the default renderer and read the colors out of its SVG icon
+         *
+         * @param {number} count The number of markers in the cluster
+         * @param {number} mean The average number of markers in a cluster
+         * @returns {{ fill: string, opacity: number, text: string }}
+         */
+        const renderColors = (count: number, mean: number) => {
+            new DefaultRenderer().render(
+                { count, position: new google.maps.LatLng(48.85, 2.35) } as any,
+                { clusters: { markers: { mean } } } as any,
+                {} as any,
+            );
+            const options = mapsStats.callsTo('Marker', 'constructor').at(-1)?.args[0];
+            const svg = atob(options.icon.url.split(',')[1]);
+            return {
+                fill: /<svg fill="([^"]+)"/.exec(svg)![1],
+                opacity: Number(/<circle[^>]*opacity="([^"]+)"[^>]*r="16"/.exec(svg)![1]),
+                text: /style="fill:([^"]+)"/.exec(svg)![1],
+            };
+        };
+
+        /**
+         * The contrast of the label against the centre circle, blended over a white map
+         *
+         * @param {object} colors The colors from renderColors()
+         * @returns {number}
+         */
+        const labelContrast = (colors: ReturnType<typeof renderColors>): number => {
+            const circle = rgb(colors.fill).map((c) => colors.opacity * c + (1 - colors.opacity) * 255);
+            return contrast(rgb(colors.text), circle);
+        };
+
+        it('uses #b00000 for a cluster at or below the average', () => {
+            expect(renderColors(2, 5)).toEqual({ fill: '#b00000', opacity: 0.7, text: '#ffffff' });
+        });
+
+        it('uses #0000ff for a cluster above the average', () => {
+            expect(renderColors(12, 5)).toEqual({ fill: '#0000ff', opacity: 0.7, text: '#ffffff' });
+        });
+
+        it('gives the label at least 4.5:1 contrast on both colors', () => {
+            expect(labelContrast(renderColors(2, 5))).toBeGreaterThanOrEqual(4.5);
+            expect(labelContrast(renderColors(12, 5))).toBeGreaterThanOrEqual(4.5);
+        });
+
+        it('the contrast check fails the old red', () => {
+            expect(labelContrast({ fill: '#ff0000', opacity: 0.7, text: '#ffffff' })).toBeLessThan(4.5);
+        });
+    });
 });

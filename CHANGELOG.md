@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Popups now move focus into themselves when they open, and give focus back to where it was when they close. Added the `focus` option to turn this off. Popups shown on hover never take focus. If you open a popup when the page loads, set `focus: false` so it doesn't take focus from the page.
 - The InfoWindow `focus` option now defaults to `true`, so focus moves into an InfoWindow when it opens. InfoWindows shown on hover never take focus.
 - A tooltip or popup shown on hover now waits 100 milliseconds before hiding when the pointer leaves the thing that showed it, so the pointer can be moved onto it. Moving the pointer off it hides it.
+- The default `colorRangeBottom` cluster color is now `#b00000` instead of `#ff0000`. The white number on the old red only had about 3.3:1 contrast once the circle's opacity is applied over a light map, below the 4.5:1 that text needs. The new red has about 4.6:1. Set `colorRangeBottom` to `'#ff0000'` to keep the old color.
 
 ### Fixed
 

@@ -54,9 +54,13 @@ export class DefaultRenderer implements Renderer {
     /**
      * The color to use for the cluster if it has less than the average number of markers in a cluster.
      *
+     * The label is white, 12px, on the centre circle drawn at #centerOpacity, so the map shows
+     * through it. Over the lightest map (white) this needs to be dark enough for 4.5:1 contrast.
+     * '#ff0000' was only about 3.3:1. '#b00000' is about 4.6:1. The blue default is about 5.5:1.
+     *
      * @type {string|ClusterColor}
      */
-    #colorRangeBottom: string | ClusterColor = '#ff0000';
+    #colorRangeBottom: string | ClusterColor = '#b00000';
 
     /**
      * The color to use for the cluster if it has more than the average number of markers in a cluster.
