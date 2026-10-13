@@ -21,6 +21,7 @@ import {
     OverlayAttachmentAdapter,
 } from './OverlayAttachment';
 import { Overlay } from './Overlay';
+import { attachHover } from './hoverOverlay';
 import { point, Point, PointValue } from './Point';
 import { Polyline } from './Polyline';
 import { Size, size, SizeValue } from './Size';
@@ -57,7 +58,7 @@ export type PopupOptions = {
     // 0, -20 then the popup will be displayed 20px above the top of the marker.
     // If the element is a marker and this is not set, then the marker's anchorPoint value is used.
     offset?: PointValue;
-    // The ARIA role for the popup element. Defaults to 'dialog', or no role for a popup shown on hover.
+    // The ARIA role for the popup element. Defaults to 'dialog', or 'tooltip' for a popup shown on hover.
     role?: string;
     // Styles that will be set on the popup container div.
     styles?: object;
@@ -565,15 +566,15 @@ export class Popup extends Overlay {
      * Returns the ARIA role for the popup element
      *
      * This is the role that's actually used, so when one wasn't set it's the default for the
-     * event: 'dialog', or undefined for a popup shown on hover.
+     * event: 'dialog', or 'tooltip' for a popup shown on hover.
      *
-     * @returns {string|undefined}
+     * @returns {string}
      */
-    get role(): string | undefined {
+    get role(): string {
         if (this.#role) {
             return this.#role;
         }
-        return this.#event === 'hover' ? undefined : 'dialog';
+        return this.#event === 'hover' ? 'tooltip' : 'dialog';
     }
 
     /**
@@ -685,24 +686,29 @@ export class Popup extends Overlay {
                     // The map that the popup is shown on
                     const elementMap = () => (element instanceof Map ? element : element.getMap());
 
-                    // Show the popup when hovering over the element
+                    // Show the popup when hovering over the element. It's also shown when the element
+                    // takes keyboard focus, where it can, and the pointer can move onto it. See
+                    // hoverOverlay.ts.
                     if (triggerEvent === 'hover') {
-                        element.on('mouseover', (e) => {
-                            const popupObject = this.#popupFor(element);
-                            const map = elementMap();
-                            if (map) {
-                                popupObject.move(e.latLng, map);
-                            }
-                        });
-                        if (element instanceof Map) {
-                            element.on('mousemove', (e) => {
-                                // The callback isn't called again while the mouse moves. The popup
-                                // that's already showing just follows the cursor.
-                                (this.#activePopup || this).move(e.latLng, element);
-                            });
-                        }
-                        element.on('mouseout', () => {
-                            (this.#activePopup || this).hide();
+                        attachHover(element, {
+                            show: (position) => {
+                                const popupObject = this.#popupFor(element);
+                                const map = elementMap();
+                                if (!map) {
+                                    return undefined;
+                                }
+                                popupObject.move(position, map);
+                                return popupObject;
+                            },
+                            // The callback isn't called again while the mouse moves over a map. The
+                            // popup that's already showing just follows the cursor.
+                            follow:
+                                element instanceof Map
+                                    ? (position) => {
+                                        (this.#activePopup || this).move(position, element);
+                                    }
+                                    : undefined,
+                            current: () => this.#activePopup || this,
                         });
                     } else if (triggerEvent === 'clickon') {
                         // Show the popup when clicking on the element
@@ -1300,12 +1306,7 @@ export class Popup extends Overlay {
      */
     #applyAttributes(): void {
         const element = this.getOverlayElement();
-        const { role } = this;
-        if (role) {
-            element.setAttribute('role', role);
-        } else {
-            element.removeAttribute('role');
-        }
+        element.setAttribute('role', this.role);
         if (this.#ariaLabel) {
             element.setAttribute('aria-label', this.#ariaLabel);
         } else {
@@ -1387,7 +1388,8 @@ export class Popup extends Overlay {
      * Close the most recently opened popup when Escape is pressed.
      *
      * Only one closes per press, so Escape works back through popups that were left open with
-     * autoClose turned off. Popups shown on hover are left alone.
+     * autoClose turned off. Popups shown on hover are left to hoverOverlay.ts, which hides them
+     * first.
      *
      * The listener is on the document so that Escape works wherever focus is - in the popup, or
      * still on the marker when focus wasn't moved. It listens in the bubbling phase and skips an

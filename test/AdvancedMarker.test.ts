@@ -20,6 +20,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdvancedMarker, advancedMarker } from '../src/lib/AdvancedMarker';
 import { LatLng } from '../src/lib/LatLng';
+// Adds attachPopup() to the marker
+import '../src/lib/Popup';
 import { installGoogleMaps, mapsStats, uninstallGoogleMaps } from './support/googleMaps';
 import { asFakeMap, fakeMap } from './support/fakeMap';
 
@@ -290,5 +292,60 @@ describe('AdvancedMarker', () => {
             google.__fire('click');
             expect(cb).toHaveBeenCalledTimes(1);
         });
+    });
+});
+
+/*
+    The advanced marker never dispatched "ready". Popups, tooltips and info windows wait for it
+    before they listen to the marker, so attaching one to an advanced marker did nothing at all.
+*/
+describe('AdvancedMarker ready', () => {
+    beforeEach(() => {
+        installGoogleMaps();
+    });
+
+    afterEach(() => {
+        uninstallGoogleMaps();
+    });
+
+    /**
+     * Let any pending promise callbacks run
+     *
+     * @returns {Promise<void>}
+     */
+    const tick = async () => {
+        for (let i = 0; i < 6; i += 1) {
+            await Promise.resolve();
+        }
+    };
+
+    it('dispatches ready once the Google marker is built', async () => {
+        const m = advancedMarker([1, 2]);
+        const cb = vi.fn();
+        m.onceImmediate('ready', cb);
+        await m.init();
+        expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    // The marker can be built in the constructor, before a listener could be added, so the
+    // dispatches are counted on the prototype instead.
+    it('dispatches it only once', async () => {
+        const dispatch = vi.spyOn(AdvancedMarker.prototype, 'dispatch');
+        const m = advancedMarker([1, 2]);
+        await m.init();
+        await m.toGoogle();
+        await m.setMap(fakeMap());
+        expect(dispatch.mock.calls.filter(([type]) => type === 'ready')).toHaveLength(1);
+        dispatch.mockRestore();
+    });
+
+    it('a popup attached to it opens on click', async () => {
+        const m = advancedMarker({ position: [1, 2] });
+        await m.setMap(fakeMap());
+        const p = m.attachPopup('Trail 12');
+        await tick();
+        m.dispatch('click', {});
+        await tick();
+        expect(p.isOpen()).toBe(true);
     });
 });

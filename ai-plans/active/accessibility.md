@@ -1,6 +1,6 @@
 # Plan: Accessibility fixes for overlays, markers, clusters and buttons
 
-Status: **Step 1 complete (2026-10-13).**
+Status: **Steps 1–2 complete (2026-10-13).**
 
 Created: 2026-10-13
 Target: `src/lib/Popup.ts`, `src/lib/Tooltip.ts`, `src/lib/Overlay.ts`, `src/lib/Marker.ts`,
@@ -127,55 +127,100 @@ Google's `OverlayView` is stubbed out, so `add()` and `draw()` were called direc
 
 ### Step 2 — Hover tooltips and popups (WCAG 1.4.13)
 
-**Problem.** Hover-triggered tooltips and popups only react to `mouseover` / `mouseout`
-(`Tooltip.ts:409-429`, `Popup.ts:525-542`):
+**Complete (2026-10-13).**
 
-1. They never appear for keyboard focus.
-2. Moving the pointer onto the tooltip fires `mouseout` on the marker and hides it, so the content
-   can't be hovered.
-3. There's no way to dismiss them without moving the pointer.
+**Problem.** Hover-triggered tooltips and popups only reacted to `mouseover` / `mouseout`:
 
-The tooltip also has no `role="tooltip"` and nothing points at it with `aria-describedby`.
+1. They never appeared for keyboard focus.
+2. Moving the pointer onto the tooltip fired `mouseout` on the marker and hid it, so the content
+   couldn't be hovered.
+3. There was no way to dismiss them without moving the pointer.
+
+The tooltip also had no `role="tooltip"`.
 
 **Changes.**
 
-- [ ] **Show on focus.** For `AdvancedMarker`, listen for `focusin` / `focusout` on the
-      `AdvancedMarkerElement` and show/hide exactly as for `mouseover` / `mouseout`, positioned at
-      the marker's position rather than an event `latLng`.
-  - Legacy `google.maps.Marker`, polylines and data features have no focusable DOM element we
-    control, so this can't be done for them. Document that.
-  - **First, check in a browser** which element Google actually focuses for a clickable
-    `AdvancedMarkerElement`, and whether `focusin` bubbles to the element we hold.
-- [ ] **Hoverable.** On `mouseout` from the trigger, wait a grace period of 100ms before
-      hiding. Cancel the hide if the pointer enters the overlay element. Hide on `mouseleave` from
-      the overlay. Do this in a shared place (an `Overlay` helper, or `OverlayAttachment`) so
-      Tooltip and Popup hover mode behave the same.
-  - Check this against the shared tooltip instance and the `mousemove`-follows-cursor behaviour on
-    `Map`. When the tooltip follows the cursor, the pointer can never reach it. That's acceptable
-    for map-level tooltips (the cursor is the trigger), but write it down.
-- [ ] **Dismissible.** Escape hides a hover tooltip or popup while it's showing, using the same
-      document-level listener approach as step 1. After Escape, don't show it again until the
-      pointer leaves the trigger, or focus leaves it.
-- [ ] **Semantics.**
-  - Tooltip overlay element gets `role="tooltip"` and a stable `id`. Generate one if it doesn't
-    have one. The shared tooltip has one id for its lifetime.
-  - For `AdvancedMarker`, set `aria-describedby` to the tooltip's id while it's showing and remove
-    it on hide.
-  - **But** if the tooltip text is the same as the marker's accessible name (the `title` case from
-    step 3), don't set `aria-describedby`. Otherwise screen readers read it twice.
-- [ ] Hover-mode popups get the same treatment as tooltips, rather than step 1's dialog semantics.
+- [x] **Shared hover module, `src/lib/hoverOverlay.ts`.** Tooltip and Popup both use
+      `attachHover()` for their hover wiring, and `OverlayAttachment` (data layers) uses
+      `hoverShown()` / `hoverEnded()` / `isHoverDismissed()`. This holds the Escape handling, the
+      "don't show again yet" state and the `aria-describedby` handling.
+- [x] **Hoverable.** `Overlay.hideSoon()` hides after `HOVER_HIDE_DELAY` (100ms, in
+      `constants.ts`). The overlay element's `mouseenter` cancels it and `mouseleave` starts it
+      again, but only while the overlay was shown by hover (`markHoverShown()`). A click-shown
+      overlay isn't hidden by the pointer leaving it. `show()`, `move()` and `hide()` all cancel a
+      pending hide, so moving back to the marker in time keeps the overlay showing. The shared
+      tooltip moving from one marker to the next no longer flickers either.
+  - A map-level tooltip follows the cursor, so the pointer can never reach it. That's acceptable:
+    the cursor is what it's showing for. Noted in the code and the docs.
+- [x] **Dismissible.** One `document` keydown listener, **in the capture phase**, hides every
+      overlay currently shown by hover or focus. It records their triggers as dismissed and calls
+      `preventDefault()`. A dismissed trigger doesn't show again until `mouseout` / `focusout`.
+  - Capture phase puts it ahead of Popup's bubble-phase Escape listener (step 1), so the first
+    Escape takes the hover content away and the next one closes a click popup. It also still works
+    when something on the page stops the event from bubbling.
+  - The tracked map is pruned of hidden overlays on every add, so it only ever holds the few that
+    are showing.
+- [x] **Semantics.** Tooltip gets `role="tooltip"` in `add()`. Hover popups default to
+      `role="tooltip"` instead of having no role (this changes a step 1 test). `Overlay.getOverlayId()`
+      gives the element a stable `gmaps-overlay-N` id, so the shared tooltip keeps one id for its
+      lifetime.
+- [x] **Show on focus (AdvancedMarker only).** `Layer.getFocusTarget()` is an internal hook. It
+      returns nothing by default, and AdvancedMarker overrides it to return its element and
+      position. `attachHover()` listens for `focusin` / `focusout` on that element: focus shows the
+      overlay at the marker's position, and focus moving *within* the element doesn't hide it. While
+      it's shown for focus, `aria-describedby` on the marker element points at the overlay's id, and
+      it's removed again on focusout or Escape. Ids already in the attribute are kept. It isn't set
+      when the overlay's text matches the element's `aria-label` / `title`.
+  - Listening on the host element covers focus landing on it or on something inside it (focus
+    events are composed, so they cross shadow DOM), so the "which element does Google focus"
+    browser check isn't needed to make show/hide work. It does still matter for
+    `aria-describedby`: see the browser check below.
+- [x] Hover popups get the same treatment as tooltips.
 
-**Tests** (`test/Tooltip.test.ts`, `test/Popup.test.ts`):
-- [ ] `focusin` / `focusout` on an AdvancedMarker shows and hides the tooltip.
-- [ ] `mouseout` followed by entering the tooltip within the grace period keeps it shown. Leaving
-      the tooltip hides it.
-- [ ] Escape hides it, and it doesn't reappear until the trigger is left.
-- [ ] `role="tooltip"` and the id are present. `aria-describedby` is set and cleared, and isn't set
-      when the text matches the name.
-- [ ] The shared tooltip keeps one id across everything that shares it.
+**Found on the way:**
 
-**Docs:** `tooltip.md` and `popup.md` — focus support (AdvancedMarker only), Escape, the grace
-period. CHANGELOG.
+- **AdvancedMarker never dispatched `ready`.** Tooltip, Popup and InfoWindow all wait for it before
+  adding their listeners, so attaching any of them to an AdvancedMarker did nothing. It's
+  dispatched now, once, after the Google element is built. There's a regression test in
+  `test/AdvancedMarker.test.ts`.
+- **AdvancedMarker isn't public, and won't be for a while** (decided 2026-10-13: it isn't complete).
+  It isn't exported from any entry point and isn't documented. So the focus support above can't be
+  reached by users: the public `marker()` is Google's legacy marker, which gives no element or event
+  for focus. The code and tests stay in place, dormant, for when AdvancedMarker is finished. The
+  docs describe only what users can actually get: hover tooltips aren't shown for keyboard focus, so
+  put anything essential in the marker `title`.
+- `AdvancedMarker.on()` notes that Google's `mouseover` via `addListener` may not fire on an
+  `AdvancedMarkerElement` at all. That's unverified, and it's a question for whenever
+  AdvancedMarker goes public.
+
+**Tests** (new `test/hover.test.ts`, which covers Tooltip, Popup and the data layer together; plus
+`test/AdvancedMarker.test.ts` and `test/Popup.test.ts`):
+- [x] `focusin` / `focusout` on an AdvancedMarker shows and hides the tooltip, at the marker's
+      position. Focus moving inside the marker keeps it. A hover popup shows for focus and doesn't
+      take it.
+- [x] `mouseout` waits 100ms. Entering the tooltip in that time keeps it, leaving the tooltip hides
+      it, and coming back to the marker in time keeps it. Hover popups and data layer features wait
+      the same way. Leaving a click-shown tooltip doesn't hide it.
+- [x] Escape hides it, with `preventDefault`. It doesn't reappear until the pointer, or focus,
+      leaves. Dismissing one marker doesn't block another. Escape hides hover content before a
+      click popup, and works through `stopPropagation`. A no-op Escape doesn't `preventDefault`. A
+      map tooltip stays hidden on mousemove after Escape. Same for data layer features.
+- [x] `role="tooltip"`. The id is set, and `aria-describedby` is set, cleared, and keeps existing
+      ids. It isn't set when the text matches the name. The shared tooltip keeps one id.
+- [x] Mutation-checked: switching the delayed hide to an immediate one fails 3 tests, and switching
+      the Escape listener to the bubble phase fails 1.
+- The AdvancedMarker test stub is now an `HTMLElement` under jsdom (registered as a custom element
+  by `installGoogleMaps()`), like the real one, so focus events can be dispatched on it.
+
+**Docs:** `tooltip.md` — new Accessibility section. `popup.md` — hover popups now work like
+tooltips, and the role default. CHANGELOG — Added, Changed and Fixed.
+
+**Still to do by hand:**
+
+- A browser check with a mouse: move from a marker onto its tooltip, and press Escape.
+- Deferred until AdvancedMarker is finished and public: a browser and screen reader check of focus and
+  `aria-describedby`. The tooltip is added to the page by Google's `onAdd()`, which may run after
+  the screen reader has already asked for the description.
 
 ---
 
@@ -187,22 +232,20 @@ browser tooltip showing on top of the custom one. But Google uses `title` as the
 clickable marker, and these markers are clickable (`gmpClickable = true`, `AdvancedMarker.ts:943`).
 So the marker can be focused but has no name.
 
+**Scope:** `Marker` only. AdvancedMarker isn't public and won't be for a while, so it's left alone
+here and picked up when it's finished.
+
 **Changes.**
 
 - [ ] **Investigate first** (browser, not jsdom). Write down the answers here before changing code:
-  - `AdvancedMarkerElement`: which element gets `title` and which gets the accessible name? Can
-    the name be set without a native hover tooltip, e.g. by setting `aria-label` on the focusable
-    element and leaving `title` unset?
   - Legacy `google.maps.Marker`: there's no DOM access, so the only lever is `title`. Does setting
     it with a custom tooltip produce a visible double tooltip?
-- [ ] `AdvancedMarker`: apply the name without the native tooltip, using whatever the investigation
-      shows works. Keep it in sync when `title` is changed later through the setter.
-- [ ] `Marker` (legacy): if a native double tooltip is the only way to give it a name, set the title
-      anyway. A name matters more than a duplicate hover hint. Note it in the docs, and point people
-      to `AdvancedMarker` for the clean behaviour. Legacy `Marker` is deprecated by Google.
+- [ ] `Marker`: if a native double tooltip is the only way to give it a name, set the title anyway.
+      A name matters more than a duplicate hover hint. Note it in the docs. Keep it in sync when
+      `title` is changed later through the setter.
 - [ ] The tooltip content default (`{ content: options.title }`) stays as it is.
 
-**Tests** (`test/AdvancedMarker.test.ts`, `test/Marker.test.ts`):
+**Tests** (`test/Marker.test.ts`):
 - [ ] With title + tooltip, the marker still exposes the title as its name, by whichever mechanism
       was chosen.
 - [ ] Changing `title` afterwards updates the name.

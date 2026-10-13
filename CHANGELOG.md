@@ -10,13 +10,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Added the `ariaLabel` and `role` popup options. A popup opened by `click` or `clickon` now has `role="dialog"` by default, and `ariaLabel` gives it an accessible name.
-- Pressing Escape closes the most recently opened popup. Popups shown on hover aren't affected.
+- Pressing Escape closes the most recently opened popup.
 - A popup close element that isn't a native button, like a `<div>`, is now given `role="button"` and `tabindex="0"`, and Enter and Space close the popup.
+- Tooltips and hover popups now have `role="tooltip"`.
+- Pressing Escape hides a tooltip or popup shown on hover, without moving the pointer. It isn't shown again until the pointer leaves the thing that showed it. When a popup opened by a click is also open, the first Escape hides the hover content and the next one closes the popup.
 
 ### Changed
 
 - Popups now move focus into themselves when they open, and give focus back to where it was when they close. Added the `focus` option to turn this off. Popups shown on hover never take focus. If you open a popup when the page loads, set `focus: false` so it doesn't take focus from the page.
 - The InfoWindow `focus` option now defaults to `true`, so focus moves into an InfoWindow when it opens. InfoWindows shown on hover never take focus.
+- A tooltip or popup shown on hover now waits 100 milliseconds before hiding when the pointer leaves the thing that showed it, so the pointer can be moved onto it. Moving the pointer off it hides it.
+
+### Fixed
+
+- `attachTooltip()`, `attachPopup()` and `attachInfoWindow()` did nothing on an `AdvancedMarker`, because it never dispatched its `ready` event.
 
 ## [0.31.0] - 2026-09-28
 

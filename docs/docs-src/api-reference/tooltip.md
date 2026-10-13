@@ -220,6 +220,16 @@ Type `TooltipOptions`
 | event | string | The event to trigger the display of the tooltip. Allowed values are `click`, `clickon`, and `hover`. This is an alternate way of setting the trigger event than passing the event to [attachTo](#attachto) or [attachTooltip](/api-reference/base-classes/layer#attachtooltip). An error is thrown if any other value is set. |
 | theme | string | The theme to use for the tooltip. This does the same as the `theme` [option](#tooltip-options). |
 
+## Accessibility
+
+A tooltip, or a popup, that's shown on `hover` works like this:
+
+- **The pointer can move onto it.** When the pointer leaves the marker, the tooltip waits 100 milliseconds before hiding. Moving the pointer onto the tooltip in that time keeps it showing, and moving off the tooltip hides it. This doesn't apply to a tooltip attached to the map, which follows the cursor.
+- **Escape hides it**, without moving the pointer. It isn't shown again until the pointer has left the thing that showed it. If a [popup](/api-reference/popup) opened by a click is also open, the first Escape hides the tooltip and the next one closes the popup.
+- **It has `role="tooltip"`**, so assistive technology knows what it is.
+
+A tooltip isn't shown for keyboard focus. Google draws markers, polylines and data layer features itself, and gives no way to know when one of them has keyboard focus. A keyboard or screen reader user can't get to the tooltip, so don't put anything in it that they need and can't get any other way. For a marker, put that in its `title`: Google uses the title as the marker's name for screen readers when the marker can be clicked.
+
 ## Sharing one tooltip
 
 By default everything you call [attachTooltip()](/api-reference/base-classes/layer#attachtooltip) on shares a single tooltip. Only one tooltip is ever visible, because you can only hover one thing at a time, so one tooltip object and one element is enough for a whole map. A map with a tooltip on each of 2,595 polyline segments builds one tooltip instead of 2,595.

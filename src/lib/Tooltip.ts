@@ -22,6 +22,7 @@ import {
     OverlayAttachmentAdapter,
 } from './OverlayAttachment';
 import { Overlay } from './Overlay';
+import { attachHover } from './hoverOverlay';
 import { PointValue } from './Point';
 
 export type TooltipOptions = {
@@ -406,26 +407,32 @@ export class Tooltip extends Overlay {
                             }
                         });
                     } else {
-                        // Default to hover
-                        element.on('mouseover', (e) => {
-                            const tooltipObject = this.#tooltipFor(element);
-                            tooltipObject.setPosition(e.latLng);
-                            const map = elementMap();
-                            if (map) {
+                        // Default to hover. It's also shown when the element takes keyboard focus,
+                        // where it can, and the pointer can move onto it. See hoverOverlay.ts.
+                        attachHover(element, {
+                            show: (position) => {
+                                const tooltipObject = this.#tooltipFor(element);
+                                tooltipObject.setPosition(position);
+                                const map = elementMap();
+                                if (!map) {
+                                    return undefined;
+                                }
                                 tooltipObject.show(map);
-                            }
-                        });
-                        if (element instanceof Map) {
-                            element.on('mousemove', (e) => {
-                                // The callback isn't called again while the mouse moves. The
-                                // tooltip that's already showing just follows the cursor.
-                                const tooltipObject = this.#activeTooltip || this;
-                                tooltipObject.setPosition(e.latLng);
-                                tooltipObject.show(element);
-                            });
-                        }
-                        element.on('mouseout', () => {
-                            (this.#activeTooltip || this).hide();
+                                return tooltipObject;
+                            },
+                            // The callback isn't called again while the mouse moves over a map.
+                            // The tooltip that's already showing just follows the cursor, which
+                            // means the pointer can never reach it. That's fine: the cursor is
+                            // what it's showing for.
+                            follow:
+                                element instanceof Map
+                                    ? (position) => {
+                                        const tooltipObject = this.#activeTooltip || this;
+                                        tooltipObject.setPosition(position);
+                                        tooltipObject.show(element);
+                                    }
+                                    : undefined,
+                            current: () => this.#activeTooltip || this,
                         });
                     }
                 });
@@ -651,7 +658,9 @@ export class Tooltip extends Overlay {
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
-        panes.floatPane.appendChild(this.getOverlayElement());
+        const element = this.getOverlayElement();
+        element.setAttribute('role', 'tooltip');
+        panes.floatPane.appendChild(element);
     }
 
     /**

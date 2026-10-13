@@ -529,10 +529,10 @@ describe('popup accessibility', () => {
             expect(p.getOverlayElement().getAttribute('role')).toBe('dialog');
         });
 
-        it('has no role on hover', async () => {
+        it("has the 'tooltip' role on hover", async () => {
             const p = popup({ content: 'Trail 12', event: 'hover' });
             await openOnPage(p);
-            expect(p.getOverlayElement().hasAttribute('role')).toBe(false);
+            expect(p.getOverlayElement().getAttribute('role')).toBe('tooltip');
             expect(p.getOverlayElement().hasAttribute('tabindex')).toBe(false);
         });
 
