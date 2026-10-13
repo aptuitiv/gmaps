@@ -7,6 +7,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- Added the `ariaLabel` and `role` popup options. A popup opened by `click` or `clickon` now has `role="dialog"` by default, and `ariaLabel` gives it an accessible name.
+- Pressing Escape closes the most recently opened popup.
+- A popup close element that isn't a native button, like a `<div>`, is now given `role="button"` and `tabindex="0"`, and Enter and Space close the popup.
+- Tooltips and hover popups now have `role="tooltip"`.
+- Pressing Escape hides a tooltip or popup shown on hover, without moving the pointer. It isn't shown again until the pointer leaves the thing that showed it. When a popup opened by a click is also open, the first Escape hides the hover content and the next one closes the popup.
+- Added the `title` option to the marker cluster default and image renderers. It sets the cluster marker's title, which screen readers use as its name. It can be a string where `{count}` is replaced with the number of markers, or a function that's passed the number. The default is still "Cluster of {count} markers".
+
+### Changed
+
+- Popups now move focus into themselves when they open, and give focus back to where it was when they close. Added the `focus` option to turn this off. Popups shown on hover never take focus. If you open a popup when the page loads, set `focus: false` so it doesn't take focus from the page.
+- The InfoWindow `focus` option now defaults to `true`, so focus moves into an InfoWindow when it opens. InfoWindows shown on hover never take focus.
+- A tooltip or popup shown on hover now waits 100 milliseconds before hiding when the pointer leaves the thing that showed it, so the pointer can be moved onto it. Moving the pointer off it hides it.
+- The default `colorRangeBottom` cluster color is now `#b00000` instead of `#ff0000`. The white number on the old red only had about 3.3:1 contrast once the circle's opacity is applied over a light map, below the 4.5:1 that text needs. The new red has about 4.6:1. Set `colorRangeBottom` to `'#ff0000'` to keep the old color.
+- A button state's `tooltip` is now only written to `aria-label` when the button has no visible text. Before, it was always written there, and on a button with visible text it replaced that text as the button's name, so voice control users couldn't press it by saying what they see. It's still written to `title`, and icon-only buttons work as before. An `aria-label` you set yourself is never replaced or taken off. Buttons with `tooltipAttribute` set aren't affected.
+
+### Fixed
+
+- `attachTooltip()`, `attachPopup()` and `attachInfoWindow()` did nothing on an `AdvancedMarker`, because it never dispatched its `ready` event.
+- A marker with both a `title` and a `tooltip` had no name for screen readers, because the title was only used as the tooltip content and never set on the marker. The title is now set on the marker, and it's taken off only while the pointer is on the marker, so the browser doesn't show it as a second tooltip on top of the custom one. This also applies to a popup shown on hover. The marker's `title` property now returns the title in this case too.
+- Cluster markers drawn by the image renderer had no title, so screen readers had no name for them, and no way to know how many markers were in the cluster when `showNumber` is `false`. They now get the same "Cluster of N markers" title as the default renderer.
+
 ## [0.31.0] - 2026-09-28
 
 ### Fixed

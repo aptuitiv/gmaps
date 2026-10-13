@@ -21,12 +21,15 @@ import {
     OverlayAttachmentAdapter,
 } from './OverlayAttachment';
 import { Overlay } from './Overlay';
+import { attachHover } from './hoverOverlay';
 import { point, Point, PointValue } from './Point';
 import { Polyline } from './Polyline';
 import { Size, size, SizeValue } from './Size';
-import { isFunction, isObject, isString, isStringWithValue } from './helpers';
+import { isActivationKey, isFunction, isObject, isString, isStringWithValue, makeButtonLike } from './helpers';
 
 export type PopupOptions = {
+    // The accessible name for the popup, written to its aria-label attribute
+    ariaLabel?: string;
     // Whether to automatically hide other open popups when opening this one
     autoClose?: boolean;
     // Whether to center the popup horizontally on the element. Useful if the popup is on a marker. Defaults to true.
@@ -45,6 +48,9 @@ export type PopupOptions = {
     event?: string;
     // Whether to fit the popup within the map viewport when it's displayed. Defaults to true.
     fit?: boolean;
+    // Whether focus is moved into the popup when it's opened, and given back when it's closed.
+    // Defaults to true. A popup shown on hover never takes focus.
+    focus?: boolean;
     // The amount to offset the popup from the element it is displayed at.
     // If the element is a marker, then this is added to the marker's anchorPoint value.
     // For example, if the marker is 40px tall and no anchorPoint value was set for the marker, then
@@ -52,6 +58,8 @@ export type PopupOptions = {
     // 0, -20 then the popup will be displayed 20px above the top of the marker.
     // If the element is a marker and this is not set, then the marker's anchorPoint value is used.
     offset?: PointValue;
+    // The ARIA role for the popup element. Defaults to 'dialog', or 'tooltip' for a popup shown on hover.
+    role?: string;
     // Styles that will be set on the popup container div.
     styles?: object;
     // A build-in theme to assign to the popup. By default the popup has no styling. Set to 'default' to use the basic default theme.
@@ -60,9 +68,51 @@ export type PopupOptions = {
 };
 
 /**
+ * The elements that can take focus with the keyboard.
+ *
+ * Used to find where focus goes when a popup opens. Disabled controls and elements taken out of
+ * the tab order with tabindex="-1" are left out.
+ */
+const FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'area[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    'iframe',
+    'audio[controls]',
+    'video[controls]',
+    'summary',
+    '[contenteditable]:not([contenteditable="false"])',
+    '[tabindex]',
+]
+    .map((selector) => `${selector}:not([tabindex="-1"])`)
+    .join(',');
+
+/**
  * Popup class
  */
 export class Popup extends Overlay {
+    /**
+     * Whether the document listener that closes popups with Escape has been added
+     *
+     * One listener serves every popup. It's added the first time a popup is shown rather than
+     * when this file loads, so importing the library doesn't touch the document.
+     *
+     * @private
+     * @type {boolean}
+     */
+    static #isEscapeListening: boolean = false;
+
+    /**
+     * The accessible name for the popup
+     *
+     * @private
+     * @type {string|undefined}
+     */
+    #ariaLabel: string | undefined;
+
     /**
      * Whether to automatically close other open popups when opening this one
      *
@@ -141,6 +191,41 @@ export class Popup extends Overlay {
      * @type {boolean}
      */
     #fit: boolean = true;
+
+    /**
+     * Whether focus is moved into the popup when it's opened
+     *
+     * @private
+     * @type {boolean}
+     */
+    #focus: boolean = true;
+
+    /**
+     * The element that had focus when the popup was opened, so focus can be given back to it
+     *
+     * @private
+     * @type {HTMLElement|undefined}
+     */
+    #opener: HTMLElement | undefined;
+
+    /**
+     * Whether focus should be moved into the popup the next time it's drawn
+     *
+     * Focus can't be moved when the popup is shown because the element isn't on the page until
+     * Google adds it and draws it, so it waits for the first draw.
+     *
+     * @private
+     * @type {boolean}
+     */
+    #isFocusPending: boolean = false;
+
+    /**
+     * The ARIA role set by the caller. When it isn't set the role depends on the event.
+     *
+     * @private
+     * @type {string|undefined}
+     */
+    #role: string | undefined;
 
     /**
      * Holds the popup that this one last showed for the object it's attached to.
@@ -241,6 +326,34 @@ export class Popup extends Overlay {
         } else if (typeof options !== 'undefined') {
             // The popup contents were passed
             this.content = options;
+        }
+    }
+
+    /**
+     * Get the accessible name for the popup
+     *
+     * @returns {string|undefined}
+     */
+    get ariaLabel(): string | undefined {
+        return this.#ariaLabel;
+    }
+
+    /**
+     * Set the accessible name for the popup. It's written to the aria-label attribute.
+     *
+     * An empty string removes it.
+     *
+     * @param {string} ariaLabel The accessible name
+     */
+    set ariaLabel(ariaLabel: string) {
+        if (isString(ariaLabel)) {
+            this.#ariaLabel = isStringWithValue(ariaLabel) ? ariaLabel : undefined;
+            // Only when the element is on the page. add() writes it otherwise, and building the
+            // element just to set an attribute would undo the lazy building that attaching a
+            // popup to thousands of layers relies on.
+            if (this.isVisible) {
+                this.#applyAttributes();
+            }
         }
     }
 
@@ -430,6 +543,58 @@ export class Popup extends Overlay {
     }
 
     /**
+     * Returns whether focus is moved into the popup when it's opened
+     *
+     * @returns {boolean}
+     */
+    get focus(): boolean {
+        return this.#focus;
+    }
+
+    /**
+     * Set whether focus is moved into the popup when it's opened, and given back when it's closed
+     *
+     * @param {boolean} focus Whether to move focus into the popup
+     */
+    set focus(focus: boolean) {
+        if (typeof focus === 'boolean') {
+            this.#focus = focus;
+        }
+    }
+
+    /**
+     * Returns the ARIA role for the popup element
+     *
+     * This is the role that's actually used, so when one wasn't set it's the default for the
+     * event: 'dialog', or 'tooltip' for a popup shown on hover.
+     *
+     * @returns {string}
+     */
+    get role(): string {
+        if (this.#role) {
+            return this.#role;
+        }
+        return this.#event === 'hover' ? 'tooltip' : 'dialog';
+    }
+
+    /**
+     * Set the ARIA role for the popup element
+     *
+     * An empty string goes back to the default for the event.
+     *
+     * @param {string} role The ARIA role
+     */
+    set role(role: string) {
+        if (isString(role)) {
+            this.#role = isStringWithValue(role) ? role : undefined;
+            // See the ariaLabel setter
+            if (this.isVisible) {
+                this.#applyAttributes();
+            }
+        }
+    }
+
+    /**
      * Returns the theme to use for the popup
      *
      * @returns {string}
@@ -521,24 +686,29 @@ export class Popup extends Overlay {
                     // The map that the popup is shown on
                     const elementMap = () => (element instanceof Map ? element : element.getMap());
 
-                    // Show the popup when hovering over the element
+                    // Show the popup when hovering over the element. It's also shown when the element
+                    // takes keyboard focus, where it can, and the pointer can move onto it. See
+                    // hoverOverlay.ts.
                     if (triggerEvent === 'hover') {
-                        element.on('mouseover', (e) => {
-                            const popupObject = this.#popupFor(element);
-                            const map = elementMap();
-                            if (map) {
-                                popupObject.move(e.latLng, map);
-                            }
-                        });
-                        if (element instanceof Map) {
-                            element.on('mousemove', (e) => {
-                                // The callback isn't called again while the mouse moves. The popup
-                                // that's already showing just follows the cursor.
-                                (this.#activePopup || this).move(e.latLng, element);
-                            });
-                        }
-                        element.on('mouseout', () => {
-                            (this.#activePopup || this).hide();
+                        attachHover(element, {
+                            show: (position) => {
+                                const popupObject = this.#popupFor(element);
+                                const map = elementMap();
+                                if (!map) {
+                                    return undefined;
+                                }
+                                popupObject.move(position, map);
+                                return popupObject;
+                            },
+                            // The callback isn't called again while the mouse moves over a map. The
+                            // popup that's already showing just follows the cursor.
+                            follow:
+                                element instanceof Map
+                                    ? (position) => {
+                                        (this.#activePopup || this).move(position, element);
+                                    }
+                                    : undefined,
+                            current: () => this.#activePopup || this,
                         });
                     } else if (triggerEvent === 'clickon') {
                         // Show the popup when clicking on the element
@@ -557,6 +727,10 @@ export class Popup extends Overlay {
                             if (popupObject.#autoClose) {
                                 collection.hideOthers(popupObject);
                             }
+                            popupObject.#prepareFocus();
+                            // move() shows the popup without going through show(), so it's
+                            // marked open here for Escape to find it.
+                            popupObject.#isOpen = true;
 
                             const map = elementMap();
                             if (map) {
@@ -622,10 +796,21 @@ export class Popup extends Overlay {
         if (active && active !== this) {
             active.hide();
         }
+        // Checked before the element is taken off the page, because once it's gone focus has
+        // already fallen back to the body and there's no telling it was ever in here.
+        const hadFocus = this.#hasFocus();
         super.hide();
         this.#firstDraw = false;
         this.#isOpen = false;
+        this.#isFocusPending = false;
         PopupCollection.getInstance().remove(this);
+        const opener = this.#opener;
+        this.#opener = undefined;
+        // Only when focus was in the popup. If the user has already moved it somewhere else,
+        // pulling it back would be worse than leaving it.
+        if (hadFocus && opener && opener.isConnected) {
+            opener.focus({ preventScroll: true });
+        }
         return this;
     }
 
@@ -680,6 +865,9 @@ export class Popup extends Overlay {
      * @returns {Popup}
      */
     setOptions(options: PopupOptions): Popup {
+        if (isString(options.ariaLabel)) {
+            this.ariaLabel = options.ariaLabel;
+        }
         if (typeof options.autoClose === 'boolean') {
             this.autoClose = options.autoClose;
         }
@@ -704,8 +892,14 @@ export class Popup extends Overlay {
         if (typeof options.fit === 'boolean') {
             this.#fit = options.fit;
         }
+        if (typeof options.focus === 'boolean') {
+            this.#focus = options.focus;
+        }
         if (typeof options.offset !== 'undefined') {
             this.setOffset(options.offset);
+        }
+        if (isString(options.role)) {
+            this.role = options.role;
         }
         if (options.styles) {
             this.styles = options.styles;
@@ -745,6 +939,9 @@ export class Popup extends Overlay {
                     collection.hideOthers(this);
                 }
 
+                // After the others are hidden, because hiding one that had focus gives focus back
+                // to where it was before - which is then where this one should give it back to.
+                this.#prepareFocus();
                 this.#isOpen = true;
                 collection.add(this);
 
@@ -864,6 +1061,7 @@ export class Popup extends Overlay {
      * @param {google.maps.MapPanes} panes The Google maps panes object
      */
     add(panes: google.maps.MapPanes) {
+        this.#applyAttributes();
         panes.floatPane.appendChild(this.getOverlayElement());
     }
 
@@ -935,6 +1133,12 @@ export class Popup extends Overlay {
                 // Ony do this the first time the popup is drawn on the map.
                 // The popup is redrawn anytime the map is moved or zoomed and we don't want to keep fitting the popup.
                 this.#fitPopup();
+            }
+
+            // After the popup has been fit within the map, so it's where it's going to stay
+            if (this.#isFocusPending) {
+                this.#isFocusPending = false;
+                this.#moveFocusIn();
             }
         }
     }
@@ -1059,6 +1263,23 @@ export class Popup extends Overlay {
     };
 
     /**
+     * Handle Enter and Space on a close element that isn't a native button
+     *
+     * Held as a field so that the same function can be removed again.
+     *
+     * @param {KeyboardEvent} event The keydown event
+     */
+    #handleCloseKeyDown = (event: KeyboardEvent) => {
+        if (!isActivationKey(event)) {
+            return;
+        }
+        // Space scrolls the page and Enter can submit a form, neither of which is wanted from
+        // something standing in for a button
+        event.preventDefault();
+        this.hide();
+    };
+
+    /**
      * Set up the close click event listenter on the element
      *
      * @param {HTMLElement} element The element that will close the popup when clicked.
@@ -1068,6 +1289,129 @@ export class Popup extends Overlay {
         element.removeEventListener('click', this.#handleCloseClick);
         // Add the click event listener to hide the popup
         element.addEventListener('click', this.#handleCloseClick);
+        // Something that closes the popup when clicked has to work from the keyboard too
+        if (makeButtonLike(element)) {
+            element.removeEventListener('keydown', this.#handleCloseKeyDown);
+            element.addEventListener('keydown', this.#handleCloseKeyDown);
+        }
+    };
+
+    /**
+     * Write the role, the accessible name and the tabindex onto the popup element.
+     *
+     * Called from add(), when the element goes on the page, so anything set before then still
+     * ends up on it. The event that decides the default role is known by then too.
+     *
+     * @private
+     */
+    #applyAttributes(): void {
+        const element = this.getOverlayElement();
+        element.setAttribute('role', this.role);
+        if (this.#ariaLabel) {
+            element.setAttribute('aria-label', this.#ariaLabel);
+        } else {
+            element.removeAttribute('aria-label');
+        }
+        // The popup itself takes focus when there's nothing in it that can. tabindex="-1" means
+        // it can be focused from code without being added to the tab order.
+        if (this.#event === 'hover') {
+            element.removeAttribute('tabindex');
+        } else {
+            element.setAttribute('tabindex', '-1');
+        }
+    }
+
+    /**
+     * Whether focus is somewhere inside the popup
+     *
+     * @private
+     * @returns {boolean}
+     */
+    #hasFocus(): boolean {
+        if (!this.isVisible || typeof document === 'undefined') {
+            return false;
+        }
+        const active = document.activeElement;
+        return active instanceof Node && this.getOverlayElement().contains(active);
+    }
+
+    /**
+     * Get ready to move focus into the popup as it opens.
+     *
+     * Remembers where focus is now so that it can be given back when the popup closes, and sets
+     * the Escape listener up. A popup shown on hover never takes focus - the pointer resting on
+     * something mustn't pull a keyboard user away from where they are.
+     *
+     * @private
+     */
+    #prepareFocus(): void {
+        Popup.#listenForEscape();
+        if (!this.#focus || this.#event === 'hover' || typeof document === 'undefined') {
+            return;
+        }
+        const active = document.activeElement;
+        // Focus that's already inside this popup isn't somewhere to give it back to
+        if (active instanceof HTMLElement && active !== document.body && !this.#hasFocus()) {
+            this.#opener = active;
+        }
+        this.#isFocusPending = true;
+    }
+
+    /**
+     * Move focus to the first thing in the popup that can take it, or to the popup itself.
+     *
+     * preventScroll because the popup is positioned inside the map. Scrolling the page to it is
+     * the map's job, and #fitPopup() has already done it.
+     *
+     * @private
+     */
+    #moveFocusIn(): void {
+        const element = this.getOverlayElement();
+        const target = element.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) ?? element;
+        target.focus({ preventScroll: true });
+    }
+
+    /**
+     * Add the one document listener that closes popups with Escape
+     *
+     * @private
+     */
+    static #listenForEscape(): void {
+        if (Popup.#isEscapeListening || typeof document === 'undefined') {
+            return;
+        }
+        Popup.#isEscapeListening = true;
+        document.addEventListener('keydown', Popup.#handleEscape);
+    }
+
+    /**
+     * Close the most recently opened popup when Escape is pressed.
+     *
+     * Only one closes per press, so Escape works back through popups that were left open with
+     * autoClose turned off. Popups shown on hover are left to hoverOverlay.ts, which hides them
+     * first.
+     *
+     * The listener is on the document so that Escape works wherever focus is - in the popup, or
+     * still on the marker when focus wasn't moved. It listens in the bubbling phase and skips an
+     * event that something else already handled, so Escape in a control inside the popup that
+     * uses it for itself doesn't also close the popup.
+     *
+     * @private
+     * @param {KeyboardEvent} event The keydown event
+     */
+    static #handleEscape = (event: KeyboardEvent): void => {
+        if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) {
+            return;
+        }
+        const { popups } = PopupCollection.getInstance();
+        for (let i = popups.length - 1; i >= 0; i -= 1) {
+            const p = popups[i];
+            if (p.#isOpen && p.#event !== 'hover') {
+                event.preventDefault();
+                p.hide();
+                return;
+            }
+        }
     };
 }
 

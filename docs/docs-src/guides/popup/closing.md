@@ -79,4 +79,8 @@ popup.attachTo(marker);
 
 For each of the above methods you can set the close element as an HTMLElement or a string CSS selector.
 
+Use a `<button>` for the close element where you can, so that it works with a keyboard and screen readers on its own. If you use something else, like a `<div>` or a `<span>`, it's given `role="button"` and `tabindex="0"`, and Enter and Space close the popup.
+
+Pressing Escape also closes the most recently opened popup. See [Accessibility](/api-reference/popup#accessibility).
+
 The CSS selector can be for one element, or multiple elements. [`querySelectorAll()`](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelectorAll) is used, which means your selector can match multiple elements in the popup, or,  you can use multiple selectors.

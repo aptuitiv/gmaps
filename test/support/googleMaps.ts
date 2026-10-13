@@ -968,8 +968,15 @@ const fakeProjection = {
  *
  * It's a real class so that the instanceof check in Evented.#isGoogleObjectSet() succeeds and
  * events get wired up the way they do for other objects.
+ *
+ * The real one is an element on the page, and the library listens to it for focus. So under jsdom
+ * this is an HTMLElement too, registered as a custom element by installGoogleMaps(). In the node
+ * environment there's no HTMLElement, so it's a plain class there.
  */
-class AdvancedMarkerElementStub {
+const AdvancedMarkerElementBase: new () => object =
+    typeof HTMLElement !== 'undefined' ? HTMLElement : class {};
+
+class AdvancedMarkerElementStub extends (AdvancedMarkerElementBase as new () => any) {
     map: any = null;
 
     position: any = null;
@@ -987,6 +994,7 @@ class AdvancedMarkerElementStub {
      * @param {object} [options] The options the marker was built with
      */
     constructor(options?: any) {
+        super();
         mapsStats.construct('AdvancedMarkerElement');
         mapsStats.call('AdvancedMarkerElement', 'constructor', [options]);
         if (options) {
@@ -1120,7 +1128,33 @@ const buildMaps = () => ({
     Marker: recorded('Marker'),
     Polyline: recorded('Polyline'),
     Polygon: recorded('Polygon'),
-    InfoWindow: recorded('InfoWindow'),
+    // open() and close() are recorded so that a test can see what the library passed to them,
+    // shouldFocus in particular.
+    InfoWindow: recorded('InfoWindow', {
+        /**
+         * Record the open options
+         *
+         * @param {object} options The open options
+         */
+        open(this: any, options: any): void {
+            mapsStats.call('InfoWindow', 'open', [options]);
+        },
+        /**
+         * Record the close
+         */
+        close(this: any): void {
+            mapsStats.call('InfoWindow', 'close', []);
+        },
+        /**
+         * Record and store the content
+         *
+         * @param {any} content The content
+         */
+        setContent(this: any, content: any): void {
+            mapsStats.call('InfoWindow', 'setContent', [content]);
+            this.__values.content = content;
+        },
+    }),
     // A stand-in for google.maps.MapCanvasProjection.
     //
     // Overlay reaches this through getProjection(), and without it the whole of #handleResize
@@ -1268,6 +1302,10 @@ const buildMaps = () => ({
  */
 export const installGoogleMaps = () => {
     mapsStats.reset();
+    // A custom element has to be registered before it can be built, and can only be registered once
+    if (typeof customElements !== 'undefined' && !customElements.get('gmp-advanced-marker-stub')) {
+        customElements.define('gmp-advanced-marker-stub', AdvancedMarkerElementStub as any);
+    }
     // Otherwise a handler set by one test answers the next one's requests
     geocoderHandler = defaultGeocoderHandler;
     const maps = buildMaps();

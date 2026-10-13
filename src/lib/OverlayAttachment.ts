@@ -21,6 +21,7 @@
 import { DataFeature } from './DataFeature';
 import { DataLayer, DataLayerEventObject } from './DataLayer';
 import { isFunction, isObject, isString, renderTemplate } from './helpers';
+import { hoverEnded, hoverShown, isHoverDismissed } from './hoverOverlay';
 import { LatLng } from './LatLng';
 import { Map } from './Map';
 import { Overlay } from './Overlay';
@@ -241,16 +242,20 @@ const handleEvent = (
     }
 
     if (type === 'mouseover') {
-        if (config.event === 'hover') {
+        // Not when Escape dismissed it, until the pointer has left the feature. See hoverOverlay.ts.
+        if (config.event === 'hover' && !isHoverDismissed(feature)) {
             const shown = showOverlay(config, feature, event.latLng, adapter, state.openOverlay);
             if (shown) {
                 state.openFeature = feature;
                 state.openOverlay = shown;
+                hoverShown(shown, feature);
             }
         }
     } else if (type === 'mouseout') {
+        hoverEnded(feature);
         if (config.event === 'hover' && state.openOverlay) {
-            state.openOverlay.hide();
+            // After a short delay, so that the pointer can move onto the overlay
+            state.openOverlay.hideSoon();
             state.openFeature = undefined;
             state.openOverlay = undefined;
         }

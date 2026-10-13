@@ -21,6 +21,15 @@ layout: "base.njk"
         data that has to load first. While it's disabled it's styled to look absent &mdash; click it
         anyway and nothing happens, which is the point.
     </li>
+    <li>
+        <strong>Zoom in</strong> (the + icon) is an icon-only button. It has no text to be its name,
+        so its tooltip is also written to <code>aria-label</code>.
+    </li>
+    <li>
+        <strong>Satellite</strong> (the globe icon) is an icon-only toggle that shows the word
+        &ldquo;Satellite&rdquo; while it's on. While it's off the tooltip is its <code>aria-label</code>.
+        Once it has text, the <code>aria-label</code> comes off so the name is the text you can see.
+    </li>
     <li><strong>The legend</strong> is a plain <code>Control</code> wrapping markup already on the page.</li>
     <li>
         <strong>Move the legend</strong> and <strong>Remove the legend</strong> show the parts
@@ -37,6 +46,28 @@ layout: "base.njk"
 <p id="status" aria-live="polite" style="margin: 10px 0">&nbsp;</p>
 
 <div id="map" class="mapContainer"></div>
+
+<h2>What each button is called</h2>
+
+<p>
+    Updated as the buttons change. A button's name is what a screen reader reads and what a voice
+    control user says to press it. The tooltip always goes in <code>title</code>. It only goes in
+    <code>aria-label</code>, which would replace the visible text as the name, when the button has
+    no text you can see. The text inside each icon's <code>svg</code> doesn't count.
+</p>
+
+<table class="TestNames">
+    <thead>
+        <tr>
+            <th scope="col">Button</th>
+            <th scope="col">Visible text</th>
+            <th scope="col"><code>title</code></th>
+            <th scope="col"><code>aria-label</code></th>
+            <th scope="col">Name</th>
+        </tr>
+    </thead>
+    <tbody id="buttonNames"></tbody>
+</table>
 
 {# The legend starts here on the page and is moved onto the map by the Control, the way a
    server-rendered legend would be. #}
@@ -67,9 +98,48 @@ layout: "base.njk"
         cursor: default;
     }
 
+    .TestBtn--icon {
+        align-items: center;
+        display: flex;
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .TestBtn--icon svg {
+        display: block;
+        height: 18px;
+        width: 18px;
+    }
+
+    .TestBtn-text:empty {
+        display: none;
+    }
+
     .TestBtn[data-visible='yes'] {
         background-color: #5284ed;
         color: #fff;
+    }
+
+    .TestBtn[data-visible='yes'] svg {
+        fill: #fff;
+    }
+
+    .TestNames {
+        border-collapse: collapse;
+        font-size: 14px;
+        margin: 10px 0 20px;
+    }
+
+    .TestNames th,
+    .TestNames td {
+        border: 1px solid #ccc;
+        padding: 4px 8px;
+        text-align: left;
+    }
+
+    .TestNames .is-empty {
+        color: #767676;
+        font-style: italic;
     }
 
     .TestLegend {

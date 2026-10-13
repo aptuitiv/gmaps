@@ -165,6 +165,7 @@ Type `PopupOptions`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| ariaLabel | string | | The accessible name for the popup, written to its `aria-label` attribute. Screen readers announce it when focus moves into the popup. Set this for any popup that has a role, which is every popup except a hover one by default. See [Accessibility](#accessibility). |
 | autoClose | boolean | true | Whether to automatically close other open popups when opening this one. |
 | center | boolean | true | Whether to center the popup horizontally on the element. Useful if the popup is on a marker. If this is `true` then `transform: translate(-50%, -100%)` is added to the popup container `div`. If it's `false` then `transform: translate(0, -100%)` is added. Either way the popup is positioned above the element. |
 | className | string | | The popup wrapper class name. |
@@ -173,9 +174,25 @@ Type `PopupOptions`
 | content | string, [HTMLElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement), or [Text](https://developer.mozilla.org/en-US/docs/Web/API/Text)  | | The popup content |
 | event | string | 'click' | The event to trigger the display of the popup. Allowed values are `click`, `clickon`, and `hover`. This is an alternate way of setting the trigger event than passing the event to [attachTo](#attachto) or [attachPopup](/api-reference/base-classes/layer#attachpopup). |
 | fit | boolean | true | Whether to fit the popup within the map bounds when it's displayed. If this is `true` then the map may pan to bring the full popup into view. This will not happen if `event` is `hover` as that can be a jarring experience. |
+| focus | boolean | true | Whether focus is moved into the popup when it's opened, and given back to where it was when it's closed. A popup shown on hover never takes focus. See [Accessibility](#accessibility). |
 | offset | [PointValue](/api-reference/utilities/point#pointvalue-type) | | The amount to offset the popup from the element it is displayed at. If the element is a [Marker](/api-reference/marker), then this is added to the marker's anchorPoint value. For example, if the marker is 40px tall and no anchorPoint value was set for the marker, then by default the popup will be displayed at the top of the marker. If you set the offset to be 0, -20 then the popup will be displayed 20px above the top of the marker. If the element is a marker and this is not set, then the marker's anchorPoint value is used.|
+| role | string | 'dialog' | The [ARIA role](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles) for the popup element. Defaults to `dialog`, or `tooltip` for a popup shown on hover. |
 | styles | object | | An object of styles to apply to the popup. |
 | theme | string | 'none' | The theme to use for the popup. By default the popup does not have any default styles and you have to use your own. Set to `default` to use the basic default theme. Note, if `center` is `true` then `transform: translate(-50%, -100%)` will still be set to horizontally center the popup on the element. |
+
+## Accessibility
+
+A popup opened by `click` or `clickon` behaves as a non-modal dialog.
+
+- **Role and name.** The popup element gets `role="dialog"`, which you can change with the `role` [option](#popup-options). Give it a name with the `ariaLabel` option, such as the name of the place the popup is about, so that screen readers announce what opened.
+- **Focus moves in.** When the popup opens, focus moves to the first thing in it that can take focus, such as a link or a button. If there's nothing like that, the popup itself is focused. Set `focus: false` to leave focus where it is. Note that this applies to popups opened from code too, so if you open a popup when the page loads you probably want `focus: false`.
+- **Focus comes back.** When the popup closes, focus goes back to wherever it was before the popup opened. That only happens if focus was still inside the popup, so it's never pulled back from somewhere the user has moved it to.
+- **Escape closes it.** Pressing Escape closes the most recently opened popup, wherever focus is on the page. If something inside the popup handles Escape itself and calls `preventDefault()`, the popup stays open.
+- **Focus isn't trapped.** The map behind the popup is still usable, so Tab can move focus out of the popup.
+
+A popup shown on `hover` works like a [tooltip](/api-reference/tooltip#accessibility) instead. It never takes focus, has `role="tooltip"`, the pointer can move onto it, and Escape hides it. Like a tooltip, it isn't shown for keyboard focus.
+
+Use a real `<button>` as the [close element](/guides/popup/closing). If you use something else, like a `<div>` or a `<span>`, it's given `role="button"` and `tabindex="0"`, and Enter and Space close the popup. A role or a tabindex you set yourself is kept.
 
 ## Events
 
@@ -214,6 +231,7 @@ popup.onOpen(() => {
 
 | Property  | Type   | Description                             |
 |-----------|--------|-----------------------------------------|
+| ariaLabel | string | The accessible name for the popup. This does the same as the `ariaLabel` [option](#popup-options). Setting an empty string removes it. |
 | autoClose | boolean | Whether to automatically close other open popups when opening this one |
 | center | boolean | Whether to center the popup horizontally on the element. This does the same as the `center` [option](#popup-options). |
 | clearance | [Size](/api-reference/utilities/size) | The amount of space between the popup and the map viewport edge. This is used when the map is panned to bring the popup into view. It can be set with a [SizeValue](/api-reference/utilities/size#sizevalue-type). |
@@ -221,6 +239,8 @@ popup.onOpen(() => {
 | content | string, [HTMLElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement), or [Text](https://developer.mozilla.org/en-US/docs/Web/API/Text) | The popup content. |
 | event | string | The event to trigger the display of the popup. Allowed values are `click`, `clickon`, and `hover`. This is an alternate way of setting the trigger event than passing the event to [attachTo](#attachto) or [attachPopup](/api-reference/base-classes/layer#attachpopup). An error is thrown if any other value is set. |
 | fit | boolean | Whether to fit the popup within the map bounds when it's displayed. If this is `true` then the map may pan to bring the full popup into view. This is ignored if `event` is `hover` as that can be a jarring experience. |
+| focus | boolean | Whether focus is moved into the popup when it's opened. This does the same as the `focus` [option](#popup-options). |
+| role | string | The ARIA role used for the popup element. This is the role actually in use, so if one wasn't set it's `dialog`, or `tooltip` for a popup shown on hover. Setting an empty string goes back to the default. |
 | theme | string | The theme to use for the popup. This does the same as the `theme` [option](#popup-options). |
 
 ## Methods

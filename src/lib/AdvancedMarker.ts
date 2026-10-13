@@ -21,10 +21,11 @@
 
 /* global google */
 
+import { READY_EVENT } from './constants';
 import { EventCallback, EventConfig } from './Evented';
 import { icon, Icon, IconValue } from './Icon';
 import { latLng, LatLng, LatLngValue } from './LatLng';
-import Layer from './Layer';
+import Layer, { FocusTarget } from './Layer';
 import { loader } from './Loader';
 import { Map } from './Map';
 import { point, Point, PointValue } from './Point';
@@ -325,6 +326,22 @@ export class AdvancedMarker extends Layer {
             })
                 .catch(reject);
         });
+    }
+
+    /**
+     * Get the marker element, which takes keyboard focus because the marker is clickable.
+     *
+     * Focus can land on the marker element itself or on something Google puts inside it, and
+     * focusin and focusout reach the marker element either way, so it's the one to listen to.
+     *
+     * @internal
+     * @returns {FocusTarget|undefined}
+     */
+    getFocusTarget(): FocusTarget | undefined {
+        if (!(this.#marker instanceof HTMLElement)) {
+            return undefined;
+        }
+        return { element: this.#marker, position: this.getPosition() };
     }
 
     /**
@@ -944,6 +961,10 @@ export class AdvancedMarker extends Layer {
             this.#marker = new google.maps.marker.AdvancedMarkerElement(markerOptions);
             this.dispatch('initialized');
             this.setEventGoogleObject(this.#marker);
+            // Popups, tooltips and info windows wait for this before they listen to the marker.
+            // It was never dispatched, so attaching one to an advanced marker did nothing. This
+            // only runs once, because the marker object is only ever built once.
+            this.dispatch(READY_EVENT);
         }
     }
 }
