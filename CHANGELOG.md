@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## [0.32.0] - 2026-10-13
+
 ### Added
 
 - Added the `ariaLabel` and `role` popup options. A popup opened by `click` or `clickon` now has `role="dialog"` by default, and `ariaLabel` gives it an accessible name.
