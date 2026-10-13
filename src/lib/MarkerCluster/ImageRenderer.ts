@@ -292,6 +292,8 @@ export class ImageRenderer implements Renderer {
     setTitle(title: ClusterTitle): void {
         if (isClusterTitle(title)) {
             this.#title = title;
+            // The fallback renderer was given the title when it was made, so it needs the new one too
+            this.#fallbackRenderer?.setTitle(title);
         }
     }
 

@@ -351,6 +351,14 @@ describe('MarkerCluster', () => {
             expect(renderTitle(renderer, 9)).toBe('9 places');
         });
 
+        it('the fallback renderer gets a title set after it was made', () => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const renderer = new ImageRenderer();
+            expect(renderTitle(renderer, 9)).toBe('Cluster of 9 markers');
+            renderer.setTitle('{count} places');
+            expect(renderTitle(renderer, 9)).toBe('9 places');
+        });
+
         it('is set from the cluster options', async () => {
             const map = fakeMap();
             markerCluster(map, { imageRendererOptions: { image: 'https://example.com/cluster.png', title: '{count} stops' } });
