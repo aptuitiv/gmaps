@@ -331,7 +331,7 @@ These are the options for the default renderer.
 | middleOpacity | number | 0.4 | The opacity to use for the middle ring of the marker. Must be between 0 and 1. |
 | outerOpacity | number | 0.2 | The opacity to use for the outer ring of the marker. Must be between 0 and 1. |
 | showNumber | boolean | true | Whether to show the number of markers in the cluster. |
-| title | string or function | 'Cluster of {count} markers' | The title for the cluster markers, which screen readers use as their name. See [Cluster marker title](#cluster-marker-title). |
+| title | string or function | `'Cluster of {count} markers'` | The title for the cluster markers, which screen readers use as their name. See [Cluster marker title](#cluster-marker-title). |
 
 ## Image renderer
 
@@ -434,7 +434,7 @@ These are the options for the image renderer.
 | labelFontSize | number or string | '12px' | The font size of the label text (equivalent to the CSS font-size property). Use a string with a unit, like `'14px'`. |
 | labelFontWeight | string | | The font weight of the label text (equivalent to the CSS font-weight property). |
 | showNumber | boolean | true | Whether to show the number of markers in the cluster. |
-| title | string or function | 'Cluster of {count} markers' | The title for the cluster markers, which screen readers use as their name. See [Cluster marker title](#cluster-marker-title). |
+| title | string or function | `'Cluster of {count} markers'` | The title for the cluster markers, which screen readers use as their name. See [Cluster marker title](#cluster-marker-title). |
 
 ## Cluster marker title
 
