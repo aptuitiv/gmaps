@@ -1,6 +1,6 @@
 # Plan: Accessibility fixes for overlays, markers, clusters and buttons
 
-Status: **Steps 1–6 complete (2026-10-13).**
+Status: **Steps 1–7 complete (2026-10-13).** Step 7 needed no code change and was checked by hand in Chrome, Firefox and Safari. Manual checks still open for steps 2 and 3 are listed under those steps.
 
 Created: 2026-10-13
 Target: `src/lib/Popup.ts`, `src/lib/Tooltip.ts`, `src/lib/Overlay.ts`, `src/lib/Marker.ts`,
@@ -388,33 +388,32 @@ button's name" section. CHANGELOG — Changed.
 
 ---
 
-### Step 7 — Visible focus inside the default Popup theme
+### Step 7 — Visible focus inside the default Popup theme ✅ (no change needed)
 
 **Problem (to confirm).** Once step 1 moves focus into popups, focused elements inside a
 default-themed popup need a visible focus indicator. The default theme is inline styles only
-(`Popup.ts:460-475`), and it doesn't remove outlines itself. The open question is whether Google's
-map CSS (`.gm-style`) suppresses outlines on descendants.
+(`Popup.#applyTheme()`), and it doesn't remove outlines itself. The open question was whether
+Google's map CSS (`.gm-style`) suppresses outlines on descendants.
 
-**Changes.**
+**Verified** in headless Chrome, driven over the DevTools protocol with real key and mouse events
+(Maps JS weekly, 2026-10-13). A `theme: 'default'` popup on a marker, with a link and a button:
 
-- [ ] **Verify first** in Chrome, Firefox and Safari: with `theme: 'default'`, are focus rings
-      visible on a link and a button inside the popup, and on the popup container when it gets
-      focus with `tabindex="-1"`?
-  - If they are, close this step with a note and no code change.
-- [ ] If they aren't: the library injects no CSS today, so pick one of these and record the decision
-      here:
-  - (a) Inject one small, scoped `<style>` the first time a default-themed popup is shown, e.g.
-    `.gmaps-popup-default :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }`,
-    and add that class name with the theme. Remove it with `theme: 'none'`.
-  - (b) No injection: document the CSS rule to copy, as the Button docs already do for a plain
-    button.
-  - Leaning (a), because the default theme exists so people don't have to write CSS.
-- [ ] Don't show a ring on the container for pointer-opened popups. `:focus-visible` handles that.
+- Opening it moved focus to the link (step 1).
+- Tab to the button and on: `:focus-visible` matched, computed `outline: auto 1px` (Chrome's own
+  ring). Same for the link.
+- A text-only popup opened after a key press: the container (`tabindex="-1"`) got focus,
+  `:focus-visible` matched, ring shown.
+- The same popup opened after a mouse click: the container got focus, `:focus-visible` didn't
+  match, no ring. So pointer users don't see a ring on the container, with no code needed.
+- Every stylesheet rule on the page that mentions `outline` was listed. Google's only one is
+  `.gm-style .gm-style-cc a, … { outline-offset: 3px }`, for its own attribution links. Nothing
+  removes outlines inside the map.
 
-**Tests:** if (a), the style element is injected once, the class is added and removed with the
-theme, and nothing is injected with `theme: 'none'`.
+**Decision:** no code change, so neither option (a) nor (b) is needed. The library doesn't take
+away the browser's focus ring, and Google's CSS doesn't either.
 
-**Docs:** `popup.md`. CHANGELOG.
+**Checked by hand (2026-10-13):** Firefox and Safari, tabbing through a default-themed popup.
+Focus rings show in both. Done.
 
 ---
 
