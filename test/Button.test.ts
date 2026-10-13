@@ -238,6 +238,23 @@ describe('Button', () => {
             expect(b.element.hasAttribute('aria-label')).toBe(false);
         });
 
+        it('takes its aria-label off when another state gives the button text', () => {
+            const b = button({
+                states: {
+                    enabled: { tooltip: 'Satellite view' },
+                    active: { text: 'Satellite' },
+                    inactive: { text: '' },
+                },
+                toggle: true,
+            });
+            expect(b.element.getAttribute('aria-label')).toBe('Satellite view');
+            b.activate();
+            expect(b.element.hasAttribute('aria-label')).toBe(false);
+            expect(b.element.getAttribute('title')).toBe('Satellite view');
+            b.deactivate();
+            expect(b.element.getAttribute('aria-label')).toBe('Satellite view');
+        });
+
         it('takes its aria-label off when the tooltip is removed', () => {
             const b = button({ states: layerStates, toggle: true });
             b.disable();

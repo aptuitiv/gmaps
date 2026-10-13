@@ -134,6 +134,12 @@ export class Button extends Control {
      */
     #tooltipAriaLabel: string | undefined;
 
+    /**
+     * The tooltip the states last set, so that the aria-label can be worked out again when a state
+     * changes the text without setting a tooltip
+     */
+    #tooltip: string | null = null;
+
     /** Whether a click flips the active state */
     #toggle: boolean = false;
 
@@ -482,9 +488,14 @@ export class Button extends Control {
             }
         }
 
-        // After the text, because whether the tooltip is also the aria-label depends on it
+        // After the text, because whether the tooltip is also the aria-label depends on it. A state
+        // can change the text without a tooltip of its own, like an active state that adds a word to
+        // an icon-only button whose tooltip comes from the enabled state. The aria-label is worked
+        // out again then too, so the old one doesn't stay and hide the new text.
         if (typeof style.tooltip !== 'undefined') {
             this.#applyTooltip(style.tooltip);
+        } else if (typeof style.text !== 'undefined') {
+            this.#applyTooltipAriaLabel();
         }
 
         if (isStringWithValue(style.className)) {
@@ -521,7 +532,21 @@ export class Button extends Control {
         } else {
             this.element.setAttribute('title', value);
         }
+        this.#tooltip = value;
+        this.#applyTooltipAriaLabel();
+    }
 
+    /**
+     * Write the tooltip to aria-label if the button has no visible text, or take off the one a
+     * tooltip wrote before if it now has some. See #applyTooltip().
+     *
+     * @private
+     */
+    #applyTooltipAriaLabel(): void {
+        if (this.#tooltipAttribute) {
+            return;
+        }
+        const value = this.#tooltip;
         if (value !== null && !hasVisibleText(this.element)) {
             this.element.setAttribute('aria-label', value);
             this.#tooltipAriaLabel = value;
