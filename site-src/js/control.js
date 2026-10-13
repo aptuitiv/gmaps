@@ -109,7 +109,8 @@ window.setTimeout(() => {
 
 /* ---------------------------------------------------------------------------
     An icon-only button. There's no text to name it, so the tooltip is written to aria-label as
-    well as title. The <title> inside the svg doesn't count as text you can see.
+    well as title. The <title> inside the svg doesn't count as text you can see. The svg is
+    aria-hidden too, because the icon is decorative and the aria-label already names the button.
 
     An action button has no active state, so the tooltip goes on the enabled state.
 --------------------------------------------------------------------------- */
@@ -117,7 +118,7 @@ window.setTimeout(() => {
 const zoomButton = G.button({
     className: 'TestBtn TestBtn--icon',
     content:
-        '<svg viewBox="0 0 24 24"><title>Plus icon</title><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" /></svg>',
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><title>Plus icon</title><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" /></svg>',
     map: map,
     position: G.ControlPosition.BLOCK_START_INLINE_END,
     states: {
