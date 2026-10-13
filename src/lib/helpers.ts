@@ -396,3 +396,47 @@ export const calculateDimensions = (
         height: newHeight,
     };
 };
+
+/**
+ * Give an element that isn't already interactive the semantics of a button.
+ *
+ * Anything that gets a click listener has to be reachable and operable with a keyboard too, and a
+ * div or a span is neither: it can't be tabbed to, and Enter and Space do nothing on it. This
+ * gives it a role and a tabindex. The caller adds the keydown listener, using isActivationKey(),
+ * because only the caller knows what activating it does.
+ *
+ * Elements that already carry this are left alone - a real button, a link with an href, a form
+ * control. So is a role or a tabindex the caller set themselves, since they have said what they
+ * want it to be.
+ *
+ * @param {HTMLElement} element The element that responds to clicks
+ * @returns {boolean} Whether the element needs a keydown listener. False when it's natively interactive.
+ */
+export const makeButtonLike = (element: HTMLElement): boolean => {
+    const nativelyInteractive =
+        element instanceof HTMLButtonElement ||
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLSelectElement ||
+        element instanceof HTMLTextAreaElement ||
+        (element instanceof HTMLAnchorElement && element.hasAttribute('href'));
+
+    if (nativelyInteractive) {
+        return false;
+    }
+
+    if (!element.hasAttribute('role')) {
+        element.setAttribute('role', 'button');
+    }
+    if (!element.hasAttribute('tabindex')) {
+        element.setAttribute('tabindex', '0');
+    }
+    return true;
+};
+
+/**
+ * Whether a keydown activates a button - Enter or Space
+ *
+ * @param {KeyboardEvent} event The keydown event
+ * @returns {boolean}
+ */
+export const isActivationKey = (event: KeyboardEvent): boolean => event.key === 'Enter' || event.key === ' ';

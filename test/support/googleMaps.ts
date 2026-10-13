@@ -1120,7 +1120,33 @@ const buildMaps = () => ({
     Marker: recorded('Marker'),
     Polyline: recorded('Polyline'),
     Polygon: recorded('Polygon'),
-    InfoWindow: recorded('InfoWindow'),
+    // open() and close() are recorded so that a test can see what the library passed to them,
+    // shouldFocus in particular.
+    InfoWindow: recorded('InfoWindow', {
+        /**
+         * Record the open options
+         *
+         * @param {object} options The open options
+         */
+        open(this: any, options: any): void {
+            mapsStats.call('InfoWindow', 'open', [options]);
+        },
+        /**
+         * Record the close
+         */
+        close(this: any): void {
+            mapsStats.call('InfoWindow', 'close', []);
+        },
+        /**
+         * Record and store the content
+         *
+         * @param {any} content The content
+         */
+        setContent(this: any, content: any): void {
+            mapsStats.call('InfoWindow', 'setContent', [content]);
+            this.__values.content = content;
+        },
+    }),
     // A stand-in for google.maps.MapCanvasProjection.
     //
     // Overlay reaches this through getProjection(), and without it the whole of #handleResize

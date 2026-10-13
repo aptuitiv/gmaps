@@ -1,6 +1,6 @@
 # Plan: Accessibility fixes for overlays, markers, clusters and buttons
 
-Status: **Not started.**
+Status: **Step 1 complete (2026-10-13).**
 
 Created: 2026-10-13
 Target: `src/lib/Popup.ts`, `src/lib/Tooltip.ts`, `src/lib/Overlay.ts`, `src/lib/Marker.ts`,
@@ -47,58 +47,81 @@ is a reasonable warm-up before the two larger overlay steps.
 
 ### Step 1 — Popup: focus management, Escape, semantics
 
+**Complete (2026-10-13).**
+
 **Problem.** Opening a popup doesn't move focus, and closing it doesn't give focus back. The popup
 sits in Google's float pane deep inside the map's markup, has no role and no name, and can't be
 closed with Escape. A `div` passed as `closeElement` gets a click listener and nothing else.
 
 **Changes.**
 
-- [ ] New `PopupOptions`, following `InfoWindow`'s naming so the two match:
+- [x] New `PopupOptions`, following `InfoWindow`'s naming so the two match, each with a property:
   - `ariaLabel?: string` — written as `aria-label` on the overlay element.
   - `focus?: boolean` — whether opening the popup moves focus into it. **Defaults to `true`**
     (decided 2026-10-13). It never applies to hover popups: a hover must not move focus.
-- [ ] Change `InfoWindow`'s `focus` default from `false` to `true` (`InfoWindow.ts:100`, and the
-      option comment at line 48) so the two match. It's passed through as Google's `shouldFocus`.
-      This is a behaviour change, so it goes under **Changed** in the CHANGELOG. The Popup default
-      goes there too.
-  - `role?: string` — defaults to `'dialog'` for `click` / `clickon` popups. Hover popups get
-    `role="tooltip"` from step 2 instead.
-- [ ] When focus moves into the popup on open: focus the first focusable descendant, or the overlay
-      element itself (given `tabindex="-1"`) if there isn't one. Do this after the first `draw()`,
-      once the element is actually in the DOM and positioned. Remember `document.activeElement`
-      from just before opening.
-- [ ] On `hide()`: if focus is currently inside the popup, put it back on the remembered element,
-      as long as that element is still connected. Don't take focus back if the user has already
-      moved it somewhere else. This applies to every way of closing: Escape, `closeElement`, a
-      toggle click, `hideOthers()` from `autoClose`, and `closeAllPopups()`.
-- [ ] Escape closes the popup. Listen with `keydown` on the overlay element. Also listen on
-      `document` while the popup is open, so Escape still works when focus stayed on the marker
-      (`focus: false`). Only the most recently opened popup reacts. Remove the document listener
-      in `hide()`.
-- [ ] `closeElement`: if a matched element isn't natively interactive, apply the same treatment
-      `Button.#setUpKeyboard()` uses (`role="button"`, `tabindex="0"`, Enter/Space). Pull that
-      logic into a shared helper in `helpers.ts` rather than copying it. `Button` then uses the
-      helper too, with no change in behaviour.
-- [ ] Set `aria-modal`? **No.** The popup isn't modal: the map behind it stays usable. Don't trap
-      focus.
+  - `role?: string` — defaults to `'dialog'` for `click` / `clickon` popups and to no role for hover
+    popups. Step 2 gives hover popups `role="tooltip"`.
+- [x] Change `InfoWindow`'s `focus` default from `false` to `true` so the two match. It's passed
+      through as Google's `shouldFocus`.
+  - **Found on the way:** `InfoWindow.attachTo()` never stored the trigger event, so `show()` had
+    no way to tell a hover from a click. It's stored now, and `shouldFocus` is `false` for hover.
+- [x] When focus moves into the popup on open: focus the first focusable descendant, or the overlay
+      element itself (given `tabindex="-1"`) if there isn't one. Done on the first `draw()` after
+      opening, once the element is on the page and has been fit within the map, with
+      `preventScroll`. The element that had focus is remembered when the popup opens.
+  - The opener is remembered *after* `hideOthers()`. If the popup being replaced had focus, it
+    hands focus back first, so the new popup records the original opener rather than an element
+    inside a popup that's about to go.
+- [x] On `hide()`: if focus was inside the popup, put it back on the remembered element, as long as
+      that element is still connected. Whether focus was inside is checked *before* the element is
+      taken off the page, because by then focus has already fallen back to the body. This covers
+      every way of closing, because they all go through `hide()`.
+- [x] Escape closes the most recently opened non-hover popup.
+  - **Differs from the plan:** there's one `document` listener shared by every popup, rather than
+    one on each overlay element plus one on the document. It's added the first time a popup opens,
+    not when the file loads, and it stays. When no popup is open it does nothing, which is cheaper
+    than adding and removing it on every open and close.
+  - It listens in the bubbling phase and ignores an event that's already `defaultPrevented`. That
+    way a control inside the popup that uses Escape for itself doesn't also close the popup.
+  - Popups are found in `PopupCollection`, which is in the order they were opened. A `clickon`
+    popup is shown through `move()` rather than `show()`, so it never used to be marked open. It
+    is now, so that Escape can find it, and as a side effect `isOpen()` is now correct for
+    `clickon` popups.
+- [x] `closeElement`: `makeButtonLike()` and `isActivationKey()` were pulled out of
+      `Button.#setUpKeyboard()` into `helpers.ts`. Both `Button` and the popup close element use
+      them, and `Button`'s behaviour hasn't changed.
+- [x] No `aria-modal`, and focus isn't trapped. The popup isn't modal: the map behind it stays
+      usable.
+- [x] Role, name and tabindex are written in `add()`, when the element goes onto the page. The
+      setters only write to the element when the popup is showing, so the element isn't built early
+      (attaching a popup to thousands of layers relies on it being built lazily).
 
-**Tests** (`test/Popup.test.ts`):
-- [ ] `ariaLabel` and `role` end up on the element, and changing `ariaLabel` later updates it.
-- [ ] By default (and with `focus: true`), opening focuses the first focusable child, or the
-      container when there isn't one. `focus: false` leaves focus where it is. A hover popup never
-      takes focus.
-- [ ] `InfoWindow` passes `shouldFocus: true` by default and `false` when `focus: false`.
-- [ ] Closing gives focus back to the opener. It doesn't when focus was already elsewhere, or when
-      the opener has been removed from the DOM.
-- [ ] Escape closes the popup, both from inside it and from the document. Only the top popup closes.
-- [ ] Escape does nothing after `hide()` (listener removed).
-- [ ] A `div` used as `closeElement` gets role and tabindex, and Enter/Space close the popup. A
+**Tests** (`test/Popup.test.ts`, new `test/InfoWindow.test.ts`):
+- [x] `ariaLabel` and `role` end up on the element, and changing `ariaLabel` later updates it.
+      Setting them on a popup that isn't showing doesn't build the element.
+- [x] By default, opening focuses the first focusable child (skipping disabled and `tabindex="-1"`
+      ones), or the container when there isn't one. Focus moves on the first draw only.
+      `focus: false` leaves focus where it is. A hover popup never takes focus.
+- [x] `InfoWindow` passes `shouldFocus: true` by default and on click, and `false` with
+      `focus: false` and on hover. The Google stub gained `open()`, `close()` and `setContent()` on
+      `InfoWindow` for this.
+- [x] Closing gives focus back to the opener: on `hide()`, `closeAllPopups()`, Escape, and when
+      `autoClose` replaces one popup with another. It doesn't when focus is already elsewhere, or
+      when the opener has been removed from the DOM.
+- [x] Escape closes the popup from inside it and from outside it. Only the top popup closes, and
+      the next press closes the one below. It also closes a `clickon` popup. It does nothing to a
+      closed popup or a hover popup, nothing when the event was already handled, and other keys
+      do nothing.
+- [x] A `div` used as `closeElement` gets role and tabindex, and Enter/Space close the popup. A
       `<button>` is left alone.
-- [ ] `Button` tests still pass after the helper is extracted.
+- [x] `Button` tests still pass after the helper is extracted.
 
-**Docs:** `docs/docs-src/api-reference/popup.md` — the new options, Escape, and the focus behaviour.
-Recommend a real `<button>` as the close element. `infowindow.md` — the new `focus` default.
-CHANGELOG.
+**Docs:** `popup.md` — the new options and properties, and a new Accessibility section.
+`infowindow.md` — the new `focus` default. `guides/popup/closing.md` — recommend a `<button>`,
+mention Escape. CHANGELOG — Added and Changed.
+
+**Still to do by hand:** check in a real browser with a screen reader. jsdom has no layout, and
+Google's `OverlayView` is stubbed out, so `add()` and `draw()` were called directly in the tests.
 
 ---
 

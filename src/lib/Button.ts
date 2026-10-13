@@ -20,7 +20,15 @@
 
 import { Control, ControlOptions } from './Control';
 import { Map } from './Map';
-import { isBoolean, isFunction, isObject, isString, isStringWithValue } from './helpers';
+import {
+    isActivationKey,
+    isBoolean,
+    isFunction,
+    isObject,
+    isString,
+    isStringWithValue,
+    makeButtonLike,
+} from './helpers';
 
 // How one state shows up in the DOM. Everything here is the implementor's vocabulary.
 export type ButtonStateStyle = {
@@ -318,36 +326,15 @@ export class Button extends Control {
      * Give the element button semantics and keyboard handling when it isn't already a button.
      *
      * A click listener is attached to whatever element this is given, so an element that wasn't
-     * interactive before becomes interactive now. Something that can be clicked has to be reachable
-     * and operable with a keyboard too, and a div or a span is neither: it can't be tabbed to, and
-     * Enter and Space do nothing on it.
-     *
-     * Elements that already carry this are left alone - a real button, a link with an href, a form
-     * control - as is anything where the caller has set a role or a tabindex themselves, since they
-     * have said what they want it to be.
+     * interactive before becomes interactive now. See makeButtonLike() for what is and isn't
+     * changed.
      *
      * @private
      */
     #setUpKeyboard(): void {
-        const {element} = this;
-        const nativelyInteractive =
-            element instanceof HTMLButtonElement ||
-            element instanceof HTMLInputElement ||
-            element instanceof HTMLSelectElement ||
-            element instanceof HTMLTextAreaElement ||
-            (element instanceof HTMLAnchorElement && element.hasAttribute('href'));
-
-        if (nativelyInteractive) {
-            return;
+        if (makeButtonLike(this.element)) {
+            this.element.addEventListener('keydown', this.#handleKeyDown);
         }
-
-        if (!element.hasAttribute('role')) {
-            element.setAttribute('role', 'button');
-        }
-        if (!element.hasAttribute('tabindex')) {
-            element.setAttribute('tabindex', '0');
-        }
-        element.addEventListener('keydown', this.#handleKeyDown);
     }
 
     /**
@@ -359,7 +346,7 @@ export class Button extends Control {
      * @param {KeyboardEvent} event The keydown event
      */
     #handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key !== 'Enter' && event.key !== ' ') {
+        if (!isActivationKey(event)) {
             return;
         }
         // Space scrolls the page and Enter can submit a form, neither of which is wanted from

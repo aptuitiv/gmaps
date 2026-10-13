@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- Added the `ariaLabel` and `role` popup options. A popup opened by `click` or `clickon` now has `role="dialog"` by default, and `ariaLabel` gives it an accessible name.
+- Pressing Escape closes the most recently opened popup. Popups shown on hover aren't affected.
+- A popup close element that isn't a native button, like a `<div>`, is now given `role="button"` and `tabindex="0"`, and Enter and Space close the popup.
+
+### Changed
+
+- Popups now move focus into themselves when they open, and give focus back to where it was when they close. Added the `focus` option to turn this off. Popups shown on hover never take focus. If you open a popup when the page loads, set `focus: false` so it doesn't take focus from the page.
+- The InfoWindow `focus` option now defaults to `true`, so focus moves into an InfoWindow when it opens. InfoWindows shown on hover never take focus.
+
 ## [0.31.0] - 2026-09-28
 
 ### Fixed
